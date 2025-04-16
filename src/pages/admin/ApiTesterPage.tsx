@@ -11,10 +11,13 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { fetchActiveApiConfig } from '@/utils/apiUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { buildProxyUrl, getRequestHeaders, ProxyType } from '@/utils/proxyUtils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 
 type ApiResponse = {
   success: string;
@@ -33,6 +36,7 @@ const ApiTesterPage = () => {
   const [rawResponse, setRawResponse] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [testMethod, setTestMethod] = useState<'browser' | 'server'>('browser');
 
   useEffect(() => {
     const loadApiConfig = async () => {
@@ -54,6 +58,17 @@ const ApiTesterPage = () => {
 
     loadApiConfig();
   }, []);
+
+  // Mock data for when actual API fetch fails
+  const getMockResponse = () => {
+    return {
+      success: "true",
+      name: "Gmail USA 2023-2024",
+      price: "16000",
+      stock: "4003",
+      description: "Mock data returned due to CORS issues"
+    };
+  };
 
   const handleApiTest = async () => {
     if (!kioskToken || !userToken) {
@@ -77,10 +92,25 @@ const ApiTesterPage = () => {
 
       const headers = getRequestHeaders();
       
-      const response = await fetch(proxyUrl, { 
+      const fetchOptions: RequestInit = {
         headers,
-        cache: 'no-store'
-      });
+        cache: 'no-store',
+        mode: 'cors',
+      };
+
+      // Try with a timeout to prevent hanging on failed requests
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out after 8 seconds')), 8000)
+      );
+      
+      const fetchPromise = fetch(proxyUrl, fetchOptions);
+      
+      // Race between fetch and timeout
+      const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
       
       const responseText = await response.text();
       
@@ -96,6 +126,11 @@ const ApiTesterPage = () => {
         } catch (error) {
           console.error('Error parsing response:', error);
           setError('Không thể phân tích phản hồi');
+          
+          // Use mock data if parsing fails
+          parsedResponse = getMockResponse();
+          setRawResponse(JSON.stringify(parsedResponse, null, 2));
+          toast.warning('Sử dụng dữ liệu mẫu do lỗi CORS hoặc phân tích phản hồi');
         }
       } else {
         try {
@@ -104,6 +139,11 @@ const ApiTesterPage = () => {
         } catch (error) {
           console.error('Error parsing JSON:', error);
           setError('Phản hồi không phải định dạng JSON hợp lệ');
+          
+          // Use mock data if parsing fails
+          parsedResponse = getMockResponse();
+          setRawResponse(JSON.stringify(parsedResponse, null, 2));
+          toast.warning('Sử dụng dữ liệu mẫu do lỗi định dạng JSON');
         }
       }
       
@@ -119,6 +159,17 @@ const ApiTesterPage = () => {
     } catch (error: any) {
       console.error('API test error:', error);
       setError(`Lỗi: ${error.message || 'Không thể kết nối đến API'}`);
+      
+      // Provide mock data when real API fails
+      const mockResponse = getMockResponse();
+      setApiResponse(mockResponse);
+      setRawResponse(JSON.stringify(mockResponse, null, 2));
+      toast.warning('Sử dụng dữ liệu mẫu do lỗi kết nối API');
+      
+      const now = new Date();
+      setLastUpdated(
+        `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`
+      );
     } finally {
       setIsLoading(false);
     }
@@ -134,6 +185,13 @@ const ApiTesterPage = () => {
           </p>
         </CardContent>
       </Card>
+      
+      <Alert variant="default" className="mb-4 bg-blue-50 border-blue-200">
+        <AlertCircle className="h-5 w-5 text-blue-500" />
+        <AlertDescription className="text-blue-700">
+          Nếu API trả về lỗi "Failed to fetch", hệ thống sẽ tự động hiển thị dữ liệu mẫu để bạn có thể kiểm tra giao diện.
+        </AlertDescription>  
+      </Alert>
       
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -189,6 +247,7 @@ const ApiTesterPage = () => {
             <Button 
               onClick={handleApiTest} 
               disabled={isLoading}
+              className="bg-green-500 hover:bg-green-600 text-white"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {!isLoading && <RefreshCw className="mr-2 h-4 w-4" />}
@@ -198,9 +257,12 @@ const ApiTesterPage = () => {
         </div>
         
         {error && (
-          <div className="bg-destructive/10 border border-destructive/30 text-destructive p-4 rounded-md">
-            {error}
-          </div>
+          <Alert variant="destructive" className="mt-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
         )}
         
         {apiResponse && (
@@ -255,4 +317,3 @@ const ApiTesterPage = () => {
 };
 
 export default ApiTesterPage;
-
