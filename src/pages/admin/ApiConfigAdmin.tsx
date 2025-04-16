@@ -23,6 +23,7 @@ interface ApiConfig {
   name: string;
   user_token: string;
   is_active: boolean;
+  kiosk_token: string;
 }
 
 const ApiConfigAdmin = () => {
@@ -34,6 +35,7 @@ const ApiConfigAdmin = () => {
     name: '',
     user_token: '',
     is_active: false,
+    kiosk_token: '',
   });
 
   const fetchConfigs = async () => {
@@ -72,6 +74,7 @@ const ApiConfigAdmin = () => {
       name: config.name,
       user_token: config.user_token,
       is_active: config.is_active,
+      kiosk_token: config.kiosk_token || '',
     });
     setEditingId(config.id);
     setIsAdding(false);
@@ -82,6 +85,7 @@ const ApiConfigAdmin = () => {
       name: '',
       user_token: '',
       is_active: false,
+      kiosk_token: '',
     });
     setEditingId(null);
     setIsAdding(true);
@@ -116,6 +120,7 @@ const ApiConfigAdmin = () => {
         name: '',
         user_token: '',
         is_active: false,
+        kiosk_token: '',
       });
       setEditingId(null);
       setIsAdding(false);
@@ -133,6 +138,7 @@ const ApiConfigAdmin = () => {
       name: '',
       user_token: '',
       is_active: false,
+      kiosk_token: '',
     });
   };
 
@@ -228,6 +234,17 @@ const ApiConfigAdmin = () => {
                       id="user_token"
                       name="user_token"
                       value={formData.user_token}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="kiosk_token">Kiosk Token</Label>
+                    <Input
+                      id="kiosk_token"
+                      name="kiosk_token"
+                      value={formData.kiosk_token}
                       onChange={handleInputChange}
                       required
                     />
