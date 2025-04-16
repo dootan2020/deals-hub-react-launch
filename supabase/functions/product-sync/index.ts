@@ -105,13 +105,15 @@ async function handleCheckStock(req: Request, supabase: any, kioskToken: string 
   try {
     if (kioskToken) {
       // Check specific product by kioskToken (direct API call)
+      console.log(`Fetching product info for kioskToken: ${kioskToken} with userToken: ${userToken.substring(0, 8)}...`);
       const productInfo = await fetchProductInfoByKioskToken(userToken, kioskToken);
+      console.log('API response:', productInfo);
       
       // Log the check
       await logSyncAction(supabase, null, 'check', 
         productInfo.success === 'true' ? 'success' : 'error',
         productInfo.success === 'true' ? 
-          `Product info fetched: ${productInfo.name}, Stock: ${productInfo.stock}, Price: ${productInfo.price}` : 
+          `Product info fetched: ${productInfo.name || ''}, Stock: ${productInfo.stock || ''}, Price: ${productInfo.price || ''}` : 
           `Failed to fetch product info: ${JSON.stringify(productInfo)}`
       );
       
@@ -138,7 +140,7 @@ async function handleCheckStock(req: Request, supabase: any, kioskToken: string 
       await logSyncAction(supabase, null, 'check', 
         productInfo.success === 'true' ? 'success' : 'error',
         productInfo.success === 'true' ? 
-          `Product info fetched: ${productInfo.name}, Stock: ${productInfo.stock}, Price: ${productInfo.price}` : 
+          `Product info fetched: ${productInfo.name || ''}, Stock: ${productInfo.stock || ''}, Price: ${productInfo.price || ''}` : 
           `Failed to fetch product info: ${JSON.stringify(productInfo)}`
       );
       
@@ -321,15 +323,36 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
   
   try {
     console.log(`Fetching product info from: ${url}`);
-    const response = await fetch(url);
+    
+    // Create fetch options with user-agent to help prevent blocking
+    const options = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'application/json',
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    };
+    
+    const response = await fetch(url, options);
     
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API responded with status: ${response.status}, body: ${errorText}`);
       throw new Error(`API responded with status: ${response.status}`);
     }
     
-    const data = await response.json();
-    console.log(`API response:`, data);
-    return data as ProductInfo;
+    const responseText = await response.text();
+    console.log(`API raw response: ${responseText}`);
+    
+    // Try to parse the response as JSON
+    try {
+      const data = JSON.parse(responseText) as ProductInfo;
+      console.log(`API parsed response:`, data);
+      return data;
+    } catch (parseError) {
+      console.error(`Error parsing JSON response: ${parseError}`);
+      throw new Error(`API response is not valid JSON: ${responseText.substring(0, 100)}`);
+    }
   } catch (error: any) {
     console.error(`Error fetching product info: ${error.message}`);
     return { success: 'false', description: `API error: ${error.message}` };
@@ -386,7 +409,7 @@ async function syncProductByKioskToken(
       productId, 
       'sync', 
       'success', 
-      `Product updated: Name: ${productInfo.name}, Stock: ${productInfo.stock}, Price: ${productInfo.price}`
+      `Product updated: Name: ${productInfo.name || ''}, Stock: ${productInfo.stock || ''}, Price: ${productInfo.price || ''}`
     );
     
     return true;

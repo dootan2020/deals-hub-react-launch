@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -58,7 +59,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   const [isLoadingProductInfo, setIsLoadingProductInfo] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const navigate = useNavigate();
-  const { createProduct, updateProduct } = useProductSync();
+  const { createProduct, updateProduct, fetchProductInfo } = useProductSync();
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -185,7 +186,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     form.setValue('slug', slug);
   };
 
-  const fetchProductInfo = async () => {
+  const handleFetchProductInfo = async () => {
     const kioskToken = form.getValues('kioskToken');
     
     if (!kioskToken) {
@@ -195,40 +196,17 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
 
     setIsLoadingProductInfo(true);
     try {
-      // Get random API config to retrieve userToken
-      const { data: apiConfigs, error: configError } = await supabase
-        .from('api_configs')
-        .select('user_token')
-        .eq('is_active', true)
-        .order('created_at') // This helps us get different configs over time
-        .limit(1);
-
-      if (configError || !apiConfigs || apiConfigs.length === 0) {
-        throw new Error('No active API configuration found. Please set up API configuration first.');
-      }
-
-      const userToken = apiConfigs[0].user_token;
-      console.log('Using user token:', userToken);
+      const productInfo = await fetchProductInfo(kioskToken);
       
-      // Call the API to get product info
-      const response = await fetch(`/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${userToken}`);
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API error (${response.status}): ${errorText}`);
-      }
-      
-      const data = await response.json();
-      console.log('Product info response:', data);
-
-      if (data.success === 'true') {
+      if (productInfo && productInfo.success === 'true') {
         // Autofill form with returned data
-        form.setValue('title', data.name || '');
-        form.setValue('price', data.price || '0');
-        form.setValue('inStock', parseInt(data.stock || '0') > 0);
+        form.setValue('title', productInfo.name || '');
+        form.setValue('price', productInfo.price || '0');
+        form.setValue('inStock', parseInt(productInfo.stock || '0') > 0);
         
         // Generate slug from product name if title was empty before
-        if (!form.getValues('slug') && data.name) {
-          const slug = data.name.toLowerCase()
+        if (!form.getValues('slug') && productInfo.name) {
+          const slug = productInfo.name.toLowerCase()
             .replace(/\s+/g, '-')
             .replace(/[^a-z0-9-]/g, '');
           form.setValue('slug', slug);
@@ -236,7 +214,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         
         toast.success('Product information retrieved successfully');
       } else {
-        toast.error(`Failed to retrieve product information: ${data.description || 'Unknown error'}`);
+        toast.error(`Failed to retrieve product information: ${productInfo?.description || 'Unknown error'}`);
       }
     } catch (error: any) {
       console.error('Error fetching product info:', error);
@@ -267,7 +245,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
                   </FormControl>
                   <Button
                     type="button"
-                    onClick={fetchProductInfo}
+                    onClick={handleFetchProductInfo}
                     disabled={isLoadingProductInfo}
                     className="whitespace-nowrap"
                   >

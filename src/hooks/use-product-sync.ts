@@ -89,16 +89,19 @@ export function useProductSync() {
       }
       
       const userToken = apiConfigs[0].user_token;
-      console.log(`Using userToken: ${userToken.substring(0, 8)}... for product lookup`);
-        
+      console.log(`Using user token: ${userToken.substring(0, 8)}... for product lookup`);
+      
+      // Use the edge function instead of direct API call to avoid CORS issues
       const response = await fetch(`/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${userToken}`);
       
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API error (${response.status}): ${errorText}`);
+        const errorData = await response.text();
+        console.error('API error response:', errorData);
+        throw new Error(`API error (${response.status}): ${errorData}`);
       }
       
       const data = await response.json();
+      console.log('Product info API response:', data);
       
       if (!data || data.success !== 'true') {
         console.error('API returned failure:', data);
@@ -273,9 +276,6 @@ export function useProductSync() {
 
   const fetchProductInfoMutation = useMutation({
     mutationFn: fetchProductInfoByKioskToken,
-    onSuccess: () => {
-      toast.success('Product information fetched successfully');
-    },
     onError: (error: any) => {
       toast.error(`Failed to fetch product information: ${error.message}`);
     },
@@ -291,7 +291,7 @@ export function useProductSync() {
     syncAllProducts: syncAllMutation.mutate,
     createProduct: createProductMutation.mutate,
     updateProduct: updateProductMutation.mutate,
-    fetchProductInfo: fetchProductInfoMutation.mutate,
+    fetchProductInfo: (kioskToken: string) => fetchProductInfoMutation.mutateAsync(kioskToken),
     productsError: productsQuery.error,
     syncLogsError: syncLogsQuery.error,
   };
