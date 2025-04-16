@@ -17,12 +17,14 @@ serve(async (req) => {
     const kioskToken = url.searchParams.get('kioskToken')
     const userToken = url.searchParams.get('userToken')
     const proxyType = url.searchParams.get('proxyType') || 'allorigins'
+    const forceMockData = url.searchParams.get('force') === 'true'
 
     if (!kioskToken || !userToken) {
       return new Response(
         JSON.stringify({ 
           error: 'Missing required parameters',
-          success: 'false' 
+          success: 'false',
+          mock: true
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -30,6 +32,9 @@ serve(async (req) => {
         }
       )
     }
+
+    // Log the request
+    console.log(`API request: kioskToken=${kioskToken}, proxyType=${proxyType}, forceMock=${forceMockData}`)
 
     const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}`
     console.log(`API URL: ${apiUrl}`)
@@ -41,29 +46,54 @@ serve(async (req) => {
         name: "Gmail USA 2023-2024",
         price: "16000",
         stock: "4003",
-        description: "Gmail USA với domain @gmail.com, tạo 2023-2024"
+        description: "Gmail USA với domain @gmail.com, tạo 2023-2024",
+        mock: true
       },
       "WK76IVBVK3X0WW9DKZ4R": {
         success: "true",
         name: "Netflix Premium 4K",
         price: "35000",
         stock: "720",
-        description: "Netflix Premium 4K Ultra HD, xem được trên 4 thiết bị cùng lúc"
+        description: "Netflix Premium 4K Ultra HD, xem được trên 4 thiết bị cùng lúc",
+        mock: true
       },
       "DUP32BXSLWAP4847J84B": {
         success: "true",
         name: "V1 INSTAGRAM QUA 282, NO INFO, NO LOGIN IP, TẠO > 10-30 NGÀY",
         price: "3500",
         stock: "8090",
-        description: "Tài khoản Instagram đã qua 282, không yêu cầu login IP, tuổi 10-30 ngày"
+        description: "Tài khoản Instagram đã qua 282, không yêu cầu login IP, tuổi 10-30 ngày",
+        mock: true
       },
       "VPMY2EKXSNY5Y3A4A35B": {
         success: "true",
         name: "Digital Deals Hub Premium",
         price: "29999",
         stock: "345",
-        description: "Gói Premium dành cho Digital Deals Hub"
+        description: "Gói Premium dành cho Digital Deals Hub",
+        mock: true
       }
+    }
+
+    // If force mock data is true, return mock data directly
+    if (forceMockData) {
+      console.log("Forced mock data requested, returning mock data")
+      const mockResponse = mockData[kioskToken] || {
+        success: "true",
+        name: `Sản phẩm ${kioskToken.substring(0, 6)}`,
+        price: Math.floor(Math.random() * 100000).toString(),
+        stock: Math.floor(Math.random() * 1000).toString(),
+        description: "Dữ liệu mẫu được tạo tự động",
+        mock: true,
+        fromMockData: true
+      }
+      
+      return new Response(
+        JSON.stringify(mockResponse),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
 
     // Try to fetch data from real API using the specified proxy type
@@ -81,7 +111,7 @@ serve(async (req) => {
         case 'corsproxy':
           proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
           break;
-        case 'corsanywhere':
+        case 'cors-anywhere':
           proxyUrl = `https://cors-anywhere.herokuapp.com/${apiUrl}`;
           break;
         case 'direct':
@@ -115,24 +145,43 @@ serve(async (req) => {
           name: `Sản phẩm ${kioskToken.substring(0, 6)}`,
           price: Math.floor(Math.random() * 100000).toString(),
           stock: Math.floor(Math.random() * 1000).toString(),
-          description: "Dữ liệu mẫu được tạo tự động"
+          description: "Dữ liệu mẫu được tạo tự động",
+          mock: true,
+          fromHtml: true
         };
       } else if (proxyType === 'allorigins' && responseText.includes('"contents"')) {
         try {
           const allOriginsData = JSON.parse(responseText);
           if (allOriginsData && allOriginsData.contents) {
-            try {
-              responseData = JSON.parse(allOriginsData.contents);
-              console.log('Successfully retrieved and parsed data from API');
-            } catch (error) {
-              console.error('Error parsing AllOrigins contents:', error);
+            // Check if the contents is HTML
+            if (allOriginsData.contents.includes('<!DOCTYPE') || 
+                allOriginsData.contents.includes('<html')) {
+              console.log('AllOrigins contents is HTML, falling back to mock data');
               responseData = mockData[kioskToken] || {
                 success: "true",
                 name: `Sản phẩm ${kioskToken.substring(0, 6)}`,
                 price: Math.floor(Math.random() * 100000).toString(),
                 stock: Math.floor(Math.random() * 1000).toString(),
-                description: "Dữ liệu mẫu được tạo tự động"
+                description: "Dữ liệu mẫu được tạo tự động",
+                mock: true,
+                fromHtml: true
               };
+            } else {
+              try {
+                responseData = JSON.parse(allOriginsData.contents);
+                console.log('Successfully retrieved and parsed data from AllOrigins');
+              } catch (parseError) {
+                console.error('Error parsing AllOrigins contents:', parseError);
+                responseData = mockData[kioskToken] || {
+                  success: "true",
+                  name: `Sản phẩm ${kioskToken.substring(0, 6)}`,
+                  price: Math.floor(Math.random() * 100000).toString(),
+                  stock: Math.floor(Math.random() * 1000).toString(),
+                  description: "Dữ liệu mẫu được tạo tự động",
+                  mock: true,
+                  parseError: true
+                };
+              }
             }
           }
         } catch (error) {
@@ -142,7 +191,9 @@ serve(async (req) => {
             name: `Sản phẩm ${kioskToken.substring(0, 6)}`,
             price: Math.floor(Math.random() * 100000).toString(),
             stock: Math.floor(Math.random() * 1000).toString(),
-            description: "Dữ liệu mẫu được tạo tự động"
+            description: "Dữ liệu mẫu được tạo tự động",
+            mock: true,
+            allOriginsError: true
           };
         }
       } else {
@@ -156,7 +207,9 @@ serve(async (req) => {
             name: `Sản phẩm ${kioskToken.substring(0, 6)}`,
             price: Math.floor(Math.random() * 100000).toString(),
             stock: Math.floor(Math.random() * 1000).toString(),
-            description: "Dữ liệu mẫu được tạo tự động"
+            description: "Dữ liệu mẫu được tạo tự động",
+            mock: true,
+            parseError: true
           };
         }
       }
@@ -167,7 +220,9 @@ serve(async (req) => {
         name: `Sản phẩm ${kioskToken.substring(0, 6)}`,
         price: Math.floor(Math.random() * 100000).toString(),
         stock: Math.floor(Math.random() * 1000).toString(),
-        description: "Dữ liệu mẫu được tạo tự động"
+        description: "Dữ liệu mẫu được tạo tự động",
+        mock: true,
+        fetchError: true
       };
     }
     
@@ -177,7 +232,9 @@ serve(async (req) => {
         name: `Sản phẩm ${kioskToken.substring(0, 6)}`,
         price: Math.floor(Math.random() * 100000).toString(),
         stock: Math.floor(Math.random() * 1000).toString(),
-        description: "Dữ liệu mẫu được tạo tự động"
+        description: "Dữ liệu mẫu được tạo tự động",
+        mock: true,
+        noData: true
       };
     }
 
@@ -193,7 +250,8 @@ serve(async (req) => {
       JSON.stringify({ 
         error: 'Internal server error', 
         message: error.message,
-        success: 'false'
+        success: 'false',
+        mock: true
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

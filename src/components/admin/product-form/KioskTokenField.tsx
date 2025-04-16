@@ -31,6 +31,7 @@ export function KioskTokenField() {
   const [isMockData, setIsMockData] = useState<boolean>(false);
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [userToken, setUserToken] = useState<string>('');
+  const [logs, setLogs] = useState<string[]>([]);
   
   useEffect(() => {
     const fetchActiveProxy = async () => {
@@ -103,6 +104,14 @@ export function KioskTokenField() {
     }
   };
 
+  // Function to add log entry
+  const addLog = (message: string) => {
+    const now = new Date();
+    const timestamp = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}]`;
+    setLogs(prev => [...prev, `${timestamp} ${message}`]);
+    console.log(`${timestamp} ${message}`);
+  };
+
   const handleFetchProductInfo = async () => {
     const kioskToken = form.getValues('kioskToken');
     
@@ -121,15 +130,16 @@ export function KioskTokenField() {
     setApiSuccess(null);
     setIsMockData(false);
     setHtmlContent(null);
+    setLogs([]);
     
     try {
-      console.log(`Using proxy: ${selectedProxyType}`);
+      addLog(`Using proxy: ${selectedProxyType}`);
       
       // Use our serverless function instead of direct API call
       const timestamp = new Date().getTime();
       const apiUrl = `/functions/v1/api-proxy?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}&proxyType=${selectedProxyType}&_t=${timestamp}`;
       
-      console.log(`Calling API proxy: ${apiUrl}`);
+      addLog(`Calling API proxy: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
         headers: {
@@ -138,42 +148,122 @@ export function KioskTokenField() {
         }
       });
       
+      addLog(`Response status: ${response.status}`);
+      addLog(`Content-Type: ${response.headers.get('content-type')}`);
+      
       if (!response.ok) {
         throw new Error(`API request failed with status ${response.status}`);
       }
       
-      const productInfo = await response.json();
-      console.log("Product info received:", productInfo);
+      const responseText = await response.text();
+      addLog(`Received ${responseText.length} bytes of data`);
       
-      if (productInfo && productInfo.success === 'true') {
-        // Fill form with product info
-        form.setValue('title', productInfo.name || '');
-        form.setValue('description', productInfo.description || form.getValues('description') || '');
-        form.setValue('price', productInfo.price || '0');
-        form.setValue('inStock', parseInt(productInfo.stock || '0', 10) > 0);
-        
-        // Generate slug if not provided
-        if (!form.getValues('slug') && productInfo.name) {
-          const slug = productInfo.name.toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9-]/g, '');
-          form.setValue('slug', slug);
+      let productInfo;
+      try {
+        productInfo = JSON.parse(responseText);
+        addLog('Successfully parsed response as JSON');
+      } catch (error) {
+        addLog('Failed to parse response as JSON, response may be HTML');
+        throw new Error('Invalid JSON response from API');
+      }
+      
+      if (productInfo) {
+        if (productInfo.mock === true || productInfo.fromMockData === true) {
+          setIsMockData(true);
+          addLog('Response contains mock data');
+          setHtmlContent("The API returned mock data because the original response was HTML or invalid.");
+        } else {
+          addLog('Response contains real data from API');
         }
         
-        setApiSuccess('Product information retrieved successfully');
-        toast.success('Product information retrieved successfully');
-      } else {
-        // Handle error from API
-        const errorMessage = productInfo?.description || 'Failed to retrieve product information';
-        setApiError(errorMessage);
-        toast.error(`Failed to retrieve product information: ${errorMessage}`);
+        if (productInfo.success === 'true') {
+          // Fill form with product info
+          form.setValue('title', productInfo.name || '');
+          form.setValue('description', productInfo.description || form.getValues('description') || '');
+          form.setValue('price', productInfo.price || '0');
+          form.setValue('inStock', parseInt(productInfo.stock || '0', 10) > 0);
+          
+          // Generate slug if not provided
+          if (!form.getValues('slug') && productInfo.name) {
+            const slug = productInfo.name.toLowerCase()
+              .replace(/\s+/g, '-')
+              .replace(/[^a-z0-9-]/g, '');
+            form.setValue('slug', slug);
+          }
+          
+          setApiSuccess('Product information retrieved successfully');
+          toast.success('Product information retrieved successfully');
+          addLog('Product information filled in form successfully');
+        } else {
+          // Handle error from API
+          const errorMessage = productInfo?.description || 'Failed to retrieve product information';
+          setApiError(errorMessage);
+          toast.error(`Failed to retrieve product information: ${errorMessage}`);
+          addLog(`API returned error: ${errorMessage}`);
+        }
       }
     } catch (error: any) {
       console.error('Error fetching product info:', error);
       setApiError(error.message || 'Failed to retrieve product information');
       toast.error(`Error: ${error.message || 'Unknown error'}`);
+      addLog(`Error: ${error.message}`);
+      
+      // Try to use serverless function as fallback if needed
+      if (error.message.includes('JSON') || error.message.includes('HTML')) {
+        addLog('Trying to use serverless function as fallback...');
+        await handleServerlessFetch(kioskToken);
+      }
     } finally {
       setIsLoadingProductInfo(false);
+    }
+  };
+  
+  const handleServerlessFetch = async (kioskToken: string) => {
+    if (!kioskToken || !userToken) {
+      return;
+    }
+    
+    addLog('Falling back to serverless function direct call...');
+    
+    try {
+      // URL to serverless function with force=true to bypass cache and use mock data if needed
+      const serverlessUrl = `/functions/v1/api-proxy?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}&proxyType=${selectedProxyType}&force=true`;
+      addLog(`Calling serverless function directly: ${serverlessUrl.substring(0, 80)}...`);
+      
+      const response = await fetch(serverlessUrl);
+      addLog(`Serverless function returned status: ${response.status}`);
+      
+      if (!response.ok) {
+        throw new Error(`Serverless error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      addLog('Successfully retrieved data from serverless function');
+      
+      if (data && data.success === 'true') {
+        // Fill form with product info
+        form.setValue('title', data.name || '');
+        form.setValue('description', data.description || form.getValues('description') || '');
+        form.setValue('price', data.price || '0');
+        form.setValue('inStock', parseInt(data.stock || '0', 10) > 0);
+        
+        // Generate slug if not provided
+        if (!form.getValues('slug') && data.name) {
+          const slug = data.name.toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '');
+          form.setValue('slug', slug);
+        }
+        
+        setIsMockData(true);
+        setApiSuccess('Product information retrieved successfully (using mock data)');
+        toast.success('Product information retrieved using mock data');
+        addLog('Form filled with mock data');
+      }
+    } catch (error: any) {
+      addLog(`Serverless fallback error: ${error.message}`);
+      setApiError(`Error: ${error.message}`);
+      toast.error('Error connecting to serverless function');
     }
   };
 
@@ -261,11 +351,11 @@ export function KioskTokenField() {
               </Alert>
             )}
             
-            {htmlContent && (
+            {isMockData && (
               <Alert variant="default" className="mt-2 bg-amber-50 border-amber-200 text-amber-700">
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  {htmlContent}
+                  {htmlContent || "Using mock data because the API returned HTML or encountered a CORS error"}
                 </AlertDescription>
               </Alert>
             )}
@@ -278,6 +368,26 @@ export function KioskTokenField() {
                 </AlertDescription>
               </Alert>
             )}
+            
+            {logs.length > 0 && (
+              <div className="mt-4 border rounded-md p-2 bg-gray-50">
+                <div className="flex justify-between items-center mb-1">
+                  <div className="text-xs font-medium">Debug Logs</div>
+                  <button 
+                    onClick={() => setLogs([])} 
+                    className="text-xs text-muted-foreground hover:text-primary"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div className="bg-black text-green-400 p-2 rounded-md text-xs font-mono h-24 overflow-y-auto">
+                  {logs.map((log, i) => (
+                    <div key={i} className="whitespace-pre-wrap break-words">{log}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <FormMessage />
           </FormItem>
         )}
