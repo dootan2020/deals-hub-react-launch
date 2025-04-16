@@ -321,105 +321,36 @@ async function handleSyncProduct(
   }
 }
 
-// Helper function to extract product info from HTML
-function extractProductInfoFromHtml(html: string): ProductInfo | null {
-  console.log("Attempting to extract product info from HTML");
-  
-  try {
-    // Try to extract product name
-    const nameMatch = html.match(/<title>(.*?)<\/title>/i);
-    const name = nameMatch ? nameMatch[1].replace(" - TapHoaMMO", "").trim() : "Unknown Product";
-    
-    // Try to extract price (this is a simplistic approach)
-    let price = "0";
-    const priceMatch = html.match(/(\d+(\.\d+)?)\s*USD/i) || html.match(/\$\s*(\d+(\.\d+)?)/i);
-    if (priceMatch) {
-      price = priceMatch[1];
-    }
-    
-    // Try to extract if it's in stock
-    let stock = "0";
-    if (!html.includes("Out of stock") && !html.includes("Hết hàng")) {
-      stock = "1";
-    }
-    
-    // Create a product info object from the extracted data
-    return {
-      success: "true",
-      name: name,
-      stock: stock,
-      price: price,
-      description: "Data extracted from HTML response"
-    };
-  } catch (error) {
-    console.error("Failed to extract product info from HTML:", error);
-    return null;
-  }
-}
-
 // Fetch product info from API by kioskToken
 async function fetchProductInfoByKioskToken(userToken: string, kioskToken: string): Promise<ProductInfo> {
-  // Use .NET API endpoint instead of direct approach
+  // Direct API URL to TapHoaMMO
   const targetUrl = `https://taphoammo.net/api/getStock?kioskToken=${kioskToken}&userToken=${userToken}`;
   
   try {
     console.log(`Fetching product info from: ${targetUrl}`);
     
-    // Create fetch options with enhanced headers for improved compatibility
-    const options = {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Referer': 'https://taphoammo.net/',
-        'Origin': 'https://taphoammo.net',
-        'Connection': 'keep-alive',
-        'X-Requested-With': 'XMLHttpRequest',
-        'sec-ch-ua': '"Not_A Brand";v="99", "Google Chrome";v="120"', 
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"'
-      },
-      redirect: 'follow'
+    // Enhanced headers for improved compatibility
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+      'X-Requested-With': 'XMLHttpRequest'
     };
     
-    // Use mock data for now since API seems to be blocked or returning HTML
-    // This is a temporary solution until the API issues are resolved
-    // In a real-world scenario, you would fix the API connection
-    
-    console.log("API connection issue detected, using mock data for product");
-    
-    // Mock successful response with sample data
-    const mockProduct: ProductInfo = {
-      success: "true",
-      name: `Demo Product (${kioskToken.substring(0, 8)})`,
-      stock: Math.random() > 0.3 ? "10" : "0", // Random stock status
-      price: (10 + Math.floor(Math.random() * 90)).toString(), // Random price between 10-99
-      description: "This is a mock product description generated because the API connection returned HTML instead of JSON. Please check your API credentials and connectivity."
-    };
-    
-    return mockProduct;
-    
-    /* Keeping the original API code commented out - can be re-enabled once API issues are fixed
-    
-    // Add a timeout for the fetch
+    // Add a timeout for the fetch request
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
     try {
-      const response = await fetch(targetUrl, {
-        ...options,
-        signal: controller.signal
+      // Use Deno's fetch API to directly call the TapHoaMMO API
+      const response = await fetch(targetUrl, { 
+        headers, 
+        signal: controller.signal 
       });
       
-      // Clear timeout since response received
       clearTimeout(timeoutId);
-      
-      // Log full response details for debugging
-      console.log(`API response status: ${response.status}`);
-      console.log(`API response headers:`, Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         const statusCode = response.status;
@@ -432,20 +363,12 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
           errorText = 'Unable to read error response';
         }
         
-        // Check if response is HTML (typically from an error page)
-        if (errorText.trim().startsWith('<!DOCTYPE') || errorText.includes('<html')) {
+        // Check if response is HTML
+        if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
           console.error(`API returned HTML response instead of JSON. Status: ${statusCode}`);
-          
-          // Attempt to extract product info from HTML
-          const extractedInfo = extractProductInfoFromHtml(errorText);
-          if (extractedInfo) {
-            console.log("Successfully extracted product info from HTML:", extractedInfo);
-            return extractedInfo;
-          }
-          
           return { 
             success: 'false', 
-            description: `API error: Received HTML response instead of JSON. Status: ${statusCode}. Please verify your API credentials.` 
+            description: `API error: Received HTML instead of JSON. Status: ${statusCode}. Please verify your API credentials.` 
           };
         }
         
@@ -455,91 +378,34 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
         };
       }
       
-      // Check content type to ensure we're getting JSON
+      // Check content type
       const contentType = response.headers.get('content-type');
       console.log(`Content-Type: ${contentType}`);
       
-      // Try to get the response text first to inspect it
       const responseText = await response.text();
-      
-      // Check for empty response
-      if (!responseText.trim()) {
-        console.error('API returned empty response');
-        return {
-          success: 'false',
-          description: 'API returned empty response'
-        };
-      }
-      
       console.log(`API raw response (first 300 chars): ${responseText.substring(0, 300)}`);
       
-      // Check if response looks like HTML despite content-type
-      if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
-        console.error('Received HTML despite content-type indicating otherwise');
-        
-        // Attempt to extract product info from HTML
-        const extractedInfo = extractProductInfoFromHtml(responseText);
-        if (extractedInfo) {
-          console.log("Successfully extracted product info from HTML:", extractedInfo);
-          return extractedInfo;
-        }
-        
+      // Check for HTML content
+      if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+        console.error('Received HTML instead of JSON');
         return { 
           success: 'false', 
           description: 'API returned HTML instead of JSON. Please verify your API credentials.' 
         };
       }
       
-      // Content-type is not JSON but response is not HTML, try to parse it as JSON anyway
-      if (contentType && !contentType.includes('application/json')) {
-        console.warn(`API returned non-JSON content type: ${contentType}. Attempting to parse anyway.`);
-      }
-      
-      // Try to parse the text as JSON
       try {
-        const data = JSON.parse(responseText) as ProductInfo;
-        console.log(`API parsed response:`, data);
+        const data = JSON.parse(responseText);
+        console.log('Parsed API response:', data);
         return data;
       } catch (parseError) {
         console.error(`Error parsing JSON response: ${parseError}`);
-        
-        // Try to extract some data even if JSON parse fails
-        if (responseText.includes('"success":"true"')) {
-          const regex = /"([^"]+)":"([^"]+)"/g;
-          const extracted: Record<string, string> = {};
-          let match;
-          
-          while ((match = regex.exec(responseText)) !== null) {
-            extracted[match[1]] = match[2];
-          }
-          
-          console.log('Extracted partial data from malformed JSON:', extracted);
-          
-          return {
-            success: 'true',
-            name: extracted.name || 'Unknown product',
-            stock: extracted.stock || '0',
-            price: extracted.price || '0',
-            description: 'Parsed from malformed JSON'
-          };
-        }
-        
-        // If we got here and response is HTML, try to extract info from it
-        if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
-          const extractedInfo = extractProductInfoFromHtml(responseText);
-          if (extractedInfo) {
-            console.log("Successfully extracted product info from HTML after JSON parse failed:", extractedInfo);
-            return extractedInfo;
-          }
-        }
-        
         return { 
           success: 'false', 
           description: `Invalid JSON response: ${responseText.substring(0, 100)}...` 
         };
       }
     } catch (fetchError: any) {
-      // Clear timeout in case of error
       clearTimeout(timeoutId);
       
       if (fetchError.name === 'AbortError') {
@@ -551,9 +417,13 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
       }
       
       console.error(`Fetch error: ${fetchError.message}`);
-      throw fetchError;
+      
+      // If the direct call fails, return a fallback error
+      return { 
+        success: 'false', 
+        description: `API error: ${fetchError.message}` 
+      };
     }
-    */
   } catch (error: any) {
     console.error(`Error fetching product info: ${error.message}`);
     return { 
@@ -650,4 +520,3 @@ async function logSyncAction(
     console.error(`Failed to log sync action: ${error.message}`);
   }
 }
-

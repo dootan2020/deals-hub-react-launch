@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -122,13 +123,14 @@ export function useProductSync() {
       const timestamp = new Date().getTime();
       console.log(`Using user token: ${apiConfig.user_token.substring(0, 8)}... for product lookup`);
       
-      // URL encode the parameters
+      // URL encode the parameters for safety
       const encodedKioskToken = encodeURIComponent(kioskToken);
       const encodedUserToken = encodeURIComponent(apiConfig.user_token);
       
-      // Add a longer timeout for the fetch request
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+      // Direct API URL to TapHoaMMO
+      const directApiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}`;
+      
+      console.log(`Attempting direct API call to: ${directApiUrl}`);
       
       // Enhanced headers for improved browser compatibility
       const headers = {
@@ -142,18 +144,18 @@ export function useProductSync() {
       };
       
       try {
-        // Using mock data for demo purposes since the API is returning HTML instead of JSON
-        // This is temporary until API connection issues are resolved
+        // First try direct API call to TapHoaMMO
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
         
-        console.log("Using edge function to get product info or fallback to mock data");
+        // Use edge function as proxy to avoid CORS issues
+        const proxyUrl = `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`;
+        console.log(`Using edge function as proxy: ${proxyUrl}`);
         
-        const response = await fetch(
-          `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`,
-          { 
-            signal: controller.signal,
-            headers
-          }
-        );
+        const response = await fetch(proxyUrl, { 
+          signal: controller.signal,
+          headers
+        });
         
         clearTimeout(timeoutId);
         
@@ -184,38 +186,22 @@ export function useProductSync() {
           throw new Error(errorText);
         }
         
-        // Check if response is not JSON 
+        // Check content type 
         const contentType = response.headers.get("content-type");
         console.log(`Content-Type: ${contentType}`);
         
+        // Get the raw text first to analyze what we're dealing with
         const responseText = await response.text();
         console.log(`Raw response (first 300 chars): ${responseText.substring(0, 300)}`);
         
         // Check if response is HTML
         if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
           console.log('Response is HTML, attempting to extract product information');
-          
-          try {
-            const data = JSON.parse(responseText);
-            return data;
-          } catch (e) {
-            // Generate mock data if the response is HTML and couldn't be parsed as JSON
-            console.log("Generating mock data for product");
-            
-            // Return mock product data for demonstration purposes
-            const mockData = {
-              success: 'true',
-              name: `Demo Product (${kioskToken.substring(0, 8)})`,
-              price: (10 + Math.floor(Math.random() * 90)).toString(),
-              stock: Math.random() > 0.3 ? "10" : "0",
-              description: "This is a mock product description. Real API connection returning HTML instead of JSON."
-            };
-            
-            return mockData;
-          }
+          throw new Error('Received HTML instead of JSON');
         }
         
         try {
+          // Try to parse the response as JSON
           const data = JSON.parse(responseText);
           console.log('Parsed data:', data);
           return data;
@@ -224,11 +210,7 @@ export function useProductSync() {
           throw new Error(`Failed to parse API response: ${parseError.message}`);
         }
       } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        
-        if (fetchError.name === 'AbortError') {
-          throw new Error('Request timeout: API took too long to respond');
-        }
+        console.error(`Fetch error: ${fetchError.message}`);
         throw fetchError;
       }
     } catch (error: any) {

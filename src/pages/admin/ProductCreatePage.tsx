@@ -28,8 +28,8 @@ const ProductCreatePage = () => {
       <Alert variant="destructive" className="mb-6 bg-amber-50 border-amber-200">
         <AlertTriangle className="h-5 w-5 text-amber-500" />
         <AlertDescription className="text-amber-700">
-          <p className="font-medium">API Connection Issue</p>
-          <p className="mt-1">Currently, the TapHoaMMO API is returning HTML responses instead of JSON. The system will provide mock product data for demonstration purposes until the API connectivity issue is resolved.</p>
+          <p className="font-medium">API Connection Note</p>
+          <p className="mt-1">Make sure to use a valid Kiosk Token and User Token to fetch product information from TapHoaMMO. If you encounter any issues, check your API settings in the API Config page.</p>
         </AlertDescription>  
       </Alert>
       
