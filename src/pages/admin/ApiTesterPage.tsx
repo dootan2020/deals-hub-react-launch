@@ -262,8 +262,8 @@ const ApiTesterPage = () => {
     setIsMockData(false);
 
     try {
-      // Đường dẫn đến serverless function - đảm bảo thay thế bằng đường dẫn thực tế
-      const serverlessUrl = `/functions/v1/api-proxy?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}`;
+      // Đường dẫn đến serverless function
+      const serverlessUrl = `https://xcpwyvrlutlslgaueokd.supabase.co/functions/v1/api-proxy?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}`;
       
       const response = await fetch(serverlessUrl);
       
@@ -280,6 +280,8 @@ const ApiTesterPage = () => {
       setLastUpdated(
         `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`
       );
+      
+      toast.success('Dữ liệu từ serverless function đã được tải thành công');
     } catch (error: any) {
       console.error('Serverless error:', error);
       setError(`Lỗi: ${error.message}`);
