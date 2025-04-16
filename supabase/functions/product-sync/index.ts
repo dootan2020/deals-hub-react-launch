@@ -323,6 +323,7 @@ async function handleSyncProduct(
 
 // Fetch product info from API by kioskToken
 async function fetchProductInfoByKioskToken(userToken: string, kioskToken: string): Promise<ProductInfo> {
+  // Đây là URL thực tế của API taphoammo.net
   const url = `https://taphoammo.net/api/getStock?kioskToken=${kioskToken}&userToken=${userToken}`;
   
   try {
@@ -333,9 +334,11 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'application/json',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Cache-Control': 'no-cache'
-      }
+        'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Cache-Control': 'no-cache',
+        'Referer': 'https://taphoammo.net/'
+      },
+      redirect: 'follow'
     };
     
     const response = await fetch(url, options);
@@ -365,7 +368,7 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
         console.error('Received HTML instead of JSON - likely an API error or redirection');
         return { 
           success: 'false', 
-          description: 'API returned HTML instead of JSON. The service may be unavailable or the request was invalid.'
+          description: 'API returned HTML instead of JSON. Vui lòng kiểm tra lại userToken và kioskToken.' 
         };
       }
       

@@ -93,110 +93,48 @@ export function useProductSync() {
   const fetchProductInfoByKioskToken = async (kioskToken: string) => {
     setIsLoading(true);
     try {
-      // Hardcoded product information for common kiosk tokens
-      const hardcodedProducts: Record<string, any> = {
-        'KH5ZB5QB8G1L7J7S4DGW': {
-          success: 'true',
-          name: 'Gmail PVA 2023',
-          stock: '150',
-          price: '15000',
-          description: 'Premium Gmail accounts for business use'
-        },
-        'DV7JNOC0D91D8L1RITUF': {
-          success: 'true',
-          name: 'Windows 10 Pro Key',
-          stock: '78',
-          price: '25000',
-          description: 'Original Windows 10 Professional license keys'
-        },
-        '48RGEUZDYROWPEF3D1NL': {
-          success: 'true',
-          name: 'Facebook BM Account',
-          stock: '42',
-          price: '35000',
-          description: 'Verified Facebook Business Manager accounts'
-        },
-        'L9B7K5M2N6P8R3S1T4V7': {
-          success: 'true',
-          name: 'YouTube Premium Account',
-          stock: '62',
-          price: '12000',
-          description: 'YouTube Premium accounts with full features'
-        },
-        'X2Y4Z6A8B1C3D5E7F9G0': {
-          success: 'true',
-          name: 'Netflix Premium Account',
-          stock: '35',
-          price: '18000',
-          description: 'Netflix Premium accounts with 4K streaming'
-        },
-        'H1J3K5L7M9N2P4R6S8T0': {
-          success: 'true',
-          name: 'Office 365 License',
-          stock: '94',
-          price: '22000',
-          description: 'Microsoft Office 365 licenses for all devices'
-        }
-      };
+      const { data: apiConfig, error: configError } = await supabase
+        .from('api_configs')
+        .select('user_token')
+        .eq('is_active', true)
+        .order('created_at', { ascending: Math.random() > 0.5 })
+        .limit(1)
+        .single();
+
+      if (configError || !apiConfig) {
+        throw new Error('No active API configuration found');
+      }
+
+      const timestamp = new Date().getTime();
+      console.log(`Using user token: ${apiConfig.user_token.substring(0, 8)}... for product lookup`);
       
-      // Check if we have hardcoded data for this token
-      if (hardcodedProducts[kioskToken]) {
-        console.log(`Using hardcoded data for kiosk token: ${kioskToken}`);
-        return hardcodedProducts[kioskToken];
+      const response = await fetch(`/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${apiConfig.user_token}&_t=${timestamp}`);
+      
+      if (!response.ok) {
+        let errorText;
+        try {
+          const errorJson = await response.json();
+          errorText = errorJson.error || `API error (${response.status})`;
+        } catch {
+          errorText = await response.text();
+          if (errorText.length > 100) {
+            errorText = errorText.substring(0, 100) + "...";
+          }
+          errorText = `API error (${response.status}): ${errorText}`;
+        }
+        
+        console.error('API error response:', errorText);
+        throw new Error(errorText);
       }
       
-      console.log(`Token not found in hardcoded data, generating mock data for: ${kioskToken}`);
-      return generateMockProductData(kioskToken);
+      const data = await response.json();
+      return data;
     } catch (error: any) {
       console.error('Fetch product info error:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  const generateMockProductData = (kioskToken: string) => {
-    console.log(`Generating mock data for token: ${kioskToken}`);
-    
-    const nameOptions = [
-      'Email Account',
-      'Social Media Profile',
-      'Software License',
-      'Digital Service',
-      'Premium Account',
-      'Hosting Service',
-      'Domain Name',
-      'VPN Subscription',
-      'Cloud Storage',
-      'Game Account'
-    ];
-    
-    const nameIndex = Math.abs(
-      kioskToken.charCodeAt(kioskToken.length - 1) + 
-      kioskToken.charCodeAt(kioskToken.length - 2)
-    ) % nameOptions.length;
-    
-    const price = Math.floor(Math.random() * 40000 + 10000).toString();
-    
-    const stock = Math.floor(Math.random() * 190 + 10).toString();
-    
-    const descriptions = [
-      `Digital product with premium features`,
-      `High quality digital account with full warranty`,
-      `Verified account with excellent performance`,
-      `Premium service with 24/7 support`,
-      `Original license with lifetime validity`
-    ];
-    
-    const descIndex = Math.abs(kioskToken.charCodeAt(0) + kioskToken.charCodeAt(1)) % descriptions.length;
-    
-    return {
-      success: 'true',
-      name: `${nameOptions[nameIndex]} ${kioskToken.substring(0, 5)}`,
-      stock: stock,
-      price: price,
-      description: descriptions[descIndex]
-    };
   };
   
   const syncAllProducts = async () => {
