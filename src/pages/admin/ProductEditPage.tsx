@@ -5,6 +5,8 @@ import { ProductForm } from '@/components/admin/ProductForm';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const ProductEditPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -57,6 +59,14 @@ const ProductEditPage = () => {
 
   return (
     <AdminLayout title="Edit Product">
+      <Alert variant="warning" className="mb-6 bg-amber-50 border-amber-200">
+        <AlertTriangle className="h-5 w-5 text-amber-500" />
+        <AlertDescription className="text-amber-700">
+          <p className="font-medium">API Connection Issue</p>
+          <p className="mt-1">Currently, the TapHoaMMO API is returning HTML responses instead of JSON. When using the product lookup feature, the system will provide mock product data for demonstration purposes.</p>
+        </AlertDescription>  
+      </Alert>
+      
       <ProductForm productId={id} />
     </AdminLayout>
   );

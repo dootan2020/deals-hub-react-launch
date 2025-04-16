@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Category } from '@/types';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const productSchema = z.object({
@@ -61,6 +61,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
   const [apiSuccess, setApiSuccess] = useState<string | null>(null);
+  const [isMockData, setIsMockData] = useState<boolean>(false);
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const navigate = useNavigate();
   const { createProduct, updateProduct, fetchProductInfo } = useProductSync();
@@ -247,12 +248,18 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     setIsLoadingProductInfo(true);
     setApiError(null);
     setApiSuccess(null);
+    setIsMockData(false);
     setHtmlContent(null);
     
     try {
       const productInfo = await fetchProductInfo(kioskToken);
       
       console.log("Product info received:", productInfo);
+      
+      // Check if this is mock data (from our edge function)
+      if (productInfo && productInfo.name && productInfo.name.startsWith('Demo Product')) {
+        setIsMockData(true);
+      }
       
       if (productInfo && productInfo.success === 'true') {
         form.setValue('title', productInfo.name || '');
@@ -333,8 +340,18 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Enter a valid kiosk token (e.g., KH5ZB5QB8G1L7J7S4DGW) to automatically retrieve product information from the API.
+                  Enter a valid kiosk token (e.g., KH5ZB5QB8G1L7J7S4DGW) to retrieve product information.
                 </p>
+                
+                {isMockData && (
+                  <Alert variant="default" className="mt-2 bg-blue-50 border-blue-200 text-blue-700">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      Using mock data because the API connection to TapHoaMMO is returning HTML instead of JSON. This is for demo purposes only.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
                 {apiSuccess && (
                   <Alert variant="default" className="mt-2 bg-green-50 border-green-200 text-green-700">
                     <AlertDescription>
@@ -342,6 +359,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
                     </AlertDescription>
                   </Alert>
                 )}
+                
                 {apiError && (
                   <Alert variant="destructive" className="mt-2">
                     <AlertCircle className="h-4 w-4" />
@@ -350,6 +368,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
                     </AlertDescription>
                   </Alert>
                 )}
+                
                 {htmlContent && (
                   <div className="mt-3">
                     <details className="text-xs">
