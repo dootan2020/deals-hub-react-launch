@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -56,10 +55,17 @@ export function useProductSync() {
       }
 
       const response = await fetch(`/functions/v1/product-sync?action=sync-product&externalId=${externalId}&userToken=${apiConfig.user_token}`);
-      const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to sync product');
+        const errorText = await response.text();
+        console.error('API error response:', errorText);
+        throw new Error(`API error (${response.status}): ${errorText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data || data.error) {
+        throw new Error(data?.error || 'Failed to sync product');
       }
       
       toast.success('Product synced successfully');
@@ -89,23 +95,26 @@ export function useProductSync() {
       }
       
       const userToken = apiConfigs[0].user_token;
-      console.log(`Using user token: ${userToken.substring(0, 8)}... for product lookup`);
+      console.log(`Using user token: ${userToken.substring(0, 10)}... for product lookup`);
       
-      // Use the edge function instead of direct API call to avoid CORS issues
+      // Use the edge function to fetch product info
       const response = await fetch(`/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${userToken}`);
       
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error('API error response:', errorData);
-        throw new Error(`API error (${response.status}): ${errorData}`);
+        const errorText = await response.text();
+        console.error('API error response:', errorText);
+        throw new Error(`API error (${response.status}): ${errorText}`);
       }
       
       const data = await response.json();
       console.log('Product info API response:', data);
       
-      if (!data || data.success !== 'true') {
-        console.error('API returned failure:', data);
-        throw new Error(data?.description || 'API returned failure');
+      if (!data) {
+        throw new Error('Empty response from API');
+      }
+      
+      if (data.error) {
+        throw new Error(data.error);
       }
       
       return data;
@@ -134,10 +143,16 @@ export function useProductSync() {
       }
         
       const response = await fetch(`/functions/v1/product-sync?action=sync-all&userToken=${apiConfig.user_token}`);
-      const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to sync all products');
+        const errorText = await response.text();
+        throw new Error(`API error (${response.status}): ${errorText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data || data.error) {
+        throw new Error(data?.error || 'Failed to sync all products');
       }
       
       toast.success(`Synced ${data.productsUpdated} products`);

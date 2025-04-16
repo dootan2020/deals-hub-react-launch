@@ -42,6 +42,8 @@ serve(async (req: Request) => {
     const kioskToken = url.searchParams.get('kioskToken');
     const userToken = url.searchParams.get('userToken');
     
+    console.log(`Request received: action=${action}, kioskToken=${kioskToken}, userToken=${userToken?.substring(0, 8)}...`);
+    
     // Create Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
@@ -68,6 +70,8 @@ serve(async (req: Request) => {
     if (!finalUserToken) {
       throw new Error('User token is required');
     }
+    
+    console.log(`Using user token: ${finalUserToken.substring(0, 8)}... for action: ${action}`);
     
     switch (action) {
       case 'check':
@@ -329,7 +333,8 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'application/json',
-        'Accept-Language': 'en-US,en;q=0.9'
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache'
       }
     };
     
@@ -338,7 +343,10 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API responded with status: ${response.status}, body: ${errorText}`);
-      throw new Error(`API responded with status: ${response.status}`);
+      return { 
+        success: 'false', 
+        description: `API error: Status ${response.status}` 
+      };
     }
     
     const responseText = await response.text();
@@ -351,11 +359,27 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
       return data;
     } catch (parseError) {
       console.error(`Error parsing JSON response: ${parseError}`);
-      throw new Error(`API response is not valid JSON: ${responseText.substring(0, 100)}`);
+      
+      // Special handling for HTML responses (instead of JSON)
+      if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+        console.error('Received HTML instead of JSON - likely an API error or redirection');
+        return { 
+          success: 'false', 
+          description: 'API returned HTML instead of JSON. The service may be unavailable or the request was invalid.'
+        };
+      }
+      
+      return { 
+        success: 'false', 
+        description: `Invalid JSON response: ${responseText.substring(0, 100)}` 
+      };
     }
   } catch (error: any) {
     console.error(`Error fetching product info: ${error.message}`);
-    return { success: 'false', description: `API error: ${error.message}` };
+    return { 
+      success: 'false', 
+      description: `API error: ${error.message}` 
+    };
   }
 }
 

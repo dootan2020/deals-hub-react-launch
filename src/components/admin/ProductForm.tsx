@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -27,7 +26,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Category } from '@/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
@@ -58,6 +58,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingProductInfo, setIsLoadingProductInfo] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [apiError, setApiError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { createProduct, updateProduct, fetchProductInfo } = useProductSync();
 
@@ -195,6 +196,8 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     }
 
     setIsLoadingProductInfo(true);
+    setApiError(null);
+    
     try {
       const productInfo = await fetchProductInfo(kioskToken);
       
@@ -214,10 +217,12 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         
         toast.success('Product information retrieved successfully');
       } else {
+        setApiError(productInfo?.description || 'Failed to retrieve product information');
         toast.error(`Failed to retrieve product information: ${productInfo?.description || 'Unknown error'}`);
       }
     } catch (error: any) {
       console.error('Error fetching product info:', error);
+      setApiError(error.message || 'Failed to retrieve product information');
       toast.error(`Error: ${error.message}`);
     } finally {
       setIsLoadingProductInfo(false);
@@ -256,6 +261,14 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
                 <p className="text-xs text-muted-foreground mt-1">
                   Enter a valid kiosk token (e.g., KH5ZB5QB8G1L7J7S4DGW) to automatically retrieve product information from the API.
                 </p>
+                {apiError && (
+                  <Alert variant="destructive" className="mt-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {apiError}
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <FormMessage />
               </FormItem>
             )}
