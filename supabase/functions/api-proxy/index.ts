@@ -137,19 +137,9 @@ serve(async (req) => {
       
       const responseText = await response.text();
       console.log(`Received ${responseText.length} bytes of data`);
-      
-      if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
-        console.log('Response is HTML, falling back to mock data');
-        responseData = mockData[kioskToken] || {
-          success: "true",
-          name: `Sản phẩm ${kioskToken.substring(0, 6)}`,
-          price: Math.floor(Math.random() * 100000).toString(),
-          stock: Math.floor(Math.random() * 1000).toString(),
-          description: "Dữ liệu mẫu được tạo tự động",
-          mock: true,
-          fromHtml: true
-        };
-      } else if (proxyType === 'allorigins' && responseText.includes('"contents"')) {
+
+      // Improved handling of AllOrigins response
+      if (proxyType === 'allorigins') {
         try {
           const allOriginsData = JSON.parse(responseText);
           if (allOriginsData && allOriginsData.contents) {
@@ -168,6 +158,7 @@ serve(async (req) => {
               };
             } else {
               try {
+                // Try to parse the contents as JSON
                 responseData = JSON.parse(allOriginsData.contents);
                 console.log('Successfully retrieved and parsed data from AllOrigins');
               } catch (parseError) {
@@ -183,6 +174,8 @@ serve(async (req) => {
                 };
               }
             }
+          } else {
+            throw new Error('Invalid AllOrigins response format');
           }
         } catch (error) {
           console.error('Error parsing AllOrigins response:', error);
@@ -196,6 +189,17 @@ serve(async (req) => {
             allOriginsError: true
           };
         }
+      } else if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+        console.log('Response is HTML, falling back to mock data');
+        responseData = mockData[kioskToken] || {
+          success: "true",
+          name: `Sản phẩm ${kioskToken.substring(0, 6)}`,
+          price: Math.floor(Math.random() * 100000).toString(),
+          stock: Math.floor(Math.random() * 1000).toString(),
+          description: "Dữ liệu mẫu được tạo tự động",
+          mock: true,
+          fromHtml: true
+        };
       } else {
         try {
           responseData = JSON.parse(responseText);
