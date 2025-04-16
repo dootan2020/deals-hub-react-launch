@@ -11,7 +11,7 @@ export function useProductSync() {
   const fetchProducts = async () => {
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select('*, categories:category_id(*)')
       .order('title', { ascending: true });
       
     if (error) throw error;
@@ -77,21 +77,68 @@ export function useProductSync() {
       .insert(productData)
       .select()
       .single();
-      
+    
     if (error) throw error;
+    
+    // Update category count
+    if (productData.category_id) {
+      await updateCategoryCount(productData.category_id);
+    }
+    
     return data;
   };
   
   const updateProduct = async ({ id, ...product }: { id: string; [key: string]: any }) => {
+    // Get the old category ID first
+    const { data: oldProduct } = await supabase
+      .from('products')
+      .select('category_id')
+      .eq('id', id)
+      .single();
+      
+    const oldCategoryId = oldProduct?.category_id;
+    
+    // Update the product
     const { data, error } = await supabase
       .from('products')
       .update(product)
       .eq('id', id)
       .select()
       .single();
-      
+    
     if (error) throw error;
+    
+    // If category changed, update counts for both old and new categories
+    if (oldCategoryId !== product.category_id) {
+      if (oldCategoryId) {
+        await updateCategoryCount(oldCategoryId);
+      }
+      if (product.category_id) {
+        await updateCategoryCount(product.category_id);
+      }
+    }
+    
     return data;
+  };
+
+  const updateCategoryCount = async (categoryId: string) => {
+    try {
+      // Count products in this category
+      const { count, error: countError } = await supabase
+        .from('products')
+        .select('id', { count: 'exact' })
+        .eq('category_id', categoryId);
+      
+      if (countError) throw countError;
+      
+      // Update the category count
+      await supabase
+        .from('categories')
+        .update({ count: count || 0 })
+        .eq('id', categoryId);
+    } catch (error) {
+      console.error('Error updating category count:', error);
+    }
   };
   
   // Set up React Query hooks
@@ -125,6 +172,7 @@ export function useProductSync() {
     mutationFn: createProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast.success('Product created successfully');
     },
     onError: (error: any) => {
@@ -136,6 +184,7 @@ export function useProductSync() {
     mutationFn: updateProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast.success('Product updated successfully');
     },
     onError: (error: any) => {

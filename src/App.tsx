@@ -19,9 +19,12 @@ const OrderSuccessPage = lazy(() => import("./pages/OrderSuccessPage"));
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const ProductsAdmin = lazy(() => import("./pages/admin/ProductsAdmin"));
+const CategoryAdmin = lazy(() => import("./pages/admin/CategoryAdmin"));
 const OrdersAdmin = lazy(() => import("./pages/admin/OrdersAdmin"));
 const ApiConfigAdmin = lazy(() => import("./pages/admin/ApiConfigAdmin"));
 const SyncLogsAdmin = lazy(() => import("./pages/admin/SyncLogsAdmin"));
+const ProductCreatePage = lazy(() => import("./pages/admin/ProductCreatePage"));
+const ProductEditPage = lazy(() => import("./pages/admin/ProductEditPage"));
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -48,6 +51,9 @@ const App = () => (
             {/* Admin routes */}
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/products" element={<ProductsAdmin />} />
+            <Route path="/admin/products/new" element={<ProductCreatePage />} />
+            <Route path="/admin/products/edit/:id" element={<ProductEditPage />} />
+            <Route path="/admin/categories" element={<CategoryAdmin />} />
             <Route path="/admin/orders" element={<OrdersAdmin />} />
             <Route path="/admin/api-config" element={<ApiConfigAdmin />} />
             <Route path="/admin/sync-logs" element={<SyncLogsAdmin />} />
