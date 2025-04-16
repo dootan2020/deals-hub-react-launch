@@ -13,16 +13,12 @@ import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import ProductsAdmin from "./pages/admin/ProductsAdmin";
 import CategoryAdmin from "./pages/admin/CategoryAdmin";
 import OrdersAdmin from "./pages/admin/OrdersAdmin";
 import ApiConfigAdmin from "./pages/admin/ApiConfigAdmin";
 import SyncLogsAdmin from "./pages/admin/SyncLogsAdmin";
-import ProductCreatePage from "./pages/admin/ProductCreatePage";
-import ProductEditPage from "./pages/admin/ProductEditPage";
 import ProxySettingsPage from './pages/admin/ProxySettingsPage';
 import ApiTesterPage from './pages/admin/ApiTesterPage';
-import ProductFormWithTester from './pages/admin/ProductFormWithTester';
 
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
@@ -50,14 +46,10 @@ const App = () => {
             
             {/* Admin routes */}
             <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/products" element={<ProductsAdmin />} />
             <Route path="/admin/categories" element={<CategoryAdmin />} />
             <Route path="/admin/orders" element={<OrdersAdmin />} />
             <Route path="/admin/api-config" element={<ApiConfigAdmin />} />
             <Route path="/admin/sync-logs" element={<SyncLogsAdmin />} />
-            <Route path="/admin/products/new" element={<ProductFormWithTester />} />
-            <Route path="/admin/products/classic-new" element={<ProductCreatePage />} />
-            <Route path="/admin/products/edit/:id" element={<ProductEditPage />} />
             <Route path="/admin/proxy-settings" element={<ProxySettingsPage />} />
             <Route path="/admin/api-tester" element={<ApiTesterPage />} />
             

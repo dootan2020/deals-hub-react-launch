@@ -3,13 +3,11 @@ import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   LayoutDashboard, 
-  Package2, 
   ShoppingCart, 
   Settings, 
   BarChart3,
   FolderTree,
-  Globe,
-  PlusCircle
+  Globe
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -45,24 +43,6 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
               >
                 <FolderTree className="w-5 h-5 mr-2" />
                 Categories
-              </Link>
-            </li>
-            <li>
-              <Link 
-                to="/admin/products" 
-                className="flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100"
-              >
-                <Package2 className="w-5 h-5 mr-2" />
-                Products
-              </Link>
-            </li>
-            <li className="pl-7">
-              <Link 
-                to="/admin/products/new" 
-                className="flex items-center p-2 text-primary font-medium rounded-lg hover:bg-primary/10"
-              >
-                <PlusCircle className="w-4 h-4 mr-2" />
-                New Product (API)
               </Link>
             </li>
             <li>
