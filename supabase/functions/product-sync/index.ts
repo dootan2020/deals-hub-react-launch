@@ -323,37 +323,77 @@ async function handleSyncProduct(
 
 // Fetch product info from API by kioskToken
 async function fetchProductInfoByKioskToken(userToken: string, kioskToken: string): Promise<ProductInfo> {
-  // Đây là URL thực tế của API taphoammo.net
-  const url = `https://taphoammo.net/api/getStock?kioskToken=${kioskToken}&userToken=${userToken}`;
+  const targetUrl = `https://taphoammo.net/api/getStock?kioskToken=${kioskToken}&userToken=${userToken}`;
   
   try {
-    console.log(`Fetching product info from: ${url}`);
+    console.log(`Fetching product info from: ${targetUrl}`);
     
-    // Create fetch options with user-agent to help prevent blocking
+    // Create fetch options with enhanced headers
     const options = {
+      method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'application/json',
+        'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
         'Cache-Control': 'no-cache',
-        'Referer': 'https://taphoammo.net/'
+        'Referer': 'https://taphoammo.net/',
+        'Origin': 'https://taphoammo.net',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Dest': 'empty',
+        'Pragma': 'no-cache'
       },
       redirect: 'follow'
     };
     
-    const response = await fetch(url, options);
+    const response = await fetch(targetUrl, options);
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API responded with status: ${response.status}, body: ${errorText}`);
+      const statusCode = response.status;
+      let errorText = '';
+      
+      try {
+        errorText = await response.text();
+      } catch (e) {
+        errorText = 'Unable to read error response';
+      }
+      
+      console.error(`API responded with status: ${statusCode}, body: ${errorText.substring(0, 200)}`);
+      
+      // Check if response is HTML (typically from an error page)
+      if (errorText.trim().startsWith('<!DOCTYPE') || errorText.includes('<html')) {
+        return { 
+          success: 'false', 
+          description: `API error: Received HTML response instead of JSON. Status: ${statusCode}` 
+        };
+      }
+      
       return { 
         success: 'false', 
-        description: `API error: Status ${response.status}` 
+        description: `API error: Status ${statusCode}` 
       };
     }
     
     const responseText = await response.text();
+    
+    // Check for empty response
+    if (!responseText.trim()) {
+      return {
+        success: 'false',
+        description: 'API returned empty response'
+      };
+    }
+    
     console.log(`API raw response: ${responseText.substring(0, 200)}...`);
+    
+    // Check if response is HTML instead of JSON
+    if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
+      console.error('Received HTML instead of JSON - likely an API error or redirection');
+      return { 
+        success: 'false', 
+        description: 'API returned HTML instead of JSON. Vui lòng kiểm tra lại userToken và kioskToken.' 
+      };
+    }
     
     // Try to parse the response as JSON
     try {
@@ -363,18 +403,29 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
     } catch (parseError) {
       console.error(`Error parsing JSON response: ${parseError}`);
       
-      // Special handling for HTML responses (instead of JSON)
-      if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
-        console.error('Received HTML instead of JSON - likely an API error or redirection');
-        return { 
-          success: 'false', 
-          description: 'API returned HTML instead of JSON. Vui lòng kiểm tra lại userToken và kioskToken.' 
+      // Return a sample response for debugging
+      if (responseText.includes('"success":"true"')) {
+        // Try to extract some data even if JSON parse fails
+        const regex = /"([^"]+)":"([^"]+)"/g;
+        const extracted: Record<string, string> = {};
+        let match;
+        
+        while ((match = regex.exec(responseText)) !== null) {
+          extracted[match[1]] = match[2];
+        }
+        
+        return {
+          success: 'true',
+          name: extracted.name || 'Unknown product',
+          stock: extracted.stock || '0',
+          price: extracted.price || '0',
+          description: 'Parsed from malformed JSON'
         };
       }
       
       return { 
         success: 'false', 
-        description: `Invalid JSON response: ${responseText.substring(0, 100)}` 
+        description: `Invalid JSON response: ${responseText.substring(0, 100)}...` 
       };
     }
   } catch (error: any) {

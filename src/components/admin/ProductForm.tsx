@@ -227,8 +227,14 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       }
     } catch (error: any) {
       console.error('Error fetching product info:', error);
-      setApiError(error.message || 'Failed to retrieve product information');
-      toast.error(`Error: ${error.message}`);
+      
+      let errorMsg = error.message;
+      if (errorMsg.includes('<!DOCTYPE') || errorMsg.includes('<html')) {
+        errorMsg = 'API returned HTML instead of JSON. Please check your API configuration and network.';
+      }
+      
+      setApiError(errorMsg || 'Failed to retrieve product information');
+      toast.error(`Error: ${errorMsg}`);
     } finally {
       setIsLoadingProductInfo(false);
     }

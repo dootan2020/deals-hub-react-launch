@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -57,16 +58,20 @@ export function useProductSync() {
       const response = await fetch(`/functions/v1/product-sync?action=sync-product&externalId=${externalId}&userToken=${apiConfig.user_token}&_t=${timestamp}`);
       
       if (!response.ok) {
-        let errorText;
+        let errorText = '';
         try {
           const errorJson = await response.json();
           errorText = errorJson.error || `API error (${response.status})`;
-        } catch {
-          errorText = await response.text();
-          if (errorText.length > 100) {
-            errorText = errorText.substring(0, 100) + "...";
+        } catch (e) {
+          try {
+            errorText = await response.text();
+            if (errorText.length > 100) {
+              errorText = errorText.substring(0, 100) + "...";
+            }
+            errorText = `API error (${response.status}): ${errorText}`;
+          } catch (textError) {
+            errorText = `API error (${response.status}): Unable to read error response`;
           }
-          errorText = `API error (${response.status}): ${errorText}`;
         }
         
         console.error('API error response:', errorText);
@@ -108,27 +113,61 @@ export function useProductSync() {
       const timestamp = new Date().getTime();
       console.log(`Using user token: ${apiConfig.user_token.substring(0, 8)}... for product lookup`);
       
-      const response = await fetch(`/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${apiConfig.user_token}&_t=${timestamp}`);
+      // Add a longer timeout for the fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
       
-      if (!response.ok) {
-        let errorText;
-        try {
-          const errorJson = await response.json();
-          errorText = errorJson.error || `API error (${response.status})`;
-        } catch {
-          errorText = await response.text();
-          if (errorText.length > 100) {
-            errorText = errorText.substring(0, 100) + "...";
+      try {
+        const response = await fetch(
+          `/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${apiConfig.user_token}&_t=${timestamp}`,
+          { signal: controller.signal }
+        );
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          let errorText = '';
+          try {
+            const errorJson = await response.json();
+            errorText = errorJson.error || `API error (${response.status})`;
+          } catch (e) {
+            try {
+              errorText = await response.text();
+              if (errorText.length > 100) {
+                errorText = errorText.substring(0, 100) + "...";
+              }
+              
+              // Check if response is HTML
+              if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+                errorText = `API error (${response.status}): Received HTML instead of JSON. Vui lòng kiểm tra lại kết nối.`;
+              } else {
+                errorText = `API error (${response.status}): ${errorText}`;  
+              }
+            } catch (textError) {
+              errorText = `API error (${response.status}): Unable to read error response`;
+            }
           }
-          errorText = `API error (${response.status}): ${errorText}`;
+          
+          console.error('API error response:', errorText);
+          throw new Error(errorText);
         }
         
-        console.error('API error response:', errorText);
-        throw new Error(errorText);
+        // Check if response is not JSON 
+        const contentType = response.headers.get("content-type");
+        if (contentType && !contentType.includes("application/json")) {
+          throw new Error(`API returned unexpected content type: ${contentType}. Expected JSON.`);
+        }
+        
+        const data = await response.json();
+        return data;
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Request timeout: API took too long to respond');
+        }
+        throw fetchError;
       }
-      
-      const data = await response.json();
-      return data;
     } catch (error: any) {
       console.error('Fetch product info error:', error);
       throw error;
@@ -156,16 +195,26 @@ export function useProductSync() {
       const response = await fetch(`/functions/v1/product-sync?action=sync-all&userToken=${apiConfig.user_token}&_t=${timestamp}`);
       
       if (!response.ok) {
-        let errorText;
+        let errorText = '';
         try {
           const errorJson = await response.json();
           errorText = errorJson.error || `API error (${response.status})`;
-        } catch {
-          errorText = await response.text();
-          if (errorText.length > 100) {
-            errorText = errorText.substring(0, 100) + "...";
+        } catch (e) {
+          try {
+            errorText = await response.text();
+            if (errorText.length > 100) {
+              errorText = errorText.substring(0, 100) + "...";
+            }
+            
+            // Check if response is HTML
+            if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+              errorText = `API error (${response.status}): Received HTML instead of JSON`;
+            } else {
+              errorText = `API error (${response.status}): ${errorText}`;
+            }
+          } catch (textError) {
+            errorText = `API error (${response.status}): Unable to read error response`;
           }
-          errorText = `API error (${response.status}): ${errorText}`;
         }
         
         throw new Error(errorText);
