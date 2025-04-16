@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -88,8 +88,6 @@ export function useOrderApi() {
   };
   
   // Set up React Query mutations
-  const queryClient = useQueryClient();
-  
   const placeOrderMutation = useMutation({
     mutationFn: placeOrder,
     onSuccess: () => {
@@ -111,10 +109,17 @@ export function useOrderApi() {
     },
   });
   
+  const ordersQuery = useQuery({
+    queryKey: ['orders'],
+    queryFn: fetchOrders,
+  });
+  
   return {
     placeOrder: placeOrderMutation.mutate,
     checkOrder: checkOrderMutation.mutate,
     isLoading: isLoading || placeOrderMutation.isPending || checkOrderMutation.isPending,
+    orders: ordersQuery.data || [],
+    isOrdersLoading: ordersQuery.isLoading,
     fetchOrders,
   };
 }

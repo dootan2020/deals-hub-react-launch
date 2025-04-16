@@ -22,6 +22,8 @@ serve(async (req: Request) => {
     // Call the product-sync function to sync all products
     const syncUrl = `${supabaseUrl}/functions/v1/product-sync?action=sync-all`;
     
+    console.log(`Starting scheduled sync at ${new Date().toISOString()}`);
+    
     const response = await fetch(syncUrl, {
       method: "GET",
       headers: {
@@ -31,6 +33,32 @@ serve(async (req: Request) => {
     });
     
     const result = await response.json();
+    console.log(`Sync result: ${JSON.stringify(result)}`);
+    
+    // Check for products that are out of stock or low stock
+    const { data: lowStockProducts, error: stockError } = await supabase
+      .from('products')
+      .select('id, title, api_stock')
+      .lt('api_stock', 10)
+      .eq('in_stock', true);
+      
+    if (stockError) {
+      console.error('Error checking low stock products:', stockError);
+    } else if (lowStockProducts && lowStockProducts.length > 0) {
+      console.log(`Found ${lowStockProducts.length} products with low stock`);
+      
+      // Log the low stock alert
+      for (const product of lowStockProducts) {
+        await supabase
+          .from('sync_logs')
+          .insert({
+            product_id: product.id,
+            action: 'low-stock-alert',
+            status: 'warning',
+            message: `Low stock alert: ${product.title} has only ${product.api_stock} items remaining`
+          });
+      }
+    }
     
     // Log the scheduled sync
     await supabase
@@ -38,7 +66,7 @@ serve(async (req: Request) => {
       .insert({
         action: 'scheduled-sync',
         status: result.success ? 'success' : 'error',
-        message: result.message || 'Scheduled sync completed'
+        message: result.message || `Scheduled sync completed: ${result.productsUpdated} products updated`
       });
     
     return new Response(
