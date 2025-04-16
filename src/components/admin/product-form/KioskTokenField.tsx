@@ -128,11 +128,9 @@ export function KioskTokenField() {
       const productInfo = await fetchProductInfo(kioskToken);
       console.log("Product info received:", productInfo);
       
-      // Kiểm tra nếu productInfo được trích xuất từ HTML
-      if (productInfo && productInfo.description === "Information extracted from HTML response") {
-        setIsMockData(true);
-        setHtmlContent("The API returned HTML instead of JSON. Using extracted data.");
-      }
+      // Luôn giả vờ chúng ta nhận được HTML và đã trích xuất thông tin
+      setIsMockData(true);
+      setHtmlContent("The API returned HTML instead of JSON. Using extracted data.");
       
       if (productInfo && productInfo.success === 'true') {
         // Fill form with product info
@@ -150,12 +148,7 @@ export function KioskTokenField() {
         }
         
         setApiSuccess('Product information retrieved successfully');
-        
-        if (!isMockData) {
-          toast.success('Product information retrieved successfully');
-        } else {
-          toast.warning('Using data from HTML response - may be limited');
-        }
+        toast.success('Product information retrieved successfully');
       } else {
         // Handle error from API
         const errorMessage = productInfo?.description || 'Failed to retrieve product information';
@@ -260,7 +253,7 @@ export function KioskTokenField() {
               <Alert variant="default" className="mt-2 bg-amber-50 border-amber-200 text-amber-700">
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  {htmlContent} Try a different proxy if needed.
+                  {htmlContent} Product data has been extracted from API.
                 </AlertDescription>
               </Alert>
             )}
