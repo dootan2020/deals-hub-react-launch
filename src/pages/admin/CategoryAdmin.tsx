@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -97,7 +98,7 @@ const CategoryAdmin = () => {
         .order('name');
 
       if (error) throw error;
-      setCategories(data || []);
+      setCategories(data as Category[]);
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast.error('Failed to fetch categories');
