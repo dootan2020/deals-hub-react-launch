@@ -1,8 +1,7 @@
 // src/utils/proxyUtils.ts
-
 import { supabase } from "@/integrations/supabase/client";
 
-export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom';
+export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom' | 'jsonp' | 'yproxy';
 
 export interface ProxyConfig {
   type: ProxyType;
@@ -63,6 +62,16 @@ export function buildProxyUrl(apiUrl: string, proxyConfig: ProxyConfig): { url: 
         url: `https://cors-anywhere.herokuapp.com/${apiUrl}`,
         description: `CORS Anywhere proxy: ${`https://cors-anywhere.herokuapp.com/${apiUrl}`.substring(0, 60)}...`
       };
+    case 'jsonp':
+      return { 
+        url: `https://jsonp.afeld.me/?url=${encodeURIComponent(apiUrl)}`,
+        description: `JSONP Proxy: ${apiUrl.substring(0, 60)}...`
+      };
+    case 'yproxy':
+      return { 
+        url: `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`,
+        description: `YProxy (AllOrigins RAW): ${apiUrl.substring(0, 60)}...`
+      };
     case 'custom':
       if (!proxyConfig.url) {
         throw new Error('Custom proxy URL is not configured');
@@ -96,6 +105,7 @@ export function getRequestHeaders(): HeadersInit {
     'X-Request-Time': timestamp.toString(),
     'Content-Type': 'application/json',
     'Origin': 'https://taphoammo.net',
-    'Referer': 'https://taphoammo.net/'
+    'Referer': 'https://taphoammo.net/',
+    'Access-Control-Allow-Origin': '*'
   };
 }
