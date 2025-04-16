@@ -1,34 +1,60 @@
 
 import { Link } from 'react-router-dom';
-import { Star } from 'lucide-react';
+import { Star, ShoppingCart, Eye } from 'lucide-react';
 import { Product } from '@/types';
 import { formatCurrency, calculateDiscountPercentage } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 
 interface ProductCardProps {
   product: Product;
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
+  const [isHovered, setIsHovered] = useState(false);
   const discountPercentage = product.originalPrice 
     ? calculateDiscountPercentage(product.originalPrice, product.price)
     : 0;
 
   return (
-    <Link to={`/product/${product.slug}`} className="group">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md group-hover:-translate-y-1">
-        {/* Product Image */}
-        <div className="relative h-48 bg-gray-100">
+    <div 
+      className="group relative h-full"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md h-full flex flex-col">
+        {/* Product Image with hover effect */}
+        <div className="relative h-52 bg-gray-50 overflow-hidden">
           <img
             src={product.images[0]}
             alt={product.title}
-            className="w-full h-full object-contain p-4"
+            className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-105"
           />
           
+          {/* Quick action buttons on hover */}
+          <div className={`absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center gap-2 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+            <Link to={`/product/${product.slug}`}>
+              <Button size="sm" variant="secondary" className="rounded-full p-2">
+                <Eye className="h-4 w-4" />
+                <span className="sr-only">Quick view</span>
+              </Button>
+            </Link>
+            <Button 
+              size="sm" 
+              variant="secondary" 
+              className="rounded-full p-2"
+              disabled={!product.inStock}
+            >
+              <ShoppingCart className="h-4 w-4" />
+              <span className="sr-only">Add to cart</span>
+            </Button>
+          </div>
+          
           {/* Badges */}
-          {product.badges && product.badges.length > 0 && (
-            <div className="absolute top-2 left-2 flex flex-col gap-1">
-              {product.badges.map((badge, index) => {
-                let badgeClass = "text-xs font-medium px-2 py-1 rounded";
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {product.badges && product.badges.length > 0 && (
+              product.badges.map((badge, index) => {
+                let badgeClass = "text-xs font-semibold px-2 py-1 rounded shadow-sm";
                 
                 if (badge.includes("OFF")) {
                   badgeClass += " bg-red-500 text-white";
@@ -49,14 +75,14 @@ const ProductCard = ({ product }: ProductCardProps) => {
                     {badge}
                   </span>
                 );
-              })}
-            </div>
-          )}
+              })
+            )}
+          </div>
           
           {/* Discount Badge */}
           {discountPercentage > 0 && (
             <div className="absolute top-2 right-2">
-              <span className="bg-red-500 text-white text-xs font-medium px-2 py-1 rounded">
+              <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded shadow-sm">
                 {discountPercentage}% OFF
               </span>
             </div>
@@ -64,10 +90,12 @@ const ProductCard = ({ product }: ProductCardProps) => {
         </div>
         
         {/* Product Info */}
-        <div className="p-4">
-          <h3 className="font-medium text-lg mb-1 group-hover:text-primary transition-colors">
-            {product.title}
-          </h3>
+        <div className="p-4 flex flex-col flex-grow">
+          <Link to={`/product/${product.slug}`} className="group">
+            <h3 className="font-medium text-lg mb-1 transition-colors duration-200 group-hover:text-primary truncate">
+              {product.title}
+            </h3>
+          </Link>
           
           <div className="flex items-center mb-2">
             <div className="flex mr-2">
@@ -87,27 +115,41 @@ const ProductCard = ({ product }: ProductCardProps) => {
             </span>
           </div>
           
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="font-semibold text-text">
-                {formatCurrency(product.price)}
-              </span>
-              {product.originalPrice && (
-                <span className="text-text-light text-sm line-through ml-2">
-                  {formatCurrency(product.originalPrice)}
+          <p className="text-sm text-gray-500 mb-3 line-clamp-2 flex-grow">
+            {product.description}
+          </p>
+          
+          <div className="mt-auto">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <span className="font-semibold text-lg text-text">
+                  {formatCurrency(product.price)}
+                </span>
+                {product.originalPrice && (
+                  <span className="text-text-light text-sm line-through ml-2">
+                    {formatCurrency(product.originalPrice)}
+                  </span>
+                )}
+              </div>
+              
+              {!product.inStock && (
+                <span className="text-xs font-medium px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                  Out of Stock
                 </span>
               )}
             </div>
             
-            {!product.inStock && (
-              <span className="text-xs text-red-500 font-medium">
-                Out of Stock
-              </span>
-            )}
+            <Button 
+              className="w-full group-hover:bg-primary-dark transition-colors"
+              disabled={!product.inStock}
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Add to Cart
+            </Button>
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 };
 
