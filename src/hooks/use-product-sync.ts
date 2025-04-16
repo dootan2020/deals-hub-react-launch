@@ -119,28 +119,33 @@ export function useProductSync() {
         throw new Error('No active API configuration found');
       }
 
-      const timestamp = new Date().getTime();
       console.log(`Using user token: ${apiConfig.user_token.substring(0, 8)}... for product lookup`);
       
       // URL encode the parameters for safety
       const encodedKioskToken = encodeURIComponent(kioskToken);
       const encodedUserToken = encodeURIComponent(apiConfig.user_token);
       
+      // Original API URL
+      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}`;
+      
       // Use AllOrigins as a proxy to avoid CORS issues
-      const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(
-        `https://taphoammo.net/api/getStock?kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}`
-      )}`;
+      const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
       
       console.log(`Attempting API call via AllOrigins proxy: ${allOriginsUrl}`);
       
+      const timestamp = new Date().getTime();
       const headers = {
-        'Cache-Control': 'no-cache, no-store',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
+        'X-Requested-With': 'XMLHttpRequest',
         'X-Request-Time': timestamp.toString()
       };
       
       try {
-        // Try direct API call through the AllOrigins proxy
+        // Try using AllOrigins proxy first
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
         
@@ -152,69 +157,67 @@ export function useProductSync() {
         clearTimeout(timeoutId);
         
         if (!response.ok) {
-          let errorText = '';
+          throw new Error(`AllOrigins proxy returned error status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('AllOrigins response data:', data);
+        
+        if (data && data.contents) {
           try {
-            const errorJson = await response.json();
-            errorText = errorJson.error || `API error (${response.status})`;
-          } catch (e) {
-            try {
-              errorText = await response.text();
-              if (errorText.length > 100) {
-                errorText = errorText.substring(0, 100) + "...";
-              }
-              
-              // Check if response is HTML
-              if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
-                errorText = `API error (${response.status}): Received HTML instead of JSON. Please check your API connection settings.`;
-              } else {
-                errorText = `API error (${response.status}): ${errorText}`;  
-              }
-            } catch (textError) {
-              errorText = `API error (${response.status}): Unable to read error response`;
-            }
+            // Parse the contents from AllOrigins response
+            const productInfo = JSON.parse(data.contents);
+            console.log('Parsed product info from AllOrigins:', productInfo);
+            return productInfo;
+          } catch (parseError) {
+            console.error('Error parsing JSON from AllOrigins response:', parseError);
+            throw new Error('Failed to parse product information from AllOrigins response');
           }
-          
-          console.error('API error response:', errorText);
-          throw new Error(errorText);
+        } else {
+          throw new Error('Invalid data structure from AllOrigins');
         }
+      } catch (allOriginsError) {
+        console.error('AllOrigins proxy error:', allOriginsError);
         
-        // Check content type 
-        const contentType = response.headers.get("content-type");
-        console.log(`Content-Type: ${contentType}`);
-        
-        // Get the raw text first to analyze what we're dealing with
-        const responseText = await response.text();
-        console.log(`Raw response (first 300 chars): ${responseText.substring(0, 300)}`);
-        
-        // Check if response is HTML
-        if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
-          console.log('Response is HTML, attempting to extract product information');
-          throw new Error('Received HTML instead of JSON');
-        }
+        // Try alternative proxy - corsproxy.io
+        console.log('Trying alternative proxy - corsproxy.io...');
+        const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
         
         try {
-          // Try to parse the response as JSON
-          const data = JSON.parse(responseText);
-          console.log('Parsed data:', data);
-          return data;
-        } catch (parseError) {
-          console.error('JSON parse error:', parseError);
-          throw new Error(`Failed to parse API response: ${parseError.message}`);
+          const corsProxyResponse = await fetch(corsProxyUrl, { headers });
+          
+          if (!corsProxyResponse.ok) {
+            throw new Error(`CORS proxy returned error status: ${corsProxyResponse.status}`);
+          }
+          
+          const corsProxyData = await corsProxyResponse.text();
+          console.log('CORS proxy response (first 300 chars):', corsProxyData.substring(0, 300));
+          
+          try {
+            const productInfo = JSON.parse(corsProxyData);
+            console.log('Parsed product info from CORS proxy:', productInfo);
+            return productInfo;
+          } catch (parseError) {
+            console.error('Error parsing JSON from CORS proxy:', parseError);
+            throw new Error('Failed to parse product information from CORS proxy');
+          }
+        } catch (corsProxyError) {
+          console.error('CORS proxy error:', corsProxyError);
+          
+          // Last resort - try our edge function as fallback
+          console.log('Falling back to edge function...');
+          const edgeFunctionUrl = `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`;
+          
+          const edgeFunctionResponse = await fetch(edgeFunctionUrl, { headers });
+          
+          if (!edgeFunctionResponse.ok) {
+            throw new Error(`Edge function failed: ${edgeFunctionResponse.status}`);
+          }
+          
+          const edgeFunctionData = await edgeFunctionResponse.json();
+          console.log('Edge function response:', edgeFunctionData);
+          return edgeFunctionData;
         }
-      } catch (fetchError: any) {
-        console.error(`Fetch error: ${fetchError.message}`);
-        
-        // As fallback, use our edge function
-        console.log(`Falling back to edge function...`);
-        const edgeFunctionUrl = `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`;
-        const edgeFuncResponse = await fetch(edgeFunctionUrl, { headers });
-        
-        if (!edgeFuncResponse.ok) {
-          throw new Error(`Edge function failed: ${edgeFuncResponse.status}`);
-        }
-        
-        const edgeFuncData = await edgeFuncResponse.json();
-        return edgeFuncData;
       }
     } catch (error: any) {
       console.error('Fetch product info error:', error);
