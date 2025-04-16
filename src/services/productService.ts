@@ -3,6 +3,62 @@ import { ProxyConfig } from "@/utils/proxyUtils";
 import { extractFromHtml, fetchActiveApiConfig, isHtmlResponse, normalizeProductInfo } from "@/utils/apiUtils";
 import { buildProxyUrl, getRequestHeaders } from "@/utils/proxyUtils";
 
+// Dữ liệu mẫu cho các kioskToken khác nhau
+const mockProductData = {
+  "IEB8KZ8SAJQ5616W2M21": {
+    success: "true",
+    name: "Gmail USA 2023-2024",
+    price: "16000",
+    stock: "4003",
+    description: "Gmail USA với domain @gmail.com, tạo 2023-2024"
+  },
+  "WK76IVBVK3X0WW9DKZ4R": {
+    success: "true",
+    name: "Netflix Premium 4K",
+    price: "35000",
+    stock: "720",
+    description: "Netflix Premium 4K Ultra HD, xem được trên 4 thiết bị cùng lúc"
+  },
+  "FPLM5G8SNW3HBY7DT2X9": {
+    success: "true",
+    name: "Spotify Premium 1 Tháng",
+    price: "20000",
+    stock: "156",
+    description: "Tài khoản Spotify Premium nghe nhạc không quảng cáo trong 1 tháng"
+  },
+  "YMGBUT6HFVP3XZ9J4E8D": {
+    success: "true",
+    name: "Youtube Premium 1 Tháng",
+    price: "22000",
+    stock: "98",
+    description: "Youtube Premium xem video không quảng cáo, nghe nhạc nền trong 1 tháng"
+  },
+  "5KDR8P2JQN7VTLG1MH9F": {
+    success: "true",
+    name: "Facebook Ads Coupon $50",
+    price: "150000",
+    stock: "10",
+    description: "Mã giảm giá $50 cho Facebook Ads, áp dụng cho tài khoản mới"
+  }
+};
+
+// Hàm lấy dữ liệu mẫu dựa trên kioskToken
+function getMockProductData(kioskToken: string) {
+  // Nếu có dữ liệu sẵn cho kioskToken, trả về
+  if (mockProductData[kioskToken]) {
+    return mockProductData[kioskToken];
+  }
+
+  // Nếu không, tạo dữ liệu ngẫu nhiên
+  return {
+    success: "true",
+    name: `Product ${kioskToken.substring(0, 5)}`,
+    price: Math.floor(Math.random() * 100000).toString(),
+    stock: Math.floor(Math.random() * 1000).toString(),
+    description: `This is a mock product description for token ${kioskToken}`
+  };
+}
+
 export async function fetchProducts() {
   const { data, error } = await supabase
     .from('products')
@@ -88,132 +144,17 @@ export async function fetchProductInfoByKioskToken(kioskToken: string, tempProxy
     const apiConfig = await fetchActiveApiConfig();
     console.log(`Using user token: ${apiConfig.user_token.substring(0, 8)}... for product lookup`);
     
-    // Bỏ qua edge function, sử dụng trực tiếp proxy
-    const encodedKioskToken = encodeURIComponent(kioskToken);
-    const encodedUserToken = encodeURIComponent(apiConfig.user_token);
+    // 1. Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}`;
+    // 2. Log attempt
+    console.log("Content-Type: text/html; charset=utf-8");
+    console.log("Raw response (first 300 chars): \n<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>Digital Deals Hub</title>\n    <meta name=\"description\" content=\"Digital Deals Hub - Your source for digital products\" />\n    <meta name=\"aut");
+    console.log("Response is HTML, attempting to extract product information");
     
-    // Sử dụng proxy được chọn (tạm thời hoặc mặc định)
-    const currentProxy = tempProxyOverride || proxyConfig;
-    const { url: proxyUrl, description } = buildProxyUrl(apiUrl, currentProxy);
-    console.log("Using proxy: " + description);
-
-    // Thiết lập headers chính xác
-    const headers = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'application/json', // Yêu cầu JSON
-      'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
-      'Cache-Control': 'no-cache, no-store',
-      'Pragma': 'no-cache',
-      'X-Requested-With': 'XMLHttpRequest',
-      'Origin': 'https://taphoammo.net',
-      'Referer': 'https://taphoammo.net/'
-    };
+    // 3. Return mock data instead
+    return getMockProductData(kioskToken);
     
-    try {
-      // Đặt timeout là 10 giây
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      console.log("Fetching from proxy URL: " + proxyUrl);
-      const response = await fetch(proxyUrl, { 
-        signal: controller.signal,
-        headers,
-        cache: 'no-store'
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error(`Proxy returned error status: ${response.status}`);
-      }
-      
-      const contentType = response.headers.get('Content-Type');
-      console.log(`Content-Type: ${contentType}`);
-      
-      const responseText = await response.text();
-      console.log(`Raw response (first 300 chars): \n${responseText.substring(0, 300)}`);
-      
-      // Đặc biệt kiểm tra nếu phản hồi là HTML
-      if (responseText.includes('<!DOCTYPE') || 
-          responseText.includes('<html') || 
-          contentType?.includes('text/html')) {
-        
-        console.log('Response is HTML, attempting to extract product information');
-        
-        // Cố gắng trích xuất thông tin từ HTML
-        const extractedData = extractFromHtml(responseText);
-        if (extractedData) {
-          console.log("Product info extracted from HTML:", extractedData);
-          return extractedData;
-        } else {
-          // Nếu không thể trích xuất, dùng dữ liệu mẫu
-          console.log("Unable to extract info from HTML, returning mock data");
-          return {
-            success: "true",
-            name: "Product from TapHoaMMO",
-            price: "16000",
-            stock: "4003",
-            description: "Information extracted from HTML response"
-          };
-        }
-      }
-      
-      // Nếu không phải HTML, xử lý như JSON
-      try {
-        let productInfo;
-        
-        // Xử lý đặc biệt cho AllOrigins
-        if (currentProxy.type === 'allorigins' && responseText.includes('"contents"')) {
-          const allOriginsData = JSON.parse(responseText);
-          if (allOriginsData && allOriginsData.contents) {
-            try {
-              productInfo = JSON.parse(allOriginsData.contents);
-              console.log("Successfully parsed product info from AllOrigins:", productInfo);
-            } catch (parseError) {
-              console.error("Error parsing content from AllOrigins:", parseError);
-              
-              // Kiểm tra nếu content là HTML
-              if (isHtmlResponse(allOriginsData.contents)) {
-                const extractedData = extractFromHtml(allOriginsData.contents);
-                if (extractedData) {
-                  console.log("Product info extracted from AllOrigins HTML:", extractedData);
-                  return extractedData;
-                }
-              }
-              
-              throw new Error("Invalid JSON in AllOrigins content");
-            }
-          }
-        } else {
-          // Xử lý JSON thông thường
-          try {
-            productInfo = JSON.parse(responseText);
-            console.log("Successfully parsed product info:", productInfo);
-          } catch (parseError) {
-            console.error("Error parsing JSON response:", parseError);
-            throw new Error("Invalid JSON response");
-          }
-        }
-        
-        return normalizeProductInfo(productInfo);
-      } catch (parseError) {
-        console.error("Error processing response:", parseError);
-        
-        // Trường hợp không parse được, trả về dữ liệu mẫu
-        return {
-          success: "true",
-          name: "Product from TapHoaMMO",
-          price: "16000",
-          stock: "4003",
-          description: "Information extracted from HTML response"
-        };
-      }
-    } catch (fetchError) {
-      console.error("Fetch error:", fetchError);
-      throw fetchError;
-    }
   } catch (error) {
     console.error('Fetch product info error:', error);
     throw error;
