@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,20 +10,44 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
-import { fetchActiveApiConfig } from '@/utils/apiUtils';
+import { Loader2, RefreshCw, AlertCircle, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { buildProxyUrl, getRequestHeaders, ProxyType } from '@/utils/proxyUtils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 
+// Định nghĩa kiểu dữ liệu cho phản hồi API
 type ApiResponse = {
   success: string;
   name: string;
   price: string;
   stock: string;
   description?: string;
+};
+
+// Dữ liệu mẫu cho các kioskToken khác nhau
+const mockData: Record<string, ApiResponse> = {
+  "IEB8KZ8SAJQ5616W2M21": {
+    success: "true",
+    name: "Gmail USA 2023-2024",
+    price: "16000",
+    stock: "4003",
+    description: "Gmail USA với domain @gmail.com, tạo 2023-2024"
+  },
+  "WK76IVBVK3X0WW9DKZ4R": {
+    success: "true",
+    name: "Netflix Premium 4K",
+    price: "35000",
+    stock: "720",
+    description: "Netflix Premium 4K Ultra HD, xem được trên 4 thiết bị cùng lúc"
+  },
+  "DUP32BXSLWAP4847J84B": {
+    success: "true",
+    name: "V1 INSTAGRAM QUA 282, NO INFO, NO LOGIN IP, TẠO > 10-30 NGÀY",
+    price: "3500",
+    stock: "8090",
+    description: "Tài khoản Instagram đã qua 282, không yêu cầu login IP, tuổi 10-30 ngày"
+  }
 };
 
 const ApiTesterPage = () => {
@@ -36,7 +59,7 @@ const ApiTesterPage = () => {
   const [rawResponse, setRawResponse] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
-  const [testMethod, setTestMethod] = useState<'browser' | 'server'>('browser');
+  const [isMockData, setIsMockData] = useState<boolean>(false);
 
   useEffect(() => {
     const loadApiConfig = async () => {
@@ -59,14 +82,20 @@ const ApiTesterPage = () => {
     loadApiConfig();
   }, []);
 
-  // Mock data for when actual API fetch fails
-  const getMockResponse = () => {
+  // Hàm lấy dữ liệu mẫu dựa trên kioskToken
+  const getMockResponse = (token: string): ApiResponse => {
+    // Nếu có dữ liệu sẵn cho kioskToken, trả về
+    if (mockData[token]) {
+      return mockData[token];
+    }
+    
+    // Nếu không, trả về dữ liệu mẫu mặc định
     return {
       success: "true",
       name: "Gmail USA 2023-2024",
       price: "16000",
       stock: "4003",
-      description: "Mock data returned due to CORS issues"
+      description: "Dữ liệu mẫu được sử dụng do gặp vấn đề CORS hoặc API"
     };
   };
 
@@ -80,6 +109,7 @@ const ApiTesterPage = () => {
     setError(null);
     setApiResponse(null);
     setRawResponse('');
+    setIsMockData(false);
     
     try {
       const encodedKioskToken = encodeURIComponent(kioskToken);
@@ -92,65 +122,100 @@ const ApiTesterPage = () => {
 
       const headers = getRequestHeaders();
       
+      // Thiết lập tùy chọn fetch
       const fetchOptions: RequestInit = {
         headers,
         cache: 'no-store',
-        mode: 'cors',
+        // Xóa mode: 'cors' vì một số proxy không hỗ trợ
       };
 
-      // Try with a timeout to prevent hanging on failed requests
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Request timed out after 8 seconds')), 8000)
-      );
+      // Thiết lập timeout để tránh treo khi yêu cầu thất bại
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      fetchOptions.signal = controller.signal;
       
-      const fetchPromise = fetch(proxyUrl, fetchOptions);
-      
-      // Race between fetch and timeout
-      const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      
-      const responseText = await response.text();
-      
-      let parsedResponse: ApiResponse | null = null;
-      
-      if (selectedProxy === 'allorigins' && responseText.includes('"contents"')) {
-        try {
-          const allOriginsData = JSON.parse(responseText);
-          if (allOriginsData && allOriginsData.contents) {
-            parsedResponse = JSON.parse(allOriginsData.contents);
+      try {
+        const response = await fetch(proxyUrl, fetchOptions);
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const responseText = await response.text();
+        
+        // Kiểm tra nếu phản hồi là HTML
+        if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+          console.log('API response is HTML, using mock data');
+          const mockResponse = getMockResponse(kioskToken);
+          setApiResponse(mockResponse);
+          setRawResponse(JSON.stringify(mockResponse, null, 2));
+          setIsMockData(true);
+          toast.warning('Sử dụng dữ liệu mẫu do API trả về HTML thay vì JSON');
+        } else {
+          // Xử lý phản hồi dựa trên loại proxy
+          let parsedResponse: ApiResponse | null = null;
+          
+          if (selectedProxy === 'allorigins' && responseText.includes('"contents"')) {
+            try {
+              const allOriginsData = JSON.parse(responseText);
+              if (allOriginsData && allOriginsData.contents) {
+                // Kiểm tra nếu contents là HTML
+                if (allOriginsData.contents.includes('<!DOCTYPE') || allOriginsData.contents.includes('<html')) {
+                  console.log('AllOrigins content is HTML, using mock data');
+                  parsedResponse = getMockResponse(kioskToken);
+                  setIsMockData(true);
+                  toast.warning('Sử dụng dữ liệu mẫu do API trả về HTML thay vì JSON');
+                } else {
+                  try {
+                    parsedResponse = JSON.parse(allOriginsData.contents);
+                  } catch (error) {
+                    console.error('Error parsing AllOrigins contents:', error);
+                    parsedResponse = getMockResponse(kioskToken);
+                    setIsMockData(true);
+                    toast.warning('Sử dụng dữ liệu mẫu do lỗi phân tích JSON');
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('Error parsing AllOrigins response:', error);
+              parsedResponse = getMockResponse(kioskToken);
+              setIsMockData(true);
+              toast.warning('Sử dụng dữ liệu mẫu do lỗi phân tích phản hồi');
+            }
+          } else {
+            try {
+              parsedResponse = JSON.parse(responseText);
+            } catch (error) {
+              console.error('Error parsing JSON:', error);
+              parsedResponse = getMockResponse(kioskToken);
+              setIsMockData(true);
+              toast.warning('Sử dụng dữ liệu mẫu do lỗi định dạng JSON');
+            }
+          }
+          
+          if (parsedResponse) {
+            setApiResponse(parsedResponse);
             setRawResponse(JSON.stringify(parsedResponse, null, 2));
           }
-        } catch (error) {
-          console.error('Error parsing response:', error);
-          setError('Không thể phân tích phản hồi');
-          
-          // Use mock data if parsing fails
-          parsedResponse = getMockResponse();
-          setRawResponse(JSON.stringify(parsedResponse, null, 2));
-          toast.warning('Sử dụng dữ liệu mẫu do lỗi CORS hoặc phân tích phản hồi');
         }
-      } else {
-        try {
-          parsedResponse = JSON.parse(responseText);
-          setRawResponse(JSON.stringify(parsedResponse, null, 2));
-        } catch (error) {
-          console.error('Error parsing JSON:', error);
-          setError('Phản hồi không phải định dạng JSON hợp lệ');
-          
-          // Use mock data if parsing fails
-          parsedResponse = getMockResponse();
-          setRawResponse(JSON.stringify(parsedResponse, null, 2));
-          toast.warning('Sử dụng dữ liệu mẫu do lỗi định dạng JSON');
+      } catch (fetchError: any) {
+        console.error('Fetch error:', fetchError);
+        
+        // Sử dụng dữ liệu mẫu khi fetch thất bại
+        const mockResponse = getMockResponse(kioskToken);
+        setApiResponse(mockResponse);
+        setRawResponse(JSON.stringify(mockResponse, null, 2));
+        setIsMockData(true);
+        
+        if (fetchError.name === 'AbortError') {
+          toast.error('Yêu cầu API đã hết thời gian, sử dụng dữ liệu mẫu thay thế');
+        } else {
+          toast.warning('Sử dụng dữ liệu mẫu do lỗi kết nối API');
         }
       }
       
-      if (parsedResponse) {
-        setApiResponse(parsedResponse);
-      }
-      
+      // Cập nhật thời gian
       const now = new Date();
       setLastUpdated(
         `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`
@@ -160,10 +225,11 @@ const ApiTesterPage = () => {
       console.error('API test error:', error);
       setError(`Lỗi: ${error.message || 'Không thể kết nối đến API'}`);
       
-      // Provide mock data when real API fails
-      const mockResponse = getMockResponse();
+      // Sử dụng dữ liệu mẫu khi API thất bại
+      const mockResponse = getMockResponse(kioskToken);
       setApiResponse(mockResponse);
       setRawResponse(JSON.stringify(mockResponse, null, 2));
+      setIsMockData(true);
       toast.warning('Sử dụng dữ liệu mẫu do lỗi kết nối API');
       
       const now = new Date();
@@ -189,7 +255,8 @@ const ApiTesterPage = () => {
       <Alert variant="default" className="mb-4 bg-blue-50 border-blue-200">
         <AlertCircle className="h-5 w-5 text-blue-500" />
         <AlertDescription className="text-blue-700">
-          Nếu API trả về lỗi "Failed to fetch", hệ thống sẽ tự động hiển thị dữ liệu mẫu để bạn có thể kiểm tra giao diện.
+          Nếu API trả về lỗi hoặc HTML thay vì JSON, hệ thống sẽ tự động hiển thị dữ liệu mẫu.
+          Thử các CORS proxy khác nhau để xem kết quả tốt nhất.
         </AlertDescription>  
       </Alert>
       
@@ -203,7 +270,7 @@ const ApiTesterPage = () => {
               id="kioskToken"
               value={kioskToken}
               onChange={(e) => setKioskToken(e.target.value)}
-              placeholder="Nhập Kiosk Token"
+              placeholder="Nhập Kiosk Token (ví dụ: DUP32BXSLWAP4847J84B)"
               className="w-full"
             />
           </div>
@@ -261,6 +328,15 @@ const ApiTesterPage = () => {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               {error}
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {isMockData && apiResponse && (
+          <Alert variant="default" className="mt-2 bg-amber-50 border-amber-200">
+            <Info className="h-4 w-4 text-amber-500" />
+            <AlertDescription className="text-amber-700">
+              Hiển thị dữ liệu mẫu do API trả về HTML hoặc gặp lỗi CORS
             </AlertDescription>
           </Alert>
         )}
