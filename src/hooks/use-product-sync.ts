@@ -9,6 +9,14 @@ interface ProxyConfig {
   url?: string;
 }
 
+interface ProxySettings {
+  id: string;
+  proxy_type: string;
+  custom_url: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
 export function useProductSync() {
   const [isLoading, setIsLoading] = useState(false);
   const [proxyConfig, setProxyConfig] = useState<ProxyConfig>({
@@ -23,7 +31,10 @@ export function useProductSync() {
   const fetchProxySettings = async () => {
     try {
       const { data, error } = await supabase
-        .rpc('get_latest_proxy_settings');
+        .rpc('get_latest_proxy_settings') as {
+          data: ProxySettings[] | null;
+          error: any;
+        };
         
       if (error) {
         console.error('Error fetching proxy settings:', error);

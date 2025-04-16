@@ -59,7 +59,10 @@ export function CorsProxySelector() {
     try {
       // Using raw SQL query to get around TypeScript limitations
       const { data, error } = await supabase
-        .rpc('get_latest_proxy_settings');
+        .rpc('get_latest_proxy_settings') as { 
+          data: ProxySettings[] | null; 
+          error: any 
+        };
 
       if (error) {
         if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
@@ -71,7 +74,7 @@ export function CorsProxySelector() {
       }
 
       if (data && data.length > 0) {
-        const settings = data[0] as unknown as ProxySettings;
+        const settings = data[0];
         setSavedConfig({
           type: settings.proxy_type as ProxyType,
           url: settings.custom_url || undefined,
@@ -89,16 +92,16 @@ export function CorsProxySelector() {
   const saveProxySettings = async () => {
     setLoading(true);
     try {
-      // Use raw SQL to insert/update
+      // Prepare data for insert
       const proxyData = {
         proxy_type: selectedProxy,
         custom_url: selectedProxy === 'custom' ? customProxyUrl : null,
       };
 
-      // Directly use SQL query to avoid TypeScript errors
+      // Use any type to bypass TypeScript limitations
       const { error } = await supabase
-        .from('proxy_settings')
-        .insert(proxyData as any);
+        .from('proxy_settings' as any)
+        .insert(proxyData);
 
       if (error) throw error;
 
