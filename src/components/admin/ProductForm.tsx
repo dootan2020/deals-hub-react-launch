@@ -42,6 +42,7 @@ const productSchema = z.object({
   externalId: z.string().optional(),
   categoryId: z.string().min(1, 'Category is required'),
   images: z.string().optional(),
+  kioskToken: z.string().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -69,6 +70,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       externalId: '',
       categoryId: '',
       images: '',
+      kioskToken: '',
     }
   });
 
@@ -116,6 +118,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
           externalId: data.external_id || '',
           categoryId: data.category_id || '',
           images: data.images && data.images.length > 0 ? data.images.join('\n') : '',
+          kioskToken: data.kiosk_token || '',
         });
       }
     } catch (error) {
@@ -139,6 +142,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         external_id: formData.externalId || null,
         category_id: formData.categoryId,
         images: formData.images ? formData.images.split('\n').filter(url => url.trim() !== '') : [],
+        kiosk_token: formData.kioskToken || null,
       };
 
       if (productId) {
@@ -349,6 +353,20 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
 https://example.com/image2.jpg"
                   className="min-h-32"
                 />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="kioskToken"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Kiosk Token (optional)</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="Enter kiosk token" />
               </FormControl>
               <FormMessage />
             </FormItem>

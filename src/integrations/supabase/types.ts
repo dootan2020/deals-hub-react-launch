@@ -161,6 +161,7 @@ export type Database = {
           id: string
           images: string[] | null
           in_stock: boolean | null
+          kiosk_token: string | null
           last_synced_at: string | null
           original_price: number | null
           price: number
@@ -184,6 +185,7 @@ export type Database = {
           id?: string
           images?: string[] | null
           in_stock?: boolean | null
+          kiosk_token?: string | null
           last_synced_at?: string | null
           original_price?: number | null
           price: number
@@ -207,6 +209,7 @@ export type Database = {
           id?: string
           images?: string[] | null
           in_stock?: boolean | null
+          kiosk_token?: string | null
           last_synced_at?: string | null
           original_price?: number | null
           price?: number

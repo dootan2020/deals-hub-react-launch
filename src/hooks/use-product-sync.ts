@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -33,7 +32,17 @@ export function useProductSync() {
   const syncProduct = async (externalId: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/functions/v1/product-sync?action=sync-product&externalId=${externalId}`);
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select('id, external_id, kiosk_token')
+        .eq('external_id', externalId)
+        .single();
+
+      if (productError || !product) {
+        throw new Error('Product not found or has no kiosk token');
+      }
+
+      const response = await fetch(`/functions/v1/product-sync?action=sync-product&externalId=${externalId}&kioskToken=${product.kiosk_token}`);
       const data = await response.json();
       
       if (!response.ok) {
