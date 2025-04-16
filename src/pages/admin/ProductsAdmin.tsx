@@ -1,174 +1,144 @@
 
-import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
-import { Plus, RefreshCw, ExternalLink, Edit, Trash2 } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { supabase } from '@/integrations/supabase/client';
-import { Link } from 'react-router-dom';
 import { useProductSync } from '@/hooks/use-product-sync';
-import { toast } from 'sonner';
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  external_id: string | null;
-  in_stock: boolean;
-  api_stock: number | null;
-  last_synced_at: string | null;
-  slug: string;
-}
+import { RefreshCw, PlusCircle, ExternalLink, Info } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ProductsAdmin = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { syncProduct } = useProductSync();
-
-  const fetchProducts = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('id, title, price, external_id, in_stock, api_stock, last_synced_at, slug')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setProducts(data || []);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      toast.error('Failed to fetch products');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const handleSyncProduct = async (externalId: string) => {
-    if (!externalId) {
-      toast.error('Product has no external ID to sync');
-      return;
-    }
-
-    try {
-      await syncProduct(externalId);
-      toast.success('Product sync initiated');
-      fetchProducts(); // Refresh the list
-    } catch (error) {
-      console.error('Error syncing product:', error);
-      toast.error('Failed to sync product');
-    }
-  };
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleString();
-  };
+  const navigate = useNavigate();
+  const { 
+    products, 
+    isLoading, 
+    syncAllProducts,
+    syncProduct
+  } = useProductSync();
 
   return (
-    <AdminLayout title="Products Management">
-      <div className="flex justify-between mb-6">
-        <Button asChild>
-          <Link to="/admin/products/new">
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Product
-          </Link>
-        </Button>
-        <Button variant="outline" onClick={fetchProducts}>
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Refresh
-        </Button>
+    <AdminLayout title="Products">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Products ({products.length})</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage digital products and their availability
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="default"
+            className="bg-green-500 hover:bg-green-600 text-white"
+            onClick={() => navigate('/admin/products/new')}
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            New Product
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => syncAllProducts()}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Sync All
+          </Button>
+        </div>
       </div>
 
-      <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Product</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>External ID</TableHead>
-              <TableHead>Last Synced</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center">
-                  Loading products...
-                </TableCell>
-              </TableRow>
-            ) : products.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center">
-                  No products found
-                </TableCell>
-              </TableRow>
-            ) : (
-              products.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <div className="font-medium">{product.title}</div>
-                  </TableCell>
-                  <TableCell>${product.price.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <div className={product.in_stock ? 'text-green-600' : 'text-red-600'}>
+      <Card className="mb-6 bg-primary/5 border-primary/20">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-1">
+              <h2 className="text-lg font-medium mb-2">API Integration</h2>
+              <p className="text-muted-foreground">
+                Products are synchronized with the TapHoaMMO API using Kiosk Tokens. Use the "Sync All" button to update product stocks and prices.
+              </p>
+              <p className="text-muted-foreground mt-2 text-sm flex items-center gap-1">
+                <ExternalLink className="w-4 h-4" /> 
+                Make sure to set up API configurations with user tokens in the API Config page first.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Alert className="mb-6 bg-blue-50 border-blue-200">
+        <Info className="h-5 w-5 text-blue-500" />
+        <AlertDescription className="text-blue-700">
+          <p className="font-medium">API Proxy Update</p>
+          <p className="mt-1">We've updated the product creation process to use a more reliable API connection method. Use the "New Product" button to create products with automatic data retrieval.</p>
+        </AlertDescription>
+      </Alert>
+
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="relative overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="uppercase bg-gray-50 text-gray-700">
+              <tr>
+                <th scope="col" className="px-6 py-3">Name</th>
+                <th scope="col" className="px-6 py-3">Price</th>
+                <th scope="col" className="px-6 py-3">Stock</th>
+                <th scope="col" className="px-6 py-3">Category</th>
+                <th scope="col" className="px-6 py-3">Last Synced</th>
+                <th scope="col" className="px-6 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((product) => (
+                <tr key={product.id} className="border-b hover:bg-gray-50">
+                  <td className="px-6 py-4 font-medium">{product.title}</td>
+                  <td className="px-6 py-4">{Intl.NumberFormat('vi-VN').format(product.price)} VND</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${product.in_stock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                       {product.in_stock ? 'In Stock' : 'Out of Stock'}
-                      {product.api_stock !== null && ` (${product.api_stock})`}
-                    </div>
-                  </TableCell>
-                  <TableCell>{product.external_id || '—'}</TableCell>
-                  <TableCell>{formatDate(product.last_synced_at)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    {product.categories?.name || '-'}
+                  </td>
+                  <td className="px-6 py-4">
+                    {product.last_synced_at ? new Date(product.last_synced_at).toLocaleString() : 'Never'}
+                  </td>
+                  <td className="px-6 py-4 flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => navigate(`/admin/products/edit/${product.id}`)}
+                    >
+                      Edit
+                    </Button>
+                    {product.external_id && (
                       <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        asChild
+                        variant="outline" 
+                        size="sm" 
+                        className="text-blue-600 hover:text-blue-700"
+                        onClick={() => syncProduct(product.external_id)}
+                        disabled={isLoading}
                       >
-                        <Link to={`/product/${product.slug}`} target="_blank">
-                          <ExternalLink className="w-4 h-4" />
-                          <span className="sr-only">View</span>
-                        </Link>
+                        <RefreshCw className={`mr-1 h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+                        Sync
                       </Button>
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        asChild
-                      >
-                        <Link to={`/admin/products/edit/${product.id}`}>
-                          <Edit className="w-4 h-4" />
-                          <span className="sr-only">Edit</span>
-                        </Link>
-                      </Button>
-                      {product.external_id && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleSyncProduct(product.external_id!)}
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                          <span className="sr-only">Sync</span>
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {products.length === 0 && !isLoading && (
+                <tr className="border-b">
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                    No products found. Click "New Product" to create one.
+                  </td>
+                </tr>
+              )}
+              {isLoading && (
+                <tr className="border-b">
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                    Loading products...
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </AdminLayout>
   );
