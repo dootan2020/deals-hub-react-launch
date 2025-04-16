@@ -84,7 +84,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     try {
       const { data, error } = await supabase
         .from('categories')
-        .select('id, name')
+        .select('*')
         .order('name');
 
       if (error) throw error;
