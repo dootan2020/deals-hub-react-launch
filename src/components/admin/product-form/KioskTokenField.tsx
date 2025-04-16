@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,7 @@ import {
 import { useProductSync, ProxyType } from '@/hooks/use-product-sync';
 import { toast } from 'sonner';
 import { extractFromHtml } from '@/utils/apiUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProxyOption {
   value: string;
@@ -42,10 +42,6 @@ export function KioskTokenField() {
     { value: 'direct', label: 'Direct API Call', description: 'No Proxy (Direct)' },
     { value: 'custom', label: 'Custom Proxy URL', description: 'Your custom proxy' },
   ];
-  
-  // Fetch the active proxy on component mount
-  import { useEffect } from 'react';
-  import { supabase } from '@/integrations/supabase/client';
   
   useEffect(() => {
     const fetchActiveProxy = async () => {
