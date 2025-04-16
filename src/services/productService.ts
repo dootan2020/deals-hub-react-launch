@@ -4,55 +4,48 @@ import { extractFromHtml, fetchActiveApiConfig, isHtmlResponse, normalizeProduct
 import { buildProxyUrl, getRequestHeaders } from "@/utils/proxyUtils";
 
 export async function fetchProducts() {
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('products')
+    .select('*, categories:category_id(*)')
+    .order('title', { ascending: true });
     
-    if (error) {
-      console.error("Error fetching products:", error);
-      throw error;
-    }
-    
-    return data || [];
-  } catch (error) {
-    console.error("Failed to fetch products:", error);
-    throw error;
-  }
+  if (error) throw error;
+  return data;
 }
 
 export async function fetchSyncLogs() {
-  try {
-    const { data, error } = await supabase
-      .from('sync_logs')
-      .select('*')
-      .order('created_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('sync_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(50);
     
-    if (error) {
-      console.error("Error fetching sync logs:", error);
-      throw error;
-    }
-    
-    return data || [];
-  } catch (error) {
-    console.error("Failed to fetch sync logs:", error);
-    throw error;
-  }
+  if (error) throw error;
+  return data;
 }
 
 export async function syncProduct(externalId: string) {
   try {
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select('id, external_id, kiosk_token')
+      .eq('external_id', externalId)
+      .single();
+
+    if (productError || !product) {
+      throw new Error('Product not found or has no kiosk token');
+    }
+
     const apiConfig = await fetchActiveApiConfig();
-    
     const timestamp = new Date().getTime();
+    
     const headers = {
       'Cache-Control': 'no-cache, no-store',
       'Pragma': 'no-cache',
       'X-Request-Time': timestamp.toString()
     };
     
-    const response = await fetch(`/functions/v1/product-sync?action=sync&externalId=${externalId}&userToken=${apiConfig.user_token}&_t=${timestamp}`, {
+    const response = await fetch(`/functions/v1/product-sync?action=sync-product&externalId=${externalId}&userToken=${apiConfig.user_token}&_t=${timestamp}`, {
       headers
     });
     
@@ -253,13 +246,17 @@ export async function syncAllProducts() {
           if (errorText.length > 100) {
             errorText = errorText.substring(0, 100) + "...";
           }
-          errorText = `API error (${response.status}): ${errorText}`;
+          
+          if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+            errorText = `API error (${response.status}): Received HTML instead of JSON`;
+          } else {
+            errorText = `API error (${response.status}): ${errorText}`;
+          }
         } catch (textError) {
           errorText = `API error (${response.status}): Unable to read error response`;
         }
       }
       
-      console.error('API error response:', errorText);
       throw new Error(errorText);
     }
     
@@ -276,7 +273,6 @@ export async function syncAllProducts() {
   }
 }
 
-// Add the missing functions for product creation and update
 export async function createProduct(productData: any) {
   try {
     const { data, error } = await supabase
@@ -284,28 +280,71 @@ export async function createProduct(productData: any) {
       .insert(productData)
       .select()
       .single();
-      
+    
     if (error) throw error;
+    
+    if (productData.category_id) {
+      await updateCategoryCount(productData.category_id);
+    }
+    
     return data;
   } catch (error) {
-    console.error('Create product error:', error);
     throw error;
   }
 }
 
-export async function updateProduct({ id, ...productData }: { id: string, [key: string]: any }) {
+export async function updateProduct({ id, ...product }: { id: string; [key: string]: any }) {
   try {
+    const { data: oldProduct, error: fetchError } = await supabase
+      .from('products')
+      .select('category_id')
+      .eq('id', id)
+      .single();
+      
+    if (fetchError) throw fetchError;
+    
+    const oldCategoryId = oldProduct?.category_id;
+    
     const { data, error } = await supabase
       .from('products')
-      .update(productData)
+      .update(product)
       .eq('id', id)
       .select()
       .single();
-      
+    
     if (error) throw error;
+    
+    if (oldCategoryId !== product.category_id) {
+      if (oldCategoryId) {
+        await updateCategoryCount(oldCategoryId);
+      }
+      if (product.category_id) {
+        await updateCategoryCount(product.category_id);
+      }
+    }
+    
     return data;
   } catch (error) {
-    console.error('Update product error:', error);
     throw error;
+  }
+}
+
+export async function updateCategoryCount(categoryId: string) {
+  try {
+    const { count, error: countError } = await supabase
+      .from('products')
+      .select('id', { count: 'exact' })
+      .eq('category_id', categoryId);
+    
+    if (countError) throw countError;
+    
+    const { error: updateError } = await supabase
+      .from('categories')
+      .update({ count: count || 0 })
+      .eq('id', categoryId);
+    
+    if (updateError) throw updateError;
+  } catch (error) {
+    console.error('Error updating category count:', error);
   }
 }
