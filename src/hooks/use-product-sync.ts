@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +55,39 @@ export function useProductSync() {
     } catch (error: any) {
       console.error('Sync product error:', error);
       toast.error(`Failed to sync product: ${error.message}`);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const fetchProductInfoByKioskToken = async (kioskToken: string) => {
+    setIsLoading(true);
+    try {
+      const { data: apiConfig, error: configError } = await supabase
+        .from('api_configs')
+        .select('user_token')
+        .eq('is_active', true)
+        .single();
+        
+      if (configError || !apiConfig) {
+        throw new Error('No active API configuration found');
+      }
+        
+      const response = await fetch(`/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${apiConfig.user_token}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get product info');
+      }
+      
+      if (data.success !== 'true') {
+        throw new Error(data.description || 'API returned failure');
+      }
+      
+      return data;
+    } catch (error: any) {
+      console.error('Fetch product info error:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -203,6 +237,16 @@ export function useProductSync() {
       toast.error(`Failed to update product: ${error.message}`);
     },
   });
+
+  const fetchProductInfoMutation = useMutation({
+    mutationFn: fetchProductInfoByKioskToken,
+    onSuccess: () => {
+      toast.success('Product information fetched successfully');
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to fetch product information: ${error.message}`);
+    },
+  });
   
   return {
     products: productsQuery.data || [],
@@ -214,6 +258,7 @@ export function useProductSync() {
     syncAllProducts: syncAllMutation.mutate,
     createProduct: createProductMutation.mutate,
     updateProduct: updateProductMutation.mutate,
+    fetchProductInfo: fetchProductInfoMutation.mutate,
     productsError: productsQuery.error,
     syncLogsError: syncLogsQuery.error,
   };

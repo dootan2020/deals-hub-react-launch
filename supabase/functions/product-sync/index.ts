@@ -39,38 +39,49 @@ serve(async (req: Request) => {
     const url = new URL(req.url);
     const action = url.searchParams.get('action') || 'check';
     const externalId = url.searchParams.get('externalId');
+    const kioskToken = url.searchParams.get('kioskToken');
+    const userToken = url.searchParams.get('userToken');
     
     // Create Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // Get active API configuration
-    const { data: apiConfigs, error: configError } = await supabase
-      .from('api_configs')
-      .select('*')
-      .eq('is_active', true)
-      .limit(1);
+    // Get active API configuration if not provided directly
+    let apiConfig: ApiConfig | null = null;
+    if (!userToken) {
+      const { data: apiConfigs, error: configError } = await supabase
+        .from('api_configs')
+        .select('*')
+        .eq('is_active', true)
+        .limit(1);
+        
+      if (configError || !apiConfigs || apiConfigs.length === 0) {
+        throw new Error('No active API configuration found');
+      }
       
-    if (configError || !apiConfigs || apiConfigs.length === 0) {
-      throw new Error('No active API configuration found');
+      apiConfig = apiConfigs[0] as ApiConfig;
     }
     
-    const apiConfig = apiConfigs[0] as ApiConfig;
+    const finalUserToken = userToken || (apiConfig ? apiConfig.user_token : null);
+    
+    if (!finalUserToken) {
+      throw new Error('User token is required');
+    }
     
     switch (action) {
       case 'check':
-        return await handleCheckStock(req, supabase, apiConfig);
+        return await handleCheckStock(req, supabase, kioskToken, finalUserToken);
       case 'sync-all':
-        return await handleSyncAll(req, supabase, apiConfig);
+        return await handleSyncAll(req, supabase, finalUserToken);
       case 'sync-product':
-        if (!externalId) {
+        if (!kioskToken && !externalId) {
           return new Response(
-            JSON.stringify({ error: 'External ID is required for product sync' }),
+            JSON.stringify({ error: 'External ID or Kiosk Token is required for product sync' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
           );
         }
-        return await handleSyncProduct(req, supabase, apiConfig, externalId);
+        return await handleSyncProduct(req, supabase, finalUserToken, externalId, kioskToken);
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
@@ -87,14 +98,41 @@ serve(async (req: Request) => {
 });
 
 // Handle checking stock for a specific product or all products
-async function handleCheckStock(req: Request, supabase: any, apiConfig: ApiConfig): Promise<Response> {
+async function handleCheckStock(req: Request, supabase: any, kioskToken: string | null, userToken: string): Promise<Response> {
   const url = new URL(req.url);
   const externalId = url.searchParams.get('externalId');
   
   try {
-    if (externalId) {
-      // Check specific product
-      const productInfo = await fetchProductInfo(apiConfig, externalId);
+    if (kioskToken) {
+      // Check specific product by kioskToken (direct API call)
+      const productInfo = await fetchProductInfoByKioskToken(userToken, kioskToken);
+      
+      // Log the check
+      await logSyncAction(supabase, null, 'check', 
+        productInfo.success === 'true' ? 'success' : 'error',
+        productInfo.success === 'true' ? 
+          `Product info fetched: ${productInfo.name}, Stock: ${productInfo.stock}, Price: ${productInfo.price}` : 
+          `Failed to fetch product info: ${JSON.stringify(productInfo)}`
+      );
+      
+      return new Response(
+        JSON.stringify(productInfo),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else if (externalId) {
+      // Check specific product by externalId
+      // First, look up the product in the database to get its kioskToken
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select('kiosk_token')
+        .eq('external_id', externalId)
+        .single();
+        
+      if (productError || !product || !product.kiosk_token) {
+        throw new Error('Product not found or has no kiosk token');
+      }
+      
+      const productInfo = await fetchProductInfoByKioskToken(userToken, product.kiosk_token);
       
       // Log the check
       await logSyncAction(supabase, null, 'check', 
@@ -112,8 +150,8 @@ async function handleCheckStock(req: Request, supabase: any, apiConfig: ApiConfi
       // Check all products
       const { data: products, error: productsError } = await supabase
         .from('products')
-        .select('id, external_id')
-        .not('external_id', 'is', null);
+        .select('id, external_id, kiosk_token')
+        .not('kiosk_token', 'is', null);
         
       if (productsError || !products) {
         throw new Error(`Failed to fetch products: ${productsError?.message}`);
@@ -122,8 +160,8 @@ async function handleCheckStock(req: Request, supabase: any, apiConfig: ApiConfi
       const results: Record<string, ProductInfo> = {};
       
       for (const product of products) {
-        if (product.external_id) {
-          results[product.external_id] = await fetchProductInfo(apiConfig, product.external_id);
+        if (product.kiosk_token) {
+          results[product.kiosk_token] = await fetchProductInfoByKioskToken(userToken, product.kiosk_token);
         }
       }
       
@@ -146,12 +184,12 @@ async function handleCheckStock(req: Request, supabase: any, apiConfig: ApiConfi
 }
 
 // Handle syncing all products
-async function handleSyncAll(req: Request, supabase: any, apiConfig: ApiConfig): Promise<Response> {
+async function handleSyncAll(req: Request, supabase: any, userToken: string): Promise<Response> {
   try {
     const { data: products, error: productsError } = await supabase
       .from('products')
-      .select('id, external_id')
-      .not('external_id', 'is', null);
+      .select('id, external_id, kiosk_token')
+      .not('kiosk_token', 'is', null);
       
     if (productsError || !products) {
       throw new Error(`Failed to fetch products: ${productsError?.message}`);
@@ -165,14 +203,14 @@ async function handleSyncAll(req: Request, supabase: any, apiConfig: ApiConfig):
     };
     
     for (const product of products) {
-      if (product.external_id) {
+      if (product.kiosk_token) {
         try {
-          const updated = await syncProduct(supabase, apiConfig, product.external_id, product.id);
+          const updated = await syncProductByKioskToken(supabase, userToken, product.kiosk_token, product.id);
           if (updated) {
             result.productsUpdated++;
           }
         } catch (error: any) {
-          result.errors.push(`Error syncing product ${product.external_id}: ${error.message}`);
+          result.errors.push(`Error syncing product ${product.kiosk_token}: ${error.message}`);
         }
       }
     }
@@ -196,38 +234,78 @@ async function handleSyncAll(req: Request, supabase: any, apiConfig: ApiConfig):
 async function handleSyncProduct(
   req: Request, 
   supabase: any, 
-  apiConfig: ApiConfig, 
-  externalId: string
+  userToken: string,
+  externalId: string | null,
+  kioskToken: string | null
 ): Promise<Response> {
   try {
-    const { data: product, error: productError } = await supabase
-      .from('products')
-      .select('id')
-      .eq('external_id', externalId)
-      .limit(1);
-      
-    if (productError) {
-      throw new Error(`Failed to fetch product: ${productError.message}`);
-    }
+    let productId: string;
     
-    // If product doesn't exist, return error
-    if (!product || product.length === 0) {
+    if (kioskToken) {
+      // If we have kioskToken, find product by it
+      const { data: products, error: productError } = await supabase
+        .from('products')
+        .select('id')
+        .eq('kiosk_token', kioskToken)
+        .limit(1);
+        
+      if (productError || !products || products.length === 0) {
+        return new Response(
+          JSON.stringify({ error: `Product with kiosk token ${kioskToken} not found` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        );
+      }
+      
+      productId = products[0].id;
+      const updated = await syncProductByKioskToken(supabase, userToken, kioskToken, productId);
+      
       return new Response(
-        JSON.stringify({ error: `Product with external ID ${externalId} not found` }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        JSON.stringify({
+          success: true,
+          updated: updated,
+          message: updated ? 'Product updated successfully' : 'No updates needed'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else if (externalId) {
+      // If we have externalId, find product by it and get its kioskToken
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select('id, kiosk_token')
+        .eq('external_id', externalId)
+        .limit(1);
+        
+      if (productError || !product || product.length === 0) {
+        return new Response(
+          JSON.stringify({ error: `Product with external ID ${externalId} not found` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        );
+      }
+      
+      if (!product[0].kiosk_token) {
+        return new Response(
+          JSON.stringify({ error: `Product with external ID ${externalId} has no kiosk token` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+      
+      productId = product[0].id;
+      const updated = await syncProductByKioskToken(supabase, userToken, product[0].kiosk_token, productId);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          updated: updated,
+          message: updated ? 'Product updated successfully' : 'No updates needed'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      return new Response(
+        JSON.stringify({ error: 'Either kiosk token or external ID is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
-    
-    const updated = await syncProduct(supabase, apiConfig, externalId, product[0].id);
-    
-    return new Response(
-      JSON.stringify({
-        success: true,
-        updated: updated,
-        message: updated ? 'Product updated successfully' : 'No updates needed'
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error: any) {
     console.error('Sync product error:', error);
     return new Response(
@@ -237,9 +315,9 @@ async function handleSyncProduct(
   }
 }
 
-// Fetch product info from API
-async function fetchProductInfo(apiConfig: ApiConfig, externalId: string): Promise<ProductInfo> {
-  const url = `https://taphoammo.net/api/getStock?kioskToken=${apiConfig.kiosk_token}&userToken=${apiConfig.user_token}`;
+// Fetch product info from API by kioskToken
+async function fetchProductInfoByKioskToken(userToken: string, kioskToken: string): Promise<ProductInfo> {
+  const url = `https://taphoammo.net/api/getStock?kioskToken=${kioskToken}&userToken=${userToken}`;
   
   try {
     const response = await fetch(url);
@@ -251,16 +329,16 @@ async function fetchProductInfo(apiConfig: ApiConfig, externalId: string): Promi
   }
 }
 
-// Sync product data from API to database
-async function syncProduct(
+// Sync product data from API to database using kioskToken
+async function syncProductByKioskToken(
   supabase: any, 
-  apiConfig: ApiConfig, 
-  externalId: string, 
+  userToken: string, 
+  kioskToken: string, 
   productId: string
 ): Promise<boolean> {
   try {
     // Fetch latest product info
-    const productInfo = await fetchProductInfo(apiConfig, externalId);
+    const productInfo = await fetchProductInfoByKioskToken(userToken, kioskToken);
     
     if (productInfo.success !== 'true') {
       await logSyncAction(

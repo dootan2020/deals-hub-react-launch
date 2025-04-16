@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -26,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Category } from '@/types';
+import { Loader2 } from 'lucide-react';
 
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
@@ -54,6 +56,7 @@ interface ProductFormProps {
 
 export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingProductInfo, setIsLoadingProductInfo] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const navigate = useNavigate();
   const { createProduct, updateProduct } = useProductSync();
@@ -183,9 +186,97 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     form.setValue('slug', slug);
   };
 
+  const fetchProductInfo = async () => {
+    const kioskToken = form.getValues('kioskToken');
+    
+    if (!kioskToken) {
+      toast.error('Please enter a Kiosk Token');
+      return;
+    }
+
+    setIsLoadingProductInfo(true);
+    try {
+      // Get API config to retrieve userToken
+      const { data: apiConfigs, error: configError } = await supabase
+        .from('api_configs')
+        .select('user_token')
+        .eq('is_active', true)
+        .limit(1);
+
+      if (configError || !apiConfigs || apiConfigs.length === 0) {
+        throw new Error('No active API configuration found. Please set up API configuration first.');
+      }
+
+      const userToken = apiConfigs[0].user_token;
+      
+      // Call the API to get product info
+      const response = await fetch(`/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${userToken}`);
+      const data = await response.json();
+
+      if (data.success === 'true') {
+        // Autofill form with returned data
+        form.setValue('title', data.name || '');
+        form.setValue('price', data.price || '0');
+        form.setValue('inStock', parseInt(data.stock || '0') > 0);
+        
+        // Generate slug from product name if title was empty before
+        if (!form.getValues('slug') && data.name) {
+          const slug = data.name.toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '');
+          form.setValue('slug', slug);
+        }
+        
+        toast.success('Product information retrieved successfully');
+      } else {
+        toast.error(`Failed to retrieve product information: ${data.description || 'Unknown error'}`);
+      }
+    } catch (error: any) {
+      console.error('Error fetching product info:', error);
+      toast.error(`Error: ${error.message}`);
+    } finally {
+      setIsLoadingProductInfo(false);
+    }
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Kiosk Token - Moved to the top and added "Get Info" button */}
+        <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 mb-8">
+          <FormField
+            control={form.control}
+            name="kioskToken"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg font-semibold">Kiosk Token</FormLabel>
+                <div className="flex gap-2">
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      placeholder="Enter kiosk token for product lookup" 
+                      className="flex-grow"
+                    />
+                  </FormControl>
+                  <Button
+                    type="button"
+                    onClick={fetchProductInfo}
+                    disabled={isLoadingProductInfo}
+                    className="whitespace-nowrap"
+                  >
+                    {isLoadingProductInfo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Get Product Info
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enter a valid kiosk token to automatically retrieve product information from the API.
+                </p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
         <FormField
           control={form.control}
           name="title"
@@ -353,20 +444,6 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
 https://example.com/image2.jpg"
                   className="min-h-32"
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="kioskToken"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Kiosk Token (optional)</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="Enter kiosk token" />
               </FormControl>
               <FormMessage />
             </FormItem>
