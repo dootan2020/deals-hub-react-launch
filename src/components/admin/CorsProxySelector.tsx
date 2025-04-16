@@ -57,12 +57,12 @@ export function CorsProxySelector() {
   const fetchCurrentProxy = async () => {
     setLoading(true);
     try {
-      // Using raw SQL query to get around TypeScript limitations
-      const { data, error } = await supabase
-        .rpc('get_latest_proxy_settings') as { 
+      // Using rpc with type casting to handle the type issues
+      const { data, error } = await (supabase
+        .rpc('get_latest_proxy_settings') as unknown as Promise<{ 
           data: ProxySettings[] | null; 
           error: any 
-        };
+        }>);
 
       if (error) {
         if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
@@ -98,10 +98,10 @@ export function CorsProxySelector() {
         custom_url: selectedProxy === 'custom' ? customProxyUrl : null,
       };
 
-      // Use any type to bypass TypeScript limitations
-      const { error } = await supabase
+      // Use type casting to bypass TypeScript limitations
+      const { error } = await (supabase
         .from('proxy_settings' as any)
-        .insert(proxyData);
+        .insert(proxyData));
 
       if (error) throw error;
 
