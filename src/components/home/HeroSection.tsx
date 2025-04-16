@@ -1,5 +1,4 @@
 
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const HeroSection = () => {
@@ -27,13 +26,12 @@ const HeroSection = () => {
             </div>
           </div>
 
-          {/* Hero Image */}
-          <div className="animate-scale-in hidden md:block">
-            <img
-              src="https://placehold.co/600x400?text=Digital+Deals+Hub"
-              alt="Digital Deals Hub"
-              className="w-full h-auto rounded-lg shadow-xl"
-            />
+          {/* Removed image section */}
+          <div className="animate-scale-in hidden md:block bg-primary/10 rounded-lg flex items-center justify-center">
+            <div className="text-center text-text-light p-8">
+              <h2 className="text-2xl font-semibold mb-4">Digital Products Marketplace</h2>
+              <p>Instant delivery of high-quality digital assets</p>
+            </div>
           </div>
         </div>
       </div>

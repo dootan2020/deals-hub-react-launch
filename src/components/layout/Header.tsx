@@ -45,9 +45,9 @@ const Header = () => {
             <div className="hidden md:flex items-center">
               <Globe className="h-5 w-5 text-text-light" />
               <select className="ml-1 text-sm text-text-light bg-transparent border-none focus:outline-none">
-                <option value="en">EN</option>
-                <option value="es">ES</option>
-                <option value="pt">PT</option>
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="pt">Portuguese</option>
               </select>
             </div>
 
@@ -133,8 +133,8 @@ const Header = () => {
                 <Globe className="h-5 w-5 text-text-light" />
                 <select className="ml-2 text-sm text-text-light bg-transparent border-none focus:outline-none">
                   <option value="en">English</option>
-                  <option value="es">Español</option>
-                  <option value="pt">Português</option>
+                  <option value="es">Spanish</option>
+                  <option value="pt">Portuguese</option>
                 </select>
               </div>
             </nav>
