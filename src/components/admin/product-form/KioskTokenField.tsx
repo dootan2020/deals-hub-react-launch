@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ export function KioskTokenField() {
   const [apiSuccess, setApiSuccess] = useState<string | null>(null);
   const [isMockData, setIsMockData] = useState<boolean>(false);
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
+  const [userToken, setUserToken] = useState<string>('');
   
   const proxyOptions: ProxyOption[] = [
     { value: 'allorigins', label: 'AllOrigins', description: 'https://api.allorigins.win/get?url=' },
@@ -74,7 +76,24 @@ export function KioskTokenField() {
       }
     };
     
+    const fetchApiConfig = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('api_configs')
+          .select('user_token')
+          .eq('is_active', true)
+          .single();
+          
+        if (data && data.user_token) {
+          setUserToken(data.user_token);
+        }
+      } catch (error) {
+        console.error('Error fetching API config:', error);
+      }
+    };
+    
     fetchActiveProxy();
+    fetchApiConfig();
   }, []);
 
   const handleSelectProxy = (proxy: ProxyType) => {
@@ -113,25 +132,81 @@ export function KioskTokenField() {
     setHtmlContent(null);
     
     try {
-      setTempProxyOverride({
-        type: selectedProxyType,
-        url: selectedProxyType === 'custom' ? customProxyUrl : undefined
+      // Implementation based on the gist code
+      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken || '')}`;
+      let proxyUrl = '';
+      
+      switch (selectedProxyType) {
+        case 'allorigins':
+          proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
+          break;
+        case 'corsproxy':
+          proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
+          break;
+        case 'cors-anywhere':
+          proxyUrl = `https://cors-anywhere.herokuapp.com/${apiUrl}`;
+          break;
+        case 'custom':
+          if (!customProxyUrl) {
+            throw new Error('Custom proxy URL is not configured');
+          }
+          proxyUrl = `${customProxyUrl}${encodeURIComponent(apiUrl)}`;
+          break;
+        case 'direct':
+          proxyUrl = apiUrl;
+          break;
+        default:
+          proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
+      }
+      
+      console.log(`Fetching from: ${proxyUrl}`);
+      
+      const headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
+        'Cache-Control': 'no-cache, no-store',
+        'Pragma': 'no-cache',
+        'X-Requested-With': 'XMLHttpRequest'
+      };
+      
+      const response = await fetch(proxyUrl, { 
+        headers,
+        cache: 'no-store'
       });
       
-      const productInfo = await fetchProductInfo(kioskToken);
+      if (!response.ok) {
+        throw new Error(`Proxy returned error status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('Content-Type');
+      const responseText = await response.text();
+      
+      // Check if response is HTML (which we don't want)
+      if (responseText.includes('<!DOCTYPE') || responseText.includes('<html') || 
+          contentType?.includes('text/html')) {
+        throw new Error('API returned HTML instead of JSON');
+      }
+      
+      // Parse JSON response
+      let productInfo;
+      try {
+        productInfo = JSON.parse(responseText);
+      } catch (error) {
+        console.error('Error parsing JSON:', error);
+        throw new Error('Invalid JSON response');
+      }
       
       console.log("Product info received:", productInfo);
       
-      if (productInfo && productInfo.name && productInfo.name.startsWith('Demo Product')) {
-        setIsMockData(true);
-      }
-      
-      if (productInfo && productInfo.success === 'true') {
+      if (productInfo.success === 'true') {
+        // Fill form with product info
         form.setValue('title', productInfo.name || '');
         form.setValue('description', productInfo.description || form.getValues('description') || '');
         form.setValue('price', productInfo.price || '0');
         form.setValue('inStock', parseInt(productInfo.stock || '0', 10) > 0);
         
+        // Generate slug if not provided
         if (!form.getValues('slug') && productInfo.name) {
           const slug = productInfo.name.toLowerCase()
             .replace(/\s+/g, '-')
@@ -142,34 +217,15 @@ export function KioskTokenField() {
         setApiSuccess('Product information retrieved successfully');
         toast.success('Product information retrieved successfully');
       } else {
+        // Handle error from API
         const errorMessage = productInfo?.description || 'Failed to retrieve product information';
         setApiError(errorMessage);
         toast.error(`Failed to retrieve product information: ${errorMessage}`);
       }
     } catch (error: any) {
       console.error('Error fetching product info:', error);
-      
-      let errorMsg = error.message;
-      
-      if (errorMsg.includes('<!DOCTYPE') || errorMsg.includes('<html')) {
-        try {
-          const extracted = extractFromHtml(errorMsg);
-          
-          if (extracted && (extracted.name || extracted.price)) {
-            setHtmlContent(errorMsg);
-            setApiSuccess('Some product information was extracted from the HTML response');
-            toast.success('Some product information was extracted from the HTML response');
-            return;
-          } else {
-            errorMsg = 'API returned HTML instead of JSON. Could not extract product information from the HTML.';
-          }
-        } catch (extractError) {
-          errorMsg = 'API returned HTML instead of JSON. Failed to extract any useful information.';
-        }
-      }
-      
-      setApiError(errorMsg || 'Failed to retrieve product information');
-      toast.error(`Error: ${errorMsg}`);
+      setApiError(error.message || 'Failed to retrieve product information');
+      toast.error(`Error: ${error.message || 'Unknown error'}`);
     } finally {
       setIsLoadingProductInfo(false);
     }
@@ -187,7 +243,7 @@ export function KioskTokenField() {
                 <FormControl>
                   <Input 
                     {...field} 
-                    placeholder="Enter kiosk token for product lookup" 
+                    placeholder="Enter kiosk token for product lookup (e.g., WK76IVBVK3X0WW9DKZ4R)" 
                     className="flex-grow"
                   />
                 </FormControl>
@@ -242,7 +298,7 @@ export function KioskTokenField() {
             </div>
             <div className="flex justify-between mt-1">
               <p className="text-xs text-muted-foreground">
-                Enter a valid kiosk token (e.g., KH5ZB5QB8G1L7J7S4DGW) to retrieve product information.
+                Enter a valid kiosk token to retrieve product information from TapHoaMMO API.
               </p>
               {activeProxy && (
                 <p className="text-xs text-muted-foreground">
@@ -251,15 +307,6 @@ export function KioskTokenField() {
                 </p>
               )}
             </div>
-            
-            {isMockData && (
-              <Alert variant="default" className="mt-2 bg-blue-50 border-blue-200 text-blue-700">
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  Using mock data because the API connection to TapHoaMMO is returning HTML instead of JSON. This is for demo purposes only.
-                </AlertDescription>
-              </Alert>
-            )}
             
             {apiSuccess && (
               <Alert variant="default" className="mt-2 bg-green-50 border-green-200 text-green-700">
@@ -279,16 +326,12 @@ export function KioskTokenField() {
             )}
             
             {htmlContent && (
-              <div className="mt-3">
-                <details className="text-xs">
-                  <summary className="text-muted-foreground cursor-pointer hover:text-foreground">
-                    Show Raw HTML Content (for debugging)
-                  </summary>
-                  <div className="mt-2 bg-slate-100 p-3 rounded-md overflow-auto max-h-40">
-                    <code className="text-xs whitespace-pre-wrap">{htmlContent}</code>
-                  </div>
-                </details>
-              </div>
+              <Alert variant="default" className="mt-2 bg-amber-50 border-amber-200 text-amber-700">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  HTML response detected. Please try a different proxy or check your API configuration.
+                </AlertDescription>
+              </Alert>
             )}
             <FormMessage />
           </FormItem>

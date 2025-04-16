@@ -50,3 +50,24 @@ export function extractFromHtml(html: string) {
     return null;
   }
 }
+
+// New function to determine if a response is HTML content
+export function isHtmlResponse(response: string): boolean {
+  return response.includes('<!DOCTYPE') || 
+         response.includes('<html') || 
+         response.includes('<body') ||
+         response.includes('<head');
+}
+
+// New function to clean up and format JSON data
+export function normalizeProductInfo(data: any) {
+  if (!data) return null;
+  
+  return {
+    success: data.success || 'false',
+    name: data.name || '',
+    price: data.price || '0',
+    stock: data.stock || '0',
+    description: data.description || `${data.name || 'Product'} description`
+  };
+}

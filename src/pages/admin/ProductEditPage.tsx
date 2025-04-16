@@ -12,6 +12,7 @@ const ProductEditPage = () => {
   const { id } = useParams<{ id: string }>();
   const [isLoading, setIsLoading] = useState(true);
   const [productExists, setProductExists] = useState(false);
+  const [productName, setProductName] = useState<string>('');
 
   useEffect(() => {
     if (id) {
@@ -23,12 +24,15 @@ const ProductEditPage = () => {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('id')
+        .select('id, title')
         .eq('id', id)
         .single();
 
       if (error) throw error;
       setProductExists(!!data);
+      if (data?.title) {
+        setProductName(data.title);
+      }
     } catch (error) {
       console.error('Error checking product:', error);
       toast.error('Product not found');
@@ -58,12 +62,12 @@ const ProductEditPage = () => {
   }
 
   return (
-    <AdminLayout title="Edit Product">
+    <AdminLayout title={`Edit Product: ${productName}`}>
       <Alert variant="default" className="mb-6 bg-amber-50 border-amber-200">
         <AlertTriangle className="h-5 w-5 text-amber-500" />
         <AlertDescription className="text-amber-700">
-          <p className="font-medium">API Connection Note</p>
-          <p className="mt-1">Make sure to use a valid Kiosk Token and User Token to fetch product information from TapHoaMMO. If you encounter any issues, check your API settings in the API Config page.</p>
+          <p className="font-medium">API Connection Notes</p>
+          <p className="mt-1">Our system uses CORS proxies to fetch product data. If you encounter any issues with HTML responses, try switching to a different proxy in the dropdown menu.</p>
         </AlertDescription>  
       </Alert>
       

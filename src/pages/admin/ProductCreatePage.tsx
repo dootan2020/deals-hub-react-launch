@@ -14,7 +14,7 @@ const ProductCreatePage = () => {
             <div className="flex-1">
               <h2 className="text-lg font-medium mb-2">Adding a new product</h2>
               <p className="text-muted-foreground">
-                Enter a Kiosk Token (e.g., KH5ZB5QB8G1L7J7S4DGW) to automatically retrieve product information, or manually fill in the product details below.
+                Enter a Kiosk Token (e.g., WK76IVBVK3X0WW9DKZ4R) to automatically retrieve product information from TapHoaMMO API, or manually fill in the product details below.
               </p>
               <p className="text-muted-foreground mt-2 text-sm flex items-center gap-1">
                 <ExternalLink className="w-4 h-4" /> 
@@ -28,8 +28,8 @@ const ProductCreatePage = () => {
       <Alert variant="default" className="mb-6 bg-amber-50 border-amber-200">
         <AlertTriangle className="h-5 w-5 text-amber-500" />
         <AlertDescription className="text-amber-700">
-          <p className="font-medium">API Connection Note</p>
-          <p className="mt-1">Make sure to use a valid Kiosk Token and User Token to fetch product information from TapHoaMMO. If you encounter any issues, check your API settings in the API Config page.</p>
+          <p className="font-medium">API Connection Notes</p>
+          <p className="mt-1">Our system uses CORS proxies to fetch product data. If you encounter any issues with HTML responses, try switching to a different proxy in the dropdown menu.</p>
         </AlertDescription>  
       </Alert>
       

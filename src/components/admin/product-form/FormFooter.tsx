@@ -1,6 +1,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 interface FormFooterProps {
   isLoading: boolean;
@@ -19,8 +20,15 @@ export function FormFooter({ isLoading, productId }: FormFooterProps) {
       >
         Cancel
       </Button>
-      <Button type="submit" disabled={isLoading}>
-        {isLoading ? 'Saving...' : productId ? 'Update Product' : 'Create Product'}
+      <Button type="submit" disabled={isLoading} className="min-w-[120px]">
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {productId ? 'Updating...' : 'Creating...'}
+          </>
+        ) : (
+          productId ? 'Update Product' : 'Create Product'
+        )}
       </Button>
     </div>
   );
