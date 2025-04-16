@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom';
@@ -49,8 +48,8 @@ export function buildProxyUrl(apiUrl: string, proxyConfig: ProxyConfig): { url: 
   switch (proxyConfig.type) {
     case 'allorigins':
       return { 
-        url: `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`,
-        description: `AllOrigins RAW proxy: ${`https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`.substring(0, 60)}...`
+        url: `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`,
+        description: `AllOrigins GET proxy: ${`https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`.substring(0, 60)}...`
       };
     case 'corsproxy':
       return { 
@@ -77,8 +76,8 @@ export function buildProxyUrl(apiUrl: string, proxyConfig: ProxyConfig): { url: 
       };
     default:
       return { 
-        url: `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`,
-        description: `Default AllOrigins RAW proxy: ${`https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`.substring(0, 60)}...`
+        url: `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`,
+        description: `Default AllOrigins GET proxy: ${`https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`.substring(0, 60)}...`
       };
   }
 }
