@@ -4,27 +4,48 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+interface PlaceOrderParams {
+  productId: string;
+  quantity: number;
+  promotionCode?: string;
+}
+
+interface CheckOrderParams {
+  orderId: string;
+}
+
 export function useOrderApi() {
   const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
   
-  const placeOrder = async ({ 
-    productId, 
-    quantity, 
-    promotionCode 
-  }: { 
-    productId: string; 
-    quantity: number; 
-    promotionCode?: string 
-  }) => {
+  // Fetch all orders from the database
+  const fetchOrders = async () => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      throw error;
+    }
+    
+    return data || [];
+  };
+  
+  // Place an order with the API
+  const placeOrder = async ({ productId, quantity, promotionCode }: PlaceOrderParams) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/functions/v1/order-api?action=place-order`, {
+      const response = await fetch('/functions/v1/order-api?action=place-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ productId, quantity, promotionCode }),
+        body: JSON.stringify({
+          productId,
+          quantity,
+          promotionCode,
+        }),
       });
       
       const data = await response.json();
@@ -33,26 +54,24 @@ export function useOrderApi() {
         throw new Error(data.error || 'Failed to place order');
       }
       
-      toast.success('Order placed successfully');
       return data;
-    } catch (error) {
-      console.error('Place order error:', error);
-      toast.error(`Failed to place order: ${error.message}`);
-      throw error;
     } finally {
       setIsLoading(false);
     }
   };
   
-  const checkOrder = async (orderId: string) => {
+  // Check the status of an order with the API
+  const checkOrder = async ({ orderId }: CheckOrderParams) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/functions/v1/order-api?action=check-order`, {
+      const response = await fetch('/functions/v1/order-api?action=check-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ orderId }),
+        body: JSON.stringify({
+          orderId,
+        }),
       });
       
       const data = await response.json();
@@ -62,50 +81,35 @@ export function useOrderApi() {
       }
       
       return data;
-    } catch (error) {
-      console.error('Check order error:', error);
-      toast.error(`Failed to check order: ${error.message}`);
-      throw error;
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  const fetchOrders = async () => {
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`
-        *,
-        order_items(
-          *,
-          product:products(*)
-        )
-      `)
-      .order('created_at', { ascending: false });
-      
-    if (error) throw error;
-    return data;
   };
   
   // Set up React Query mutations
   const placeOrderMutation = useMutation({
     mutationFn: placeOrder,
     onSuccess: () => {
+      toast.success('Order placed successfully');
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Error: ${error.message}`);
     },
   });
   
   const checkOrderMutation = useMutation({
     mutationFn: checkOrder,
-    onSuccess: (data, variables) => {
+    onSuccess: (data) => {
       if (data.success === 'true') {
+        toast.success('Order completed successfully');
         queryClient.invalidateQueries({ queryKey: ['orders'] });
-        toast.success(`Order ${variables} completed successfully`);
-      } else if (data.description === 'Order in processing!') {
-        toast.info('Order is still being processed');
       } else {
-        toast.error(`Order check failed: ${data.description}`);
+        toast.info(data.description || 'Order is still processing');
       }
+    },
+    onError: (error: Error) => {
+      toast.error(`Error: ${error.message}`);
     },
   });
   
