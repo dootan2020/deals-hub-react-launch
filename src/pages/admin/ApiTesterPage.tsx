@@ -1,3 +1,4 @@
+
 // src/pages/admin/ApiTesterPage.tsx
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
@@ -11,51 +12,19 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Loader2, RefreshCw, AlertCircle, Info } from 'lucide-react';
+import { Loader2, RefreshCw, AlertCircle, Info, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { buildProxyUrl, getRequestHeaders, ProxyType } from '@/utils/proxyUtils';
+import { buildProxyUrl, ProxyType } from '@/utils/proxyUtils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 
-// Định nghĩa kiểu dữ liệu cho phản hồi API
+// Define API response type
 type ApiResponse = {
   success: string;
   name: string;
   price: string;
   stock: string;
   description?: string;
-};
-
-// Dữ liệu mẫu cho các kioskToken khác nhau
-const mockData: Record<string, ApiResponse> = {
-  "IEB8KZ8SAJQ5616W2M21": {
-    success: "true",
-    name: "Gmail USA 2023-2024",
-    price: "16000",
-    stock: "4003",
-    description: "Gmail USA với domain @gmail.com, tạo 2023-2024"
-  },
-  "WK76IVBVK3X0WW9DKZ4R": {
-    success: "true",
-    name: "Netflix Premium 4K",
-    price: "35000",
-    stock: "720",
-    description: "Netflix Premium 4K Ultra HD, xem được trên 4 thiết bị cùng lúc"
-  },
-  "DUP32BXSLWAP4847J84B": {
-    success: "true",
-    name: "V1 INSTAGRAM QUA 282, NO INFO, NO LOGIN IP, TẠO > 10-30 NGÀY",
-    price: "3500",
-    stock: "8090",
-    description: "Tài khoản Instagram đã qua 282, không yêu cầu login IP, tuổi 10-30 ngày"
-  },
-  "VPMY2EKXSNY5Y3A4A35B": {
-    success: "true",
-    name: "Digital Deals Hub Premium",
-    price: "29999",
-    stock: "345",
-    description: "Gói Premium dành cho Digital Deals Hub"
-  }
 };
 
 const ApiTesterPage = () => {
@@ -68,6 +37,7 @@ const ApiTesterPage = () => {
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [isMockData, setIsMockData] = useState<boolean>(false);
+  const [logs, setLogs] = useState<string[]>([]);
 
   useEffect(() => {
     const loadApiConfig = async () => {
@@ -90,26 +60,16 @@ const ApiTesterPage = () => {
     loadApiConfig();
   }, []);
 
-  // Hàm lấy dữ liệu mẫu dựa trên kioskToken
-  const getMockResponse = (token: string): ApiResponse => {
-    // Nếu có dữ liệu sẵn cho kioskToken, trả về
-    if (mockData[token]) {
-      return mockData[token];
-    }
-    
-    // Nếu không, trả về dữ liệu mẫu mặc định
-    return {
-      success: "true",
-      name: "Gmail USA 2023-2024",
-      price: "16000",
-      stock: "4003",
-      description: "Dữ liệu mẫu được sử dụng do gặp vấn đề CORS hoặc API"
-    };
+  // Function to add log entry
+  const addLog = (message: string) => {
+    const now = new Date();
+    const timestamp = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}]`;
+    setLogs(prev => [...prev, `${timestamp} ${message}`]);
   };
 
   const handleApiTest = async () => {
     if (!kioskToken || !userToken) {
-      setError('Vui lòng nhập cả Kiosk Token và User Token');
+      setError('Please enter both Kiosk Token and User Token');
       return;
     }
 
@@ -118,220 +78,111 @@ const ApiTesterPage = () => {
     setApiResponse(null);
     setRawResponse('');
     setIsMockData(false);
+    setLogs([]);
     
     try {
-      const encodedKioskToken = encodeURIComponent(kioskToken);
-      const encodedUserToken = encodeURIComponent(userToken);
+      addLog(`Testing with ${selectedProxy} proxy...`);
       
-      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}`;
+      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}`;
+      addLog(`API URL: ${apiUrl}`);
       
-      const { url: proxyUrl, description } = buildProxyUrl(apiUrl, { type: selectedProxy });
-      console.log('Using proxy:', description);
-
-      const headers = getRequestHeaders();
-      
-      // Thiết lập tùy chọn fetch
-      const fetchOptions: RequestInit = {
-        headers,
-        cache: 'no-store',
-      };
-
-      // Thiết lập timeout để tránh treo khi yêu cầu thất bại
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-      fetchOptions.signal = controller.signal;
+      const { url: proxyUrl } = buildProxyUrl(apiUrl, { type: selectedProxy });
+      addLog(`Proxy URL: ${proxyUrl}`);
       
       try {
-        const response = await fetch(proxyUrl, fetchOptions);
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
+        const response = await fetch(proxyUrl);
+        addLog(`Response status: ${response.status}`);
+        addLog(`Content-Type: ${response.headers.get('content-type')}`);
         
         const responseText = await response.text();
+        addLog(`Received ${responseText.length} bytes of data`);
         
-        // Kiểm tra nếu phản hồi là HTML
-        if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
-          console.log('API response is HTML, using mock data');
-          const mockResponse = getMockResponse(kioskToken);
-          setApiResponse(mockResponse);
-          setRawResponse(JSON.stringify(mockResponse, null, 2));
-          setIsMockData(true);
-          toast.warning('Sử dụng dữ liệu mẫu do API trả về HTML thay vì JSON');
-        } else {
-          // Xử lý phản hồi dựa trên loại proxy
-          let parsedResponse: ApiResponse | null = null;
+        try {
+          let parsedResponse = null;
           
           if (selectedProxy === 'allorigins' && responseText.includes('"contents"')) {
-            try {
-              const allOriginsData = JSON.parse(responseText);
-              if (allOriginsData && allOriginsData.contents) {
-                // Kiểm tra nếu contents là HTML
-                if (allOriginsData.contents.includes('<!DOCTYPE') || allOriginsData.contents.includes('<html')) {
-                  console.log('AllOrigins content is HTML, using mock data');
-                  parsedResponse = getMockResponse(kioskToken);
-                  setIsMockData(true);
-                  toast.warning('Sử dụng dữ liệu mẫu do API trả về HTML thay vì JSON');
-                } else {
-                  try {
-                    parsedResponse = JSON.parse(allOriginsData.contents);
-                  } catch (error) {
-                    console.error('Error parsing AllOrigins contents:', error);
-                    parsedResponse = getMockResponse(kioskToken);
-                    setIsMockData(true);
-                    toast.warning('Sử dụng dữ liệu mẫu do lỗi phân tích JSON');
-                  }
-                }
-              }
-            } catch (error) {
-              console.error('Error parsing AllOrigins response:', error);
-              parsedResponse = getMockResponse(kioskToken);
-              setIsMockData(true);
-              toast.warning('Sử dụng dữ liệu mẫu do lỗi phân tích phản hồi');
+            const allOriginsData = JSON.parse(responseText);
+            if (allOriginsData && allOriginsData.contents) {
+              parsedResponse = JSON.parse(allOriginsData.contents);
             }
           } else {
-            try {
-              parsedResponse = JSON.parse(responseText);
-            } catch (error) {
-              console.error('Error parsing JSON:', error);
-              parsedResponse = getMockResponse(kioskToken);
-              setIsMockData(true);
-              toast.warning('Sử dụng dữ liệu mẫu do lỗi định dạng JSON');
-            }
+            parsedResponse = JSON.parse(responseText);
           }
           
           if (parsedResponse) {
+            addLog('Successfully retrieved and parsed data from API');
             setApiResponse(parsedResponse);
             setRawResponse(JSON.stringify(parsedResponse, null, 2));
           }
+        } catch (parseError) {
+          addLog(`Error parsing response: ${parseError}`);
+          await handleServerlessFetch();
         }
-      } catch (fetchError: any) {
-        console.error('Fetch error:', fetchError);
-        
-        // Sử dụng dữ liệu mẫu khi fetch thất bại
-        const mockResponse = getMockResponse(kioskToken);
-        setApiResponse(mockResponse);
-        setRawResponse(JSON.stringify(mockResponse, null, 2));
-        setIsMockData(true);
-        
-        if (fetchError.name === 'AbortError') {
-          toast.error('Yêu cầu API đã hết thời gian, sử dụng dữ liệu mẫu thay thế');
-        } else {
-          toast.warning('Sử dụng dữ liệu mẫu do lỗi kết nối API');
-        }
+      } catch (fetchError) {
+        addLog(`Fetch error: ${fetchError}`);
+        await handleServerlessFetch();
       }
       
-      // Cập nhật thời gian
+      // Update timestamp
       const now = new Date();
       setLastUpdated(
         `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`
       );
-      
     } catch (error: any) {
       console.error('API test error:', error);
-      setError(`Lỗi: ${error.message || 'Không thể kết nối đến API'}`);
-      
-      // Sử dụng dữ liệu mẫu khi API thất bại
-      const mockResponse = getMockResponse(kioskToken);
-      setApiResponse(mockResponse);
-      setRawResponse(JSON.stringify(mockResponse, null, 2));
-      setIsMockData(true);
-      toast.warning('Sử dụng dữ liệu mẫu do lỗi kết nối API');
-      
-      const now = new Date();
-      setLastUpdated(
-        `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`
-      );
+      setError(`Error: ${error.message || 'Unable to connect to API'}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Hàm sử dụng serverless function để lấy dữ liệu
+  // Function to use serverless function
   const handleServerlessFetch = async () => {
     if (!kioskToken || !userToken) {
-      setError('Vui lòng nhập cả Kiosk Token và User Token');
       return;
     }
-
-    setIsLoading(true);
-    setError(null);
-    setApiResponse(null);
-    setRawResponse('');
-    setIsMockData(false);
-
+    
+    addLog('Falling back to serverless function...');
+    
     try {
-      // Đường dẫn đến serverless function
-      const serverlessUrl = `https://xcpwyvrlutlslgaueokd.supabase.co/functions/v1/api-proxy?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}`;
+      // URL to serverless function
+      const serverlessUrl = `https://xcpwyvrlutlslgaueokd.supabase.co/functions/v1/api-proxy?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}&proxyType=${selectedProxy}`;
+      addLog(`Calling serverless function: ${serverlessUrl.substring(0, 80)}...`);
       
       const response = await fetch(serverlessUrl);
+      addLog(`Serverless function returned status: ${response.status}`);
       
       if (!response.ok) {
-        throw new Error(`Lỗi serverless: ${response.status}`);
+        throw new Error(`Serverless error: ${response.status}`);
       }
       
       const data = await response.json();
+      addLog('Successfully retrieved data from serverless function');
+      
       setApiResponse(data);
       setRawResponse(JSON.stringify(data, null, 2));
-      
-      // Cập nhật thời gian
-      const now = new Date();
-      setLastUpdated(
-        `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`
-      );
-      
-      toast.success('Dữ liệu từ serverless function đã được tải thành công');
-    } catch (error: any) {
-      console.error('Serverless error:', error);
-      setError(`Lỗi: ${error.message}`);
-      
-      // Sử dụng dữ liệu mẫu khi serverless thất bại
-      const mockResponse = getMockResponse(kioskToken);
-      setApiResponse(mockResponse);
-      setRawResponse(JSON.stringify(mockResponse, null, 2));
       setIsMockData(true);
       
-      toast.warning('Sử dụng dữ liệu mẫu do lỗi kết nối serverless');
-    } finally {
-      setIsLoading(false);
+      toast.success('Data successfully loaded from serverless function');
+    } catch (error: any) {
+      addLog(`Serverless error: ${error.message}`);
+      setError(`Error: ${error.message}`);
+      toast.error('Error connecting to serverless function');
     }
   };
 
-  // Hàm sử dụng dữ liệu mẫu trực tiếp
-  const handleUseMockData = () => {
-    if (!kioskToken) {
-      setError('Vui lòng nhập Kiosk Token');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    
-    // Giả lập độ trễ để tạo cảm giác đang gọi API
-    setTimeout(() => {
-      const mockResponse = getMockResponse(kioskToken);
-      setApiResponse(mockResponse);
-      setRawResponse(JSON.stringify(mockResponse, null, 2));
-      setIsMockData(true);
-      
-      const now = new Date();
-      setLastUpdated(
-        `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`
-      );
-      
-      toast.success('Đã tải dữ liệu mẫu thành công');
-      setIsLoading(false);
-    }, 800);
+  // Clear logs function
+  const clearLogs = () => {
+    setLogs([]);
   };
 
   return (
-    <AdminLayout title="Kiểm Tra API Taphoammo">
+    <AdminLayout title="Test Taphoammo API">
       <Card className="border-primary/20 bg-primary/5 mb-4">
         <CardContent className="pt-6">
-          <h1 className="text-2xl font-bold text-primary mb-1">Kiểm Tra API Taphoammo</h1>
+          <h1 className="text-2xl font-bold text-primary mb-1">Test Taphoammo API</h1>
           <p className="text-muted-foreground">
-            Công cụ kiểm tra API với giải pháp khắc phục lỗi CORS
+            Tool for testing API with CORS error handling solutions
           </p>
         </CardContent>
       </Card>
@@ -339,8 +190,7 @@ const ApiTesterPage = () => {
       <Alert variant="default" className="mb-4 bg-blue-50 border-blue-200">
         <AlertCircle className="h-5 w-5 text-blue-500" />
         <AlertDescription className="text-blue-700">
-          Nếu API trả về lỗi hoặc HTML thay vì JSON, hệ thống sẽ tự động hiển thị dữ liệu mẫu.
-          Thử các CORS proxy khác nhau để xem kết quả tốt nhất.
+          If the API returns an error or HTML instead of JSON, the system will automatically fall back to the serverless function or sample data.
         </AlertDescription>  
       </Alert>
       
@@ -354,7 +204,7 @@ const ApiTesterPage = () => {
               id="kioskToken"
               value={kioskToken}
               onChange={(e) => setKioskToken(e.target.value)}
-              placeholder="Nhập Kiosk Token (ví dụ: DUP32BXSLWAP4847J84B)"
+              placeholder="Enter Kiosk Token (e.g., DUP32BXSLWAP4847J84B)"
               className="w-full"
             />
           </div>
@@ -367,7 +217,7 @@ const ApiTesterPage = () => {
               id="userToken"
               value={userToken}
               onChange={(e) => setUserToken(e.target.value)}
-              placeholder="Nhập User Token"
+              placeholder="Enter User Token"
               className="w-full"
             />
           </div>
@@ -383,14 +233,12 @@ const ApiTesterPage = () => {
               onValueChange={(value) => setSelectedProxy(value as ProxyType)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Chọn proxy" />
+                <SelectValue placeholder="Select proxy" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="allorigins">AllOrigins</SelectItem>
                 <SelectItem value="corsproxy">CORS Proxy</SelectItem>
-                <SelectItem value="cors-anywhere">CORS Anywhere</SelectItem>
-                <SelectItem value="jsonp">JSONP Proxy</SelectItem>
-                <SelectItem value="yproxy">YProxy</SelectItem>
+                <SelectItem value="corsanywhere">CORS Anywhere</SelectItem>
                 <SelectItem value="direct">Direct API Call</SelectItem>
               </SelectContent>
             </Select>
@@ -404,7 +252,7 @@ const ApiTesterPage = () => {
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {!isLoading && <RefreshCw className="mr-2 h-4 w-4" />}
-              Kiểm Tra API
+              Test API
             </Button>
             
             <Button 
@@ -413,16 +261,15 @@ const ApiTesterPage = () => {
               className="bg-purple-500 hover:bg-purple-600 text-white"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Dùng Serverless
+              Use Serverless
             </Button>
             
             <Button 
-              onClick={handleUseMockData} 
-              disabled={isLoading}
+              onClick={clearLogs} 
               variant="outline"
-              className="border-amber-500 text-amber-600 hover:bg-amber-50"
+              className="border-gray-300 text-gray-600"
             >
-              Dùng Dữ Liệu Mẫu
+              Clear Logs
             </Button>
           </div>
         </div>
@@ -440,7 +287,7 @@ const ApiTesterPage = () => {
           <Alert variant="default" className="mt-2 bg-amber-50 border-amber-200">
             <Info className="h-4 w-4 text-amber-500" />
             <AlertDescription className="text-amber-700">
-              Hiển thị dữ liệu mẫu do API trả về HTML hoặc gặp lỗi CORS
+              Displaying sample data because the API returned HTML or encountered a CORS error
             </AlertDescription>
           </Alert>
         )}
@@ -450,14 +297,14 @@ const ApiTesterPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="bg-green-50 border-green-200">
                 <CardContent className="pt-6">
-                  <div className="text-sm text-muted-foreground mb-1">Tên sản phẩm:</div>
+                  <div className="text-sm text-muted-foreground mb-1">Product name:</div>
                   <div className="font-medium text-green-700">{apiResponse.name}</div>
                 </CardContent>
               </Card>
               
               <Card className="bg-blue-50 border-blue-200">
                 <CardContent className="pt-6">
-                  <div className="text-sm text-muted-foreground mb-1">Giá:</div>
+                  <div className="text-sm text-muted-foreground mb-1">Price:</div>
                   <div className="font-medium text-blue-700">
                     {Number(apiResponse.price).toLocaleString()} VND
                   </div>
@@ -466,7 +313,7 @@ const ApiTesterPage = () => {
               
               <Card className="bg-purple-50 border-purple-200">
                 <CardContent className="pt-6">
-                  <div className="text-sm text-muted-foreground mb-1">Số lượng tồn kho:</div>
+                  <div className="text-sm text-muted-foreground mb-1">Stock:</div>
                   <div className="font-medium text-purple-700">{apiResponse.stock}</div>
                 </CardContent>
               </Card>
@@ -482,15 +329,31 @@ const ApiTesterPage = () => {
             </Card>
             
             <div className="text-sm text-muted-foreground">
-              Cập nhật lần cuối: {lastUpdated}
+              Last updated: {lastUpdated}
             </div>
           </div>
+        )}
+        
+        {logs.length > 0 && (
+          <Card className="mt-4">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium">Logs</div>
+                <div className="text-xs text-muted-foreground">{logs.length} entries</div>
+              </div>
+              <div className="bg-black text-green-400 p-4 rounded-md font-mono text-xs overflow-x-auto">
+                {logs.map((log, index) => (
+                  <div key={index}>{log}</div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
       
       <div className="text-center text-sm text-muted-foreground mt-8">
-        <p>Công cụ kiểm tra API Taphoammo</p>
-        <p className="mt-1">Lưu ý: Công cụ này chỉ dùng cho mục đích kiểm tra API, không lưu trữ hoặc chia sẻ thông tin token.</p>
+        <p>Taphoammo API Testing Tool</p>
+        <p className="mt-1">Note: This tool is for API testing purposes only and does not store or share token information.</p>
       </div>
     </AdminLayout>
   );
