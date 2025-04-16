@@ -1,3 +1,5 @@
+// src/utils/proxyUtils.ts
+
 import { supabase } from "@/integrations/supabase/client";
 
 export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom';
