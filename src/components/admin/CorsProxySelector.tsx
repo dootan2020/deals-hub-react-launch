@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -59,7 +58,7 @@ export function CorsProxySelector() {
     setLoading(true);
     try {
       const { data: proxySettings, error } = await supabase
-        .rpc<ProxySettings[]>('get_latest_proxy_settings');
+        .rpc<ProxySettings>('get_latest_proxy_settings');
 
       if (error) {
         if (error.code === 'PGRST116' || error.message.includes('does not exist')) {

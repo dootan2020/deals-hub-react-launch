@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -33,7 +32,7 @@ export function useProductSync() {
   const fetchProxySettings = async () => {
     try {
       const { data: proxySettings, error } = await supabase
-        .rpc<ProxySettings[]>('get_latest_proxy_settings');
+        .rpc<ProxySettings>('get_latest_proxy_settings');
         
       if (error) {
         console.error('Error fetching proxy settings:', error);
@@ -167,149 +166,20 @@ export function useProductSync() {
 
       console.log(`Using user token: ${apiConfig.user_token.substring(0, 8)}... for product lookup`);
       
-      const encodedKioskToken = encodeURIComponent(kioskToken);
-      const encodedUserToken = encodeURIComponent(apiConfig.user_token);
-      
-      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}`;
-      
-      // Use the temporary proxy override if it exists, otherwise use the configured proxy
-      const currentProxy = tempProxyOverride || proxyConfig;
-      
-      let proxyUrl: string;
-      
-      switch (currentProxy.type) {
-        case 'allorigins':
-          proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
-          console.log(`Using AllOrigins proxy: ${proxyUrl.substring(0, 60)}...`);
-          break;
-        case 'corsproxy':
-          proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
-          console.log(`Using CORS Proxy: ${proxyUrl.substring(0, 60)}...`);
-          break;
-        case 'cors-anywhere':
-          proxyUrl = `https://cors-anywhere.herokuapp.com/${apiUrl}`;
-          console.log(`Using CORS Anywhere proxy: ${proxyUrl.substring(0, 60)}...`);
-          break;
-        case 'custom':
-          if (!currentProxy.url) {
-            throw new Error('Custom proxy URL is not configured');
-          }
-          proxyUrl = `${currentProxy.url}${encodeURIComponent(apiUrl)}`;
-          console.log(`Using custom proxy: ${proxyUrl.substring(0, 60)}...`);
-          break;
-        case 'direct':
-          proxyUrl = apiUrl;
-          console.log(`Using direct API call: ${proxyUrl}`);
-          break;
-        default:
-          proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
-          console.log(`Using default AllOrigins proxy: ${proxyUrl.substring(0, 60)}...`);
-      }
-      
-      // Reset temporary override after use
-      setTempProxyOverride(null);
-      
-      const timestamp = new Date().getTime();
-      const headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-Request-Time': timestamp.toString(),
-        'Content-Type': 'application/json'
-      };
-      
+      // First try with Edge Function to bypass CORS completely
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timestamp = new Date().getTime();
+        const encodedKioskToken = encodeURIComponent(kioskToken);
+        const encodedUserToken = encodeURIComponent(apiConfig.user_token);
         
-        const response = await fetch(proxyUrl, { 
-          signal: controller.signal,
-          headers,
-          cache: 'no-cache'
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          throw new Error(`Proxy returned error status: ${response.status}`);
-        }
-        
-        const contentType = response.headers.get('Content-Type');
-        console.log(`Content-Type: ${contentType}`);
-        
-        const responseText = await response.text();
-        console.log(`Raw response (first 300 chars): \n${responseText.substring(0, 300)}`);
-        
-        const isHtml = responseText.includes('<!DOCTYPE') || responseText.includes('<html');
-        if (isHtml) {
-          console.log('Response is HTML, attempting to extract product information');
-          const extractedInfo = extractFromHtml(responseText);
-          if (extractedInfo) {
-            console.log('Using extracted product info from HTML:', extractedInfo);
-            return extractedInfo;
-          }
-          
-          console.log('Could not extract useful information from HTML. Falling back to edge function...');
-          const edgeFunctionUrl = `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`;
-          const edgeFunctionResponse = await fetch(edgeFunctionUrl, { headers });
-          
-          if (!edgeFunctionResponse.ok) {
-            throw new Error(`Edge function failed: ${edgeFunctionResponse.status}`);
-          }
-          
-          const edgeFunctionData = await edgeFunctionResponse.json();
-          console.log('Edge function response:', edgeFunctionData);
-          return edgeFunctionData;
-        }
-        
-        let productInfo;
-        
-        if (currentProxy.type === 'allorigins') {
-          try {
-            const allOriginsData = JSON.parse(responseText);
-            if (allOriginsData && allOriginsData.contents) {
-              try {
-                productInfo = JSON.parse(allOriginsData.contents);
-                console.log('Successfully parsed product info from AllOrigins:', productInfo);
-              } catch (innerError) {
-                console.error('Error parsing inner JSON from AllOrigins:', innerError);
-                if (typeof allOriginsData.contents === 'string' && 
-                    (allOriginsData.contents.includes('<!DOCTYPE') || 
-                     allOriginsData.contents.includes('<html'))) {
-                  const extractedInfo = extractFromHtml(allOriginsData.contents);
-                  if (extractedInfo) {
-                    console.log('Using extracted product info from AllOrigins HTML content:', extractedInfo);
-                    return extractedInfo;
-                  }
-                }
-                throw new Error('Invalid JSON in AllOrigins contents');
-              }
-            } else {
-              throw new Error('Invalid AllOrigins response format');
-            }
-          } catch (outerError) {
-            console.error('Error parsing AllOrigins response:', outerError);
-            throw new Error('Failed to parse AllOrigins response');
-          }
-        } else {
-          try {
-            productInfo = JSON.parse(responseText);
-            console.log('Successfully parsed product info:', productInfo);
-          } catch (jsonError) {
-            console.error('Error parsing JSON response:', jsonError);
-            throw new Error('Invalid JSON response');
-          }
-        }
-        
-        return productInfo;
-      } catch (proxyError) {
-        console.error(`Error with ${currentProxy.type} proxy:`, proxyError);
-        
-        console.log('Falling back to edge function...');
+        console.log('Trying Edge Function first for reliable API access...');
         const edgeFunctionUrl = `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`;
+        
+        const headers = {
+          'Cache-Control': 'no-cache, no-store',
+          'Pragma': 'no-cache',
+          'X-Request-Time': timestamp.toString()
+        };
         
         const edgeFunctionResponse = await fetch(edgeFunctionUrl, { headers });
         
@@ -320,6 +190,164 @@ export function useProductSync() {
         const edgeFunctionData = await edgeFunctionResponse.json();
         console.log('Edge function response:', edgeFunctionData);
         return edgeFunctionData;
+      } catch (edgeError) {
+        console.error('Edge function error:', edgeError);
+        console.log('Falling back to proxy methods...');
+        
+        // If Edge Function fails, try with proxies
+        const encodedKioskToken = encodeURIComponent(kioskToken);
+        const encodedUserToken = encodeURIComponent(apiConfig.user_token);
+        
+        const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}`;
+        
+        // Use the temporary proxy override if it exists, otherwise use the configured proxy
+        const currentProxy = tempProxyOverride || proxyConfig;
+        
+        let proxyUrl: string;
+        
+        switch (currentProxy.type) {
+          case 'allorigins':
+            proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
+            console.log(`Using AllOrigins RAW proxy: ${proxyUrl.substring(0, 60)}...`);
+            break;
+          case 'corsproxy':
+            proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
+            console.log(`Using CORS Proxy: ${proxyUrl.substring(0, 60)}...`);
+            break;
+          case 'cors-anywhere':
+            proxyUrl = `https://cors-anywhere.herokuapp.com/${apiUrl}`;
+            console.log(`Using CORS Anywhere proxy: ${proxyUrl.substring(0, 60)}...`);
+            break;
+          case 'custom':
+            if (!currentProxy.url) {
+              throw new Error('Custom proxy URL is not configured');
+            }
+            proxyUrl = `${currentProxy.url}${encodeURIComponent(apiUrl)}`;
+            console.log(`Using custom proxy: ${proxyUrl.substring(0, 60)}...`);
+            break;
+          case 'direct':
+            proxyUrl = apiUrl;
+            console.log(`Using direct API call: ${proxyUrl}`);
+            break;
+          default:
+            proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
+            console.log(`Using default AllOrigins RAW proxy: ${proxyUrl.substring(0, 60)}...`);
+        }
+        
+        // Reset temporary override after use
+        setTempProxyOverride(null);
+        
+        const timestamp = new Date().getTime();
+        const headers = {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
+          'Cache-Control': 'no-cache, no-store',
+          'Pragma': 'no-cache',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-Request-Time': timestamp.toString(),
+          'Content-Type': 'application/json',
+          'Origin': 'https://taphoammo.net',
+          'Referer': 'https://taphoammo.net/'
+        };
+        
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
+          
+          const response = await fetch(proxyUrl, { 
+            signal: controller.signal,
+            headers,
+            cache: 'no-store'
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            throw new Error(`Proxy returned error status: ${response.status}`);
+          }
+          
+          const contentType = response.headers.get('Content-Type');
+          console.log(`Content-Type: ${contentType}`);
+          
+          const responseText = await response.text();
+          console.log(`Raw response (first 300 chars): \n${responseText.substring(0, 300)}`);
+          
+          // Check if response is HTML
+          const isHtml = responseText.includes('<!DOCTYPE') || 
+                        responseText.includes('<html') || 
+                        contentType?.includes('text/html');
+                        
+          if (isHtml) {
+            console.log('Response is HTML, trying to extract product information');
+            const extractedInfo = extractFromHtml(responseText);
+            if (extractedInfo) {
+              console.log('Using extracted product info from HTML:', extractedInfo);
+              
+              // Since we're getting HTML instead of JSON, let's try the edge function as final fallback
+              console.log('Invalid API response format, trying Edge Function as final fallback...');
+              const edgeFunctionUrl = `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`;
+              const edgeFunctionResponse = await fetch(edgeFunctionUrl, { headers });
+              
+              if (!edgeFunctionResponse.ok) {
+                // If edge function fails too, use whatever we extracted from HTML
+                return extractedInfo;
+              }
+              
+              const edgeFunctionData = await edgeFunctionResponse.json();
+              console.log('Edge function response:', edgeFunctionData);
+              return edgeFunctionData;
+            }
+          }
+          
+          let productInfo;
+          
+          if (currentProxy.type === 'allorigins' && !proxyUrl.includes('/raw')) {
+            try {
+              const allOriginsData = JSON.parse(responseText);
+              if (allOriginsData && allOriginsData.contents) {
+                try {
+                  productInfo = JSON.parse(allOriginsData.contents);
+                  console.log('Successfully parsed product info from AllOrigins:', productInfo);
+                } catch (innerError) {
+                  console.error('Error parsing inner JSON from AllOrigins:', innerError);
+                  throw new Error('Invalid JSON in AllOrigins contents');
+                }
+              } else {
+                throw new Error('Invalid AllOrigins response format');
+              }
+            } catch (outerError) {
+              console.error('Error parsing AllOrigins response:', outerError);
+              throw new Error('Failed to parse AllOrigins response');
+            }
+          } else {
+            try {
+              productInfo = JSON.parse(responseText);
+              console.log('Successfully parsed product info:', productInfo);
+            } catch (jsonError) {
+              console.error('Error parsing JSON response:', jsonError);
+              throw new Error('Invalid JSON response');
+            }
+          }
+          
+          return productInfo;
+        } catch (proxyError) {
+          console.error(`Error with ${currentProxy.type} proxy:`, proxyError);
+          
+          // Final fallback to edge function
+          console.log('All proxies failed, falling back to edge function as last resort...');
+          const edgeFunctionUrl = `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`;
+          
+          const edgeFunctionResponse = await fetch(edgeFunctionUrl, { headers });
+          
+          if (!edgeFunctionResponse.ok) {
+            throw new Error(`Edge function failed: ${edgeFunctionResponse.status}`);
+          }
+          
+          const edgeFunctionData = await edgeFunctionResponse.json();
+          console.log('Edge function response:', edgeFunctionData);
+          return edgeFunctionData;
+        }
       }
     } catch (error: any) {
       console.error('Fetch product info error:', error);

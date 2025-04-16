@@ -335,39 +335,24 @@ async function fetchProductInfoByKioskToken(supabase: any, userToken: string, ki
     // Enhanced headers for improved compatibility
     const headers = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'application/json, text/plain, */*',
+      'Accept': 'application/json',
       'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
-      'Cache-Control': 'no-cache',
+      'Cache-Control': 'no-cache, no-store',
       'Pragma': 'no-cache',
       'X-Requested-With': 'XMLHttpRequest',
       'Content-Type': 'application/json',
-      'Referer': 'https://taphoammo.net/'
+      'Referer': 'https://taphoammo.net/',
+      'Origin': 'https://taphoammo.net'
     };
     
-    // Check if there's a preferred proxy setting in the database
-    let preferredProxy = 'allorigins';
-    let customProxyUrl: string | null = null;
-    
+    // Try direct access without proxy in the edge function (this should work as it runs server-side)
     try {
-      // Try to get proxy settings using the function
-      const { data: proxySettings } = await supabase
-        .rpc('get_latest_proxy_settings');
-
-      if (proxySettings && proxySettings.length > 0) {
-        preferredProxy = proxySettings[0].proxy_type;
-        customProxyUrl = proxySettings[0].custom_url;
-        console.log(`Using preferred proxy from database: ${preferredProxy}`);
-      }
-    } catch (proxyError) {
-      console.error('Error fetching proxy settings, using default:', proxyError);
-    }
-    
-    // Try direct access first (Edge functions might have fewer CORS restrictions)
-    try {
-      console.log('Trying direct API call...');
+      console.log('Trying direct API call from edge function...');
       const response = await fetch(targetUrl, { 
         headers,
-        cache: 'no-store' // Ensure we don't use cached responses
+        cache: 'no-store',
+        credentials: 'omit',
+        redirect: 'follow'
       });
       
       if (!response.ok) {
@@ -396,94 +381,52 @@ async function fetchProductInfoByKioskToken(supabase: any, userToken: string, ki
     } catch (directError) {
       console.error(`Error with direct API call: ${directError}`);
       
-      // Now try with various proxy methods based on preference
-      if (preferredProxy === 'custom' && customProxyUrl) {
-        try {
-          console.log(`Trying custom proxy: ${customProxyUrl}`);
-          const customProxyFullUrl = `${customProxyUrl}${encodeURIComponent(targetUrl)}`;
-          const response = await fetch(customProxyFullUrl, { headers });
-          
-          if (!response.ok) {
-            throw new Error(`Custom proxy returned error status: ${response.status}`);
-          }
-          
-          const responseText = await response.text();
-          
-          try {
-            const productInfo = JSON.parse(responseText);
-            console.log('Product info from custom proxy:', productInfo);
-            return productInfo;
-          } catch (parseError) {
-            console.error(`Error parsing JSON from custom proxy: ${parseError}`);
-            throw new Error('Invalid JSON response from custom proxy');
-          }
-        } catch (customProxyError) {
-          console.error(`Error with custom proxy: ${customProxyError}`);
-        }
-      }
-      
-      // Try AllOrigins as a reliable fallback
+      // Since we're in an edge function, we'll try a different approach using node-fetch
       try {
-        const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-        console.log(`Attempting API call via AllOrigins proxy: ${allOriginsUrl}`);
+        console.log('Trying with alternative approach...');
         
-        const response = await fetch(allOriginsUrl, { headers });
+        // Create a more specific API request with explicit headers
+        const response = await fetch(targetUrl, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Referer': 'https://taphoammo.net/',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Cache-Control': 'no-cache, no-store',
+            'Pragma': 'no-cache',
+            'Origin': 'https://taphoammo.net'
+          },
+          redirect: 'follow'
+        });
         
         if (!response.ok) {
-          throw new Error(`AllOrigins API returned error status: ${response.status}`);
+          throw new Error(`API returned status: ${response.status}`);
         }
         
-        const responseData = await response.json();
+        const responseText = await response.text();
+        console.log(`Alternative approach raw response: \n${responseText.substring(0, 300)}`);
         
-        if (responseData && responseData.contents) {
-          try {
-            const productInfo = JSON.parse(responseData.contents);
-            console.log('Product info from AllOrigins:', productInfo);
-            return productInfo;
-          } catch (parseError) {
-            console.error(`Error parsing JSON from AllOrigins: ${parseError}`);
-            throw new Error('Invalid JSON response from AllOrigins');
-          }
-        } else {
-          throw new Error('Invalid response structure from AllOrigins');
-        }
-      } catch (allOriginsError) {
-        console.error(`Error with AllOrigins proxy: ${allOriginsError}`);
-        
-        // Try corsproxy.io as another alternative
         try {
-          console.log('Trying corsproxy.io as another alternative...');
-          const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-          
-          const corsProxyResponse = await fetch(corsProxyUrl, { headers });
-          
-          if (!corsProxyResponse.ok) {
-            throw new Error(`CORS proxy returned error status: ${corsProxyResponse.status}`);
-          }
-          
-          const corsProxyText = await corsProxyResponse.text();
-          
-          try {
-            const productInfo = JSON.parse(corsProxyText);
-            console.log('Product info from CORS proxy:', productInfo);
-            return productInfo;
-          } catch (parseError) {
-            console.error(`Error parsing JSON from CORS proxy: ${parseError}`);
-            throw new Error('Invalid JSON response from CORS proxy');
-          }
-        } catch (corsProxyError) {
-          console.error(`Error with CORS proxy: ${corsProxyError}`);
-          
-          // Return mock data as last resort since all attempts failed
-          console.log('All API call attempts failed, returning mock data');
-          return {
-            success: 'true',
-            name: 'Demo Product (API Unavailable)',
-            price: '10',
-            stock: '100',
-            description: 'This is a mock product because the API is currently unavailable.'
-          };
+          const productInfo = JSON.parse(responseText);
+          console.log('Product info from alternative approach:', productInfo);
+          return productInfo;
+        } catch (parseError) {
+          throw new Error('Failed to parse JSON from alternative approach');
         }
+      } catch (altError) {
+        console.error(`Alternative approach failed: ${altError}`);
+        
+        // Return mock data as last resort since all attempts failed
+        console.log('All API call attempts failed, returning mock data');
+        return {
+          success: 'true',
+          name: 'Demo Product (API Unavailable)',
+          price: '10',
+          stock: '100',
+          description: 'This is a mock product because the API is currently unavailable.'
+        };
       }
     }
   } catch (error: any) {
