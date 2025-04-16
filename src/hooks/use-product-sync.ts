@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +33,7 @@ export function useProductSync() {
   const fetchProxySettings = async () => {
     try {
       const { data: proxySettings, error } = await supabase
-        .rpc('get_latest_proxy_settings');
+        .rpc<ProxySettings[]>('get_latest_proxy_settings');
         
       if (error) {
         console.error('Error fetching proxy settings:', error);

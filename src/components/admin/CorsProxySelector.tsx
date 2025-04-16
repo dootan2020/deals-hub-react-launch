@@ -59,7 +59,7 @@ export function CorsProxySelector() {
     setLoading(true);
     try {
       const { data: proxySettings, error } = await supabase
-        .rpc('get_latest_proxy_settings');
+        .rpc<ProxySettings[]>('get_latest_proxy_settings');
 
       if (error) {
         if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
