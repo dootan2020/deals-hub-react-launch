@@ -13,7 +13,7 @@ import {
 } from "@/services/productService";
 import { fetchProxySettings, ProxyConfig, ProxyType } from "@/utils/proxyUtils";
 
-export { ProxyType } from "@/utils/proxyUtils";
+export type { ProxyType } from "@/utils/proxyUtils";
 
 export function useProductSync() {
   const [isLoading, setIsLoading] = useState(false);

@@ -23,6 +23,8 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { ProxyType, ProxySettings } from '@/utils/proxyUtils';
 
+export type { ProxyType } from '@/utils/proxyUtils';
+
 interface ProxyConfig {
   type: ProxyType;
   url?: string;
