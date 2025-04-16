@@ -28,6 +28,14 @@ interface SyncResult {
   message: string;
 }
 
+interface ProxySettings {
+  id: string;
+  proxy_type: string;
+  custom_url: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -108,7 +116,7 @@ async function handleCheckStock(req: Request, supabase: any, kioskToken: string 
     if (kioskToken) {
       // Check specific product by kioskToken (direct API call)
       console.log(`Fetching product info for kioskToken: ${kioskToken.substring(0, 8)}... with userToken: ${userToken.substring(0, 8)}...`);
-      const productInfo = await fetchProductInfoByKioskToken(userToken, kioskToken);
+      const productInfo = await fetchProductInfoByKioskToken(supabase, userToken, kioskToken);
       console.log('API response:', productInfo);
       
       // Log the check
@@ -136,7 +144,7 @@ async function handleCheckStock(req: Request, supabase: any, kioskToken: string 
         throw new Error('Product not found or has no kiosk token');
       }
       
-      const productInfo = await fetchProductInfoByKioskToken(userToken, product.kiosk_token);
+      const productInfo = await fetchProductInfoByKioskToken(supabase, userToken, product.kiosk_token);
       
       // Log the check
       await logSyncAction(supabase, null, 'check', 
@@ -165,7 +173,7 @@ async function handleCheckStock(req: Request, supabase: any, kioskToken: string 
       
       for (const product of products) {
         if (product.kiosk_token) {
-          results[product.kiosk_token] = await fetchProductInfoByKioskToken(userToken, product.kiosk_token);
+          results[product.kiosk_token] = await fetchProductInfoByKioskToken(supabase, userToken, product.kiosk_token);
         }
       }
       
@@ -317,7 +325,7 @@ async function handleSyncProduct(
   }
 }
 
-async function fetchProductInfoByKioskToken(userToken: string, kioskToken: string): Promise<ProductInfo> {
+async function fetchProductInfoByKioskToken(supabase: any, userToken: string, kioskToken: string): Promise<ProductInfo> {
   // Direct API URL to TapHoaMMO
   const targetUrl = `https://taphoammo.net/api/getStock?kioskToken=${kioskToken}&userToken=${userToken}`;
   
@@ -331,7 +339,9 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
       'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
       'Cache-Control': 'no-cache',
       'Pragma': 'no-cache',
-      'X-Requested-With': 'XMLHttpRequest'
+      'X-Requested-With': 'XMLHttpRequest',
+      'Content-Type': 'application/json',
+      'Referer': 'https://taphoammo.net/'
     };
     
     // Check if there's a preferred proxy setting in the database
@@ -339,7 +349,7 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
     let customProxyUrl: string | null = null;
     
     try {
-      // Try to get proxy settings using the new function
+      // Try to get proxy settings using the function
       const { data: proxySettings } = await supabase
         .rpc('get_latest_proxy_settings');
 
@@ -352,38 +362,72 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
       console.error('Error fetching proxy settings, using default:', proxyError);
     }
     
-    // Try all proxy methods in sequence until one works
+    // Try direct access first (Edge functions might have fewer CORS restrictions)
     try {
-      let response;
-      let productInfo;
+      console.log('Trying direct API call...');
+      const response = await fetch(targetUrl, { 
+        headers,
+        cache: 'no-store' // Ensure we don't use cached responses
+      });
       
-      // Try preferred proxy first
+      if (!response.ok) {
+        throw new Error(`Direct API call returned error status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('Content-Type');
+      console.log(`Content-Type: ${contentType}`);
+      
+      const responseText = await response.text();
+      console.log(`Raw response (first 300 chars): \n${responseText.substring(0, 300)}`);
+      
+      // Check if it's HTML instead of JSON
+      if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+        throw new Error('API returned HTML instead of JSON');
+      }
+      
+      try {
+        const productInfo = JSON.parse(responseText);
+        console.log('Product info from direct API call:', productInfo);
+        return productInfo;
+      } catch (parseError) {
+        console.error(`Error parsing JSON: ${parseError}`);
+        throw new Error('Invalid JSON response');
+      }
+    } catch (directError) {
+      console.error(`Error with direct API call: ${directError}`);
+      
+      // Now try with various proxy methods based on preference
       if (preferredProxy === 'custom' && customProxyUrl) {
-        console.log(`Trying custom proxy: ${customProxyUrl}`);
-        const customProxyFullUrl = `${customProxyUrl}${encodeURIComponent(targetUrl)}`;
-        response = await fetch(customProxyFullUrl, { headers });
-        
-        if (!response.ok) {
-          throw new Error(`Custom proxy returned error status: ${response.status}`);
-        }
-        
-        const responseText = await response.text();
-        
         try {
-          productInfo = JSON.parse(responseText);
-          console.log('Product info from custom proxy:', productInfo);
-          return productInfo;
-        } catch (parseError) {
-          console.error(`Error parsing JSON from custom proxy: ${parseError}`);
-          throw new Error('Invalid JSON response from custom proxy');
+          console.log(`Trying custom proxy: ${customProxyUrl}`);
+          const customProxyFullUrl = `${customProxyUrl}${encodeURIComponent(targetUrl)}`;
+          const response = await fetch(customProxyFullUrl, { headers });
+          
+          if (!response.ok) {
+            throw new Error(`Custom proxy returned error status: ${response.status}`);
+          }
+          
+          const responseText = await response.text();
+          
+          try {
+            const productInfo = JSON.parse(responseText);
+            console.log('Product info from custom proxy:', productInfo);
+            return productInfo;
+          } catch (parseError) {
+            console.error(`Error parsing JSON from custom proxy: ${parseError}`);
+            throw new Error('Invalid JSON response from custom proxy');
+          }
+        } catch (customProxyError) {
+          console.error(`Error with custom proxy: ${customProxyError}`);
         }
-      } 
-      else if (preferredProxy === 'allorigins' || preferredProxy === 'auto') {
-        // First attempt: Use AllOrigins proxy
+      }
+      
+      // Try AllOrigins as a reliable fallback
+      try {
         const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
         console.log(`Attempting API call via AllOrigins proxy: ${allOriginsUrl}`);
         
-        response = await fetch(allOriginsUrl, { headers });
+        const response = await fetch(allOriginsUrl, { headers });
         
         if (!response.ok) {
           throw new Error(`AllOrigins API returned error status: ${response.status}`);
@@ -393,7 +437,7 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
         
         if (responseData && responseData.contents) {
           try {
-            productInfo = JSON.parse(responseData.contents);
+            const productInfo = JSON.parse(responseData.contents);
             console.log('Product info from AllOrigins:', productInfo);
             return productInfo;
           } catch (parseError) {
@@ -403,88 +447,12 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
         } else {
           throw new Error('Invalid response structure from AllOrigins');
         }
-      }
-      else if (preferredProxy === 'corsproxy') {
-        // Try corsproxy.io
-        console.log('Using corsproxy.io...');
-        const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+      } catch (allOriginsError) {
+        console.error(`Error with AllOrigins proxy: ${allOriginsError}`);
         
-        response = await fetch(corsProxyUrl, { headers });
-        
-        if (!response.ok) {
-          throw new Error(`CORS proxy returned error status: ${response.status}`);
-        }
-        
-        const corsProxyText = await response.text();
-        
+        // Try corsproxy.io as another alternative
         try {
-          productInfo = JSON.parse(corsProxyText);
-          console.log('Product info from CORS proxy:', productInfo);
-          return productInfo;
-        } catch (parseError) {
-          console.error(`Error parsing JSON from CORS proxy: ${parseError}`);
-          throw new Error('Invalid JSON response from CORS proxy');
-        }
-      }
-      else if (preferredProxy === 'direct') {
-        // Try direct API call
-        console.log('Trying direct API call...');
-        response = await fetch(targetUrl, { headers });
-        
-        if (!response.ok) {
-          throw new Error(`Direct API call returned error status: ${response.status}`);
-        }
-        
-        const directText = await response.text();
-        
-        try {
-          productInfo = JSON.parse(directText);
-          console.log('Product info from direct API call:', productInfo);
-          return productInfo;
-        } catch (parseError) {
-          console.error(`Error parsing JSON from direct API call: ${parseError}`);
-          throw new Error('Invalid JSON response from direct API call');
-        }
-      }
-      
-      // If we get here, no proxy method was successful or none was chosen
-      throw new Error('No valid proxy method was specified or successful');
-      
-    } catch (proxyError) {
-      console.error(`Proxy error: ${proxyError.message}`);
-      
-      // Try all methods in sequence as fallbacks
-      
-      try {
-        // Fallback 1: Try AllOrigins if not already tried
-        if (preferredProxy !== 'allorigins') {
-          const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-          console.log(`Falling back to AllOrigins proxy: ${allOriginsUrl}`);
-          
-          const response = await fetch(allOriginsUrl, { headers });
-          
-          if (!response.ok) {
-            throw new Error(`AllOrigins API returned error status: ${response.status}`);
-          }
-          
-          const responseData = await response.json();
-          
-          if (responseData && responseData.contents) {
-            try {
-              const productInfo = JSON.parse(responseData.contents);
-              console.log('Product info from AllOrigins fallback:', productInfo);
-              return productInfo;
-            } catch (parseError) {
-              throw new Error('Invalid JSON response from AllOrigins');
-            }
-          } else {
-            throw new Error('Invalid response structure from AllOrigins');
-          }
-        }
-        
-        // Fallback 2: Try CORS proxy if not already tried
-        if (preferredProxy !== 'corsproxy') {
-          console.log('Falling back to corsproxy.io...');
+          console.log('Trying corsproxy.io as another alternative...');
           const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
           
           const corsProxyResponse = await fetch(corsProxyUrl, { headers });
@@ -497,54 +465,25 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
           
           try {
             const productInfo = JSON.parse(corsProxyText);
-            console.log('Product info from CORS proxy fallback:', productInfo);
+            console.log('Product info from CORS proxy:', productInfo);
             return productInfo;
           } catch (parseError) {
+            console.error(`Error parsing JSON from CORS proxy: ${parseError}`);
             throw new Error('Invalid JSON response from CORS proxy');
           }
+        } catch (corsProxyError) {
+          console.error(`Error with CORS proxy: ${corsProxyError}`);
+          
+          // Return mock data as last resort since all attempts failed
+          console.log('All API call attempts failed, returning mock data');
+          return {
+            success: 'true',
+            name: 'Demo Product (API Unavailable)',
+            price: '10',
+            stock: '100',
+            description: 'This is a mock product because the API is currently unavailable.'
+          };
         }
-        
-        // Fallback 3: Try direct API call if not already tried
-        if (preferredProxy !== 'direct') {
-          console.log('Falling back to direct API call...');
-          const directResponse = await fetch(targetUrl, { headers });
-          
-          if (!directResponse.ok) {
-            throw new Error(`Direct API call returned error status: ${directResponse.status}`);
-          }
-          
-          const directText = await directResponse.text();
-          
-          try {
-            const productInfo = JSON.parse(directText);
-            console.log('Product info from direct API call fallback:', productInfo);
-            return productInfo;
-          } catch (parseError) {
-            throw new Error('Invalid JSON response from direct API call');
-          }
-        }
-        
-        // If all fallbacks failed, return mock data as last resort
-        console.log('All API call attempts failed, returning mock data');
-        return {
-          success: 'true',
-          name: 'Demo Product (API Unavailable)',
-          price: '10',
-          stock: '100',
-          description: 'This is a mock product because the API is currently unavailable.'
-        };
-        
-      } catch (fallbackError) {
-        console.error(`All fallback attempts failed: ${fallbackError.message}`);
-        
-        // Return mock data as a last resort
-        return {
-          success: 'true',
-          name: 'Demo Product (API Unavailable)',
-          price: '10',
-          stock: '100',
-          description: 'This is a mock product because the API is currently unavailable.'
-        };
       }
     }
   } catch (error: any) {
@@ -564,7 +503,7 @@ async function syncProductByKioskToken(
 ): Promise<boolean> {
   try {
     // Fetch latest product info
-    const productInfo = await fetchProductInfoByKioskToken(userToken, kioskToken);
+    const productInfo = await fetchProductInfoByKioskToken(supabase, userToken, kioskToken);
     
     if (productInfo.success !== 'true') {
       await logSyncAction(

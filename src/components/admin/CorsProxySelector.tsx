@@ -58,12 +58,8 @@ export function CorsProxySelector() {
   const fetchCurrentProxy = async () => {
     setLoading(true);
     try {
-      // Properly type the RPC call response
-      const { data, error } = await supabase
-        .rpc('get_latest_proxy_settings') as unknown as { 
-          data: ProxySettings[] | null; 
-          error: any 
-        };
+      const { data: proxySettings, error } = await supabase
+        .rpc('get_latest_proxy_settings');
 
       if (error) {
         if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
@@ -74,8 +70,8 @@ export function CorsProxySelector() {
         }
       }
 
-      if (data && data.length > 0) {
-        const settings = data[0];
+      if (proxySettings && proxySettings.length > 0) {
+        const settings = proxySettings[0];
         setSavedConfig({
           type: settings.proxy_type as ProxyType,
           url: settings.custom_url || undefined,

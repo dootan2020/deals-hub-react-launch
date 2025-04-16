@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -32,24 +31,20 @@ export function useProductSync() {
   
   const fetchProxySettings = async () => {
     try {
-      // Properly type the RPC call response
-      const { data, error } = await supabase
-        .rpc('get_latest_proxy_settings') as unknown as {
-          data: ProxySettings[] | null;
-          error: any;
-        };
+      const { data: proxySettings, error } = await supabase
+        .rpc('get_latest_proxy_settings');
         
       if (error) {
         console.error('Error fetching proxy settings:', error);
         return;
       }
       
-      if (data && data.length > 0) {
+      if (proxySettings && proxySettings.length > 0) {
         setProxyConfig({
-          type: data[0].proxy_type as ProxyType,
-          url: data[0].custom_url || undefined
+          type: proxySettings[0].proxy_type as ProxyType,
+          url: proxySettings[0].custom_url || undefined
         });
-        console.log('Using proxy settings:', data[0].proxy_type);
+        console.log('Using proxy settings:', proxySettings[0].proxy_type);
       } else {
         console.log('No proxy settings found, using default (allorigins)');
       }
@@ -221,7 +216,8 @@ export function useProductSync() {
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
         'X-Requested-With': 'XMLHttpRequest',
-        'X-Request-Time': timestamp.toString()
+        'X-Request-Time': timestamp.toString(),
+        'Content-Type': 'application/json'
       };
       
       try {
@@ -230,7 +226,8 @@ export function useProductSync() {
         
         const response = await fetch(proxyUrl, { 
           signal: controller.signal,
-          headers
+          headers,
+          cache: 'no-cache'
         });
         
         clearTimeout(timeoutId);
@@ -250,28 +247,65 @@ export function useProductSync() {
           console.log('Response is HTML, attempting to extract product information');
           const extractedInfo = extractFromHtml(responseText);
           if (extractedInfo) {
+            console.log('Using extracted product info from HTML:', extractedInfo);
             return extractedInfo;
           }
-          throw new Error('Received HTML instead of expected JSON');
+          
+          console.log('Could not extract useful information from HTML. Falling back to edge function...');
+          const edgeFunctionUrl = `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`;
+          const edgeFunctionResponse = await fetch(edgeFunctionUrl, { headers });
+          
+          if (!edgeFunctionResponse.ok) {
+            throw new Error(`Edge function failed: ${edgeFunctionResponse.status}`);
+          }
+          
+          const edgeFunctionData = await edgeFunctionResponse.json();
+          console.log('Edge function response:', edgeFunctionData);
+          return edgeFunctionData;
         }
         
         let productInfo;
         
-        if (proxyConfig.type === 'allorigins') {
-          const allOriginsData = JSON.parse(responseText);
-          if (allOriginsData && allOriginsData.contents) {
-            productInfo = JSON.parse(allOriginsData.contents);
-          } else {
-            throw new Error('Invalid AllOrigins response format');
+        if (currentProxy.type === 'allorigins') {
+          try {
+            const allOriginsData = JSON.parse(responseText);
+            if (allOriginsData && allOriginsData.contents) {
+              try {
+                productInfo = JSON.parse(allOriginsData.contents);
+                console.log('Successfully parsed product info from AllOrigins:', productInfo);
+              } catch (innerError) {
+                console.error('Error parsing inner JSON from AllOrigins:', innerError);
+                if (typeof allOriginsData.contents === 'string' && 
+                    (allOriginsData.contents.includes('<!DOCTYPE') || 
+                     allOriginsData.contents.includes('<html'))) {
+                  const extractedInfo = extractFromHtml(allOriginsData.contents);
+                  if (extractedInfo) {
+                    console.log('Using extracted product info from AllOrigins HTML content:', extractedInfo);
+                    return extractedInfo;
+                  }
+                }
+                throw new Error('Invalid JSON in AllOrigins contents');
+              }
+            } else {
+              throw new Error('Invalid AllOrigins response format');
+            }
+          } catch (outerError) {
+            console.error('Error parsing AllOrigins response:', outerError);
+            throw new Error('Failed to parse AllOrigins response');
           }
         } else {
-          productInfo = JSON.parse(responseText);
+          try {
+            productInfo = JSON.parse(responseText);
+            console.log('Successfully parsed product info:', productInfo);
+          } catch (jsonError) {
+            console.error('Error parsing JSON response:', jsonError);
+            throw new Error('Invalid JSON response');
+          }
         }
         
-        console.log('Parsed product info:', productInfo);
         return productInfo;
       } catch (proxyError) {
-        console.error(`Error with ${proxyConfig.type} proxy:`, proxyError);
+        console.error(`Error with ${currentProxy.type} proxy:`, proxyError);
         
         console.log('Falling back to edge function...');
         const edgeFunctionUrl = `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`;
