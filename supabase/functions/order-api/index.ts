@@ -47,6 +47,9 @@ serve(async (req: Request) => {
     
     const apiConfig = apiConfigs[0];
     
+    // Log the API request
+    console.log(`Order API request: ${action}, URL: ${url.toString()}`);
+    
     if (req.method === 'POST') {
       if (action === 'place-order') {
         const body = await req.json();
@@ -59,74 +62,156 @@ serve(async (req: Request) => {
           );
         }
         
-        // Get product external ID
+        // Get product kiosk token
         const { data: product, error: productError } = await supabase
           .from('products')
-          .select('external_id, price')
+          .select('kiosk_token, price')
           .eq('id', productId)
           .limit(1);
           
-        if (productError || !product || product.length === 0 || !product[0].external_id) {
+        if (productError || !product || product.length === 0 || !product[0].kiosk_token) {
           return new Response(
-            JSON.stringify({ error: 'Product not found or has no external ID' }),
+            JSON.stringify({ error: 'Product not found or has no kiosk token' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
           );
         }
         
-        const externalId = product[0].external_id;
+        const kioskToken = product[0].kiosk_token;
         
         // Call the purchase API
-        let apiUrl = `https://taphoammo.net/api/buyProducts?kioskToken=${apiConfig.kiosk_token}&userToken=${apiConfig.user_token}&quantity=${quantity}`;
+        let apiUrl = `https://taphoammo.net/api/buyProducts?kioskToken=${kioskToken}&userToken=${apiConfig.user_token}&quantity=${quantity}`;
         
         if (promotionCode) {
           apiUrl += `&promotion=${promotionCode}`;
         }
         
-        const response = await fetch(apiUrl);
-        const orderResponse: OrderResponse = await response.json();
+        console.log(`Calling purchase API: ${apiUrl}`);
         
-        if (orderResponse.success !== 'true') {
-          return new Response(
-            JSON.stringify({ error: orderResponse.description || 'Failed to place order' }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-          );
-        }
+        const options = {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cache-Control': 'no-cache',
+            'Referer': 'https://taphoammo.net/',
+            'Origin': 'https://taphoammo.net',
+            'Pragma': 'no-cache'
+          },
+          redirect: 'follow'
+        };
         
-        // Store order in database
-        const { data: order, error: orderError } = await supabase
-          .from('orders')
-          .insert({
-            external_order_id: orderResponse.order_id,
-            status: 'processing',
-            total_amount: product[0].price * quantity,
-            promotion_code: promotionCode || null
-          })
-          .select()
-          .limit(1);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        
+        try {
+          const response = await fetch(apiUrl, {
+            ...options,
+            signal: controller.signal
+          });
           
-        if (orderError || !order || order.length === 0) {
-          console.error('Failed to store order:', orderError);
-        } else {
-          // Store order item
-          await supabase
-            .from('order_items')
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            const statusCode = response.status;
+            let errorText = '';
+            
+            try {
+              errorText = await response.text();
+              console.error(`API error response: ${errorText.substring(0, 500)}`);
+            } catch (e) {
+              errorText = 'Unable to read error response';
+            }
+            
+            // Check if response is HTML
+            if (errorText.trim().startsWith('<!DOCTYPE') || errorText.includes('<html')) {
+              return new Response(
+                JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your configuration.' }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+              );
+            }
+            
+            return new Response(
+              JSON.stringify({ error: `API error: Status ${statusCode}` }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
+            );
+          }
+          
+          const responseText = await response.text();
+          console.log(`API response raw: ${responseText.substring(0, 500)}`);
+          
+          if (!responseText.trim()) {
+            return new Response(
+              JSON.stringify({ error: 'API returned empty response' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+            );
+          }
+          
+          // Check if response is HTML instead of JSON
+          if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
+            return new Response(
+              JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your configuration.' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+            );
+          }
+          
+          // Parse the response as JSON
+          const orderResponse: OrderResponse = JSON.parse(responseText);
+          
+          if (orderResponse.success !== 'true') {
+            return new Response(
+              JSON.stringify({ error: orderResponse.description || 'Failed to place order' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            );
+          }
+          
+          // Store order in database
+          const { data: order, error: orderError } = await supabase
+            .from('orders')
             .insert({
-              order_id: order[0].id,
-              product_id: productId,
-              quantity,
-              price: product[0].price,
-              external_product_id: externalId
-            });
+              external_order_id: orderResponse.order_id,
+              status: 'processing',
+              total_amount: product[0].price * quantity,
+              promotion_code: promotionCode || null
+            })
+            .select()
+            .limit(1);
+            
+          if (orderError || !order || order.length === 0) {
+            console.error('Failed to store order:', orderError);
+          } else {
+            // Store order item
+            await supabase
+              .from('order_items')
+              .insert({
+                order_id: order[0].id,
+                product_id: productId,
+                quantity,
+                price: product[0].price,
+                external_product_id: kioskToken
+              });
+          }
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              orderId: orderResponse.order_id,
+              message: 'Order placed successfully'
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          
+          if (fetchError.name === 'AbortError') {
+            return new Response(
+              JSON.stringify({ error: 'API request timed out after 30 seconds' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 504 }
+            );
+          }
+          
+          throw fetchError;
         }
-        
-        return new Response(
-          JSON.stringify({
-            success: true,
-            orderId: orderResponse.order_id,
-            message: 'Order placed successfully'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
       } else if (action === 'check-order') {
         const body = await req.json();
         const { orderId } = body;
@@ -140,31 +225,112 @@ serve(async (req: Request) => {
         
         // Call the get products API
         const apiUrl = `https://taphoammo.net/api/getProducts?orderId=${orderId}&userToken=${apiConfig.user_token}`;
+        console.log(`Checking order status: ${apiUrl}`);
         
-        const response = await fetch(apiUrl);
-        const productResponse: ProductResponse = await response.json();
+        const options = {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cache-Control': 'no-cache',
+            'Referer': 'https://taphoammo.net/',
+            'Origin': 'https://taphoammo.net',
+            'Pragma': 'no-cache'
+          },
+          redirect: 'follow'
+        };
         
-        // Update order status if successful
-        if (productResponse.success === 'true' && productResponse.data) {
-          // Get order from database
-          const { data: orders, error: orderError } = await supabase
-            .from('orders')
-            .select('id')
-            .eq('external_order_id', orderId)
-            .limit(1);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        
+        try {
+          const response = await fetch(apiUrl, {
+            ...options,
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            const statusCode = response.status;
+            let errorText = '';
             
-          if (!orderError && orders && orders.length > 0) {
-            await supabase
-              .from('orders')
-              .update({ status: 'completed' })
-              .eq('id', orders[0].id);
+            try {
+              errorText = await response.text();
+              console.error(`API error response for order check: ${errorText.substring(0, 500)}`);
+            } catch (e) {
+              errorText = 'Unable to read error response';
+            }
+            
+            // Check if response is HTML
+            if (errorText.trim().startsWith('<!DOCTYPE') || errorText.includes('<html')) {
+              return new Response(
+                JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your configuration.' }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+              );
+            }
+            
+            return new Response(
+              JSON.stringify({ error: `API error: Status ${statusCode}` }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
+            );
           }
+          
+          const responseText = await response.text();
+          console.log(`Order check API response raw: ${responseText.substring(0, 500)}`);
+          
+          if (!responseText.trim()) {
+            return new Response(
+              JSON.stringify({ error: 'API returned empty response' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+            );
+          }
+          
+          // Check if response is HTML instead of JSON
+          if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
+            return new Response(
+              JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your configuration.' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+            );
+          }
+          
+          // Parse the response as JSON
+          const productResponse: ProductResponse = JSON.parse(responseText);
+          
+          // Update order status if successful
+          if (productResponse.success === 'true' && productResponse.data) {
+            // Get order from database
+            const { data: orders, error: orderError } = await supabase
+              .from('orders')
+              .select('id')
+              .eq('external_order_id', orderId)
+              .limit(1);
+              
+            if (!orderError && orders && orders.length > 0) {
+              await supabase
+                .from('orders')
+                .update({ status: 'completed' })
+                .eq('id', orders[0].id);
+            }
+          }
+          
+          return new Response(
+            JSON.stringify(productResponse),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          
+          if (fetchError.name === 'AbortError') {
+            return new Response(
+              JSON.stringify({ error: 'API request timed out after 30 seconds' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 504 }
+            );
+          }
+          
+          throw fetchError;
         }
-        
-        return new Response(
-          JSON.stringify(productResponse),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
       }
     }
     

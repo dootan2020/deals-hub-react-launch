@@ -55,7 +55,17 @@ export function useProductSync() {
       }
 
       const timestamp = new Date().getTime();
-      const response = await fetch(`/functions/v1/product-sync?action=sync-product&externalId=${externalId}&userToken=${apiConfig.user_token}&_t=${timestamp}`);
+      
+      // Adding custom header to avoid caching
+      const headers = {
+        'Cache-Control': 'no-cache, no-store',
+        'Pragma': 'no-cache',
+        'X-Request-Time': timestamp.toString()
+      };
+      
+      const response = await fetch(`/functions/v1/product-sync?action=sync-product&externalId=${externalId}&userToken=${apiConfig.user_token}&_t=${timestamp}`, {
+        headers
+      });
       
       if (!response.ok) {
         let errorText = '';
@@ -113,14 +123,28 @@ export function useProductSync() {
       const timestamp = new Date().getTime();
       console.log(`Using user token: ${apiConfig.user_token.substring(0, 8)}... for product lookup`);
       
+      // Trực tiếp gọi edge function với các tham số đã được mã hóa URL
+      const encodedKioskToken = encodeURIComponent(kioskToken);
+      const encodedUserToken = encodeURIComponent(apiConfig.user_token);
+      
       // Add a longer timeout for the fetch request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+      
+      // Custom headers to avoid caching
+      const headers = {
+        'Cache-Control': 'no-cache, no-store',
+        'Pragma': 'no-cache',
+        'X-Request-Time': timestamp.toString()
+      };
       
       try {
         const response = await fetch(
-          `/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${apiConfig.user_token}&_t=${timestamp}`,
-          { signal: controller.signal }
+          `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`,
+          { 
+            signal: controller.signal,
+            headers
+          }
         );
         
         clearTimeout(timeoutId);
@@ -158,8 +182,22 @@ export function useProductSync() {
           throw new Error(`API returned unexpected content type: ${contentType}. Expected JSON.`);
         }
         
-        const data = await response.json();
-        return data;
+        const responseText = await response.text();
+        console.log(`Raw response: ${responseText.substring(0, 100)}...`);
+        
+        // Kiểm tra nếu phản hồi là HTML thay vì JSON
+        if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
+          throw new Error('API returned HTML instead of JSON. Vui lòng kiểm tra lại kết nối.');
+        }
+        
+        try {
+          const data = JSON.parse(responseText);
+          console.log('Parsed data:', data);
+          return data;
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          throw new Error(`Failed to parse API response: ${parseError.message}`);
+        }
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
         
@@ -191,8 +229,16 @@ export function useProductSync() {
         throw new Error('No active API configuration found');
       }
       
-      const timestamp = new Date().getTime();  
-      const response = await fetch(`/functions/v1/product-sync?action=sync-all&userToken=${apiConfig.user_token}&_t=${timestamp}`);
+      const timestamp = new Date().getTime();
+      const headers = {
+        'Cache-Control': 'no-cache, no-store',
+        'Pragma': 'no-cache',
+        'X-Request-Time': timestamp.toString()
+      };
+      
+      const response = await fetch(`/functions/v1/product-sync?action=sync-all&userToken=${apiConfig.user_token}&_t=${timestamp}`, {
+        headers
+      });
       
       if (!response.ok) {
         let errorText = '';
