@@ -24,10 +24,26 @@ interface Order {
   updated_at: string;
 }
 
+interface OrderItem {
+  id: string;
+  quantity: number;
+  price: number;
+  product?: {
+    title: string;
+  };
+}
+
 interface OrderDetails {
   id: string;
-  items: any[];
-  details: any[];
+  items: OrderItem[];
+  details: {
+    status: string;
+    external_order_id: string | null;
+    created_at: string;
+    total_amount: number;
+    promotion_code?: string | null;
+    updated_at: string;
+  };
 }
 
 const OrdersAdmin = () => {
