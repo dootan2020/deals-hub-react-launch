@@ -131,11 +131,14 @@ export function useProductSync() {
       
       if (countError) throw countError;
       
-      // Update the category count
-      await supabase
-        .from('categories')
-        .update({ count: count || 0 })
-        .eq('id', categoryId);
+      // Update the category count using a raw SQL query
+      // This is a workaround for TypeScript constraints
+      const { error: updateError } = await supabase.rpc('update_category_count', {
+        category_id_param: categoryId,
+        count_param: count || 0
+      });
+      
+      if (updateError) throw updateError;
     } catch (error) {
       console.error('Error updating category count:', error);
     }

@@ -39,6 +39,39 @@ export type Database = {
         }
         Relationships: []
       }
+      categories: {
+        Row: {
+          count: number
+          created_at: string | null
+          description: string
+          id: string
+          image: string
+          name: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          count?: number
+          created_at?: string | null
+          description: string
+          id?: string
+          image: string
+          name: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          count?: number
+          created_at?: string | null
+          description?: string
+          id?: string
+          image?: string
+          name?: string
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string | null
@@ -184,7 +217,15 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_category_id"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sync_logs: {
         Row: {

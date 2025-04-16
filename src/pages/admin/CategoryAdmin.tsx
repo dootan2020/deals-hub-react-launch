@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Edit, Trash2, Save } from 'lucide-react';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -109,15 +108,12 @@ const CategoryAdmin = () => {
 
   const onSubmitAdd = async (data: CategoryFormValues) => {
     try {
-      const { error } = await supabase
-        .from('categories')
-        .insert([{
-          name: data.name,
-          description: data.description,
-          slug: data.slug,
-          image: data.image,
-          count: 0,
-        }]);
+      const { error } = await supabase.rpc('insert_category', {
+        name_param: data.name,
+        description_param: data.description,
+        slug_param: data.slug,
+        image_param: data.image
+      });
 
       if (error) throw error;
 
@@ -136,15 +132,13 @@ const CategoryAdmin = () => {
     if (!selectedCategory) return;
 
     try {
-      const { error } = await supabase
-        .from('categories')
-        .update({
-          name: data.name,
-          description: data.description,
-          slug: data.slug,
-          image: data.image,
-        })
-        .eq('id', selectedCategory.id);
+      const { error } = await supabase.rpc('update_category', {
+        id_param: selectedCategory.id,
+        name_param: data.name,
+        description_param: data.description,
+        slug_param: data.slug,
+        image_param: data.image
+      });
 
       if (error) throw error;
 
@@ -163,7 +157,6 @@ const CategoryAdmin = () => {
     setDeleteError(null);
     
     try {
-      // First, check if there are products using this category
       const { data: products, error: checkError } = await supabase
         .from('products')
         .select('id')
@@ -178,11 +171,9 @@ const CategoryAdmin = () => {
         return;
       }
 
-      // If no products, proceed with deletion
-      const { error: deleteError } = await supabase
-        .from('categories')
-        .delete()
-        .eq('id', category.id);
+      const { error: deleteError } = await supabase.rpc('delete_category', {
+        id_param: category.id
+      });
 
       if (deleteError) throw deleteError;
 
@@ -278,7 +269,6 @@ const CategoryAdmin = () => {
         </Table>
       </div>
 
-      {/* Add Category Sheet */}
       <Sheet open={isAddOpen} onOpenChange={setIsAddOpen}>
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
@@ -326,7 +316,6 @@ const CategoryAdmin = () => {
                           placeholder="Enter category slug (e.g. email-accounts)" 
                           {...field} 
                           onChange={(e) => {
-                            // Convert to lowercase and replace spaces with hyphens
                             field.onChange(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
                           }}
                         />
@@ -362,7 +351,6 @@ const CategoryAdmin = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Edit Category Sheet */}
       <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
@@ -410,7 +398,6 @@ const CategoryAdmin = () => {
                           placeholder="Enter category slug" 
                           {...field}
                           onChange={(e) => {
-                            // Convert to lowercase and replace spaces with hyphens
                             field.onChange(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
                           }}
                         />

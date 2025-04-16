@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -26,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Category } from '@/types';
 
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
@@ -49,11 +49,6 @@ type ProductFormValues = z.infer<typeof productSchema>;
 interface ProductFormProps {
   productId?: string;
   onSuccess?: () => void;
-}
-
-interface Category {
-  id: string;
-  name: string;
 }
 
 export function ProductForm({ productId, onSuccess }: ProductFormProps) {
@@ -168,7 +163,6 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   };
 
   const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Convert title to slug format
     const value = e.target.value.toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
