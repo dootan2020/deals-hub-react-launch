@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -108,12 +110,16 @@ const CategoryAdmin = () => {
 
   const onSubmitAdd = async (data: CategoryFormValues) => {
     try {
-      const { error } = await supabase.rpc('insert_category', {
-        name_param: data.name,
-        description_param: data.description,
-        slug_param: data.slug,
-        image_param: data.image
-      });
+      // Direct insert instead of using RPC
+      const { error } = await supabase
+        .from('categories')
+        .insert({
+          name: data.name,
+          description: data.description,
+          slug: data.slug,
+          image: data.image,
+          count: 0
+        });
 
       if (error) throw error;
 
@@ -132,13 +138,17 @@ const CategoryAdmin = () => {
     if (!selectedCategory) return;
 
     try {
-      const { error } = await supabase.rpc('update_category', {
-        id_param: selectedCategory.id,
-        name_param: data.name,
-        description_param: data.description,
-        slug_param: data.slug,
-        image_param: data.image
-      });
+      // Direct update instead of using RPC
+      const { error } = await supabase
+        .from('categories')
+        .update({
+          name: data.name,
+          description: data.description,
+          slug: data.slug,
+          image: data.image,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedCategory.id);
 
       if (error) throw error;
 
@@ -171,9 +181,10 @@ const CategoryAdmin = () => {
         return;
       }
 
-      const { error: deleteError } = await supabase.rpc('delete_category', {
-        id_param: category.id
-      });
+      const { error: deleteError } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', category.id);
 
       if (deleteError) throw deleteError;
 
@@ -273,6 +284,9 @@ const CategoryAdmin = () => {
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
             <SheetTitle>Add New Category</SheetTitle>
+            <SheetDescription>
+              Create a new category to organize your products
+            </SheetDescription>
           </SheetHeader>
           <div className="py-4">
             <Form {...form}>
@@ -355,6 +369,9 @@ const CategoryAdmin = () => {
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
             <SheetTitle>Edit Category</SheetTitle>
+            <SheetDescription>
+              Update category details
+            </SheetDescription>
           </SheetHeader>
           <div className="py-4">
             <Form {...editForm}>

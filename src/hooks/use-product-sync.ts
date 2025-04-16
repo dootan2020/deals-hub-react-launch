@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Category } from '@/types';
 
 export function useProductSync() {
   const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +42,7 @@ export function useProductSync() {
       
       toast.success('Product synced successfully');
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sync product error:', error);
       toast.error(`Failed to sync product: ${error.message}`);
       throw error;
@@ -62,7 +63,7 @@ export function useProductSync() {
       
       toast.success(`Synced ${data.productsUpdated} products`);
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sync all products error:', error);
       toast.error(`Failed to sync all products: ${error.message}`);
       throw error;
@@ -131,11 +132,11 @@ export function useProductSync() {
       
       if (countError) throw countError;
       
-      // Update the category count
-      const { error: updateError } = await supabase.rpc('update_category_count', {
-        category_id_param: categoryId,
-        count_param: count || 0
-      });
+      // Update the category count directly
+      const { error: updateError } = await supabase
+        .from('categories')
+        .update({ count: count || 0 })
+        .eq('id', categoryId);
       
       if (updateError) throw updateError;
     } catch (error) {

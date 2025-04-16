@@ -77,7 +77,7 @@ serve(async (req: Request) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
@@ -136,7 +136,7 @@ async function handleCheckStock(req: Request, supabase: any, apiConfig: ApiConfi
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Check stock error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
@@ -171,7 +171,7 @@ async function handleSyncAll(req: Request, supabase: any, apiConfig: ApiConfig):
           if (updated) {
             result.productsUpdated++;
           }
-        } catch (error) {
+        } catch (error: any) {
           result.errors.push(`Error syncing product ${product.external_id}: ${error.message}`);
         }
       }
@@ -183,7 +183,7 @@ async function handleSyncAll(req: Request, supabase: any, apiConfig: ApiConfig):
       JSON.stringify(result),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Sync all error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
@@ -228,7 +228,7 @@ async function handleSyncProduct(
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Sync product error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
@@ -245,7 +245,7 @@ async function fetchProductInfo(apiConfig: ApiConfig, externalId: string): Promi
     const response = await fetch(url);
     const data = await response.json();
     return data as ProductInfo;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error fetching product info: ${error.message}`);
     return { success: 'false', description: `API error: ${error.message}` };
   }
@@ -305,7 +305,7 @@ async function syncProduct(
     );
     
     return true;
-  } catch (error) {
+  } catch (error: any) {
     await logSyncAction(
       supabase,
       productId,
@@ -334,7 +334,7 @@ async function logSyncAction(
         status,
         message
       });
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Failed to log sync action: ${error.message}`);
   }
 }

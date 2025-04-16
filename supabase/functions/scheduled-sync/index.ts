@@ -73,7 +73,7 @@ serve(async (req: Request) => {
       JSON.stringify(result),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Scheduled sync error:', error);
     
     // Create Supabase client for logging error
