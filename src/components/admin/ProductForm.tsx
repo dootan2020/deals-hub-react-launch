@@ -26,8 +26,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Category } from '@/types';
-import { Loader2, AlertCircle, Info } from 'lucide-react';
+import { Loader2, AlertCircle, Info, Globe } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { ProxyType } from '@/components/admin/CorsProxySelector';
 
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
@@ -63,8 +70,10 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   const [isMockData, setIsMockData] = useState<boolean>(false);
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [activeProxy, setActiveProxy] = useState<string | null>(null);
+  const [selectedProxyType, setSelectedProxyType] = useState<ProxyType>('allorigins');
+  const [customProxyUrl, setCustomProxyUrl] = useState<string>('');
   const navigate = useNavigate();
-  const { createProduct, updateProduct, fetchProductInfo } = useProductSync();
+  const { createProduct, updateProduct, fetchProductInfo, setTempProxyOverride } = useProductSync();
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -81,6 +90,14 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       kioskToken: '',
     }
   });
+
+  const proxyOptions = [
+    { value: 'allorigins', label: 'AllOrigins', description: 'https://api.allorigins.win/get?url=' },
+    { value: 'corsproxy', label: 'CORS Proxy', description: 'https://corsproxy.io/?' },
+    { value: 'cors-anywhere', label: 'CORS Anywhere', description: 'https://cors-anywhere.herokuapp.com/' },
+    { value: 'direct', label: 'Direct API Call', description: 'No Proxy (Direct)' },
+    { value: 'custom', label: 'Custom Proxy URL', description: 'Your custom proxy' },
+  ];
 
   useEffect(() => {
     fetchCategories();
@@ -106,11 +123,15 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         
         if (data && data.length > 0) {
           const proxy = data[0];
+          setSelectedProxyType(proxy.proxy_type as ProxyType);
+          setCustomProxyUrl(proxy.custom_url || '');
+          
           setActiveProxy(proxy.proxy_type === 'custom' ? 
             `Custom (${proxy.custom_url})` : 
             proxy.proxy_type.charAt(0).toUpperCase() + proxy.proxy_type.slice(1));
         } else {
           setActiveProxy('AllOrigins (default)');
+          setSelectedProxyType('allorigins');
         }
       } catch (error) {
         console.error('Error:', error);
@@ -261,6 +282,27 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     }
   };
 
+  const handleSelectProxy = (proxy: ProxyType) => {
+    setSelectedProxyType(proxy);
+    
+    setTempProxyOverride({
+      type: proxy,
+      url: proxy === 'custom' ? customProxyUrl : undefined
+    });
+  };
+
+  const handleCustomProxyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setCustomProxyUrl(url);
+    
+    if (selectedProxyType === 'custom') {
+      setTempProxyOverride({
+        type: 'custom',
+        url
+      });
+    }
+  };
+
   const handleFetchProductInfo = async () => {
     const kioskToken = form.getValues('kioskToken');
     
@@ -276,6 +318,11 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     setHtmlContent(null);
     
     try {
+      setTempProxyOverride({
+        type: selectedProxyType,
+        url: selectedProxyType === 'custom' ? customProxyUrl : undefined
+      });
+      
       const productInfo = await fetchProductInfo(kioskToken);
       
       console.log("Product info received:", productInfo);
@@ -342,23 +389,63 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-lg font-semibold">Kiosk Token</FormLabel>
-                <div className="flex gap-2">
-                  <FormControl>
-                    <Input 
-                      {...field} 
-                      placeholder="Enter kiosk token for product lookup" 
-                      className="flex-grow"
-                    />
-                  </FormControl>
-                  <Button
-                    type="button"
-                    onClick={handleFetchProductInfo}
-                    disabled={isLoadingProductInfo}
-                    className="whitespace-nowrap"
-                  >
-                    {isLoadingProductInfo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Get Product Info
-                  </Button>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Enter kiosk token for product lookup" 
+                        className="flex-grow"
+                      />
+                    </FormControl>
+                    
+                    <div className="flex gap-2">
+                      <div className="relative">
+                        <Select
+                          value={selectedProxyType}
+                          onValueChange={(value) => handleSelectProxy(value as ProxyType)}
+                        >
+                          <SelectTrigger className="w-[130px]" aria-label="Select CORS Proxy">
+                            <div className="flex items-center gap-2">
+                              <Globe className="h-4 w-4" />
+                              <span>CORS Proxy</span>
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {proxyOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                <div className="flex flex-col">
+                                  <span>{option.label}</span>
+                                  <span className="text-xs text-muted-foreground">{option.description}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <Button
+                        type="button"
+                        onClick={handleFetchProductInfo}
+                        disabled={isLoadingProductInfo}
+                        className="whitespace-nowrap"
+                      >
+                        {isLoadingProductInfo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Get Product Info
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {selectedProxyType === 'custom' && (
+                    <div className="flex gap-2 mt-2">
+                      <Input 
+                        value={customProxyUrl}
+                        onChange={handleCustomProxyChange}
+                        placeholder="https://your-custom-proxy.com/?url="
+                        className="flex-grow"
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="flex justify-between mt-1">
                   <p className="text-xs text-muted-foreground">
@@ -366,8 +453,8 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
                   </p>
                   {activeProxy && (
                     <p className="text-xs text-muted-foreground">
-                      Active proxy: <span className="font-medium">{activeProxy}</span> 
-                      <a href="/admin/proxy-settings" className="ml-1 text-primary hover:underline">(change)</a>
+                      Default proxy: <span className="font-medium">{activeProxy}</span> 
+                      <a href="/admin/proxy-settings" className="ml-1 text-primary hover:underline">(manage)</a>
                     </p>
                   )}
                 </div>

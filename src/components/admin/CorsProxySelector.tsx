@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 
-export type ProxyType = 'allorigins' | 'corsproxy' | 'direct' | 'custom';
+export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom';
 
 interface ProxyConfig {
   type: ProxyType;
@@ -46,6 +46,7 @@ export function CorsProxySelector() {
   const proxyOptions = [
     { value: 'allorigins', label: 'AllOrigins (https://api.allorigins.win/get?url=)' },
     { value: 'corsproxy', label: 'CORS Proxy (https://corsproxy.io/?)' },
+    { value: 'cors-anywhere', label: 'CORS Anywhere (https://cors-anywhere.herokuapp.com/)' },
     { value: 'direct', label: 'Direct API Call (No Proxy)' },
     { value: 'custom', label: 'Custom Proxy URL' },
   ];

@@ -22,6 +22,7 @@ export function useProductSync() {
   const [proxyConfig, setProxyConfig] = useState<ProxyConfig>({
     type: 'allorigins'
   });
+  const [tempProxyOverride, setTempProxyOverride] = useState<ProxyConfig | null>(null);
   const queryClient = useQueryClient();
   
   useEffect(() => {
@@ -173,9 +174,12 @@ export function useProductSync() {
       
       const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}`;
       
+      // Use the temporary proxy override if it exists, otherwise use the configured proxy
+      const currentProxy = tempProxyOverride || proxyConfig;
+      
       let proxyUrl: string;
       
-      switch (proxyConfig.type) {
+      switch (currentProxy.type) {
         case 'allorigins':
           proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
           console.log(`Using AllOrigins proxy: ${proxyUrl.substring(0, 60)}...`);
@@ -184,11 +188,15 @@ export function useProductSync() {
           proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
           console.log(`Using CORS Proxy: ${proxyUrl.substring(0, 60)}...`);
           break;
+        case 'cors-anywhere':
+          proxyUrl = `https://cors-anywhere.herokuapp.com/${apiUrl}`;
+          console.log(`Using CORS Anywhere proxy: ${proxyUrl.substring(0, 60)}...`);
+          break;
         case 'custom':
-          if (!proxyConfig.url) {
+          if (!currentProxy.url) {
             throw new Error('Custom proxy URL is not configured');
           }
-          proxyUrl = `${proxyConfig.url}${encodeURIComponent(apiUrl)}`;
+          proxyUrl = `${currentProxy.url}${encodeURIComponent(apiUrl)}`;
           console.log(`Using custom proxy: ${proxyUrl.substring(0, 60)}...`);
           break;
         case 'direct':
@@ -199,6 +207,9 @@ export function useProductSync() {
           proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
           console.log(`Using default AllOrigins proxy: ${proxyUrl.substring(0, 60)}...`);
       }
+      
+      // Reset temporary override after use
+      setTempProxyOverride(null);
       
       const timestamp = new Date().getTime();
       const headers = {
@@ -526,6 +537,7 @@ export function useProductSync() {
     createProduct: createProductMutation.mutate,
     updateProduct: updateProductMutation.mutate,
     fetchProductInfo: (kioskToken: string) => fetchProductInfoMutation.mutateAsync(kioskToken),
+    setTempProxyOverride,
     productsError: productsQuery.error,
     syncLogsError: syncLogsQuery.error,
   };
