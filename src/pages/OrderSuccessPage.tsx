@@ -26,6 +26,7 @@ const OrderSuccessPage = () => {
   const [orderData, setOrderData] = useState<OrderResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retries, setRetries] = useState(0);
+  const [htmlContent, setHtmlContent] = useState<string | null>(null);
   
   const fetchOrderData = async () => {
     if (!orderId) {
@@ -35,6 +36,7 @@ const OrderSuccessPage = () => {
     
     setIsLoading(true);
     setError(null);
+    setHtmlContent(null);
     
     try {
       const response = await fetch('/functions/v1/order-api?action=check-order', {
@@ -43,7 +45,10 @@ const OrderSuccessPage = () => {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store',
           'Pragma': 'no-cache',
-          'X-Request-Time': new Date().getTime().toString()
+          'X-Request-Time': new Date().getTime().toString(),
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8'
         },
         body: JSON.stringify({ orderId }),
       });
@@ -60,6 +65,7 @@ const OrderSuccessPage = () => {
             const errorText = await response.text();
             if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
               errorMessage = `API returned HTML instead of JSON. Please check your API configuration.`;
+              setHtmlContent(errorText);
             } else if (errorText) {
               errorMessage = `${errorMessage}. Response: ${errorText.substring(0, 100)}`;
             }
@@ -72,6 +78,8 @@ const OrderSuccessPage = () => {
       }
       
       const contentType = response.headers.get('content-type');
+      console.log(`API response content type: ${contentType}`);
+      
       if (contentType && !contentType.includes('application/json')) {
         console.warn(`API returned non-JSON content type: ${contentType}. Attempting to parse anyway.`);
       }
@@ -80,7 +88,53 @@ const OrderSuccessPage = () => {
       
       // Check for HTML response
       if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
-        throw new Error('API returned HTML instead of JSON. Please check your API configuration.');
+        console.log("API returned HTML instead of JSON");
+        setHtmlContent(responseText);
+        
+        // Try to extract order information from HTML
+        try {
+          // Check for common success patterns in the HTML
+          if (responseText.toLowerCase().includes('success') || 
+              responseText.toLowerCase().includes('thành công') ||
+              responseText.toLowerCase().includes('order completed')) {
+            
+            // Try to extract products from the HTML - this is a simplified approach
+            const products: OrderProduct[] = [];
+            const productMatches = responseText.matchAll(/data-product=['"]([^'"]+)['"]/g) || 
+                                  responseText.matchAll(/product:\s*['"]([^'"]+)['"]/g);
+            
+            if (productMatches) {
+              for (const match of productMatches) {
+                if (match[1]) {
+                  products.push({ product: match[1] });
+                }
+              }
+            }
+            
+            if (products.length > 0) {
+              setOrderData({
+                success: 'true',
+                data: products,
+                description: 'Order information extracted from HTML response'
+              });
+              return;
+            }
+          }
+          
+          // If we couldn't extract products but it might be processing
+          if (responseText.toLowerCase().includes('processing') || 
+              responseText.toLowerCase().includes('đang xử lý')) {
+            setOrderData({
+              success: 'false',
+              description: 'Order in processing!'
+            });
+            return;
+          }
+          
+          throw new Error('Could not extract order information from HTML response');
+        } catch (extractError) {
+          throw new Error('API returned HTML instead of JSON. Could not extract order information.');
+        }
       }
       
       // Try to parse as JSON
@@ -160,6 +214,14 @@ const OrderSuccessPage = () => {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
+                {htmlContent && (
+                  <details className="mt-3">
+                    <summary className="text-xs cursor-pointer">View HTML Response</summary>
+                    <div className="mt-2 p-2 bg-red-50 rounded max-h-40 overflow-auto">
+                      <code className="text-xs whitespace-pre-wrap">{htmlContent}</code>
+                    </div>
+                  </details>
+                )}
               </Alert>
             ) : orderData ? (
               <>

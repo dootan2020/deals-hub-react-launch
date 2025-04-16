@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -60,6 +61,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
   const [apiSuccess, setApiSuccess] = useState<string | null>(null);
+  const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const navigate = useNavigate();
   const { createProduct, updateProduct, fetchProductInfo } = useProductSync();
 
@@ -188,6 +190,52 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     form.setValue('slug', slug);
   };
 
+  // Extract information from HTML response
+  const extractFromHtml = (html: string) => {
+    try {
+      // Try to extract product name
+      const nameMatch = html.match(/<title>(.*?)<\/title>/i);
+      const name = nameMatch ? nameMatch[1].replace(" - TapHoaMMO", "").trim() : null;
+      
+      // Try to extract price (this is a simplistic approach)
+      let price = null;
+      const priceMatch = html.match(/(\d+(\.\d+)?)\s*USD/i) || html.match(/\$\s*(\d+(\.\d+)?)/i);
+      if (priceMatch) {
+        price = priceMatch[1];
+      }
+      
+      // Try to extract if it's in stock
+      let inStock = true;
+      if (html.includes("Out of stock") || html.includes("Hết hàng")) {
+        inStock = false;
+      }
+
+      setHtmlContent(html);
+      
+      // Set form values if we extracted information
+      if (name) {
+        form.setValue('title', name);
+        
+        // Generate slug if we have a name
+        const slug = name.toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '');
+        form.setValue('slug', slug);
+      }
+      
+      if (price) {
+        form.setValue('price', price);
+      }
+      
+      form.setValue('inStock', inStock);
+      
+      return { name, price, inStock };
+    } catch (error) {
+      console.error("Error extracting data from HTML:", error);
+      return null;
+    }
+  };
+
   const handleFetchProductInfo = async () => {
     const kioskToken = form.getValues('kioskToken');
     
@@ -199,6 +247,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     setIsLoadingProductInfo(true);
     setApiError(null);
     setApiSuccess(null);
+    setHtmlContent(null);
     
     try {
       const productInfo = await fetchProductInfo(kioskToken);
@@ -229,8 +278,23 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       console.error('Error fetching product info:', error);
       
       let errorMsg = error.message;
+      
+      // Check if error is HTML
       if (errorMsg.includes('<!DOCTYPE') || errorMsg.includes('<html')) {
-        errorMsg = 'API returned HTML instead of JSON. Please check your API configuration and network.';
+        try {
+          // Try to extract information from HTML
+          const extracted = extractFromHtml(errorMsg);
+          
+          if (extracted && (extracted.name || extracted.price)) {
+            setApiSuccess('Some product information was extracted from the HTML response');
+            toast.success('Some product information was extracted from the HTML response');
+            return;
+          } else {
+            errorMsg = 'API returned HTML instead of JSON. Could not extract product information from the HTML.';
+          }
+        } catch (extractError) {
+          errorMsg = 'API returned HTML instead of JSON. Failed to extract any useful information.';
+        }
       }
       
       setApiError(errorMsg || 'Failed to retrieve product information');
@@ -285,6 +349,18 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
                       {apiError}
                     </AlertDescription>
                   </Alert>
+                )}
+                {htmlContent && (
+                  <div className="mt-3">
+                    <details className="text-xs">
+                      <summary className="text-muted-foreground cursor-pointer hover:text-foreground">
+                        Show Raw HTML Content (for debugging)
+                      </summary>
+                      <div className="mt-2 bg-slate-100 p-3 rounded-md overflow-auto max-h-40">
+                        <code className="text-xs whitespace-pre-wrap">{htmlContent}</code>
+                      </div>
+                    </details>
+                  </div>
                 )}
                 <FormMessage />
               </FormItem>

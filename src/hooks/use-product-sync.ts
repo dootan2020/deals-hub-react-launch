@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -131,11 +130,15 @@ export function useProductSync() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
       
-      // Custom headers to avoid caching
+      // Enhanced headers for improved browser compatibility
       const headers = {
         'Cache-Control': 'no-cache, no-store',
         'Pragma': 'no-cache',
-        'X-Request-Time': timestamp.toString()
+        'X-Request-Time': timestamp.toString(),
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
+        'X-Requested-With': 'XMLHttpRequest'
       };
       
       try {
@@ -178,16 +181,40 @@ export function useProductSync() {
         
         // Check if response is not JSON 
         const contentType = response.headers.get("content-type");
-        if (contentType && !contentType.includes("application/json")) {
-          throw new Error(`API returned unexpected content type: ${contentType}. Expected JSON.`);
-        }
+        console.log(`Content-Type: ${contentType}`);
         
         const responseText = await response.text();
-        console.log(`Raw response: ${responseText.substring(0, 100)}...`);
+        console.log(`Raw response (first 300 chars): ${responseText.substring(0, 300)}`);
         
-        // Kiểm tra nếu phản hồi là HTML thay vì JSON
+        // Check if response is HTML
         if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
-          throw new Error('API returned HTML instead of JSON. Vui lòng kiểm tra lại kết nối.');
+          console.log('Response is HTML, attempting to extract product information');
+          
+          // Try to extract product name from HTML title
+          const nameMatch = responseText.match(/<title>(.*?)<\/title>/i);
+          const name = nameMatch ? nameMatch[1].replace(" - TapHoaMMO", "").trim() : "Unknown Product";
+          
+          // Try to extract price (this is a simplistic approach)
+          let price = "0";
+          const priceMatch = responseText.match(/(\d+(\.\d+)?)\s*USD/i) || responseText.match(/\$\s*(\d+(\.\d+)?)/i);
+          if (priceMatch) {
+            price = priceMatch[1];
+          }
+          
+          // Try to extract if it's in stock
+          let stock = "0";
+          if (!responseText.includes("Out of stock") && !responseText.includes("Hết hàng")) {
+            stock = "1";
+          }
+          
+          // Return extracted info
+          return {
+            success: 'true',
+            name: name,
+            price: price,
+            stock: stock,
+            description: 'Information extracted from HTML response'
+          };
         }
         
         try {

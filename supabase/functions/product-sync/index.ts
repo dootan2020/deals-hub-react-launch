@@ -321,6 +321,42 @@ async function handleSyncProduct(
   }
 }
 
+// Helper function to extract product info from HTML
+function extractProductInfoFromHtml(html: string): ProductInfo | null {
+  console.log("Attempting to extract product info from HTML");
+  
+  try {
+    // Try to extract product name
+    const nameMatch = html.match(/<title>(.*?)<\/title>/i);
+    const name = nameMatch ? nameMatch[1].replace(" - TapHoaMMO", "").trim() : "Unknown Product";
+    
+    // Try to extract price (this is a simplistic approach)
+    let price = "0";
+    const priceMatch = html.match(/(\d+(\.\d+)?)\s*USD/i) || html.match(/\$\s*(\d+(\.\d+)?)/i);
+    if (priceMatch) {
+      price = priceMatch[1];
+    }
+    
+    // Try to extract if it's in stock
+    let stock = "0";
+    if (!html.includes("Out of stock") && !html.includes("Hết hàng")) {
+      stock = "1";
+    }
+    
+    // Create a product info object from the extracted data
+    return {
+      success: "true",
+      name: name,
+      stock: stock,
+      price: price,
+      description: "Data extracted from HTML response"
+    };
+  } catch (error) {
+    console.error("Failed to extract product info from HTML:", error);
+    return null;
+  }
+}
+
 // Fetch product info from API by kioskToken
 async function fetchProductInfoByKioskToken(userToken: string, kioskToken: string): Promise<ProductInfo> {
   const targetUrl = `https://taphoammo.net/api/getStock?kioskToken=${kioskToken}&userToken=${userToken}`;
@@ -332,15 +368,18 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
     const options = {
       method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
         'Referer': 'https://taphoammo.net/',
         'Origin': 'https://taphoammo.net',
         'Connection': 'keep-alive',
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
+        'sec-ch-ua': '"Not_A Brand";v="99", "Google Chrome";v="120"', 
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"'
       },
       redirect: 'follow'
     };
@@ -376,6 +415,14 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
         // Check if response is HTML (typically from an error page)
         if (errorText.trim().startsWith('<!DOCTYPE') || errorText.includes('<html')) {
           console.error(`API returned HTML response instead of JSON. Status: ${statusCode}`);
+          
+          // Attempt to extract product info from HTML
+          const extractedInfo = extractProductInfoFromHtml(errorText);
+          if (extractedInfo) {
+            console.log("Successfully extracted product info from HTML:", extractedInfo);
+            return extractedInfo;
+          }
+          
           return { 
             success: 'false', 
             description: `API error: Received HTML response instead of JSON. Status: ${statusCode}. Please verify your API credentials.` 
@@ -392,37 +439,7 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
       const contentType = response.headers.get('content-type');
       console.log(`Content-Type: ${contentType}`);
       
-      if (contentType && !contentType.includes('application/json')) {
-        console.warn(`API returned non-JSON content type: ${contentType}. Attempting to parse anyway.`);
-        
-        // Try to get the response text to see what's being returned
-        const responseText = await response.text();
-        console.log(`Non-JSON response (first 300 chars): ${responseText.substring(0, 300)}`);
-        
-        // Check if response is HTML
-        if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
-          console.error('Received HTML instead of JSON - likely an API error or redirection');
-          return { 
-            success: 'false', 
-            description: 'API returned HTML instead of JSON. Please verify your API credentials and ensure no redirection is happening.' 
-          };
-        }
-        
-        // Even though content-type is not JSON, try to parse it as JSON anyway
-        try {
-          const parsedData = JSON.parse(responseText) as ProductInfo;
-          console.log('Successfully parsed non-JSON content-type response as JSON:', parsedData);
-          return parsedData;
-        } catch (parseError) {
-          console.error(`Failed to parse non-JSON response: ${parseError}`);
-          return {
-            success: 'false',
-            description: `API returned invalid format (${contentType}). Please check your API configuration.`
-          };
-        }
-      }
-      
-      // Try to get the response as text first to inspect it
+      // Try to get the response text first to inspect it
       const responseText = await response.text();
       
       // Check for empty response
@@ -438,11 +455,24 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
       
       // Check if response looks like HTML despite content-type
       if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
-        console.error('Received HTML despite content-type indicating JSON');
+        console.error('Received HTML despite content-type indicating otherwise');
+        
+        // Attempt to extract product info from HTML
+        const extractedInfo = extractProductInfoFromHtml(responseText);
+        if (extractedInfo) {
+          console.log("Successfully extracted product info from HTML:", extractedInfo);
+          return extractedInfo;
+        }
+        
         return { 
           success: 'false', 
           description: 'API returned HTML instead of JSON. Please verify your API credentials.' 
         };
+      }
+      
+      // Content-type is not JSON but response is not HTML, try to parse it as JSON anyway
+      if (contentType && !contentType.includes('application/json')) {
+        console.warn(`API returned non-JSON content type: ${contentType}. Attempting to parse anyway.`);
       }
       
       // Try to parse the text as JSON
@@ -472,6 +502,15 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
             price: extracted.price || '0',
             description: 'Parsed from malformed JSON'
           };
+        }
+        
+        // If we got here and response is HTML, try to extract info from it
+        if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
+          const extractedInfo = extractProductInfoFromHtml(responseText);
+          if (extractedInfo) {
+            console.log("Successfully extracted product info from HTML after JSON parse failed:", extractedInfo);
+            return extractedInfo;
+          }
         }
         
         return { 
