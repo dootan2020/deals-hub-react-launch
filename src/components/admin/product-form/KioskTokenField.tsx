@@ -1,9 +1,11 @@
+// src/components/admin/product-form/KioskTokenField.tsx
+
 import { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Globe, Loader2, Info, AlertCircle, Check, RefreshCw } from 'lucide-react';
+import { Loader2, Info, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Select, 
@@ -15,17 +17,6 @@ import {
 import { useProductSync, ProxyType } from '@/hooks/use-product-sync';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-
-interface ProxyOption {
-  value: string;
-  label: string;
-  description: string;
-}
 
 export function KioskTokenField() {
   const form = useFormContext();
@@ -39,15 +30,6 @@ export function KioskTokenField() {
   const [isMockData, setIsMockData] = useState<boolean>(false);
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [userToken, setUserToken] = useState<string>('');
-  const [popoverOpen, setPopoverOpen] = useState(false);
-  
-  const proxyOptions: ProxyOption[] = [
-    { value: 'allorigins', label: 'AllOrigins', description: 'https://api.allorigins.win/get?url=' },
-    { value: 'corsproxy', label: 'CORS Proxy', description: 'https://corsproxy.io/?' },
-    { value: 'cors-anywhere', label: 'CORS Anywhere', description: 'https://cors-anywhere.herokuapp.com/' },
-    { value: 'direct', label: 'Direct API Call', description: 'No Proxy (Direct)' },
-    { value: 'custom', label: 'Custom Proxy URL', description: 'Your custom proxy' },
-  ];
   
   useEffect(() => {
     const fetchActiveProxy = async () => {
@@ -102,21 +84,24 @@ export function KioskTokenField() {
 
   const handleSelectProxy = (proxy: ProxyType) => {
     setSelectedProxyType(proxy);
+    
+    // Đặt proxy tạm thời ngay khi người dùng chọn
+    setTempProxyOverride({
+      type: proxy,
+      url: proxy === 'custom' ? customProxyUrl : undefined
+    });
   };
 
   const handleCustomProxyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
     setCustomProxyUrl(url);
-  };
-
-  const applyProxySelection = () => {
-    setTempProxyOverride({
-      type: selectedProxyType,
-      url: selectedProxyType === 'custom' ? customProxyUrl : undefined
-    });
-    setPopoverOpen(false);
     
-    toast.success(`Using ${selectedProxyType.charAt(0).toUpperCase() + selectedProxyType.slice(1)} proxy for this request`);
+    if (selectedProxyType === 'custom') {
+      setTempProxyOverride({
+        type: 'custom',
+        url
+      });
+    }
   };
 
   const handleFetchProductInfo = async () => {
@@ -134,49 +119,39 @@ export function KioskTokenField() {
     setHtmlContent(null);
     
     try {
-      // Đảm bảo đã set proxy override từ bước trước
-      if (!popoverOpen) { // Nếu popover không mở, proxy đã được chọn
-        console.log("Using proxy: ", selectedProxyType);
-        const productInfo = await fetchProductInfo(kioskToken);
-        console.log("Product info received:", productInfo);
+      // Ensure we're using the selected proxy
+      console.log("Using proxy: ", selectedProxyType);
+      const productInfo = await fetchProductInfo(kioskToken);
+      console.log("Product info received:", productInfo);
+      
+      // Check if product info was extracted from HTML
+      if (productInfo && productInfo.description === "Information extracted from HTML response") {
+        setIsMockData(true);
+        setHtmlContent("The API returned HTML instead of JSON. Using extracted data.");
+      }
+      
+      if (productInfo && productInfo.success === 'true') {
+        // Fill form with product info
+        form.setValue('title', productInfo.name || '');
+        form.setValue('description', productInfo.description || form.getValues('description') || '');
+        form.setValue('price', productInfo.price || '0');
+        form.setValue('inStock', parseInt(productInfo.stock || '0', 10) > 0);
         
-        // Kiểm tra nếu productInfo được trích xuất từ HTML
-        if (productInfo.description === "Information extracted from HTML response") {
-          setIsMockData(true);
-          setHtmlContent("The API returned HTML instead of JSON. Using extracted data might be incomplete.");
+        // Generate slug if not provided
+        if (!form.getValues('slug') && productInfo.name) {
+          const slug = productInfo.name.toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '');
+          form.setValue('slug', slug);
         }
         
-        if (productInfo.success === 'true') {
-          // Fill form with product info
-          form.setValue('title', productInfo.name || '');
-          form.setValue('description', productInfo.description || form.getValues('description') || '');
-          form.setValue('price', productInfo.price || '0');
-          form.setValue('inStock', parseInt(productInfo.stock || '0', 10) > 0);
-          
-          // Generate slug if not provided
-          if (!form.getValues('slug') && productInfo.name) {
-            const slug = productInfo.name.toLowerCase()
-              .replace(/\s+/g, '-')
-              .replace(/[^a-z0-9-]/g, '');
-            form.setValue('slug', slug);
-          }
-          
-          setApiSuccess('Product information retrieved successfully');
-          
-          if (!isMockData) {
-            toast.success('Product information retrieved successfully');
-          } else {
-            toast.warning('Limited product information extracted from HTML response');
-          }
-        } else {
-          // Handle error from API
-          const errorMessage = productInfo?.description || 'Failed to retrieve product information';
-          setApiError(errorMessage);
-          toast.error(`Failed to retrieve product information: ${errorMessage}`);
-        }
+        setApiSuccess('Product information retrieved successfully');
+        toast.success('Product information retrieved successfully');
       } else {
-        // Nếu popover vẫn mở, nhắc người dùng chọn và áp dụng proxy
-        toast.error('Please select and apply a proxy first');
+        // Handle error from API
+        const errorMessage = productInfo?.description || 'Failed to retrieve product information';
+        setApiError(errorMessage);
+        toast.error(`Failed to retrieve product information: ${errorMessage}`);
       }
     } catch (error: any) {
       console.error('Error fetching product info:', error);
@@ -185,87 +160,6 @@ export function KioskTokenField() {
     } finally {
       setIsLoadingProductInfo(false);
     }
-  };
-
-  // Chức năng proxy mặc định
-  const getMockProductData = (kioskToken: string) => {
-    // Dữ liệu mẫu cho các kioskToken
-    const mockData: Record<string, any> = {
-      "IEB8KZ8SAJQ5616W2M21": {
-        success: "true",
-        name: "Gmail USA 2023-2024",
-        price: "16000",
-        stock: "4003",
-        description: "Gmail USA với domain @gmail.com, tạo 2023-2024"
-      },
-      "WK76IVBVK3X0WW9DKZ4R": {
-        success: "true",
-        name: "Netflix Premium 4K",
-        price: "35000",
-        stock: "720",
-        description: "Netflix Premium 4K Ultra HD, xem được trên 4 thiết bị cùng lúc"
-      },
-      "A0YR4F4DHM4Z4NQ13B": {
-        success: "true",
-        name: "Digital Deals Hub Premium",
-        price: "29999",
-        stock: "345",
-        description: "Premium membership for Digital Deals Hub with exclusive access to special offers"
-      }
-    };
-    
-    // Trả về dữ liệu mẫu nếu có, hoặc tạo dữ liệu ngẫu nhiên
-    return mockData[kioskToken] || {
-      success: "true",
-      name: `Product ${kioskToken.substring(0, 5)}`,
-      price: "15000",
-      stock: "100",
-      description: "Auto-generated product description"
-    };
-  };
-
-  const handleGetMockData = () => {
-    const kioskToken = form.getValues('kioskToken');
-    
-    if (!kioskToken) {
-      toast.error('Please enter a Kiosk Token');
-      return;
-    }
-    
-    setIsLoadingProductInfo(true);
-    setApiError(null);
-    setApiSuccess(null);
-    
-    // Giả lập độ trễ API
-    setTimeout(() => {
-      try {
-        const mockData = getMockProductData(kioskToken);
-        
-        // Điền thông tin vào form
-        form.setValue('title', mockData.name);
-        form.setValue('description', mockData.description);
-        form.setValue('price', mockData.price);
-        form.setValue('inStock', parseInt(mockData.stock || '0', 10) > 0);
-        
-        // Tạo slug nếu chưa có
-        if (!form.getValues('slug') && mockData.name) {
-          const slug = mockData.name.toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9-]/g, '');
-          form.setValue('slug', slug);
-        }
-        
-        setApiSuccess('Product information retrieved successfully');
-        setHtmlContent("Using simulated data to bypass API issues.");
-        setIsMockData(true);
-        toast.success('Product information retrieved successfully (simulated)');
-      } catch (error: any) {
-        setApiError('Error generating product data');
-        toast.error('Error generating product data');
-      } finally {
-        setIsLoadingProductInfo(false);
-      }
-    }, 1000);
   };
 
   return (
@@ -284,95 +178,54 @@ export function KioskTokenField() {
                     className="flex-grow"
                   />
                 </FormControl>
+              </div>
+              
+              <div className="flex gap-2 mt-2">
+                <div className="w-[180px]">
+                  <div className="text-sm text-muted-foreground mb-1">CORS Proxy</div>
+                  <Select
+                    value={selectedProxyType}
+                    onValueChange={(value) => handleSelectProxy(value as ProxyType)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select proxy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="allorigins">AllOrigins</SelectItem>
+                      <SelectItem value="corsproxy">CORS Proxy</SelectItem>
+                      <SelectItem value="cors-anywhere">CORS Anywhere</SelectItem>
+                      <SelectItem value="direct">Direct API Call</SelectItem>
+                      <SelectItem value="custom">Custom Proxy URL</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 
-                <div className="flex gap-2">
-                  <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="flex items-center gap-1" type="button">
-                        <Globe className="h-4 w-4" />
-                        <span>Select CORS Proxy</span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80">
-                      <div className="space-y-4">
-                        <h4 className="font-medium">Select a CORS Proxy</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Choose a proxy to handle CORS for API requests
-                        </p>
-                        
-                        <div className="space-y-2">
-                          <Select
-                            value={selectedProxyType}
-                            onValueChange={(value) => handleSelectProxy(value as ProxyType)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a proxy" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {proxyOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  <div className="flex flex-col">
-                                    <span>{option.label}</span>
-                                    <span className="text-xs text-muted-foreground">{option.description}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          
-                          {selectedProxyType === 'custom' && (
-                            <Input 
-                              value={customProxyUrl}
-                              onChange={handleCustomProxyChange}
-                              placeholder="https://your-proxy.com/?url="
-                              className="mt-2"
-                            />
-                          )}
-                        </div>
-                        
-                        <div className="flex justify-between">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setPopoverOpen(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={applyProxySelection}
-                          >
-                            <Check className="h-4 w-4 mr-1" />
-                            Apply Proxy
-                          </Button>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                  
+                <div className="flex-1">
+                  {selectedProxyType === 'custom' && (
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">Custom Proxy URL</div>
+                      <Input 
+                        value={customProxyUrl}
+                        onChange={handleCustomProxyChange}
+                        placeholder="https://your-custom-proxy.com/?url="
+                      />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="self-end">
                   <Button
                     type="button"
                     onClick={handleFetchProductInfo}
                     disabled={isLoadingProductInfo}
-                    className="whitespace-nowrap"
                   >
                     {isLoadingProductInfo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Get Product Info
                   </Button>
-                  
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleGetMockData}
-                    disabled={isLoadingProductInfo}
-                    title="Use simulated data for testing"
-                    className="px-3"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
             </div>
+            
             <div className="flex justify-between mt-1">
               <p className="text-xs text-muted-foreground">
                 Enter a valid kiosk token to retrieve product information from TapHoaMMO API.
