@@ -9,7 +9,218 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      api_configs: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          kiosk_token: string
+          name: string
+          updated_at: string | null
+          user_token: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          kiosk_token: string
+          name: string
+          updated_at?: string | null
+          user_token: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          kiosk_token?: string
+          name?: string
+          updated_at?: string | null
+          user_token?: string
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          created_at: string | null
+          external_product_id: string | null
+          id: string
+          order_id: string | null
+          price: number
+          product_id: string | null
+          quantity: number
+        }
+        Insert: {
+          created_at?: string | null
+          external_product_id?: string | null
+          id?: string
+          order_id?: string | null
+          price: number
+          product_id?: string | null
+          quantity: number
+        }
+        Update: {
+          created_at?: string | null
+          external_product_id?: string | null
+          id?: string
+          order_id?: string | null
+          price?: number
+          product_id?: string | null
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string | null
+          external_order_id: string | null
+          id: string
+          promotion_code: string | null
+          status: string
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          external_order_id?: string | null
+          id?: string
+          promotion_code?: string | null
+          status: string
+          total_amount: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          external_order_id?: string | null
+          id?: string
+          promotion_code?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          api_name: string | null
+          api_price: number | null
+          api_stock: number | null
+          badges: string[] | null
+          category_id: string | null
+          created_at: string | null
+          description: string
+          external_id: string | null
+          features: string[] | null
+          id: string
+          images: string[] | null
+          in_stock: boolean | null
+          last_synced_at: string | null
+          original_price: number | null
+          price: number
+          rating: number | null
+          review_count: number | null
+          slug: string
+          specifications: Json | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          api_name?: string | null
+          api_price?: number | null
+          api_stock?: number | null
+          badges?: string[] | null
+          category_id?: string | null
+          created_at?: string | null
+          description: string
+          external_id?: string | null
+          features?: string[] | null
+          id?: string
+          images?: string[] | null
+          in_stock?: boolean | null
+          last_synced_at?: string | null
+          original_price?: number | null
+          price: number
+          rating?: number | null
+          review_count?: number | null
+          slug: string
+          specifications?: Json | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          api_name?: string | null
+          api_price?: number | null
+          api_stock?: number | null
+          badges?: string[] | null
+          category_id?: string | null
+          created_at?: string | null
+          description?: string
+          external_id?: string | null
+          features?: string[] | null
+          id?: string
+          images?: string[] | null
+          in_stock?: boolean | null
+          last_synced_at?: string | null
+          original_price?: number | null
+          price?: number
+          rating?: number | null
+          review_count?: number | null
+          slug?: string
+          specifications?: Json | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sync_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          message: string | null
+          product_id: string | null
+          status: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          product_id?: string | null
+          status: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          product_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_logs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
