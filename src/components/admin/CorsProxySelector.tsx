@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -20,20 +21,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
-
-export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom';
+import { ProxyType, ProxySettings } from '@/utils/proxyUtils';
 
 interface ProxyConfig {
   type: ProxyType;
   url?: string;
-}
-
-interface ProxySettings {
-  id: string;
-  proxy_type: string;
-  custom_url: string | null;
-  created_at: string | null;
-  updated_at: string | null;
 }
 
 export function CorsProxySelector() {
@@ -58,15 +50,15 @@ export function CorsProxySelector() {
     setLoading(true);
     try {
       const { data: proxySettings, error } = await supabase
-        .rpc<ProxySettings>('get_latest_proxy_settings');
+        .from('proxy_settings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1);
 
       if (error) {
-        if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
-          // No data found or function doesn't exist
-          console.log('No proxy settings found or function not available, using defaults');
-        } else {
-          throw error;
-        }
+        console.error('Error fetching proxy settings:', error);
+        setLoading(false);
+        return;
       }
 
       if (proxySettings && proxySettings.length > 0) {
@@ -94,10 +86,9 @@ export function CorsProxySelector() {
         custom_url: selectedProxy === 'custom' ? customProxyUrl : null,
       };
 
-      // Use type casting to bypass TypeScript limitations
-      const { error } = await (supabase
-        .from('proxy_settings' as any)
-        .insert(proxyData));
+      const { error } = await supabase
+        .from('proxy_settings')
+        .insert(proxyData);
 
       if (error) throw error;
 
