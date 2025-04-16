@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
@@ -15,7 +14,6 @@ import {
 } from '@/components/ui/select';
 import { useProductSync, ProxyType } from '@/hooks/use-product-sync';
 import { toast } from 'sonner';
-import { extractFromHtml } from '@/utils/apiUtils';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ProxyOption {
@@ -98,23 +96,11 @@ export function KioskTokenField() {
 
   const handleSelectProxy = (proxy: ProxyType) => {
     setSelectedProxyType(proxy);
-    
-    setTempProxyOverride({
-      type: proxy,
-      url: proxy === 'custom' ? customProxyUrl : undefined
-    });
   };
 
   const handleCustomProxyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
     setCustomProxyUrl(url);
-    
-    if (selectedProxyType === 'custom') {
-      setTempProxyOverride({
-        type: 'custom',
-        url
-      });
-    }
   };
 
   const handleFetchProductInfo = async () => {
@@ -131,73 +117,21 @@ export function KioskTokenField() {
     setIsMockData(false);
     setHtmlContent(null);
     
+    // Đặt proxy tạm thời để sử dụng cho lần fetch này
+    setTempProxyOverride({
+      type: selectedProxyType,
+      url: selectedProxyType === 'custom' ? customProxyUrl : undefined
+    });
+    
+    // Sử dụng hàm fetchProductInfo từ useProductSync hook
     try {
-      // Implementation based on the gist code
-      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken || '')}`;
-      let proxyUrl = '';
+      const productInfo = await fetchProductInfo(kioskToken);
       
-      switch (selectedProxyType) {
-        case 'allorigins':
-          proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
-          break;
-        case 'corsproxy':
-          proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
-          break;
-        case 'cors-anywhere':
-          proxyUrl = `https://cors-anywhere.herokuapp.com/${apiUrl}`;
-          break;
-        case 'custom':
-          if (!customProxyUrl) {
-            throw new Error('Custom proxy URL is not configured');
-          }
-          proxyUrl = `${customProxyUrl}${encodeURIComponent(apiUrl)}`;
-          break;
-        case 'direct':
-          proxyUrl = apiUrl;
-          break;
-        default:
-          proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
+      // Kiểm tra nếu productInfo được trích xuất từ HTML
+      if (productInfo.description === "Information extracted from HTML response") {
+        setIsMockData(true);
+        setHtmlContent("The API returned HTML instead of JSON. Using extracted data might be incomplete.");
       }
-      
-      console.log(`Fetching from: ${proxyUrl}`);
-      
-      const headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
-        'Cache-Control': 'no-cache, no-store',
-        'Pragma': 'no-cache',
-        'X-Requested-With': 'XMLHttpRequest'
-      };
-      
-      const response = await fetch(proxyUrl, { 
-        headers,
-        cache: 'no-store'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Proxy returned error status: ${response.status}`);
-      }
-      
-      const contentType = response.headers.get('Content-Type');
-      const responseText = await response.text();
-      
-      // Check if response is HTML (which we don't want)
-      if (responseText.includes('<!DOCTYPE') || responseText.includes('<html') || 
-          contentType?.includes('text/html')) {
-        throw new Error('API returned HTML instead of JSON');
-      }
-      
-      // Parse JSON response
-      let productInfo;
-      try {
-        productInfo = JSON.parse(responseText);
-      } catch (error) {
-        console.error('Error parsing JSON:', error);
-        throw new Error('Invalid JSON response');
-      }
-      
-      console.log("Product info received:", productInfo);
       
       if (productInfo.success === 'true') {
         // Fill form with product info
@@ -215,7 +149,12 @@ export function KioskTokenField() {
         }
         
         setApiSuccess('Product information retrieved successfully');
-        toast.success('Product information retrieved successfully');
+        
+        if (!isMockData) {
+          toast.success('Product information retrieved successfully');
+        } else {
+          toast.warning('Limited product information extracted from HTML response');
+        }
       } else {
         // Handle error from API
         const errorMessage = productInfo?.description || 'Failed to retrieve product information';
@@ -316,20 +255,20 @@ export function KioskTokenField() {
               </Alert>
             )}
             
+            {htmlContent && (
+              <Alert variant="default" className="mt-2 bg-amber-50 border-amber-200 text-amber-700">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  HTML response detected. Try a different proxy if product data is incomplete.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             {apiError && (
               <Alert variant="destructive" className="mt-2">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   {apiError}
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {htmlContent && (
-              <Alert variant="default" className="mt-2 bg-amber-50 border-amber-200 text-amber-700">
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  HTML response detected. Please try a different proxy or check your API configuration.
                 </AlertDescription>
               </Alert>
             )}
