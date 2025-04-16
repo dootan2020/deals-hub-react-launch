@@ -123,17 +123,18 @@ export function KioskTokenField() {
       url: selectedProxyType === 'custom' ? customProxyUrl : undefined
     });
     
-    // Sử dụng hàm fetchProductInfo từ useProductSync hook
     try {
+      console.log("Using proxy: ", selectedProxyType);
       const productInfo = await fetchProductInfo(kioskToken);
+      console.log("Product info received:", productInfo);
       
       // Kiểm tra nếu productInfo được trích xuất từ HTML
-      if (productInfo.description === "Information extracted from HTML response") {
+      if (productInfo && productInfo.description === "Information extracted from HTML response") {
         setIsMockData(true);
-        setHtmlContent("The API returned HTML instead of JSON. Using extracted data might be incomplete.");
+        setHtmlContent("The API returned HTML instead of JSON. Using extracted data.");
       }
       
-      if (productInfo.success === 'true') {
+      if (productInfo && productInfo.success === 'true') {
         // Fill form with product info
         form.setValue('title', productInfo.name || '');
         form.setValue('description', productInfo.description || form.getValues('description') || '');
@@ -153,7 +154,7 @@ export function KioskTokenField() {
         if (!isMockData) {
           toast.success('Product information retrieved successfully');
         } else {
-          toast.warning('Limited product information extracted from HTML response');
+          toast.warning('Using data from HTML response - may be limited');
         }
       } else {
         // Handle error from API
@@ -259,7 +260,7 @@ export function KioskTokenField() {
               <Alert variant="default" className="mt-2 bg-amber-50 border-amber-200 text-amber-700">
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  HTML response detected. Try a different proxy if product data is incomplete.
+                  {htmlContent} Try a different proxy if needed.
                 </AlertDescription>
               </Alert>
             )}
