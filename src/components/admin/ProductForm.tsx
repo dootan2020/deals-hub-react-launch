@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -60,6 +59,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   const [isLoadingProductInfo, setIsLoadingProductInfo] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [apiSuccess, setApiSuccess] = useState<string | null>(null);
   const navigate = useNavigate();
   const { createProduct, updateProduct, fetchProductInfo } = useProductSync();
 
@@ -198,6 +198,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
 
     setIsLoadingProductInfo(true);
     setApiError(null);
+    setApiSuccess(null);
     
     try {
       const productInfo = await fetchProductInfo(kioskToken);
@@ -205,12 +206,11 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       console.log("Product info received:", productInfo);
       
       if (productInfo && productInfo.success === 'true') {
-        // Autofill form with returned data
         form.setValue('title', productInfo.name || '');
+        form.setValue('description', productInfo.description || form.getValues('description') || '');
         form.setValue('price', productInfo.price || '0');
         form.setValue('inStock', parseInt(productInfo.stock || '0', 10) > 0);
         
-        // Generate slug from product name if title was empty before
         if (!form.getValues('slug') && productInfo.name) {
           const slug = productInfo.name.toLowerCase()
             .replace(/\s+/g, '-')
@@ -218,6 +218,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
           form.setValue('slug', slug);
         }
         
+        setApiSuccess('Product information retrieved successfully');
         toast.success('Product information retrieved successfully');
       } else {
         const errorMessage = productInfo?.description || 'Failed to retrieve product information';
@@ -236,7 +237,6 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Kiosk Token - Moved to the top and added "Get Info" button */}
         <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 mb-8">
           <FormField
             control={form.control}
@@ -265,6 +265,13 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
                 <p className="text-xs text-muted-foreground mt-1">
                   Enter a valid kiosk token (e.g., KH5ZB5QB8G1L7J7S4DGW) to automatically retrieve product information from the API.
                 </p>
+                {apiSuccess && (
+                  <Alert variant="default" className="mt-2 bg-green-50 border-green-200 text-green-700">
+                    <AlertDescription>
+                      {apiSuccess}
+                    </AlertDescription>
+                  </Alert>
+                )}
                 {apiError && (
                   <Alert variant="destructive" className="mt-2">
                     <AlertCircle className="h-4 w-4" />

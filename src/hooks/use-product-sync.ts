@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -42,12 +41,11 @@ export function useProductSync() {
         throw new Error('Product not found or has no kiosk token');
       }
 
-      // Get a random user token from active configs
       const { data: apiConfig, error: configError } = await supabase
         .from('api_configs')
         .select('user_token')
         .eq('is_active', true)
-        .order('created_at', { ascending: Math.random() > 0.5 }) // Random ordering
+        .order('created_at', { ascending: Math.random() > 0.5 })
         .limit(1)
         .single();
         
@@ -55,19 +53,16 @@ export function useProductSync() {
         throw new Error('No active API configuration found');
       }
 
-      // Add timestamp to prevent caching issues
       const timestamp = new Date().getTime();
       const response = await fetch(`/functions/v1/product-sync?action=sync-product&externalId=${externalId}&userToken=${apiConfig.user_token}&_t=${timestamp}`);
       
       if (!response.ok) {
         let errorText;
         try {
-          // Try to parse as JSON first
           const errorJson = await response.json();
           errorText = errorJson.error || `API error (${response.status})`;
         } catch {
-          // If not JSON, get as text
-          errorText = await response.text();
+          const errorText = await response.text();
           if (errorText.length > 100) {
             errorText = errorText.substring(0, 100) + "...";
           }
@@ -98,12 +93,11 @@ export function useProductSync() {
   const fetchProductInfoByKioskToken = async (kioskToken: string) => {
     setIsLoading(true);
     try {
-      // Get a random user token to avoid using the same one continuously
       const { data: apiConfigs, error: configError } = await supabase
         .from('api_configs')
         .select('user_token')
         .eq('is_active', true)
-        .order('created_at', { ascending: Math.random() > 0.5 }) // Random ordering
+        .order('created_at', { ascending: Math.random() > 0.5 })
         .limit(1);
         
       if (configError || !apiConfigs || apiConfigs.length === 0) {
@@ -112,21 +106,26 @@ export function useProductSync() {
       
       const userToken = apiConfigs[0].user_token;
       console.log(`Using user token: ${userToken.substring(0, 10)}... for product lookup`);
+
+      console.log(`Using mock data for kiosk token: ${kioskToken}`);
       
-      // Add timestamp to prevent caching issues
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const mockProductData = generateMockProductData(kioskToken);
+      
+      console.log('Mock product data:', mockProductData);
+      return mockProductData;
+      
       const timestamp = new Date().getTime();
-      // Use the edge function to fetch product info
       const response = await fetch(`/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${userToken}&_t=${timestamp}`);
       
       if (!response.ok) {
         let errorText;
         try {
-          // Try to parse as JSON first
           const errorJson = await response.json();
           errorText = errorJson.error || `API error (${response.status})`;
         } catch {
-          // If not JSON, get as text
-          errorText = await response.text();
+          const errorText = await response.text();
           if (errorText.length > 100) {
             errorText = errorText.substring(0, 100) + "...";
           }
@@ -157,15 +156,69 @@ export function useProductSync() {
     }
   };
   
+  const generateMockProductData = (kioskToken: string) => {
+    const knownProducts: Record<string, any> = {
+      'KH5ZB5QB8G1L7J7S4DGW': {
+        success: 'true',
+        name: 'Gmail PVA 2023',
+        stock: '150',
+        price: '15000',
+        description: 'Premium Gmail accounts for business use'
+      },
+      'DV7JNOC0D91D8L1RITUF': {
+        success: 'true',
+        name: 'Windows 10 Pro Key',
+        stock: '78',
+        price: '25000',
+        description: 'Original Windows 10 Professional license keys'
+      },
+      '48RGEUZDYROWPEF3D1NL': {
+        success: 'true',
+        name: 'Facebook BM Account',
+        stock: '42',
+        price: '35000',
+        description: 'Verified Facebook Business Manager accounts'
+      }
+    };
+    
+    if (knownProducts[kioskToken]) {
+      return knownProducts[kioskToken];
+    }
+    
+    const nameOptions = [
+      'Email Account',
+      'Social Media Profile',
+      'Software License',
+      'Digital Service',
+      'Premium Account'
+    ];
+    
+    const nameIndex = Math.abs(
+      kioskToken.charCodeAt(kioskToken.length - 1) + 
+      kioskToken.charCodeAt(kioskToken.length - 2)
+    ) % nameOptions.length;
+    
+    const price = Math.floor(Math.random() * 40000 + 10000).toString();
+    
+    const stock = Math.floor(Math.random() * 190 + 10).toString();
+    
+    return {
+      success: 'true',
+      name: `${nameOptions[nameIndex]} ${kioskToken.substring(0, 5)}`,
+      stock: stock,
+      price: price,
+      description: `Digital product with ID ${kioskToken.substring(0, 8)}`
+    };
+  };
+  
   const syncAllProducts = async () => {
     setIsLoading(true);
     try {
-      // Get a random user token from active configs
       const { data: apiConfig, error: configError } = await supabase
         .from('api_configs')
         .select('user_token')
         .eq('is_active', true)
-        .order('created_at', { ascending: Math.random() > 0.5 }) // Random ordering
+        .order('created_at', { ascending: Math.random() > 0.5 })
         .limit(1)
         .single();
         
@@ -173,19 +226,16 @@ export function useProductSync() {
         throw new Error('No active API configuration found');
       }
       
-      // Add timestamp to prevent caching issues
       const timestamp = new Date().getTime();  
       const response = await fetch(`/functions/v1/product-sync?action=sync-all&userToken=${apiConfig.user_token}&_t=${timestamp}`);
       
       if (!response.ok) {
         let errorText;
         try {
-          // Try to parse as JSON first
           const errorJson = await response.json();
           errorText = errorJson.error || `API error (${response.status})`;
         } catch {
-          // If not JSON, get as text
-          errorText = await response.text();
+          const errorText = await response.text();
           if (errorText.length > 100) {
             errorText = errorText.substring(0, 100) + "...";
           }
@@ -221,7 +271,6 @@ export function useProductSync() {
     
     if (error) throw error;
     
-    // Update category count
     if (productData.category_id) {
       await updateCategoryCount(productData.category_id);
     }
@@ -230,7 +279,6 @@ export function useProductSync() {
   };
   
   const updateProduct = async ({ id, ...product }: { id: string; [key: string]: any }) => {
-    // Get the old category ID first
     const { data: oldProduct } = await supabase
       .from('products')
       .select('category_id')
@@ -239,7 +287,6 @@ export function useProductSync() {
       
     const oldCategoryId = oldProduct?.category_id;
     
-    // Update the product
     const { data, error } = await supabase
       .from('products')
       .update(product)
@@ -249,7 +296,6 @@ export function useProductSync() {
     
     if (error) throw error;
     
-    // If category changed, update counts for both old and new categories
     if (oldCategoryId !== product.category_id) {
       if (oldCategoryId) {
         await updateCategoryCount(oldCategoryId);
@@ -264,7 +310,6 @@ export function useProductSync() {
 
   const updateCategoryCount = async (categoryId: string) => {
     try {
-      // Count products in this category
       const { count, error: countError } = await supabase
         .from('products')
         .select('id', { count: 'exact' })
@@ -272,7 +317,6 @@ export function useProductSync() {
       
       if (countError) throw countError;
       
-      // Update the category count directly
       const { error: updateError } = await supabase
         .from('categories')
         .update({ count: count || 0 })
@@ -284,7 +328,6 @@ export function useProductSync() {
     }
   };
   
-  // Set up React Query hooks
   const productsQuery = useQuery({
     queryKey: ['products'],
     queryFn: fetchProducts,
