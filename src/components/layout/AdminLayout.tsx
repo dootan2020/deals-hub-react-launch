@@ -9,7 +9,6 @@ import {
   BarChart3,
   FolderTree
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
 
 interface AdminLayoutProps {
   children: ReactNode;
