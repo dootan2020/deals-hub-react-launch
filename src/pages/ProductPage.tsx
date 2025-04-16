@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { getProductBySlug, getRelatedProducts } from '@/data/mockData';
@@ -22,7 +22,6 @@ const ProductPage = () => {
   
   useEffect(() => {
     if (productSlug) {
-      // In a real app, this would be an API call
       const fetchedProduct = getProductBySlug(productSlug);
       setProduct(fetchedProduct || null);
       
@@ -307,7 +306,7 @@ const ProductPage = () => {
             <TabsContent value="description" className="bg-white p-6 rounded-b-lg shadow-sm">
               <h3 className="text-lg font-semibold mb-4">Product Description</h3>
               <div className="prose max-w-none">
-                <p>{product.fullDescription || product.description}</p>
+                <p>{product.description}</p>
               </div>
             </TabsContent>
             <TabsContent value="specifications" className="bg-white p-6 rounded-b-lg shadow-sm">
@@ -364,7 +363,6 @@ const ProductPage = () => {
                 <p className="text-text-light">Based on {product.reviewCount} reviews</p>
               </div>
               
-              {/* Sample reviews - would be dynamic in a real app */}
               <div className="space-y-6">
                 <Card>
                   <CardContent className="p-6">
