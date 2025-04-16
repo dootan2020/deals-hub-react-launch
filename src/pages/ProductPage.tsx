@@ -1,32 +1,33 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { getProductBySlug, getRelatedProducts } from '@/data/mockData';
-import { Star, ShoppingCart, ArrowLeft, Heart, Share2, Shield, Box, RefreshCw, Info, Check } from 'lucide-react';
+import { Star, ShoppingCart, ArrowLeft, Heart, Share2, Shield, Box, RefreshCw } from 'lucide-react';
 import { formatCurrency, calculateDiscountPercentage } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import ProductGrid from '@/components/product/ProductGrid';
+import { Product } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import ProductCard from '@/components/product/ProductCard';
 
 const ProductPage = () => {
   const { productSlug } = useParams<{ productSlug: string }>();
   const [loading, setLoading] = useState(true);
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   
   useEffect(() => {
     if (productSlug) {
       // In a real app, this would be an API call
       const fetchedProduct = getProductBySlug(productSlug);
-      setProduct(fetchedProduct);
+      setProduct(fetchedProduct || null);
       
       if (fetchedProduct) {
-        const related = getRelatedProducts(fetchedProduct.category, fetchedProduct.id);
+        const related = getRelatedProducts(fetchedProduct, 4);
         setRelatedProducts(related);
       }
       
@@ -85,8 +86,8 @@ const ProductPage = () => {
           <nav className="flex text-sm">
             <Link to="/" className="text-text-light hover:text-primary">Home</Link>
             <span className="mx-2 text-text-light">/</span>
-            <Link to={`/category/${product.category}`} className="text-text-light hover:text-primary">
-              {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
+            <Link to={`/category/${product.categoryId}`} className="text-text-light hover:text-primary">
+              {product.categoryId.charAt(0).toUpperCase() + product.categoryId.slice(1)}
             </Link>
             <span className="mx-2 text-text-light">/</span>
             <span className="text-text font-medium truncate">{product.title}</span>
@@ -315,7 +316,7 @@ const ProductPage = () => {
                 <div className="space-y-3">
                   <div className="flex border-b border-gray-100 py-2">
                     <span className="font-medium w-40">Category:</span>
-                    <span>{product.category.charAt(0).toUpperCase() + product.category.slice(1)}</span>
+                    <span>{product.categoryId.charAt(0).toUpperCase() + product.categoryId.slice(1)}</span>
                   </div>
                   <div className="flex border-b border-gray-100 py-2">
                     <span className="font-medium w-40">Format:</span>
