@@ -339,12 +339,9 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
     let customProxyUrl: string | null = null;
     
     try {
-      // Try to get proxy settings
+      // Try to get proxy settings using the new function
       const { data: proxySettings } = await supabase
-        .from('proxy_settings')
-        .select('proxy_type, custom_url')
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .rpc('get_latest_proxy_settings');
 
       if (proxySettings && proxySettings.length > 0) {
         preferredProxy = proxySettings[0].proxy_type;

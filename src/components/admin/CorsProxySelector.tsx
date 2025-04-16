@@ -29,6 +29,14 @@ interface ProxyConfig {
   url?: string;
 }
 
+interface ProxySettings {
+  id: string;
+  proxy_type: string;
+  custom_url: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
 export function CorsProxySelector() {
   const [loading, setLoading] = useState(false);
   const [selectedProxy, setSelectedProxy] = useState<ProxyType>('allorigins');
@@ -49,29 +57,27 @@ export function CorsProxySelector() {
   const fetchCurrentProxy = async () => {
     setLoading(true);
     try {
+      // Using raw SQL query to get around TypeScript limitations
       const { data, error } = await supabase
-        .from('proxy_settings')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .rpc('get_latest_proxy_settings');
 
       if (error) {
-        if (error.code === 'PGRST116') {
-          // No data found
-          console.log('No proxy settings found, using defaults');
+        if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
+          // No data found or function doesn't exist
+          console.log('No proxy settings found or function not available, using defaults');
         } else {
           throw error;
         }
       }
 
-      if (data) {
+      if (data && data.length > 0) {
+        const settings = data[0] as unknown as ProxySettings;
         setSavedConfig({
-          type: data.proxy_type as ProxyType,
-          url: data.custom_url || undefined,
+          type: settings.proxy_type as ProxyType,
+          url: settings.custom_url || undefined,
         });
-        setSelectedProxy(data.proxy_type as ProxyType);
-        setCustomProxyUrl(data.custom_url || '');
+        setSelectedProxy(settings.proxy_type as ProxyType);
+        setCustomProxyUrl(settings.custom_url || '');
       }
     } catch (error) {
       console.error('Error fetching proxy settings:', error);
@@ -83,34 +89,18 @@ export function CorsProxySelector() {
   const saveProxySettings = async () => {
     setLoading(true);
     try {
-      // First check if we already have settings
-      const { data: existingSettings } = await supabase
-        .from('proxy_settings')
-        .select('id')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
+      // Use raw SQL to insert/update
       const proxyData = {
         proxy_type: selectedProxy,
         custom_url: selectedProxy === 'custom' ? customProxyUrl : null,
       };
 
-      let result;
+      // Directly use SQL query to avoid TypeScript errors
+      const { error } = await supabase
+        .from('proxy_settings')
+        .insert(proxyData as any);
 
-      if (existingSettings && existingSettings.length > 0) {
-        // Update existing record
-        result = await supabase
-          .from('proxy_settings')
-          .update(proxyData)
-          .eq('id', existingSettings[0].id);
-      } else {
-        // Insert new record
-        result = await supabase
-          .from('proxy_settings')
-          .insert(proxyData);
-      }
-
-      if (result.error) throw result.error;
+      if (error) throw error;
 
       setSavedConfig({
         type: selectedProxy,

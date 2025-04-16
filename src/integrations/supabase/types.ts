@@ -230,6 +230,30 @@ export type Database = {
           },
         ]
       }
+      proxy_settings: {
+        Row: {
+          created_at: string | null
+          custom_url: string | null
+          id: string
+          proxy_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custom_url?: string | null
+          id?: string
+          proxy_type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custom_url?: string | null
+          id?: string
+          proxy_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       sync_logs: {
         Row: {
           action: string

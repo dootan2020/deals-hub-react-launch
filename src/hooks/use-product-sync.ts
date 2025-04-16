@@ -23,10 +23,7 @@ export function useProductSync() {
   const fetchProxySettings = async () => {
     try {
       const { data, error } = await supabase
-        .from('proxy_settings')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .rpc('get_latest_proxy_settings');
         
       if (error) {
         console.error('Error fetching proxy settings:', error);
@@ -95,7 +92,6 @@ export function useProductSync() {
 
       const timestamp = new Date().getTime();
       
-      // Adding custom header to avoid caching
       const headers = {
         'Cache-Control': 'no-cache, no-store',
         'Pragma': 'no-cache',
@@ -161,14 +157,11 @@ export function useProductSync() {
 
       console.log(`Using user token: ${apiConfig.user_token.substring(0, 8)}... for product lookup`);
       
-      // URL encode the parameters for safety
       const encodedKioskToken = encodeURIComponent(kioskToken);
       const encodedUserToken = encodeURIComponent(apiConfig.user_token);
       
-      // Original API URL
       const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}`;
       
-      // Create the proxy URL based on selected proxy type
       let proxyUrl: string;
       
       switch (proxyConfig.type) {
@@ -208,9 +201,8 @@ export function useProductSync() {
       };
       
       try {
-        // Try using the configured proxy
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
         
         const response = await fetch(proxyUrl, { 
           signal: controller.signal,
@@ -223,19 +215,15 @@ export function useProductSync() {
           throw new Error(`Proxy returned error status: ${response.status}`);
         }
         
-        // Check content type for debugging
         const contentType = response.headers.get('Content-Type');
         console.log(`Content-Type: ${contentType}`);
         
-        // Try to get response as text first to inspect what we're getting
         const responseText = await response.text();
         console.log(`Raw response (first 300 chars): \n${responseText.substring(0, 300)}`);
         
-        // Check if response is HTML
         const isHtml = responseText.includes('<!DOCTYPE') || responseText.includes('<html');
         if (isHtml) {
           console.log('Response is HTML, attempting to extract product information');
-          // Try to extract from HTML if possible
           const extractedInfo = extractFromHtml(responseText);
           if (extractedInfo) {
             return extractedInfo;
@@ -243,33 +231,24 @@ export function useProductSync() {
           throw new Error('Received HTML instead of expected JSON');
         }
         
-        // Parse the text as JSON
         let productInfo;
         
-        try {
-          // If using AllOrigins, the response is wrapped
-          if (proxyConfig.type === 'allorigins') {
-            const allOriginsData = JSON.parse(responseText);
-            if (allOriginsData && allOriginsData.contents) {
-              productInfo = JSON.parse(allOriginsData.contents);
-            } else {
-              throw new Error('Invalid AllOrigins response format');
-            }
+        if (proxyConfig.type === 'allorigins') {
+          const allOriginsData = JSON.parse(responseText);
+          if (allOriginsData && allOriginsData.contents) {
+            productInfo = JSON.parse(allOriginsData.contents);
           } else {
-            // For other proxies, parse directly
-            productInfo = JSON.parse(responseText);
+            throw new Error('Invalid AllOrigins response format');
           }
-          
-          console.log('Parsed product info:', productInfo);
-          return productInfo;
-        } catch (parseError) {
-          console.error('Error parsing JSON response:', parseError);
-          throw new Error('Failed to parse product information from response');
+        } else {
+          productInfo = JSON.parse(responseText);
         }
+        
+        console.log('Parsed product info:', productInfo);
+        return productInfo;
       } catch (proxyError) {
         console.error(`Error with ${proxyConfig.type} proxy:`, proxyError);
         
-        // Fall back to edge function as last resort
         console.log('Falling back to edge function...');
         const edgeFunctionUrl = `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`;
         
@@ -293,24 +272,20 @@ export function useProductSync() {
   
   const extractFromHtml = (html: string) => {
     try {
-      // Try to extract product name
       const nameMatch = html.match(/<title>(.*?)<\/title>/i);
       const name = nameMatch ? nameMatch[1].replace(" - TapHoaMMO", "").trim() : null;
       
-      // Try to extract price (this is a simplistic approach)
       let price = null;
       const priceMatch = html.match(/(\d+(\.\d+)?)\s*USD/i) || html.match(/\$\s*(\d+(\.\d+)?)/i);
       if (priceMatch) {
         price = priceMatch[1];
       }
       
-      // Try to extract if it's in stock
       let inStock = true;
       if (html.includes("Out of stock") || html.includes("Hết hàng")) {
         inStock = false;
       }
       
-      // If we extracted something useful, return it
       if (name || price) {
         return {
           success: "true",
@@ -366,7 +341,6 @@ export function useProductSync() {
               errorText = errorText.substring(0, 100) + "...";
             }
             
-            // Check if response is HTML
             if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
               errorText = `API error (${response.status}): Received HTML instead of JSON`;
             } else {
