@@ -2,7 +2,7 @@
 import { Product } from '@/types';
 import ProductCard from './ProductCard';
 import { Button } from '@/components/ui/button';
-import { GridIcon, List } from 'lucide-react';
+import { GridIcon, List, Star, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 
 interface ProductGridProps {
@@ -11,6 +11,14 @@ interface ProductGridProps {
   description?: string;
   showLayoutToggle?: boolean;
 }
+
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2
+  }).format(amount);
+};
 
 const ProductGrid = ({ products, title, description, showLayoutToggle = false }: ProductGridProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');

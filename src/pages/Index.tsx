@@ -1,6 +1,7 @@
 
 import Layout from '@/components/layout/Layout';
 import HeroSection from '@/components/home/HeroSection';
+import SearchSection from '@/components/home/SearchSection';
 import CategorySection from '@/components/home/CategorySection';
 import FeaturesSection from '@/components/home/FeaturesSection';
 import ProductGrid from '@/components/product/ProductGrid';
@@ -12,6 +13,7 @@ const Index = () => {
   return (
     <Layout>
       <HeroSection />
+      <SearchSection />
       <CategorySection />
       <div className="bg-white py-16">
         <div className="container-custom">

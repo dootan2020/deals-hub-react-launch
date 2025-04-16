@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, User, Search, Menu, X, Globe } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Header = () => {
@@ -39,16 +39,6 @@ const Header = () => {
             </Link>
           </nav>
 
-          {/* Search Bar - Desktop Only */}
-          <div className="hidden lg:flex relative">
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="border border-gray-200 rounded-md pl-10 pr-4 py-2 w-64 focus:outline-none focus:border-primary"
-            />
-            <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
-          </div>
-
           {/* Right Icons */}
           <div className="flex items-center space-x-4">
             {/* Language Selector */}
@@ -84,16 +74,6 @@ const Header = () => {
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
-        </div>
-
-        {/* Mobile Search - Visible on All Mobile Screens */}
-        <div className="mt-4 relative lg:hidden">
-          <input
-            type="text"
-            placeholder="Search products..."
-            className="border border-gray-200 rounded-md pl-10 pr-4 py-2 w-full focus:outline-none focus:border-primary"
-          />
-          <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
         </div>
 
         {/* Mobile Menu */}

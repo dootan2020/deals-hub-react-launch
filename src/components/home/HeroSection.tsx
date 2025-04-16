@@ -1,17 +1,8 @@
 
 import { useState } from 'react';
-import { Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const HeroSection = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Implement search functionality
-    console.log('Searching for:', searchQuery);
-  };
-
   return (
     <section className="bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] py-16 md:py-24">
       <div className="container-custom">
@@ -24,23 +15,6 @@ const HeroSection = () => {
             <p className="text-text-light text-lg mb-8">
               Discover a wide range of digital products including email accounts, gaming accounts, and software keys.
             </p>
-
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="mb-8 relative">
-              <input
-                type="text"
-                placeholder="Search for products..."
-                className="w-full md:w-[400px] px-5 py-3 pr-12 rounded-lg border border-gray-300 focus:outline-none focus:border-primary"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <button
-                type="submit"
-                className="absolute right-0 top-0 h-full px-4 text-text-light hover:text-primary"
-              >
-                <Search className="h-5 w-5" />
-              </button>
-            </form>
 
             {/* CTA Buttons */}
             <div className="flex flex-wrap gap-4">
