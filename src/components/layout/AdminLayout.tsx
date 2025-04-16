@@ -1,3 +1,4 @@
+
 import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -6,7 +7,8 @@ import {
   ShoppingCart, 
   Settings, 
   BarChart3,
-  FolderTree
+  FolderTree,
+  Globe
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -69,6 +71,15 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
               >
                 <Settings className="w-5 h-5 mr-2" />
                 API Config
+              </Link>
+            </li>
+            <li>
+              <Link 
+                to="/admin/api-tester" 
+                className="flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100"
+              >
+                <Globe className="w-5 h-5 mr-2" />
+                API Tester
               </Link>
             </li>
             <li>

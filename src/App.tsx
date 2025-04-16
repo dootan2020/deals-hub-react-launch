@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +21,7 @@ import SyncLogsAdmin from "./pages/admin/SyncLogsAdmin";
 import ProductCreatePage from "./pages/admin/ProductCreatePage";
 import ProductEditPage from "./pages/admin/ProductEditPage";
 import ProxySettingsPage from './pages/admin/ProxySettingsPage';
+import ApiTesterPage from './pages/admin/ApiTesterPage';
 
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
@@ -55,6 +57,7 @@ const App = () => {
             <Route path="/admin/products/new" element={<ProductCreatePage />} />
             <Route path="/admin/products/edit/:id" element={<ProductEditPage />} />
             <Route path="/admin/proxy-settings" element={<ProxySettingsPage />} />
+            <Route path="/admin/api-tester" element={<ApiTesterPage />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
