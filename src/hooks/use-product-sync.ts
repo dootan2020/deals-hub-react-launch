@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -54,12 +55,27 @@ export function useProductSync() {
         throw new Error('No active API configuration found');
       }
 
-      const response = await fetch(`/functions/v1/product-sync?action=sync-product&externalId=${externalId}&userToken=${apiConfig.user_token}`);
+      // Add timestamp to prevent caching issues
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/functions/v1/product-sync?action=sync-product&externalId=${externalId}&userToken=${apiConfig.user_token}&_t=${timestamp}`);
       
       if (!response.ok) {
-        const errorText = await response.text();
+        let errorText;
+        try {
+          // Try to parse as JSON first
+          const errorJson = await response.json();
+          errorText = errorJson.error || `API error (${response.status})`;
+        } catch {
+          // If not JSON, get as text
+          errorText = await response.text();
+          if (errorText.length > 100) {
+            errorText = errorText.substring(0, 100) + "...";
+          }
+          errorText = `API error (${response.status}): ${errorText}`;
+        }
+        
         console.error('API error response:', errorText);
-        throw new Error(`API error (${response.status}): ${errorText}`);
+        throw new Error(errorText);
       }
       
       const data = await response.json();
@@ -97,13 +113,28 @@ export function useProductSync() {
       const userToken = apiConfigs[0].user_token;
       console.log(`Using user token: ${userToken.substring(0, 10)}... for product lookup`);
       
+      // Add timestamp to prevent caching issues
+      const timestamp = new Date().getTime();
       // Use the edge function to fetch product info
-      const response = await fetch(`/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${userToken}`);
+      const response = await fetch(`/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${userToken}&_t=${timestamp}`);
       
       if (!response.ok) {
-        const errorText = await response.text();
+        let errorText;
+        try {
+          // Try to parse as JSON first
+          const errorJson = await response.json();
+          errorText = errorJson.error || `API error (${response.status})`;
+        } catch {
+          // If not JSON, get as text
+          errorText = await response.text();
+          if (errorText.length > 100) {
+            errorText = errorText.substring(0, 100) + "...";
+          }
+          errorText = `API error (${response.status}): ${errorText}`;
+        }
+        
         console.error('API error response:', errorText);
-        throw new Error(`API error (${response.status}): ${errorText}`);
+        throw new Error(errorText);
       }
       
       const data = await response.json();
@@ -141,12 +172,27 @@ export function useProductSync() {
       if (configError || !apiConfig) {
         throw new Error('No active API configuration found');
       }
-        
-      const response = await fetch(`/functions/v1/product-sync?action=sync-all&userToken=${apiConfig.user_token}`);
+      
+      // Add timestamp to prevent caching issues
+      const timestamp = new Date().getTime();  
+      const response = await fetch(`/functions/v1/product-sync?action=sync-all&userToken=${apiConfig.user_token}&_t=${timestamp}`);
       
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API error (${response.status}): ${errorText}`);
+        let errorText;
+        try {
+          // Try to parse as JSON first
+          const errorJson = await response.json();
+          errorText = errorJson.error || `API error (${response.status})`;
+        } catch {
+          // If not JSON, get as text
+          errorText = await response.text();
+          if (errorText.length > 100) {
+            errorText = errorText.substring(0, 100) + "...";
+          }
+          errorText = `API error (${response.status}): ${errorText}`;
+        }
+        
+        throw new Error(errorText);
       }
       
       const data = await response.json();

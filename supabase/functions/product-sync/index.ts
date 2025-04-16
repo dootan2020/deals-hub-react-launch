@@ -350,7 +350,7 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
     }
     
     const responseText = await response.text();
-    console.log(`API raw response: ${responseText}`);
+    console.log(`API raw response: ${responseText.substring(0, 200)}...`);
     
     // Try to parse the response as JSON
     try {

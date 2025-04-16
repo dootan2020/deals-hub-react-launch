@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -201,11 +202,13 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     try {
       const productInfo = await fetchProductInfo(kioskToken);
       
+      console.log("Product info received:", productInfo);
+      
       if (productInfo && productInfo.success === 'true') {
         // Autofill form with returned data
         form.setValue('title', productInfo.name || '');
         form.setValue('price', productInfo.price || '0');
-        form.setValue('inStock', parseInt(productInfo.stock || '0') > 0);
+        form.setValue('inStock', parseInt(productInfo.stock || '0', 10) > 0);
         
         // Generate slug from product name if title was empty before
         if (!form.getValues('slug') && productInfo.name) {
@@ -217,8 +220,9 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         
         toast.success('Product information retrieved successfully');
       } else {
-        setApiError(productInfo?.description || 'Failed to retrieve product information');
-        toast.error(`Failed to retrieve product information: ${productInfo?.description || 'Unknown error'}`);
+        const errorMessage = productInfo?.description || 'Failed to retrieve product information';
+        setApiError(errorMessage);
+        toast.error(`Failed to retrieve product information: ${errorMessage}`);
       }
     } catch (error: any) {
       console.error('Error fetching product info:', error);
