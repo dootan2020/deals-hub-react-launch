@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -310,49 +309,59 @@ export function useProductSync() {
   };
   
   const createProduct = async (productData: any) => {
-    const { data, error } = await supabase
-      .from('products')
-      .insert(productData)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    
-    if (productData.category_id) {
-      await updateCategoryCount(productData.category_id);
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .insert(productData)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      if (productData.category_id) {
+        await updateCategoryCount(productData.category_id);
+      }
+      
+      return data;
+    } catch (error) {
+      throw error;
     }
-    
-    return data;
   };
   
   const updateProduct = async ({ id, ...product }: { id: string; [key: string]: any }) => {
-    const { data: oldProduct } = await supabase
-      .from('products')
-      .select('category_id')
-      .eq('id', id)
-      .single();
+    try {
+      const { data: oldProduct, error: fetchError } = await supabase
+        .from('products')
+        .select('category_id')
+        .eq('id', id)
+        .single();
+        
+      if (fetchError) throw fetchError;
       
-    const oldCategoryId = oldProduct?.category_id;
-    
-    const { data, error } = await supabase
-      .from('products')
-      .update(product)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    
-    if (oldCategoryId !== product.category_id) {
-      if (oldCategoryId) {
-        await updateCategoryCount(oldCategoryId);
+      const oldCategoryId = oldProduct?.category_id;
+      
+      const { data, error } = await supabase
+        .from('products')
+        .update(product)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      if (oldCategoryId !== product.category_id) {
+        if (oldCategoryId) {
+          await updateCategoryCount(oldCategoryId);
+        }
+        if (product.category_id) {
+          await updateCategoryCount(product.category_id);
+        }
       }
-      if (product.category_id) {
-        await updateCategoryCount(product.category_id);
-      }
+      
+      return data;
+    } catch (error) {
+      throw error;
     }
-    
-    return data;
   };
 
   const updateCategoryCount = async (categoryId: string) => {
@@ -402,21 +411,7 @@ export function useProductSync() {
   });
   
   const createProductMutation = useMutation({
-    mutationFn: (productData: any) => {
-      const { data, error } = supabase
-        .from('products')
-        .insert(productData)
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      if (productData.category_id) {
-        updateCategoryCount(productData.category_id);
-      }
-      
-      return data;
-    },
+    mutationFn: createProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
@@ -428,35 +423,7 @@ export function useProductSync() {
   });
   
   const updateProductMutation = useMutation({
-    mutationFn: async ({ id, ...product }: { id: string; [key: string]: any }) => {
-      const { data: oldProduct } = await supabase
-        .from('products')
-        .select('category_id')
-        .eq('id', id)
-        .single();
-        
-      const oldCategoryId = oldProduct?.category_id;
-      
-      const { data, error } = await supabase
-        .from('products')
-        .update(product)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      if (oldCategoryId !== product.category_id) {
-        if (oldCategoryId) {
-          await updateCategoryCount(oldCategoryId);
-        }
-        if (product.category_id) {
-          await updateCategoryCount(product.category_id);
-        }
-      }
-      
-      return data;
-    },
+    mutationFn: updateProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
@@ -466,26 +433,6 @@ export function useProductSync() {
       toast.error(`Failed to update product: ${error.message}`);
     },
   });
-
-  const updateCategoryCount = async (categoryId: string) => {
-    try {
-      const { count, error: countError } = await supabase
-        .from('products')
-        .select('id', { count: 'exact' })
-        .eq('category_id', categoryId);
-      
-      if (countError) throw countError;
-      
-      const { error: updateError } = await supabase
-        .from('categories')
-        .update({ count: count || 0 })
-        .eq('id', categoryId);
-      
-      if (updateError) throw updateError;
-    } catch (error) {
-      console.error('Error updating category count:', error);
-    }
-  };
 
   const fetchProductInfoMutation = useMutation({
     mutationFn: fetchProductInfoByKioskToken,

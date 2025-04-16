@@ -25,7 +25,7 @@ const ProductCreatePage = () => {
         </CardContent>
       </Card>
       
-      <Alert variant="warning" className="mb-6 bg-amber-50 border-amber-200">
+      <Alert variant="destructive" className="mb-6 bg-amber-50 border-amber-200">
         <AlertTriangle className="h-5 w-5 text-amber-500" />
         <AlertDescription className="text-amber-700">
           <p className="font-medium">API Connection Issue</p>
