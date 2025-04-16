@@ -81,15 +81,6 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
                 Sync Logs
               </Link>
             </li>
-            <li>
-              <Link 
-                to="/admin/proxy-settings" 
-                className="flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100"
-              >
-                <Settings className="w-5 h-5 mr-2" />
-                CORS Proxy Settings
-              </Link>
-            </li>
           </ul>
         </nav>
       </div>

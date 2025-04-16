@@ -17,7 +17,6 @@ import CategoryAdmin from "./pages/admin/CategoryAdmin";
 import OrdersAdmin from "./pages/admin/OrdersAdmin";
 import ApiConfigAdmin from "./pages/admin/ApiConfigAdmin";
 import SyncLogsAdmin from "./pages/admin/SyncLogsAdmin";
-import ProxySettingsPage from './pages/admin/ProxySettingsPage';
 import ApiTesterPage from './pages/admin/ApiTesterPage';
 
 // Create a new QueryClient instance
@@ -50,7 +49,6 @@ const App = () => {
             <Route path="/admin/orders" element={<OrdersAdmin />} />
             <Route path="/admin/api-config" element={<ApiConfigAdmin />} />
             <Route path="/admin/sync-logs" element={<SyncLogsAdmin />} />
-            <Route path="/admin/proxy-settings" element={<ProxySettingsPage />} />
             <Route path="/admin/api-tester" element={<ApiTesterPage />} />
             
             <Route path="*" element={<NotFound />} />
