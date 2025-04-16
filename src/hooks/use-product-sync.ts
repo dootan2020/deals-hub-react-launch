@@ -1,11 +1,51 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import type { ProxyType } from '@/components/admin/CorsProxySelector';
+
+interface ProxyConfig {
+  type: ProxyType;
+  url?: string;
+}
 
 export function useProductSync() {
   const [isLoading, setIsLoading] = useState(false);
+  const [proxyConfig, setProxyConfig] = useState<ProxyConfig>({
+    type: 'allorigins'
+  });
   const queryClient = useQueryClient();
+  
+  useEffect(() => {
+    fetchProxySettings();
+  }, []);
+  
+  const fetchProxySettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('proxy_settings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1);
+        
+      if (error) {
+        console.error('Error fetching proxy settings:', error);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        setProxyConfig({
+          type: data[0].proxy_type as ProxyType,
+          url: data[0].custom_url || undefined
+        });
+        console.log('Using proxy settings:', data[0].proxy_type);
+      } else {
+        console.log('No proxy settings found, using default (allorigins)');
+      }
+    } catch (error) {
+      console.error('Failed to fetch proxy settings:', error);
+    }
+  };
   
   const fetchProducts = async () => {
     const { data, error } = await supabase
@@ -128,10 +168,33 @@ export function useProductSync() {
       // Original API URL
       const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}`;
       
-      // Use AllOrigins as a proxy to avoid CORS issues
-      const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
+      // Create the proxy URL based on selected proxy type
+      let proxyUrl: string;
       
-      console.log(`Attempting API call via AllOrigins proxy: ${allOriginsUrl}`);
+      switch (proxyConfig.type) {
+        case 'allorigins':
+          proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
+          console.log(`Using AllOrigins proxy: ${proxyUrl.substring(0, 60)}...`);
+          break;
+        case 'corsproxy':
+          proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
+          console.log(`Using CORS Proxy: ${proxyUrl.substring(0, 60)}...`);
+          break;
+        case 'custom':
+          if (!proxyConfig.url) {
+            throw new Error('Custom proxy URL is not configured');
+          }
+          proxyUrl = `${proxyConfig.url}${encodeURIComponent(apiUrl)}`;
+          console.log(`Using custom proxy: ${proxyUrl.substring(0, 60)}...`);
+          break;
+        case 'direct':
+          proxyUrl = apiUrl;
+          console.log(`Using direct API call: ${proxyUrl}`);
+          break;
+        default:
+          proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
+          console.log(`Using default AllOrigins proxy: ${proxyUrl.substring(0, 60)}...`);
+      }
       
       const timestamp = new Date().getTime();
       const headers = {
@@ -145,11 +208,11 @@ export function useProductSync() {
       };
       
       try {
-        // Try using AllOrigins proxy first
+        // Try using the configured proxy
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
         
-        const response = await fetch(allOriginsUrl, { 
+        const response = await fetch(proxyUrl, { 
           signal: controller.signal,
           headers
         });
@@ -157,73 +220,111 @@ export function useProductSync() {
         clearTimeout(timeoutId);
         
         if (!response.ok) {
-          throw new Error(`AllOrigins proxy returned error status: ${response.status}`);
+          throw new Error(`Proxy returned error status: ${response.status}`);
         }
         
-        const data = await response.json();
-        console.log('AllOrigins response data:', data);
+        // Check content type for debugging
+        const contentType = response.headers.get('Content-Type');
+        console.log(`Content-Type: ${contentType}`);
         
-        if (data && data.contents) {
-          try {
-            // Parse the contents from AllOrigins response
-            const productInfo = JSON.parse(data.contents);
-            console.log('Parsed product info from AllOrigins:', productInfo);
-            return productInfo;
-          } catch (parseError) {
-            console.error('Error parsing JSON from AllOrigins response:', parseError);
-            throw new Error('Failed to parse product information from AllOrigins response');
+        // Try to get response as text first to inspect what we're getting
+        const responseText = await response.text();
+        console.log(`Raw response (first 300 chars): \n${responseText.substring(0, 300)}`);
+        
+        // Check if response is HTML
+        const isHtml = responseText.includes('<!DOCTYPE') || responseText.includes('<html');
+        if (isHtml) {
+          console.log('Response is HTML, attempting to extract product information');
+          // Try to extract from HTML if possible
+          const extractedInfo = extractFromHtml(responseText);
+          if (extractedInfo) {
+            return extractedInfo;
           }
-        } else {
-          throw new Error('Invalid data structure from AllOrigins');
+          throw new Error('Received HTML instead of expected JSON');
         }
-      } catch (allOriginsError) {
-        console.error('AllOrigins proxy error:', allOriginsError);
         
-        // Try alternative proxy - corsproxy.io
-        console.log('Trying alternative proxy - corsproxy.io...');
-        const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
+        // Parse the text as JSON
+        let productInfo;
         
         try {
-          const corsProxyResponse = await fetch(corsProxyUrl, { headers });
-          
-          if (!corsProxyResponse.ok) {
-            throw new Error(`CORS proxy returned error status: ${corsProxyResponse.status}`);
+          // If using AllOrigins, the response is wrapped
+          if (proxyConfig.type === 'allorigins') {
+            const allOriginsData = JSON.parse(responseText);
+            if (allOriginsData && allOriginsData.contents) {
+              productInfo = JSON.parse(allOriginsData.contents);
+            } else {
+              throw new Error('Invalid AllOrigins response format');
+            }
+          } else {
+            // For other proxies, parse directly
+            productInfo = JSON.parse(responseText);
           }
           
-          const corsProxyData = await corsProxyResponse.text();
-          console.log('CORS proxy response (first 300 chars):', corsProxyData.substring(0, 300));
-          
-          try {
-            const productInfo = JSON.parse(corsProxyData);
-            console.log('Parsed product info from CORS proxy:', productInfo);
-            return productInfo;
-          } catch (parseError) {
-            console.error('Error parsing JSON from CORS proxy:', parseError);
-            throw new Error('Failed to parse product information from CORS proxy');
-          }
-        } catch (corsProxyError) {
-          console.error('CORS proxy error:', corsProxyError);
-          
-          // Last resort - try our edge function as fallback
-          console.log('Falling back to edge function...');
-          const edgeFunctionUrl = `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`;
-          
-          const edgeFunctionResponse = await fetch(edgeFunctionUrl, { headers });
-          
-          if (!edgeFunctionResponse.ok) {
-            throw new Error(`Edge function failed: ${edgeFunctionResponse.status}`);
-          }
-          
-          const edgeFunctionData = await edgeFunctionResponse.json();
-          console.log('Edge function response:', edgeFunctionData);
-          return edgeFunctionData;
+          console.log('Parsed product info:', productInfo);
+          return productInfo;
+        } catch (parseError) {
+          console.error('Error parsing JSON response:', parseError);
+          throw new Error('Failed to parse product information from response');
         }
+      } catch (proxyError) {
+        console.error(`Error with ${proxyConfig.type} proxy:`, proxyError);
+        
+        // Fall back to edge function as last resort
+        console.log('Falling back to edge function...');
+        const edgeFunctionUrl = `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`;
+        
+        const edgeFunctionResponse = await fetch(edgeFunctionUrl, { headers });
+        
+        if (!edgeFunctionResponse.ok) {
+          throw new Error(`Edge function failed: ${edgeFunctionResponse.status}`);
+        }
+        
+        const edgeFunctionData = await edgeFunctionResponse.json();
+        console.log('Edge function response:', edgeFunctionData);
+        return edgeFunctionData;
       }
     } catch (error: any) {
       console.error('Fetch product info error:', error);
       throw error;
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const extractFromHtml = (html: string) => {
+    try {
+      // Try to extract product name
+      const nameMatch = html.match(/<title>(.*?)<\/title>/i);
+      const name = nameMatch ? nameMatch[1].replace(" - TapHoaMMO", "").trim() : null;
+      
+      // Try to extract price (this is a simplistic approach)
+      let price = null;
+      const priceMatch = html.match(/(\d+(\.\d+)?)\s*USD/i) || html.match(/\$\s*(\d+(\.\d+)?)/i);
+      if (priceMatch) {
+        price = priceMatch[1];
+      }
+      
+      // Try to extract if it's in stock
+      let inStock = true;
+      if (html.includes("Out of stock") || html.includes("Hết hàng")) {
+        inStock = false;
+      }
+      
+      // If we extracted something useful, return it
+      if (name || price) {
+        return {
+          success: "true",
+          name: name || "Information extracted from HTML",
+          price: price || "0",
+          stock: inStock ? "1" : "0",
+          description: "Information extracted from HTML response"
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error("Error extracting data from HTML:", error);
+      return null;
     }
   };
   

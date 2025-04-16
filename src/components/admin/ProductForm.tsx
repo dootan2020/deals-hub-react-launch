@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -63,6 +62,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   const [apiSuccess, setApiSuccess] = useState<string | null>(null);
   const [isMockData, setIsMockData] = useState<boolean>(false);
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
+  const [activeProxy, setActiveProxy] = useState<string | null>(null);
   const navigate = useNavigate();
   const { createProduct, updateProduct, fetchProductInfo } = useProductSync();
 
@@ -89,6 +89,36 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       fetchProductDetails();
     }
   }, [productId]);
+
+  useEffect(() => {
+    const fetchActiveProxy = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('proxy_settings')
+          .select('proxy_type, custom_url')
+          .order('created_at', { ascending: false })
+          .limit(1);
+          
+        if (error) {
+          console.error('Error fetching proxy settings:', error);
+          return;
+        }
+        
+        if (data && data.length > 0) {
+          const proxy = data[0];
+          setActiveProxy(proxy.proxy_type === 'custom' ? 
+            `Custom (${proxy.custom_url})` : 
+            proxy.proxy_type.charAt(0).toUpperCase() + proxy.proxy_type.slice(1));
+        } else {
+          setActiveProxy('AllOrigins (default)');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    };
+    
+    fetchActiveProxy();
+  }, []);
 
   const fetchCategories = async () => {
     try {
@@ -191,21 +221,17 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     form.setValue('slug', slug);
   };
 
-  // Extract information from HTML response
   const extractFromHtml = (html: string) => {
     try {
-      // Try to extract product name
       const nameMatch = html.match(/<title>(.*?)<\/title>/i);
       const name = nameMatch ? nameMatch[1].replace(" - TapHoaMMO", "").trim() : null;
       
-      // Try to extract price (this is a simplistic approach)
       let price = null;
       const priceMatch = html.match(/(\d+(\.\d+)?)\s*USD/i) || html.match(/\$\s*(\d+(\.\d+)?)/i);
       if (priceMatch) {
         price = priceMatch[1];
       }
       
-      // Try to extract if it's in stock
       let inStock = true;
       if (html.includes("Out of stock") || html.includes("Hết hàng")) {
         inStock = false;
@@ -213,11 +239,9 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
 
       setHtmlContent(html);
       
-      // Set form values if we extracted information
       if (name) {
         form.setValue('title', name);
         
-        // Generate slug if we have a name
         const slug = name.toLowerCase()
           .replace(/\s+/g, '-')
           .replace(/[^a-z0-9-]/g, '');
@@ -256,7 +280,6 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       
       console.log("Product info received:", productInfo);
       
-      // Check if this is mock data (from our edge function)
       if (productInfo && productInfo.name && productInfo.name.startsWith('Demo Product')) {
         setIsMockData(true);
       }
@@ -286,10 +309,8 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       
       let errorMsg = error.message;
       
-      // Check if error is HTML
       if (errorMsg.includes('<!DOCTYPE') || errorMsg.includes('<html')) {
         try {
-          // Try to extract information from HTML
           const extracted = extractFromHtml(errorMsg);
           
           if (extracted && (extracted.name || extracted.price)) {
@@ -339,9 +360,17 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
                     Get Product Info
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Enter a valid kiosk token (e.g., KH5ZB5QB8G1L7J7S4DGW) to retrieve product information.
-                </p>
+                <div className="flex justify-between mt-1">
+                  <p className="text-xs text-muted-foreground">
+                    Enter a valid kiosk token (e.g., KH5ZB5QB8G1L7J7S4DGW) to retrieve product information.
+                  </p>
+                  {activeProxy && (
+                    <p className="text-xs text-muted-foreground">
+                      Active proxy: <span className="font-medium">{activeProxy}</span> 
+                      <a href="/admin/proxy-settings" className="ml-1 text-primary hover:underline">(change)</a>
+                    </p>
+                  )}
+                </div>
                 
                 {isMockData && (
                   <Alert variant="default" className="mt-2 bg-blue-50 border-blue-200 text-blue-700">

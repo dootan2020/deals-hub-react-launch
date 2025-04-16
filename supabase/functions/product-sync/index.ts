@@ -334,61 +334,182 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
       'X-Requested-With': 'XMLHttpRequest'
     };
     
+    // Check if there's a preferred proxy setting in the database
+    let preferredProxy = 'allorigins';
+    let customProxyUrl: string | null = null;
+    
     try {
-      // First attempt: Use AllOrigins proxy
-      const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-      console.log(`Attempting API call via AllOrigins proxy: ${allOriginsUrl}`);
-      
-      const response = await fetch(allOriginsUrl, { headers });
-      
-      if (!response.ok) {
-        throw new Error(`AllOrigins API returned error status: ${response.status}`);
+      // Try to get proxy settings
+      const { data: proxySettings } = await supabase
+        .from('proxy_settings')
+        .select('proxy_type, custom_url')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (proxySettings && proxySettings.length > 0) {
+        preferredProxy = proxySettings[0].proxy_type;
+        customProxyUrl = proxySettings[0].custom_url;
+        console.log(`Using preferred proxy from database: ${preferredProxy}`);
       }
+    } catch (proxyError) {
+      console.error('Error fetching proxy settings, using default:', proxyError);
+    }
+    
+    // Try all proxy methods in sequence until one works
+    try {
+      let response;
+      let productInfo;
       
-      const responseData = await response.json();
-      
-      if (responseData && responseData.contents) {
+      // Try preferred proxy first
+      if (preferredProxy === 'custom' && customProxyUrl) {
+        console.log(`Trying custom proxy: ${customProxyUrl}`);
+        const customProxyFullUrl = `${customProxyUrl}${encodeURIComponent(targetUrl)}`;
+        response = await fetch(customProxyFullUrl, { headers });
+        
+        if (!response.ok) {
+          throw new Error(`Custom proxy returned error status: ${response.status}`);
+        }
+        
+        const responseText = await response.text();
+        
         try {
-          const productInfo = JSON.parse(responseData.contents);
-          console.log('Product info from AllOrigins:', productInfo);
+          productInfo = JSON.parse(responseText);
+          console.log('Product info from custom proxy:', productInfo);
           return productInfo;
         } catch (parseError) {
-          console.error(`Error parsing JSON from AllOrigins: ${parseError}`);
-          throw new Error('Invalid JSON response from AllOrigins');
+          console.error(`Error parsing JSON from custom proxy: ${parseError}`);
+          throw new Error('Invalid JSON response from custom proxy');
         }
-      } else {
-        throw new Error('Invalid response structure from AllOrigins');
+      } 
+      else if (preferredProxy === 'allorigins' || preferredProxy === 'auto') {
+        // First attempt: Use AllOrigins proxy
+        const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+        console.log(`Attempting API call via AllOrigins proxy: ${allOriginsUrl}`);
+        
+        response = await fetch(allOriginsUrl, { headers });
+        
+        if (!response.ok) {
+          throw new Error(`AllOrigins API returned error status: ${response.status}`);
+        }
+        
+        const responseData = await response.json();
+        
+        if (responseData && responseData.contents) {
+          try {
+            productInfo = JSON.parse(responseData.contents);
+            console.log('Product info from AllOrigins:', productInfo);
+            return productInfo;
+          } catch (parseError) {
+            console.error(`Error parsing JSON from AllOrigins: ${parseError}`);
+            throw new Error('Invalid JSON response from AllOrigins');
+          }
+        } else {
+          throw new Error('Invalid response structure from AllOrigins');
+        }
       }
-    } catch (allOriginsError) {
-      console.error(`AllOrigins error: ${allOriginsError.message}`);
-      
-      // Second attempt: Try another proxy - corsproxy.io
-      try {
-        console.log('Trying corsproxy.io...');
+      else if (preferredProxy === 'corsproxy') {
+        // Try corsproxy.io
+        console.log('Using corsproxy.io...');
         const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
         
-        const corsProxyResponse = await fetch(corsProxyUrl, { headers });
+        response = await fetch(corsProxyUrl, { headers });
         
-        if (!corsProxyResponse.ok) {
-          throw new Error(`CORS proxy returned error status: ${corsProxyResponse.status}`);
+        if (!response.ok) {
+          throw new Error(`CORS proxy returned error status: ${response.status}`);
         }
         
-        const corsProxyText = await corsProxyResponse.text();
+        const corsProxyText = await response.text();
         
         try {
-          const productInfo = JSON.parse(corsProxyText);
+          productInfo = JSON.parse(corsProxyText);
           console.log('Product info from CORS proxy:', productInfo);
           return productInfo;
         } catch (parseError) {
           console.error(`Error parsing JSON from CORS proxy: ${parseError}`);
           throw new Error('Invalid JSON response from CORS proxy');
         }
-      } catch (corsProxyError) {
-        console.error(`CORS proxy error: ${corsProxyError.message}`);
+      }
+      else if (preferredProxy === 'direct') {
+        // Try direct API call
+        console.log('Trying direct API call...');
+        response = await fetch(targetUrl, { headers });
         
-        // Last attempt: Try direct API call
+        if (!response.ok) {
+          throw new Error(`Direct API call returned error status: ${response.status}`);
+        }
+        
+        const directText = await response.text();
+        
         try {
-          console.log('Trying direct API call...');
+          productInfo = JSON.parse(directText);
+          console.log('Product info from direct API call:', productInfo);
+          return productInfo;
+        } catch (parseError) {
+          console.error(`Error parsing JSON from direct API call: ${parseError}`);
+          throw new Error('Invalid JSON response from direct API call');
+        }
+      }
+      
+      // If we get here, no proxy method was successful or none was chosen
+      throw new Error('No valid proxy method was specified or successful');
+      
+    } catch (proxyError) {
+      console.error(`Proxy error: ${proxyError.message}`);
+      
+      // Try all methods in sequence as fallbacks
+      
+      try {
+        // Fallback 1: Try AllOrigins if not already tried
+        if (preferredProxy !== 'allorigins') {
+          const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+          console.log(`Falling back to AllOrigins proxy: ${allOriginsUrl}`);
+          
+          const response = await fetch(allOriginsUrl, { headers });
+          
+          if (!response.ok) {
+            throw new Error(`AllOrigins API returned error status: ${response.status}`);
+          }
+          
+          const responseData = await response.json();
+          
+          if (responseData && responseData.contents) {
+            try {
+              const productInfo = JSON.parse(responseData.contents);
+              console.log('Product info from AllOrigins fallback:', productInfo);
+              return productInfo;
+            } catch (parseError) {
+              throw new Error('Invalid JSON response from AllOrigins');
+            }
+          } else {
+            throw new Error('Invalid response structure from AllOrigins');
+          }
+        }
+        
+        // Fallback 2: Try CORS proxy if not already tried
+        if (preferredProxy !== 'corsproxy') {
+          console.log('Falling back to corsproxy.io...');
+          const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+          
+          const corsProxyResponse = await fetch(corsProxyUrl, { headers });
+          
+          if (!corsProxyResponse.ok) {
+            throw new Error(`CORS proxy returned error status: ${corsProxyResponse.status}`);
+          }
+          
+          const corsProxyText = await corsProxyResponse.text();
+          
+          try {
+            const productInfo = JSON.parse(corsProxyText);
+            console.log('Product info from CORS proxy fallback:', productInfo);
+            return productInfo;
+          } catch (parseError) {
+            throw new Error('Invalid JSON response from CORS proxy');
+          }
+        }
+        
+        // Fallback 3: Try direct API call if not already tried
+        if (preferredProxy !== 'direct') {
+          console.log('Falling back to direct API call...');
           const directResponse = await fetch(targetUrl, { headers });
           
           if (!directResponse.ok) {
@@ -399,34 +520,34 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
           
           try {
             const productInfo = JSON.parse(directText);
-            console.log('Product info from direct API call:', productInfo);
+            console.log('Product info from direct API call fallback:', productInfo);
             return productInfo;
           } catch (parseError) {
-            console.error(`Error parsing JSON from direct API call: ${parseError}`);
-            
-            // If we received HTML instead of JSON
-            if (directText.includes('<!DOCTYPE') || directText.includes('<html')) {
-              return {
-                success: 'false',
-                description: 'Received HTML instead of JSON from API'
-              };
-            }
-            
             throw new Error('Invalid JSON response from direct API call');
           }
-        } catch (directError) {
-          console.error(`Direct API call error: ${directError.message}`);
-          
-          // If all attempts failed, return a mock response for demo purposes
-          console.log('All API call attempts failed, returning mock data');
-          return {
-            success: 'true',
-            name: 'Demo Product (API Unavailable)',
-            price: '10',
-            stock: '100',
-            description: 'This is a mock product because the API is currently unavailable.'
-          };
         }
+        
+        // If all fallbacks failed, return mock data as last resort
+        console.log('All API call attempts failed, returning mock data');
+        return {
+          success: 'true',
+          name: 'Demo Product (API Unavailable)',
+          price: '10',
+          stock: '100',
+          description: 'This is a mock product because the API is currently unavailable.'
+        };
+        
+      } catch (fallbackError) {
+        console.error(`All fallback attempts failed: ${fallbackError.message}`);
+        
+        // Return mock data as a last resort
+        return {
+          success: 'true',
+          name: 'Demo Product (API Unavailable)',
+          price: '10',
+          stock: '100',
+          description: 'This is a mock product because the API is currently unavailable.'
+        };
       }
     }
   } catch (error: any) {
