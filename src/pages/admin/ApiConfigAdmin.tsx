@@ -21,7 +21,6 @@ import { toast } from 'sonner';
 interface ApiConfig {
   id: string;
   name: string;
-  kiosk_token: string;
   user_token: string;
   is_active: boolean;
 }
@@ -33,7 +32,6 @@ const ApiConfigAdmin = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    kiosk_token: '',
     user_token: '',
     is_active: false,
   });
@@ -72,7 +70,6 @@ const ApiConfigAdmin = () => {
   const handleEdit = (config: ApiConfig) => {
     setFormData({
       name: config.name,
-      kiosk_token: config.kiosk_token,
       user_token: config.user_token,
       is_active: config.is_active,
     });
@@ -83,7 +80,6 @@ const ApiConfigAdmin = () => {
   const handleAddNew = () => {
     setFormData({
       name: '',
-      kiosk_token: '',
       user_token: '',
       is_active: false,
     });
@@ -118,7 +114,6 @@ const ApiConfigAdmin = () => {
       // Reset form and fetch fresh data
       setFormData({
         name: '',
-        kiosk_token: '',
         user_token: '',
         is_active: false,
       });
@@ -136,7 +131,6 @@ const ApiConfigAdmin = () => {
     setIsAdding(false);
     setFormData({
       name: '',
-      kiosk_token: '',
       user_token: '',
       is_active: false,
     });
@@ -159,7 +153,6 @@ const ApiConfigAdmin = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Kiosk Token</TableHead>
                   <TableHead>User Token</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -168,13 +161,13 @@ const ApiConfigAdmin = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center">
+                    <TableCell colSpan={4} className="text-center">
                       Loading configurations...
                     </TableCell>
                   </TableRow>
                 ) : configs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center">
+                    <TableCell colSpan={4} className="text-center">
                       No API configurations found
                     </TableCell>
                   </TableRow>
@@ -183,9 +176,6 @@ const ApiConfigAdmin = () => {
                     <TableRow key={config.id}>
                       <TableCell>
                         <div className="font-medium">{config.name}</div>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {config.kiosk_token.substring(0, 8)}...
                       </TableCell>
                       <TableCell className="font-mono text-sm">
                         {config.user_token.substring(0, 8)}...
@@ -227,17 +217,6 @@ const ApiConfigAdmin = () => {
                       id="name"
                       name="name"
                       value={formData.name}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="kiosk_token">Kiosk Token</Label>
-                    <Input
-                      id="kiosk_token"
-                      name="kiosk_token"
-                      value={formData.kiosk_token}
                       onChange={handleInputChange}
                       required
                     />

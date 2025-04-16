@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Category } from '@/types';
 
 export function useProductSync() {
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +42,20 @@ export function useProductSync() {
         throw new Error('Product not found or has no kiosk token');
       }
 
-      const response = await fetch(`/functions/v1/product-sync?action=sync-product&externalId=${externalId}&kioskToken=${product.kiosk_token}`);
+      // Get a random user token from active configs
+      const { data: apiConfig, error: configError } = await supabase
+        .from('api_configs')
+        .select('user_token')
+        .eq('is_active', true)
+        .order('created_at', { ascending: Math.random() > 0.5 }) // Random ordering
+        .limit(1)
+        .single();
+        
+      if (configError || !apiConfig) {
+        throw new Error('No active API configuration found');
+      }
+
+      const response = await fetch(`/functions/v1/product-sync?action=sync-product&externalId=${externalId}&userToken=${apiConfig.user_token}`);
       const data = await response.json();
       
       if (!response.ok) {
@@ -64,25 +76,33 @@ export function useProductSync() {
   const fetchProductInfoByKioskToken = async (kioskToken: string) => {
     setIsLoading(true);
     try {
-      const { data: apiConfig, error: configError } = await supabase
+      // Get a random user token to avoid using the same one continuously
+      const { data: apiConfigs, error: configError } = await supabase
         .from('api_configs')
         .select('user_token')
         .eq('is_active', true)
-        .single();
+        .order('created_at', { ascending: Math.random() > 0.5 }) // Random ordering
+        .limit(1);
         
-      if (configError || !apiConfig) {
+      if (configError || !apiConfigs || apiConfigs.length === 0) {
         throw new Error('No active API configuration found');
       }
+      
+      const userToken = apiConfigs[0].user_token;
+      console.log(`Using userToken: ${userToken.substring(0, 8)}... for product lookup`);
         
-      const response = await fetch(`/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${apiConfig.user_token}`);
-      const data = await response.json();
+      const response = await fetch(`/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${userToken}`);
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to get product info');
+        const errorText = await response.text();
+        throw new Error(`API error (${response.status}): ${errorText}`);
       }
       
-      if (data.success !== 'true') {
-        throw new Error(data.description || 'API returned failure');
+      const data = await response.json();
+      
+      if (!data || data.success !== 'true') {
+        console.error('API returned failure:', data);
+        throw new Error(data?.description || 'API returned failure');
       }
       
       return data;
@@ -97,7 +117,20 @@ export function useProductSync() {
   const syncAllProducts = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/functions/v1/product-sync?action=sync-all`);
+      // Get a random user token from active configs
+      const { data: apiConfig, error: configError } = await supabase
+        .from('api_configs')
+        .select('user_token')
+        .eq('is_active', true)
+        .order('created_at', { ascending: Math.random() > 0.5 }) // Random ordering
+        .limit(1)
+        .single();
+        
+      if (configError || !apiConfig) {
+        throw new Error('No active API configuration found');
+      }
+        
+      const response = await fetch(`/functions/v1/product-sync?action=sync-all&userToken=${apiConfig.user_token}`);
       const data = await response.json();
       
       if (!response.ok) {

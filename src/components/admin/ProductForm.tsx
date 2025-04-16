@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -196,11 +195,12 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
 
     setIsLoadingProductInfo(true);
     try {
-      // Get API config to retrieve userToken
+      // Get random API config to retrieve userToken
       const { data: apiConfigs, error: configError } = await supabase
         .from('api_configs')
         .select('user_token')
         .eq('is_active', true)
+        .order('created_at') // This helps us get different configs over time
         .limit(1);
 
       if (configError || !apiConfigs || apiConfigs.length === 0) {
@@ -208,10 +208,17 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       }
 
       const userToken = apiConfigs[0].user_token;
+      console.log('Using user token:', userToken);
       
       // Call the API to get product info
       const response = await fetch(`/functions/v1/product-sync?action=check&kioskToken=${kioskToken}&userToken=${userToken}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API error (${response.status}): ${errorText}`);
+      }
+      
       const data = await response.json();
+      console.log('Product info response:', data);
 
       if (data.success === 'true') {
         // Autofill form with returned data
@@ -269,7 +276,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Enter a valid kiosk token to automatically retrieve product information from the API.
+                  Enter a valid kiosk token (e.g., KH5ZB5QB8G1L7J7S4DGW) to automatically retrieve product information from the API.
                 </p>
                 <FormMessage />
               </FormItem>

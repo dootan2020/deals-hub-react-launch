@@ -10,7 +10,6 @@ const corsHeaders = {
 interface ApiConfig {
   id: string;
   name: string;
-  kiosk_token: string;
   user_token: string;
 }
 
@@ -20,6 +19,7 @@ interface ProductInfo {
   stock?: string;
   price?: string;
   description?: string;
+  data?: Array<{product: string}>;
 }
 
 interface SyncResult {
@@ -320,8 +320,15 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
   const url = `https://taphoammo.net/api/getStock?kioskToken=${kioskToken}&userToken=${userToken}`;
   
   try {
+    console.log(`Fetching product info from: ${url}`);
     const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`API responded with status: ${response.status}`);
+    }
+    
     const data = await response.json();
+    console.log(`API response:`, data);
     return data as ProductInfo;
   } catch (error: any) {
     console.error(`Error fetching product info: ${error.message}`);
