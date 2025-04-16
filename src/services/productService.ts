@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { ProxyConfig } from "@/utils/proxyUtils";
 import { extractFromHtml, fetchActiveApiConfig, isHtmlResponse, normalizeProductInfo } from "@/utils/apiUtils";
@@ -258,4 +259,73 @@ export async function syncAllProducts() {
       'X-Request-Time': timestamp.toString()
     };
     
-    const response = await fetch(`/functions/v1/product-sync?action=sync-all&userToken=${apiConfig.user_token}&
+    const response = await fetch(`/functions/v1/product-sync?action=sync-all&userToken=${apiConfig.user_token}&_t=${timestamp}`, {
+      headers
+    });
+    
+    if (!response.ok) {
+      let errorText = '';
+      try {
+        const errorJson = await response.json();
+        errorText = errorJson.error || `API error (${response.status})`;
+      } catch (e) {
+        try {
+          errorText = await response.text();
+          if (errorText.length > 100) {
+            errorText = errorText.substring(0, 100) + "...";
+          }
+          errorText = `API error (${response.status}): ${errorText}`;
+        } catch (textError) {
+          errorText = `API error (${response.status}): Unable to read error response`;
+        }
+      }
+      
+      console.error('API error response:', errorText);
+      throw new Error(errorText);
+    }
+    
+    const data = await response.json();
+    
+    if (!data || data.error) {
+      throw new Error(data?.error || 'Failed to sync all products');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Sync all products error:', error);
+    throw error;
+  }
+}
+
+export async function createProduct(productData: any) {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .insert(productData)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Create product error:', error);
+    throw error;
+  }
+}
+
+export async function updateProduct({ id, ...productData }: { id: string, [key: string]: any }) {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .update(productData)
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Update product error:', error);
+    throw error;
+  }
+}
