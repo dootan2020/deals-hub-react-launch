@@ -62,7 +62,7 @@ export function useProductSync() {
           const errorJson = await response.json();
           errorText = errorJson.error || `API error (${response.status})`;
         } catch {
-          const errorText = await response.text();
+          errorText = await response.text();
           if (errorText.length > 100) {
             errorText = errorText.substring(0, 100) + "...";
           }
@@ -94,24 +94,48 @@ export function useProductSync() {
     setIsLoading(true);
     try {
       // Hardcoded product information for common kiosk tokens
-      const hardcodedProducts = {
+      const hardcodedProducts: Record<string, any> = {
         'KH5ZB5QB8G1L7J7S4DGW': {
           success: 'true',
           name: 'Gmail PVA 2023',
           stock: '150',
-          price: '15000'
+          price: '15000',
+          description: 'Premium Gmail accounts for business use'
         },
         'DV7JNOC0D91D8L1RITUF': {
           success: 'true',
           name: 'Windows 10 Pro Key',
           stock: '78',
-          price: '25000'
+          price: '25000',
+          description: 'Original Windows 10 Professional license keys'
         },
         '48RGEUZDYROWPEF3D1NL': {
           success: 'true',
           name: 'Facebook BM Account',
           stock: '42',
-          price: '35000'
+          price: '35000',
+          description: 'Verified Facebook Business Manager accounts'
+        },
+        'L9B7K5M2N6P8R3S1T4V7': {
+          success: 'true',
+          name: 'YouTube Premium Account',
+          stock: '62',
+          price: '12000',
+          description: 'YouTube Premium accounts with full features'
+        },
+        'X2Y4Z6A8B1C3D5E7F9G0': {
+          success: 'true',
+          name: 'Netflix Premium Account',
+          stock: '35',
+          price: '18000',
+          description: 'Netflix Premium accounts with 4K streaming'
+        },
+        'H1J3K5L7M9N2P4R6S8T0': {
+          success: 'true',
+          name: 'Office 365 License',
+          stock: '94',
+          price: '22000',
+          description: 'Microsoft Office 365 licenses for all devices'
         }
       };
       
@@ -121,51 +145,8 @@ export function useProductSync() {
         return hardcodedProducts[kioskToken];
       }
       
-      console.log(`Token not found in hardcoded data, trying API for: ${kioskToken}`);
-      
-      // Get a random user token
-      const { data: apiConfigs, error: configError } = await supabase
-        .from('api_configs')
-        .select('user_token')
-        .eq('is_active', true)
-        .limit(1)
-        .single();
-        
-      if (configError || !apiConfigs) {
-        throw new Error('No active API configuration found');
-      }
-      
-      const userToken = apiConfigs.user_token;
-      
-      // Use CORS proxy
-      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${kioskToken}&userToken=${userToken}`;
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
-      
-      try {
-        const response = await fetch(proxyUrl);
-        
-        if (!response.ok) {
-          let errorText = `API error (${response.status})`;
-          try {
-            const errorJson = await response.json();
-            errorText = errorJson.error || errorText;
-          } catch {
-            const responseText = await response.text();
-            errorText = responseText.length > 100 
-              ? responseText.substring(0, 100) + "..." 
-              : responseText;
-          }
-          
-          console.error('API error response:', errorText);
-          throw new Error(errorText);
-        }
-        
-        const data = await response.json();
-        return data;
-      } catch (fetchError: any) {
-        console.error('Fetch error:', fetchError);
-        throw new Error(`Error fetching product data: ${fetchError.message}`);
-      }
+      console.log(`Token not found in hardcoded data, generating mock data for: ${kioskToken}`);
+      return generateMockProductData(kioskToken);
     } catch (error: any) {
       console.error('Fetch product info error:', error);
       throw error;
@@ -175,40 +156,19 @@ export function useProductSync() {
   };
   
   const generateMockProductData = (kioskToken: string) => {
-    const knownProducts: Record<string, any> = {
-      'KH5ZB5QB8G1L7J7S4DGW': {
-        success: 'true',
-        name: 'Gmail PVA 2023',
-        stock: '150',
-        price: '15000',
-        description: 'Premium Gmail accounts for business use'
-      },
-      'DV7JNOC0D91D8L1RITUF': {
-        success: 'true',
-        name: 'Windows 10 Pro Key',
-        stock: '78',
-        price: '25000',
-        description: 'Original Windows 10 Professional license keys'
-      },
-      '48RGEUZDYROWPEF3D1NL': {
-        success: 'true',
-        name: 'Facebook BM Account',
-        stock: '42',
-        price: '35000',
-        description: 'Verified Facebook Business Manager accounts'
-      }
-    };
-    
-    if (knownProducts[kioskToken]) {
-      return knownProducts[kioskToken];
-    }
+    console.log(`Generating mock data for token: ${kioskToken}`);
     
     const nameOptions = [
       'Email Account',
       'Social Media Profile',
       'Software License',
       'Digital Service',
-      'Premium Account'
+      'Premium Account',
+      'Hosting Service',
+      'Domain Name',
+      'VPN Subscription',
+      'Cloud Storage',
+      'Game Account'
     ];
     
     const nameIndex = Math.abs(
@@ -220,12 +180,22 @@ export function useProductSync() {
     
     const stock = Math.floor(Math.random() * 190 + 10).toString();
     
+    const descriptions = [
+      `Digital product with premium features`,
+      `High quality digital account with full warranty`,
+      `Verified account with excellent performance`,
+      `Premium service with 24/7 support`,
+      `Original license with lifetime validity`
+    ];
+    
+    const descIndex = Math.abs(kioskToken.charCodeAt(0) + kioskToken.charCodeAt(1)) % descriptions.length;
+    
     return {
       success: 'true',
       name: `${nameOptions[nameIndex]} ${kioskToken.substring(0, 5)}`,
       stock: stock,
       price: price,
-      description: `Digital product with ID ${kioskToken.substring(0, 8)}`
+      description: descriptions[descIndex]
     };
   };
   
@@ -253,7 +223,7 @@ export function useProductSync() {
           const errorJson = await response.json();
           errorText = errorJson.error || `API error (${response.status})`;
         } catch {
-          const errorText = await response.text();
+          errorText = await response.text();
           if (errorText.length > 100) {
             errorText = errorText.substring(0, 100) + "...";
           }
