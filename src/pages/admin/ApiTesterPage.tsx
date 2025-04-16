@@ -1,3 +1,4 @@
+// src/pages/admin/ApiTesterPage.tsx
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -47,6 +48,13 @@ const mockData: Record<string, ApiResponse> = {
     price: "3500",
     stock: "8090",
     description: "Tài khoản Instagram đã qua 282, không yêu cầu login IP, tuổi 10-30 ngày"
+  },
+  "VPMY2EKXSNY5Y3A4A35B": {
+    success: "true",
+    name: "Digital Deals Hub Premium",
+    price: "29999",
+    stock: "345",
+    description: "Gói Premium dành cho Digital Deals Hub"
   }
 };
 
@@ -126,7 +134,6 @@ const ApiTesterPage = () => {
       const fetchOptions: RequestInit = {
         headers,
         cache: 'no-store',
-        // Xóa mode: 'cors' vì một số proxy không hỗ trợ
       };
 
       // Thiết lập timeout để tránh treo khi yêu cầu thất bại
@@ -241,6 +248,81 @@ const ApiTesterPage = () => {
     }
   };
 
+  // Hàm sử dụng serverless function để lấy dữ liệu
+  const handleServerlessFetch = async () => {
+    if (!kioskToken || !userToken) {
+      setError('Vui lòng nhập cả Kiosk Token và User Token');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setApiResponse(null);
+    setRawResponse('');
+    setIsMockData(false);
+
+    try {
+      // Đường dẫn đến serverless function - đảm bảo thay thế bằng đường dẫn thực tế
+      const serverlessUrl = `/functions/v1/api-proxy?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}`;
+      
+      const response = await fetch(serverlessUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Lỗi serverless: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setApiResponse(data);
+      setRawResponse(JSON.stringify(data, null, 2));
+      
+      // Cập nhật thời gian
+      const now = new Date();
+      setLastUpdated(
+        `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`
+      );
+    } catch (error: any) {
+      console.error('Serverless error:', error);
+      setError(`Lỗi: ${error.message}`);
+      
+      // Sử dụng dữ liệu mẫu khi serverless thất bại
+      const mockResponse = getMockResponse(kioskToken);
+      setApiResponse(mockResponse);
+      setRawResponse(JSON.stringify(mockResponse, null, 2));
+      setIsMockData(true);
+      
+      toast.warning('Sử dụng dữ liệu mẫu do lỗi kết nối serverless');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Hàm sử dụng dữ liệu mẫu trực tiếp
+  const handleUseMockData = () => {
+    if (!kioskToken) {
+      setError('Vui lòng nhập Kiosk Token');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    
+    // Giả lập độ trễ để tạo cảm giác đang gọi API
+    setTimeout(() => {
+      const mockResponse = getMockResponse(kioskToken);
+      setApiResponse(mockResponse);
+      setRawResponse(JSON.stringify(mockResponse, null, 2));
+      setIsMockData(true);
+      
+      const now = new Date();
+      setLastUpdated(
+        `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`
+      );
+      
+      toast.success('Đã tải dữ liệu mẫu thành công');
+      setIsLoading(false);
+    }, 800);
+  };
+
   return (
     <AdminLayout title="Kiểm Tra API Taphoammo">
       <Card className="border-primary/20 bg-primary/5 mb-4">
@@ -305,12 +387,14 @@ const ApiTesterPage = () => {
                 <SelectItem value="allorigins">AllOrigins</SelectItem>
                 <SelectItem value="corsproxy">CORS Proxy</SelectItem>
                 <SelectItem value="cors-anywhere">CORS Anywhere</SelectItem>
+                <SelectItem value="jsonp">JSONP Proxy</SelectItem>
+                <SelectItem value="yproxy">YProxy</SelectItem>
                 <SelectItem value="direct">Direct API Call</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
-          <div>
+          <div className="flex flex-wrap gap-2">
             <Button 
               onClick={handleApiTest} 
               disabled={isLoading}
@@ -319,6 +403,24 @@ const ApiTesterPage = () => {
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {!isLoading && <RefreshCw className="mr-2 h-4 w-4" />}
               Kiểm Tra API
+            </Button>
+            
+            <Button 
+              onClick={handleServerlessFetch} 
+              disabled={isLoading}
+              className="bg-purple-500 hover:bg-purple-600 text-white"
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Dùng Serverless
+            </Button>
+            
+            <Button 
+              onClick={handleUseMockData} 
+              disabled={isLoading}
+              variant="outline"
+              className="border-amber-500 text-amber-600 hover:bg-amber-50"
+            >
+              Dùng Dữ Liệu Mẫu
             </Button>
           </div>
         </div>
