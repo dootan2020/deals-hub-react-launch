@@ -328,17 +328,19 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
   try {
     console.log(`Fetching product info from: ${targetUrl}`);
     
-    // Create fetch options with enhanced headers
+    // Create fetch options with enhanced headers for improved compatibility
     const options = {
       method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept': 'application/json',
+        'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
         'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
         'Referer': 'https://taphoammo.net/',
         'Origin': 'https://taphoammo.net',
-        'Pragma': 'no-cache'
+        'Connection': 'keep-alive',
+        'X-Requested-With': 'XMLHttpRequest'
       },
       redirect: 'follow'
     };
@@ -356,60 +358,94 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
       // Clear timeout since response received
       clearTimeout(timeoutId);
       
+      // Log full response details for debugging
+      console.log(`API response status: ${response.status}`);
+      console.log(`API response headers:`, Object.fromEntries(response.headers.entries()));
+      
       if (!response.ok) {
         const statusCode = response.status;
         let errorText = '';
         
         try {
           errorText = await response.text();
+          console.error(`API error response (${statusCode}): ${errorText.substring(0, 300)}`);
         } catch (e) {
           errorText = 'Unable to read error response';
         }
         
-        console.error(`API responded with status: ${statusCode}, body: ${errorText.substring(0, 200)}`);
-        
         // Check if response is HTML (typically from an error page)
         if (errorText.trim().startsWith('<!DOCTYPE') || errorText.includes('<html')) {
+          console.error(`API returned HTML response instead of JSON. Status: ${statusCode}`);
           return { 
             success: 'false', 
-            description: `API error: Received HTML response instead of JSON. Status: ${statusCode}` 
+            description: `API error: Received HTML response instead of JSON. Status: ${statusCode}. Please verify your API credentials.` 
           };
         }
         
         return { 
           success: 'false', 
-          description: `API error: Status ${statusCode}` 
+          description: `API error: Status ${statusCode}. ${errorText}` 
         };
       }
       
       // Check content type to ensure we're getting JSON
       const contentType = response.headers.get('content-type');
+      console.log(`Content-Type: ${contentType}`);
+      
       if (contentType && !contentType.includes('application/json')) {
-        console.warn(`API returned non-JSON content type: ${contentType}`);
+        console.warn(`API returned non-JSON content type: ${contentType}. Attempting to parse anyway.`);
+        
+        // Try to get the response text to see what's being returned
+        const responseText = await response.text();
+        console.log(`Non-JSON response (first 300 chars): ${responseText.substring(0, 300)}`);
+        
+        // Check if response is HTML
+        if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
+          console.error('Received HTML instead of JSON - likely an API error or redirection');
+          return { 
+            success: 'false', 
+            description: 'API returned HTML instead of JSON. Please verify your API credentials and ensure no redirection is happening.' 
+          };
+        }
+        
+        // Even though content-type is not JSON, try to parse it as JSON anyway
+        try {
+          const parsedData = JSON.parse(responseText) as ProductInfo;
+          console.log('Successfully parsed non-JSON content-type response as JSON:', parsedData);
+          return parsedData;
+        } catch (parseError) {
+          console.error(`Failed to parse non-JSON response: ${parseError}`);
+          return {
+            success: 'false',
+            description: `API returned invalid format (${contentType}). Please check your API configuration.`
+          };
+        }
       }
       
+      // Try to get the response as text first to inspect it
       const responseText = await response.text();
       
       // Check for empty response
       if (!responseText.trim()) {
+        console.error('API returned empty response');
         return {
           success: 'false',
           description: 'API returned empty response'
         };
       }
       
-      console.log(`API raw response: ${responseText.substring(0, 200)}...`);
+      console.log(`API raw response (first 300 chars): ${responseText.substring(0, 300)}`);
       
-      // Check if response is HTML instead of JSON
+      // Check if response looks like HTML despite content-type
       if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
-        console.error('Received HTML instead of JSON - likely an API error or redirection');
+        console.error('Received HTML despite content-type indicating JSON');
         return { 
           success: 'false', 
-          description: 'API returned HTML instead of JSON. Vui lòng kiểm tra lại userToken và kioskToken.' 
+          description: 'API returned HTML instead of JSON. Please verify your API credentials.' 
         };
       }
       
-      // Try to parse the response as JSON
+      // Try to parse the text as JSON
       try {
         const data = JSON.parse(responseText) as ProductInfo;
         console.log(`API parsed response:`, data);
@@ -426,6 +462,8 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
           while ((match = regex.exec(responseText)) !== null) {
             extracted[match[1]] = match[2];
           }
+          
+          console.log('Extracted partial data from malformed JSON:', extracted);
           
           return {
             success: 'true',
@@ -446,12 +484,14 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
       clearTimeout(timeoutId);
       
       if (fetchError.name === 'AbortError') {
+        console.error('API request timed out after 15 seconds');
         return { 
           success: 'false', 
-          description: 'API request timed out after 15 seconds' 
+          description: 'API request timed out after 15 seconds. Server may be slow or unresponsive.' 
         };
       }
       
+      console.error(`Fetch error: ${fetchError.message}`);
       throw fetchError;
     }
   } catch (error: any) {

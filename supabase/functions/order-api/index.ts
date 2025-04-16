@@ -91,12 +91,14 @@ serve(async (req: Request) => {
           method: 'GET',
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
             'Cache-Control': 'no-cache',
             'Referer': 'https://taphoammo.net/',
             'Origin': 'https://taphoammo.net',
-            'Pragma': 'no-cache'
+            'Pragma': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Requested-With': 'XMLHttpRequest'
           },
           redirect: 'follow'
         };
@@ -111,6 +113,8 @@ serve(async (req: Request) => {
           });
           
           clearTimeout(timeoutId);
+          console.log(`API response status: ${response.status}`);
+          console.log(`API response headers:`, Object.fromEntries(response.headers.entries()));
           
           if (!response.ok) {
             const statusCode = response.status;
@@ -126,19 +130,19 @@ serve(async (req: Request) => {
             // Check if response is HTML
             if (errorText.trim().startsWith('<!DOCTYPE') || errorText.includes('<html')) {
               return new Response(
-                JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your configuration.' }),
+                JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your API configuration and credentials.' }),
                 { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
               );
             }
             
             return new Response(
-              JSON.stringify({ error: `API error: Status ${statusCode}` }),
+              JSON.stringify({ error: `API error: Status ${statusCode}. ${errorText}` }),
               { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
             );
           }
           
           const responseText = await response.text();
-          console.log(`API response raw: ${responseText.substring(0, 500)}`);
+          console.log(`API response raw (first 500 chars): ${responseText.substring(0, 500)}`);
           
           if (!responseText.trim()) {
             return new Response(
@@ -150,13 +154,22 @@ serve(async (req: Request) => {
           // Check if response is HTML instead of JSON
           if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
             return new Response(
-              JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your configuration.' }),
+              JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your API configuration and credentials.' }),
               { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
             );
           }
           
           // Parse the response as JSON
-          const orderResponse: OrderResponse = JSON.parse(responseText);
+          let orderResponse: OrderResponse;
+          try {
+            orderResponse = JSON.parse(responseText);
+          } catch (parseError) {
+            console.error(`Error parsing JSON response: ${parseError}`);
+            return new Response(
+              JSON.stringify({ error: `Failed to parse API response: ${parseError}` }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+            );
+          }
           
           if (orderResponse.success !== 'true') {
             return new Response(
@@ -231,12 +244,14 @@ serve(async (req: Request) => {
           method: 'GET',
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
             'Cache-Control': 'no-cache',
             'Referer': 'https://taphoammo.net/',
             'Origin': 'https://taphoammo.net',
-            'Pragma': 'no-cache'
+            'Pragma': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Requested-With': 'XMLHttpRequest'
           },
           redirect: 'follow'
         };
@@ -251,6 +266,7 @@ serve(async (req: Request) => {
           });
           
           clearTimeout(timeoutId);
+          console.log(`Order check API response status: ${response.status}`);
           
           if (!response.ok) {
             const statusCode = response.status;
@@ -266,19 +282,19 @@ serve(async (req: Request) => {
             // Check if response is HTML
             if (errorText.trim().startsWith('<!DOCTYPE') || errorText.includes('<html')) {
               return new Response(
-                JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your configuration.' }),
+                JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your API configuration and credentials.' }),
                 { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
               );
             }
             
             return new Response(
-              JSON.stringify({ error: `API error: Status ${statusCode}` }),
+              JSON.stringify({ error: `API error: Status ${statusCode}. ${errorText}` }),
               { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
             );
           }
           
           const responseText = await response.text();
-          console.log(`Order check API response raw: ${responseText.substring(0, 500)}`);
+          console.log(`Order check API response raw (first 500 chars): ${responseText.substring(0, 500)}`);
           
           if (!responseText.trim()) {
             return new Response(
@@ -290,13 +306,22 @@ serve(async (req: Request) => {
           // Check if response is HTML instead of JSON
           if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
             return new Response(
-              JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your configuration.' }),
+              JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your API configuration and credentials.' }),
               { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
             );
           }
           
           // Parse the response as JSON
-          const productResponse: ProductResponse = JSON.parse(responseText);
+          let productResponse: ProductResponse;
+          try {
+            productResponse = JSON.parse(responseText);
+          } catch (parseError) {
+            console.error(`Error parsing JSON response: ${parseError}`);
+            return new Response(
+              JSON.stringify({ error: `Failed to parse API response: ${parseError}` }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+            );
+          }
           
           // Update order status if successful
           if (productResponse.success === 'true' && productResponse.data) {

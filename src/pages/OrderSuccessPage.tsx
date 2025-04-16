@@ -25,6 +25,7 @@ const OrderSuccessPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [orderData, setOrderData] = useState<OrderResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retries, setRetries] = useState(0);
   
   const fetchOrderData = async () => {
     if (!orderId) {
@@ -40,25 +41,63 @@ const OrderSuccessPage = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store',
+          'Pragma': 'no-cache',
+          'X-Request-Time': new Date().getTime().toString()
         },
         body: JSON.stringify({ orderId }),
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Error ${response.status}: Failed to fetch order data`);
+        let errorMessage = `Error ${response.status}: Failed to fetch order data`;
+        
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // If parsing JSON fails, try to get the text
+          try {
+            const errorText = await response.text();
+            if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+              errorMessage = `API returned HTML instead of JSON. Please check your API configuration.`;
+            } else if (errorText) {
+              errorMessage = `${errorMessage}. Response: ${errorText.substring(0, 100)}`;
+            }
+          } catch (textError) {
+            // If we can't even get the text, just use the status code error
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
       
-      const data: OrderResponse = await response.json();
-      setOrderData(data);
+      const contentType = response.headers.get('content-type');
+      if (contentType && !contentType.includes('application/json')) {
+        console.warn(`API returned non-JSON content type: ${contentType}. Attempting to parse anyway.`);
+      }
       
-      if (data.success === 'false') {
-        if (data.description === 'Order in processing!') {
-          // This is actually an expected status for orders that are processing
-          console.log('Order is still processing');
-        } else {
-          setError(data.description || 'Unknown error occurred');
+      const responseText = await response.text();
+      
+      // Check for HTML response
+      if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+        throw new Error('API returned HTML instead of JSON. Please check your API configuration.');
+      }
+      
+      // Try to parse as JSON
+      try {
+        const data: OrderResponse = JSON.parse(responseText);
+        setOrderData(data);
+        
+        if (data.success === 'false') {
+          if (data.description === 'Order in processing!') {
+            // This is actually an expected status for orders that are processing
+            console.log('Order is still processing');
+          } else {
+            setError(data.description || 'Unknown error occurred');
+          }
         }
+      } catch (parseError) {
+        throw new Error(`Failed to parse response as JSON: ${parseError.message}`);
       }
     } catch (err: any) {
       console.error('Error fetching order data:', err);
@@ -76,6 +115,21 @@ const OrderSuccessPage = () => {
       console.error('Failed to copy:', err);
     });
   };
+  
+  // Auto-retry for processing orders
+  useEffect(() => {
+    if (orderData?.success === 'false' && 
+        orderData?.description === 'Order in processing!' && 
+        retries < 5) {
+      const timer = setTimeout(() => {
+        console.log(`Auto-retrying order check (${retries + 1}/5)...`);
+        fetchOrderData();
+        setRetries(prev => prev + 1);
+      }, 5000); // Retry every 5 seconds, up to 5 times
+      
+      return () => clearTimeout(timer);
+    }
+  }, [orderData, retries]);
   
   useEffect(() => {
     if (orderId) {
@@ -151,7 +205,9 @@ const OrderSuccessPage = () => {
                     <Alert>
                       <AlertTitle>Please note</AlertTitle>
                       <AlertDescription>
-                        Orders typically process within a few minutes. You can refresh this page to check the latest status.
+                        {retries > 0 
+                          ? `Auto-checking order status (attempt ${retries}/5)...` 
+                          : 'Orders typically process within a few minutes. You can refresh this page to check the latest status.'}
                       </AlertDescription>
                     </Alert>
                   </div>
