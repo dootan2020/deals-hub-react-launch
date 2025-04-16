@@ -8,8 +8,7 @@ import {
   syncProduct as apiSyncProduct,
   syncAllProducts as apiSyncAllProducts, 
   createProduct as apiCreateProduct,
-  updateProduct as apiUpdateProduct,
-  fetchProductInfoByKioskToken
+  updateProduct as apiUpdateProduct
 } from "@/services/productService";
 import { fetchProxySettings, ProxyConfig, ProxyType } from "@/utils/proxyUtils";
 
@@ -105,25 +104,6 @@ export function useProductSync() {
       toast.error(`Failed to update product: ${error.message}`);
     },
   });
-
-  const fetchProductInfoMutation = useMutation({
-    mutationFn: async (kioskToken: string) => {
-      setIsLoading(true);
-      try {
-        const result = await fetchProductInfoByKioskToken(kioskToken, tempProxyOverride, proxyConfig);
-        setTempProxyOverride(null); // Reset after use
-        return result;
-      } catch (error: any) {
-        toast.error(`Failed to fetch product information: ${error.message}`);
-        throw error;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to fetch product information: ${error.message}`);
-    },
-  });
   
   return {
     products: productsQuery.data || [],
@@ -135,7 +115,6 @@ export function useProductSync() {
     syncAllProducts: syncAllMutation.mutate,
     createProduct: createProductMutation.mutate,
     updateProduct: updateProductMutation.mutate,
-    fetchProductInfo: (kioskToken: string) => fetchProductInfoMutation.mutateAsync(kioskToken),
     setTempProxyOverride,
     productsError: productsQuery.error,
     syncLogsError: syncLogsQuery.error,

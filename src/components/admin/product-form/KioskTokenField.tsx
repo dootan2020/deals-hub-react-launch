@@ -1,3 +1,4 @@
+
 // src/components/admin/product-form/KioskTokenField.tsx
 
 import { useState, useEffect } from 'react';
@@ -20,7 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export function KioskTokenField() {
   const form = useFormContext();
-  const { fetchProductInfo, setTempProxyOverride } = useProductSync();
+  const { setTempProxyOverride } = useProductSync();
   const [isLoadingProductInfo, setIsLoadingProductInfo] = useState(false);
   const [selectedProxyType, setSelectedProxyType] = useState<ProxyType>('allorigins');
   const [customProxyUrl, setCustomProxyUrl] = useState<string>('');
@@ -84,8 +85,6 @@ export function KioskTokenField() {
 
   const handleSelectProxy = (proxy: ProxyType) => {
     setSelectedProxyType(proxy);
-    
-    // Đặt proxy tạm thời ngay khi người dùng chọn
     setTempProxyOverride({
       type: proxy,
       url: proxy === 'custom' ? customProxyUrl : undefined
@@ -112,6 +111,11 @@ export function KioskTokenField() {
       return;
     }
 
+    if (!userToken) {
+      toast.error('No active API configuration found. Please set up API configuration first.');
+      return;
+    }
+
     setIsLoadingProductInfo(true);
     setApiError(null);
     setApiSuccess(null);
@@ -119,16 +123,27 @@ export function KioskTokenField() {
     setHtmlContent(null);
     
     try {
-      // Ensure we're using the selected proxy
-      console.log("Using proxy: ", selectedProxyType);
-      const productInfo = await fetchProductInfo(kioskToken);
-      console.log("Product info received:", productInfo);
+      console.log(`Using proxy: ${selectedProxyType}`);
       
-      // Check if product info was extracted from HTML
-      if (productInfo && productInfo.description === "Information extracted from HTML response") {
-        setIsMockData(true);
-        setHtmlContent("The API returned HTML instead of JSON. Using extracted data.");
+      // Use our serverless function instead of direct API call
+      const timestamp = new Date().getTime();
+      const apiUrl = `/functions/v1/api-proxy?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}&proxyType=${selectedProxyType}&_t=${timestamp}`;
+      
+      console.log(`Calling API proxy: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store',
+          'Pragma': 'no-cache',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
       }
+      
+      const productInfo = await response.json();
+      console.log("Product info received:", productInfo);
       
       if (productInfo && productInfo.success === 'true') {
         // Fill form with product info
