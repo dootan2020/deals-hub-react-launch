@@ -344,55 +344,52 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
     try {
-      // Use Deno's fetch API to directly call the TapHoaMMO API
-      const response = await fetch(targetUrl, { 
-        headers, 
-        signal: controller.signal 
+      // First attempt: Direct call through an AllOrigins proxy
+      const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+      console.log(`Attempting API call via AllOrigins proxy: ${allOriginsUrl}`);
+      
+      const response = await fetch(allOriginsUrl, { 
+        signal: controller.signal,
+        headers
       });
       
       clearTimeout(timeoutId);
       
       if (!response.ok) {
         const statusCode = response.status;
-        let errorText = '';
+        console.error(`AllOrigins API returned error status: ${statusCode}`);
         
-        try {
-          errorText = await response.text();
-          console.error(`API error response (${statusCode}): ${errorText.substring(0, 300)}`);
-        } catch (e) {
-          errorText = 'Unable to read error response';
-        }
+        // If AllOrigins fails, try direct API call as fallback
+        const directResponse = await fetch(targetUrl, { headers });
         
-        // Check if response is HTML
-        if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
-          console.error(`API returned HTML response instead of JSON. Status: ${statusCode}`);
+        if (!directResponse.ok) {
+          let errorText = await directResponse.text();
+          console.error(`Direct API error response (${directResponse.status}): ${errorText.substring(0, 300)}`);
           return { 
             success: 'false', 
-            description: `API error: Received HTML instead of JSON. Status: ${statusCode}. Please verify your API credentials.` 
+            description: `API error: Status ${directResponse.status}` 
           };
         }
         
-        return { 
-          success: 'false', 
-          description: `API error: Status ${statusCode}. ${errorText}` 
-        };
+        const directResponseText = await directResponse.text();
+        console.log(`Direct API response (first 300 chars): ${directResponseText.substring(0, 300)}`);
+        
+        try {
+          const data = JSON.parse(directResponseText);
+          console.log('Parsed API response from direct call:', data);
+          return data;
+        } catch (parseError) {
+          console.error(`Error parsing JSON from direct call: ${parseError}`);
+          return { 
+            success: 'false', 
+            description: `Invalid JSON response from direct call` 
+          };
+        }
       }
       
-      // Check content type
-      const contentType = response.headers.get('content-type');
-      console.log(`Content-Type: ${contentType}`);
-      
+      // Process successful AllOrigins response
       const responseText = await response.text();
-      console.log(`API raw response (first 300 chars): ${responseText.substring(0, 300)}`);
-      
-      // Check for HTML content
-      if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
-        console.error('Received HTML instead of JSON');
-        return { 
-          success: 'false', 
-          description: 'API returned HTML instead of JSON. Please verify your API credentials.' 
-        };
-      }
+      console.log(`API raw response via AllOrigins (first 300 chars): ${responseText.substring(0, 300)}`);
       
       try {
         const data = JSON.parse(responseText);
@@ -402,7 +399,7 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
         console.error(`Error parsing JSON response: ${parseError}`);
         return { 
           success: 'false', 
-          description: `Invalid JSON response: ${responseText.substring(0, 100)}...` 
+          description: `Invalid JSON response` 
         };
       }
     } catch (fetchError: any) {
@@ -418,11 +415,44 @@ async function fetchProductInfoByKioskToken(userToken: string, kioskToken: strin
       
       console.error(`Fetch error: ${fetchError.message}`);
       
-      // If the direct call fails, return a fallback error
-      return { 
-        success: 'false', 
-        description: `API error: ${fetchError.message}` 
-      };
+      // Try using another proxy - CORS Anywhere
+      try {
+        console.log('Trying alternative proxy...');
+        const corsAnywhereUrl = `https://cors-anywhere.herokuapp.com/${targetUrl}`;
+        
+        const corsAnywhereResponse = await fetch(corsAnywhereUrl, { headers });
+        
+        if (!corsAnywhereResponse.ok) {
+          console.error(`CORS Anywhere proxy returned error status: ${corsAnywhereResponse.status}`);
+          return { 
+            success: 'false', 
+            description: 'Failed with all proxy attempts' 
+          };
+        }
+        
+        const corsAnywhereText = await corsAnywhereResponse.text();
+        console.log(`CORS Anywhere response (first 300 chars): ${corsAnywhereText.substring(0, 300)}`);
+        
+        try {
+          const data = JSON.parse(corsAnywhereText);
+          console.log('Parsed API response from CORS Anywhere:', data);
+          return data;
+        } catch (parseError) {
+          console.error(`Error parsing JSON from CORS Anywhere: ${parseError}`);
+          return { 
+            success: 'false', 
+            description: `Invalid JSON response from alternative proxy` 
+          };
+        }
+      } catch (proxyError: any) {
+        console.error(`Alternative proxy error: ${proxyError.message}`);
+        
+        // If all proxies fail, return a fallback error
+        return { 
+          success: 'false', 
+          description: `API error: ${proxyError.message}` 
+        };
+      }
     }
   } catch (error: any) {
     console.error(`Error fetching product info: ${error.message}`);

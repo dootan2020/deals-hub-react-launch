@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -127,32 +126,25 @@ export function useProductSync() {
       const encodedKioskToken = encodeURIComponent(kioskToken);
       const encodedUserToken = encodeURIComponent(apiConfig.user_token);
       
-      // Direct API URL to TapHoaMMO
-      const directApiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}`;
+      // Use AllOrigins as a proxy to avoid CORS issues
+      const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(
+        `https://taphoammo.net/api/getStock?kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}`
+      )}`;
       
-      console.log(`Attempting direct API call to: ${directApiUrl}`);
+      console.log(`Attempting API call via AllOrigins proxy: ${allOriginsUrl}`);
       
-      // Enhanced headers for improved browser compatibility
       const headers = {
         'Cache-Control': 'no-cache, no-store',
         'Pragma': 'no-cache',
-        'X-Request-Time': timestamp.toString(),
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Request-Time': timestamp.toString()
       };
       
       try {
-        // First try direct API call to TapHoaMMO
+        // Try direct API call through the AllOrigins proxy
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
         
-        // Use edge function as proxy to avoid CORS issues
-        const proxyUrl = `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`;
-        console.log(`Using edge function as proxy: ${proxyUrl}`);
-        
-        const response = await fetch(proxyUrl, { 
+        const response = await fetch(allOriginsUrl, { 
           signal: controller.signal,
           headers
         });
@@ -211,7 +203,18 @@ export function useProductSync() {
         }
       } catch (fetchError: any) {
         console.error(`Fetch error: ${fetchError.message}`);
-        throw fetchError;
+        
+        // As fallback, use our edge function
+        console.log(`Falling back to edge function...`);
+        const edgeFunctionUrl = `/functions/v1/product-sync?action=check&kioskToken=${encodedKioskToken}&userToken=${encodedUserToken}&_t=${timestamp}`;
+        const edgeFuncResponse = await fetch(edgeFunctionUrl, { headers });
+        
+        if (!edgeFuncResponse.ok) {
+          throw new Error(`Edge function failed: ${edgeFuncResponse.status}`);
+        }
+        
+        const edgeFuncData = await edgeFuncResponse.json();
+        return edgeFuncData;
       }
     } catch (error: any) {
       console.error('Fetch product info error:', error);
