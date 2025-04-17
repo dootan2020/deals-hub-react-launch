@@ -5,13 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { SearchableCategorySelect } from '@/components/admin/SearchableCategorySelect';
 import { Category } from '@/types';
 
 interface BasicProductInfoProps {
@@ -103,24 +97,14 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
         render={({ field }) => (
           <FormItem>
             <FormLabel>Category</FormLabel>
-            <Select 
-              onValueChange={field.onChange} 
-              defaultValue={field.value}
-              value={field.value}
-            >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchableCategorySelect
+                categories={categories}
+                value={field.value}
+                onValueChange={field.onChange}
+                placeholder="Search and select a category"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         )}
