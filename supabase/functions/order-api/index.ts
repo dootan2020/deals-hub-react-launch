@@ -257,13 +257,10 @@ serve(async (req: Request) => {
         };
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
         
         try {
-          const response = await fetch(apiUrl, {
-            ...options,
-            signal: controller.signal
-          });
+          const response = await fetch(apiUrl, { ...options, signal: controller.signal });
           
           clearTimeout(timeoutId);
           console.log(`Order check API response status: ${response.status}`);
