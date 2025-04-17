@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import ProductCard from './ProductCard';
 import { Product, FilterParams } from '@/types';
@@ -16,6 +15,7 @@ import { useToast } from '@/components/ui/use-toast';
 
 interface ProductGridProps {
   initialProducts?: Product[];
+  products?: Product[];
   title?: string;
   description?: string;
   showSort?: boolean;
@@ -27,6 +27,7 @@ interface ProductGridProps {
 
 const ProductGrid: React.FC<ProductGridProps> = ({ 
   initialProducts,
+  products: externalProducts,
   title,
   description,
   showSort = false,
@@ -35,8 +36,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   categoryId,
   isLoading: externalLoading = false
 }) => {
-  const [products, setProducts] = useState<Product[]>(initialProducts || []);
-  const [isLoading, setIsLoading] = useState(!initialProducts);
+  const [products, setProducts] = useState<Product[]>(initialProducts || externalProducts || []);
+  const [isLoading, setIsLoading] = useState(!initialProducts && !externalProducts);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -44,6 +45,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   const { toast } = useToast();
 
   const fetchProducts = useCallback(async (page = 1, append = false) => {
+    if (externalProducts) return;
+
     try {
       setError(null);
       if (page === 1) {
@@ -60,8 +63,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       
       const fetchedProducts = await fetchProductsWithFilters(filters);
       
-      // If we received fewer products than the page size or none at all, there are no more to load
-      const pageSize = 12; // This should match the page size in the API
+      const pageSize = 12;
       if (fetchedProducts.length < pageSize) {
         setHasMore(false);
       }
@@ -83,9 +85,16 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  }, [activeSort, categoryId, toast]);
+  }, [activeSort, categoryId, toast, externalProducts]);
 
   useEffect(() => {
+    if (externalProducts) {
+      setProducts(externalProducts);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+    
     if (initialProducts) {
       setProducts(initialProducts);
       setIsLoading(false);
@@ -96,7 +105,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     setPage(1);
     setHasMore(true);
     fetchProducts(1, false);
-  }, [initialProducts, activeSort, categoryId, fetchProducts]);
+  }, [initialProducts, externalProducts, activeSort, categoryId, fetchProducts]);
 
   const handleSortChange = (value: string) => {
     if (onSortChange) {
@@ -169,7 +178,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
             ))}
           </div>
           
-          {hasMore && (
+          {hasMore && !externalProducts && (
             <div className="flex justify-center mt-8">
               <Button 
                 onClick={handleLoadMore}
