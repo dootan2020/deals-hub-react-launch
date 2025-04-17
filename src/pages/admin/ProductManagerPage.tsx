@@ -23,6 +23,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { SearchableCategorySelect } from '@/components/admin/SearchableCategorySelect';
 
 const productSchema = z.object({
   title: z.string().min(1, 'Title is required'),
