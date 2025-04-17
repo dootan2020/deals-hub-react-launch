@@ -26,14 +26,14 @@ const CategoryProductsTab: React.FC<CategoryProductsTabProps> = ({
 
   return (
     <>
-      <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
-        <SimplifiedCategoryFilters 
-          onSortChange={handleSortChange}
-          activeSort={activeSort || 'recommended'}
-        />
+      <div className="flex justify-between items-center mb-6">
         <ViewToggle
           currentView={currentView}
           onViewChange={handleViewChange}
+        />
+        <SimplifiedCategoryFilters 
+          onSortChange={handleSortChange}
+          activeSort={activeSort || 'recommended'}
         />
       </div>
       

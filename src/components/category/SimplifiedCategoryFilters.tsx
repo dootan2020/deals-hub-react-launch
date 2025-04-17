@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { FilterParams } from '@/types';
 import {
   Select,
   SelectContent,
@@ -19,7 +18,7 @@ const SimplifiedCategoryFilters: React.FC<SimplifiedCategoryFiltersProps> = ({
   activeSort,
 }) => {
   return (
-    <div>
+    <div className="h-10 flex items-center">
       <Select value={activeSort} onValueChange={onSortChange}>
         <SelectTrigger className="w-[180px] md:w-[220px] focus:ring-primary">
           <SelectValue placeholder="Sort By" />

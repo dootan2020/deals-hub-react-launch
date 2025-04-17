@@ -1,4 +1,3 @@
-
 import { TableHTMLAttributes } from 'react';
 
 export interface Product {
@@ -59,17 +58,20 @@ export interface FilterParams {
   priceRange?: [number, number]; // Changed from {min, max} to tuple for consistency with usage
 }
 
-export interface CategoryPageParams {
-  slug: string;
+export interface CategoryPageParams extends Record<string, string> {
+  categorySlug?: string;
+  parentCategorySlug?: string;
 }
 
-export interface SubcategoryPageParams {
-  categorySlug: string;
-  subcategorySlug: string;
+export interface SubcategoryPageParams extends Record<string, string> {
+  categorySlug?: string;
+  parentCategorySlug?: string;
 }
 
-export interface ProductPageParams {
-  slug: string;
+export interface ProductPageParams extends Record<string, string> {
+  productSlug?: string;
+  categorySlug?: string;
+  parentCategorySlug?: string;
 }
 
 export interface ProductWithCategory extends Product {
