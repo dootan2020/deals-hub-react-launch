@@ -241,7 +241,7 @@ const EnhancedCategoryPage = () => {
         .from('products')
         .select('*')
         .eq('category_id', categoryId)
-        .eq('badges', 'Featured')
+        .eq('badges', ['Featured'])
         .limit(4);
         
       if (!data || data.length === 0) {
