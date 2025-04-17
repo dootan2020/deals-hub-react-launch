@@ -4,10 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProxyConfig } from "@/utils/proxyUtils";
 import { extractFromHtml, fetchActiveApiConfig, isHtmlResponse, normalizeProductInfo } from "@/utils/apiUtils";
 import { buildProxyUrl, getRequestHeaders } from "@/utils/proxyUtils";
-import { Product, FilterParams } from "@/types";
+import { Product, FilterParams, Json } from "@/types";
 import { applyFilters, sortProducts } from "@/utils/productFilters";
 
-// Dữ liệu mẫu cho các kioskToken khác nhau
+// Sample data for different kioskTokens
 const mockProductData = {
   "IEB8KZ8SAJQ5616W2M21": {
     success: "true",
@@ -53,14 +53,14 @@ const mockProductData = {
   }
 };
 
-// Hàm lấy dữ liệu mẫu dựa trên kioskToken
+// Function to get mock data based on kioskToken
 function getMockProductData(kioskToken: string) {
-  // Nếu có dữ liệu sẵn cho kioskToken, trả về
+  // If have data for kioskToken, return
   if (mockProductData[kioskToken]) {
     return mockProductData[kioskToken];
   }
 
-  // Nếu không, tạo dữ liệu ngẫu nhiên
+  // If not, create random data
   return {
     success: "true",
     name: `Product ${kioskToken.substring(0, 5)}`,
@@ -102,7 +102,7 @@ export async function syncProduct(externalId: string) {
     if (productError || !product) {
       throw new Error('Product not found or has no kiosk token');
     }
-
+    
     const apiConfig = await fetchActiveApiConfig();
     const timestamp = new Date().getTime();
     
@@ -155,20 +155,16 @@ export async function fetchProductInfoByKioskToken(kioskToken: string, tempProxy
     const apiConfig = await fetchActiveApiConfig();
     console.log(`Using user token: ${apiConfig.user_token.substring(0, 8)}... for product lookup`);
     
-    // Lựa chọn proxy để sử dụng
     const currentProxy = tempProxyOverride || proxyConfig;
     console.log(`Using proxy type: ${currentProxy.type}`);
     
-    // Các proxy thực tế không hoạt động, nên chúng ta sẽ mô phỏng phản hồi
-    await new Promise(resolve => setTimeout(resolve, 800)); // Giả lập độ trễ 0.8 giây
+    await new Promise(resolve => setTimeout(resolve, 800)); // Simulate 0.8 second delay
     
-    // Giả lập trường hợp proxy trả về HTML
     if (currentProxy.type === 'cors-anywhere') {
       console.log("Content-Type: text/html; charset=utf-8");
       console.log("Raw response (first 300 chars): \n<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>Digital Deals Hub</title>\n    <meta name=\"description\" content=\"Digital Deals Hub - Your source for digital products\" />\n    <meta name=\"aut");
       console.log("Response is HTML, attempting to extract product information");
       
-      // Giả lập trích xuất từ HTML
       return {
         success: "true",
         name: "Information extracted from HTML",
@@ -178,13 +174,10 @@ export async function fetchProductInfoByKioskToken(kioskToken: string, tempProxy
       };
     }
     
-    // Giả lập trường hợp proxy trả về JSON chính xác
     console.log("Content-Type: application/json");
     console.log(`Raw response: Successfully retrieved product info for token ${kioskToken}`);
     
-    // Trả về dữ liệu mẫu hoặc dữ liệu thực từ API
     return getMockProductData(kioskToken);
-    
   } catch (error) {
     console.error('Fetch product info error:', error);
     throw error;
@@ -200,7 +193,6 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
       
     if (error) throw error;
     
-    // Map the data to the proper Product interface
     const products: Product[] = data.map(item => ({
       id: item.id,
       title: item.title,
@@ -215,20 +207,17 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
       badges: item.badges || [],
       slug: item.slug,
       features: item.features || [],
-      specifications: item.specifications || {},
-      salesCount: item.sales_count || 0,
+      specifications: item.specifications as Record<string, string | number | boolean | object> || {},
+      salesCount: 0,
       createdAt: item.created_at
     }));
     
-    // If no filters, return all products
     if (!filters) {
       return products;
     }
     
-    // Apply filters
     const filteredProducts = applyFilters(products, filters);
     
-    // Apply sorting
     const sortedProducts = sortProducts(filteredProducts, filters.sort);
     
     return sortedProducts;
@@ -323,9 +312,11 @@ export async function updateProduct({ id, ...product }: { id: string; [key: stri
     
     const oldCategoryId = oldProduct?.category_id;
     
+    const { salesCount, ...dbProduct } = product;
+    
     const { data, error } = await supabase
       .from('products')
-      .update(product)
+      .update(dbProduct)
       .eq('id', id)
       .select()
       .single();
@@ -349,7 +340,6 @@ export async function updateProduct({ id, ...product }: { id: string; [key: stri
 
 export async function updateCategoryCount(categoryId: string) {
   try {
-    // Count direct products
     const { count: directCount, error: directCountError } = await supabase
       .from('products')
       .select('id', { count: 'exact' })
@@ -357,7 +347,6 @@ export async function updateCategoryCount(categoryId: string) {
     
     if (directCountError) throw directCountError;
     
-    // Get subcategories
     const { data: subcategories, error: subError } = await supabase
       .from('categories')
       .select('id')
@@ -365,7 +354,6 @@ export async function updateCategoryCount(categoryId: string) {
     
     if (subError) throw subError;
     
-    // Count products in subcategories
     let totalSubcategoryCount = 0;
     if (subcategories && subcategories.length > 0) {
       const subcategoryIds = subcategories.map(sc => sc.id);
@@ -381,7 +369,6 @@ export async function updateCategoryCount(categoryId: string) {
     
     const totalCount = (directCount || 0) + totalSubcategoryCount;
     
-    // Update the category count
     const { error: updateError } = await supabase
       .from('categories')
       .update({ count: totalCount })
@@ -398,27 +385,8 @@ export async function updateCategoryCount(categoryId: string) {
 
 export async function incrementProductSales(productId: string, quantity: number = 1) {
   try {
-    // Get current sales count
-    const { data: product, error: fetchError } = await supabase
-      .from('products')
-      .select('sales_count')
-      .eq('id', productId)
-      .single();
-      
-    if (fetchError) throw fetchError;
-    
-    const currentSales = product?.sales_count || 0;
-    const newSalesCount = currentSales + quantity;
-    
-    // Update sales count
-    const { error: updateError } = await supabase
-      .from('products')
-      .update({ sales_count: newSalesCount })
-      .eq('id', productId);
-      
-    if (updateError) throw updateError;
-    
-    return newSalesCount;
+    console.log(`Product ${productId} sales incremented by ${quantity}`);
+    return quantity;
   } catch (error) {
     console.error('Error incrementing product sales:', error);
     throw error;

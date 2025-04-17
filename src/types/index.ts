@@ -13,9 +13,9 @@ export interface Product {
   badges: string[];
   slug: string;
   features?: string[];
-  specifications?: Record<string, string>;
-  salesCount?: number; // New field for tracking sales count
-  createdAt?: string; // New field for tracking when product was added
+  specifications?: Record<string, string | number | boolean | object>;
+  salesCount?: number; // Field for tracking sales count
+  createdAt?: string; // Field for tracking when product was added
 }
 
 export interface Category {
@@ -91,3 +91,6 @@ export interface FilterParams {
   sort?: string;
   page?: number;
 }
+
+// Define a Json type to handle complex database structures
+export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];

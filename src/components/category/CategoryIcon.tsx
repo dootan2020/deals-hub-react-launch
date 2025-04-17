@@ -14,7 +14,7 @@ import {
   Network,
   Globe,
   Subtitles,
-  Television,
+  Tv,
   Headphones,
   Layers,
   Facebook,
@@ -84,7 +84,7 @@ const iconMap: Record<CategoryIconName, LucideIcon> = {
   linkedin: Linkedin,
   youtube: Youtube,
   messenger: MessageSquare,
-  video: Television,
+  video: Tv,
   sharing: Share2,
   mail: IconMail
 };

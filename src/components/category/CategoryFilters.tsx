@@ -231,6 +231,15 @@ const CategoryFilters = ({ onFilterChange, filters, totalProducts }: CategoryFil
   );
 };
 
+interface MobileFiltersContentProps {
+  filters: FilterOptions;
+  onPriceChange: (range: string) => void;
+  onRatingChange: (rating: string) => void;
+  onStockChange: (inStock: boolean) => void;
+  onClearFilters: () => void;
+  hasActiveFilters: boolean;
+}
+
 const MobileFiltersContent = ({ 
   filters,
   onPriceChange,
@@ -238,7 +247,7 @@ const MobileFiltersContent = ({
   onStockChange,
   onClearFilters,
   hasActiveFilters
-}) => {
+}: MobileFiltersContentProps) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-2">
@@ -247,7 +256,7 @@ const MobileFiltersContent = ({
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => onFilterChange({...filters, priceRanges: []})}
+            onClick={() => onClearFilters()}
             className="text-xs text-primary hover:text-primary-dark"
           >
             Clear
@@ -301,7 +310,7 @@ const MobileFiltersContent = ({
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => onFilterChange({...filters, ratingOptions: []})}
+              onClick={() => onClearFilters()}
               className="text-xs text-primary hover:text-primary-dark"
             >
               Clear
