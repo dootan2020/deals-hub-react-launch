@@ -32,6 +32,14 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
     form.setValue('slug', slug);
   };
 
+  // Make sure we have a valid array of categories with id and name
+  const formattedCategories = categories && Array.isArray(categories) 
+    ? categories.map(cat => ({ 
+        id: cat.id || '',
+        name: cat.name || ''
+      }))
+    : [];
+
   return (
     <>
       <FormField
@@ -99,7 +107,7 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
             <FormLabel>Category</FormLabel>
             <FormControl>
               <SearchableCategorySelect
-                categories={categories}
+                categories={formattedCategories}
                 value={field.value}
                 onValueChange={field.onChange}
                 placeholder="Search and select a category"
