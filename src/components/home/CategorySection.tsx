@@ -1,8 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Loader2, ChevronRight, ArrowRight } from 'lucide-react';
 import { 
   fetchMainCategories, 
   fetchSubcategoriesByParentId 
@@ -91,13 +90,12 @@ const CategorySection = () => {
         <div className="container-custom">
           <div className="text-center">
             <p className="text-red-500">{error}</p>
-            <Button 
-              variant="outline" 
+            <button 
               onClick={() => window.location.reload()} 
-              className="mt-4"
+              className="mt-4 px-6 py-2 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
             >
               Retry
-            </Button>
+            </button>
           </div>
         </div>
       </section>
@@ -121,18 +119,22 @@ const CategorySection = () => {
               {categories.slice(0, visibleCount).map((category) => (
                 <div
                   key={category.id}
-                  className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 transition-transform duration-300 hover:shadow-lg hover:-translate-y-1"
+                  className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
                 >
                   <div className="p-6 flex flex-col h-full">
+                    {/* Category Icon with Circle Background */}
                     <div className="flex justify-center mb-6">
-                      <CategoryIcon 
-                        category={category.name} 
-                        className="h-16 w-16 text-primary" 
-                        strokeWidth={1.5}
-                      />
+                      <div className="p-4 bg-green-50 rounded-full">
+                        <CategoryIcon 
+                          category={category.name} 
+                          className="h-12 w-12 text-primary" 
+                          strokeWidth={1.5}
+                        />
+                      </div>
                     </div>
                     
-                    <h3 className="text-xl font-semibold mb-2">
+                    {/* Category Name and Count */}
+                    <h3 className="text-xl font-semibold mb-2 text-center">
                       <Link 
                         to={`/category/${category.slug}`}
                         className="hover:text-primary transition-colors"
@@ -141,39 +143,41 @@ const CategorySection = () => {
                       </Link>
                     </h3>
                     
-                    <p className="text-text-light mb-4 line-clamp-2">
+                    {/* Category Description */}
+                    <p className="text-text-light mb-5 text-center line-clamp-2">
                       {category.description || 'Browse our selection of products in this category'}
                     </p>
                     
-                    {category.topSubcategories && category.topSubcategories.length > 0 ? (
-                      <div className="mt-2 mb-6 flex-grow">
-                        <ul className="space-y-2">
-                          {category.topSubcategories.map(sub => (
-                            <li key={sub.id} className="border-b border-gray-100 pb-2 last:border-0">
+                    {/* Subcategories List */}
+                    <div className="mb-6 flex-grow">
+                      {category.topSubcategories && category.topSubcategories.length > 0 ? (
+                        <ul className="space-y-0">
+                          {category.topSubcategories.map((sub, index) => (
+                            <li key={sub.id} className={`py-2 ${index < category.topSubcategories.length - 1 ? 'border-b border-gray-100' : ''}`}>
                               <Link 
                                 to={`/category/${category.slug}/${sub.slug}`}
                                 className="text-sm text-gray-600 hover:text-primary transition-colors flex items-center"
                               >
-                                <ChevronRight className="h-4 w-4 mr-1 text-primary" />
-                                {sub.name}
+                                <ChevronRight className="h-4 w-4 mr-1 text-primary flex-shrink-0" />
+                                <span className="line-clamp-1">{sub.name}</span>
                               </Link>
                             </li>
                           ))}
                         </ul>
-                      </div>
-                    ) : (
-                      <div className="mt-2 mb-6 flex-grow">
-                        <p className="text-sm text-gray-500 italic">
+                      ) : (
+                        <p className="text-sm text-gray-500 italic text-center py-4">
                           No subcategories available
                         </p>
-                      </div>
-                    )}
+                      )}
+                    </div>
                     
+                    {/* Browse Category Button */}
                     <Link 
                       to={`/category/${category.slug}`}
-                      className="inline-flex w-full justify-center items-center text-center bg-[#4CD964] hover:bg-[#3ab953] text-white font-medium px-4 py-2 rounded-md transition-colors"
+                      className="inline-flex w-full justify-center items-center text-center bg-[#4CD964] hover:bg-[#3ab953] text-white font-medium px-4 py-3 rounded-md transition-colors group"
                     >
                       Browse Category
+                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </Link>
                   </div>
                 </div>
@@ -182,9 +186,12 @@ const CategorySection = () => {
 
             {visibleCount < categories.length && (
               <div className="mt-10 text-center">
-                <Button onClick={showMore}>
+                <button 
+                  onClick={showMore}
+                  className="px-8 py-3 bg-white border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-md font-medium transition-colors"
+                >
                   Show More Categories
-                </Button>
+                </button>
               </div>
             )}
           </>

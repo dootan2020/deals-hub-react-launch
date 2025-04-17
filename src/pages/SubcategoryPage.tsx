@@ -19,12 +19,7 @@ import {
   fetchCategoryHierarchy 
 } from '@/services/categoryService';
 import { fetchProductsWithFilters } from '@/services/productService';
-import { Category, Product, FilterParams } from '@/types';
-
-interface SubcategoryPageParams {
-  parentCategorySlug?: string;
-  categorySlug?: string;
-}
+import { Category, Product, FilterParams, SubcategoryPageParams } from '@/types';
 
 const SubcategoryPage = () => {
   const params = useParams<SubcategoryPageParams>();
@@ -148,7 +143,7 @@ const SubcategoryPage = () => {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href={`/category/${parentCategory.slug}/${category.slug}`} isCurrentPage>
+                <BreadcrumbLink href={`/category/${parentCategory.slug}/${category.slug}`}>
                   {category.name}
                 </BreadcrumbLink>
               </BreadcrumbItem>

@@ -1,4 +1,3 @@
-
 export interface Product {
   id: string;
   title: string;
@@ -80,6 +79,11 @@ export interface CategoryPageParams extends Record<string, string | undefined> {
 
 export interface ProductPageParams extends Record<string, string | undefined> {
   productSlug?: string;
+  categorySlug?: string;
+  parentCategorySlug?: string;
+}
+
+export interface SubcategoryPageParams extends Record<string, string | undefined> {
   categorySlug?: string;
   parentCategorySlug?: string;
 }

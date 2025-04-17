@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import ProductCard from './ProductCard';
 import { Product } from '@/types';
 import {
@@ -35,16 +35,16 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   
   return (
     <div className="w-full">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
-          {title && <h2 className="text-2xl font-bold mb-2">{title}</h2>}
-          {description && <p className="text-text-light mb-4">{description}</p>}
+          {title && <h2 className="text-2xl font-bold mb-2 text-text">{title}</h2>}
+          {description && <p className="text-text-light mb-4 max-w-3xl">{description}</p>}
         </div>
         
         {showSort && (
           <div className="w-full md:w-auto mt-4 md:mt-0">
             <Select value={activeSort} onValueChange={handleSortChange}>
-              <SelectTrigger className="w-full md:w-[200px]">
+              <SelectTrigger className="w-full md:w-[220px] focus:ring-primary">
                 <SelectValue placeholder="Sort By" />
               </SelectTrigger>
               <SelectContent>
@@ -60,7 +60,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       </div>
 
       {products.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
