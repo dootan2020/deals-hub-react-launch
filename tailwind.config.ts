@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -25,7 +26,7 @@ export default {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: '#2ECC71',
+					DEFAULT: '#45C25A', // Reduced saturation by ~10% from #4CD964
 					dark: '#27AE60',
 					foreground: '#FFFFFF'
 				},
@@ -67,6 +68,12 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// New badge colors
+				badge: {
+					hot: '#FF9F43',
+					featured: '#45C25A',
+					bestseller: '#2E5BFF', 
 				}
 			},
 			fontFamily: {
@@ -115,12 +122,25 @@ export default {
 						opacity: '1'
 					}
 				},
+				'hover-bounce': {
+					'0%, 100%': {
+						transform: 'translateY(0)'
+					},
+					'50%': {
+						transform: 'translateY(-5px)'
+					}
+				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.3s ease-out',
 				'scale-in': 'scale-in 0.2s ease-out',
+				'hover-bounce': 'hover-bounce 1s ease-in-out infinite'
+			},
+			boxShadow: {
+				'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+				'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04)',
 			}
 		}
 	},
