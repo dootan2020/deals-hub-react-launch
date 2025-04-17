@@ -1,4 +1,3 @@
-
 import { createBrowserRouter } from "react-router-dom";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
@@ -12,7 +11,6 @@ import SupportPage from "@/pages/SupportPage";
 import KnowledgeBasePage from "@/pages/KnowledgeBasePage";
 import DepositPage from "@/pages/DepositPage";
 import OrderSuccessPage from "@/pages/OrderSuccessPage";
-import EnhancedCategoryPage from "@/pages/EnhancedCategoryPage";
 import EnhancedProductsPage from "@/pages/EnhancedProductsPage";
 
 // Admin routes
@@ -49,8 +47,8 @@ const router = createBrowserRouter([
     element: <CategoryPage />,
   },
   {
-    path: "/category/:categorySlug/:subcategorySlug",
-    element: <SubcategoryPage />,
+    path: "/category/:parentCategorySlug/:categorySlug",
+    element: <CategoryPage />,
   },
   {
     path: "/cart",
@@ -79,10 +77,6 @@ const router = createBrowserRouter([
   {
     path: "/order-success",
     element: <OrderSuccessPage />,
-  },
-  {
-    path: "/enhanced-category/:slug",
-    element: <EnhancedCategoryPage />,
   },
   {
     path: "/enhanced-products",

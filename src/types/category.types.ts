@@ -20,3 +20,13 @@ export interface PaginationState {
 export interface CategoryFilters {
   sort?: string;
 }
+
+export interface SubcategoryDisplay {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  image?: string;
+  count: number;
+}
+
