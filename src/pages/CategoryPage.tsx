@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
-import { Product, Category } from '@/types';
-import { Filter, ChevronDown, ChevronUp, SlidersHorizontal, Loader2 } from 'lucide-react';
+import { Product } from '@/types';
+import { Loader2 } from 'lucide-react';
 import { 
   Breadcrumb, 
   BreadcrumbItem, 
@@ -24,51 +25,9 @@ import {
 } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
 import { fetchCategoryBySlug } from '@/services/categoryService';
-import { Helmet } from 'react-helmet';
-import React from 'react';
-
-interface CategoryPageParams extends Record<string, string> {
-  categorySlug?: string;
-  parentCategorySlug?: string;
-}
-
-interface CategoryWithParent extends Category {
-  parent?: CategoryWithParent;
-}
-
-interface PaginationState {
-  page: number;
-  pageSize: number;
-  totalPages: number;
-  totalItems: number;
-}
-
-interface ProductData {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  original_price?: number;
-  images?: string[];
-  category_id: string;
-  rating?: number;
-  review_count?: number;
-  in_stock?: boolean;
-  stock_quantity?: number;
-  badges?: string[] | null;
-  slug: string;
-  features?: string[] | null;
-  specifications?: any;
-  created_at?: string;
-  sales_count?: number | null;
-  external_id?: string;
-  api_name?: string;
-  api_price?: number;
-  api_stock?: number;
-  last_synced_at?: string;
-  updated_at?: string;
-  kiosk_token?: string;
-}
+import CategoryFiltersSection from '@/components/category/CategoryFiltersSection';
+import MobileFilterToggle from '@/components/category/MobileFilterToggle';
+import { CategoryWithParent, CategoryPageParams, PaginationState, ProductData } from '@/types/category.types';
 
 const CategoryPage = () => {
   const { categorySlug, parentCategorySlug } = useParams<CategoryPageParams>();
@@ -321,22 +280,6 @@ const CategoryPage = () => {
       </Layout>
     );
   }
-  
-  const buildBreadcrumbCategories = (currentCategory: CategoryWithParent | undefined): CategoryWithParent[] => {
-    if (!currentCategory) return [];
-    
-    const result: CategoryWithParent[] = [];
-    let category: CategoryWithParent | undefined = currentCategory;
-    
-    while (category) {
-      result.unshift(category);
-      category = category.parent;
-    }
-    
-    return result;
-  };
-
-  const breadcrumbCategories = buildBreadcrumbCategories(category);
 
   return (
     <Layout>
@@ -356,24 +299,20 @@ const CategoryPage = () => {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               
-              {buildBreadcrumbCategories(category).map((cat, index) => {
-                const isLast = index === buildBreadcrumbCategories(category).length - 1;
-                
-                return isLast ? (
-                  <BreadcrumbItem key={cat.id}>
-                    <BreadcrumbPage>{cat.name}</BreadcrumbPage>
-                  </BreadcrumbItem>
-                ) : (
-                  <React.Fragment key={cat.id}>
-                    <BreadcrumbItem>
+              {buildBreadcrumbCategories(category).map((cat, index) => (
+                <React.Fragment key={cat.id}>
+                  {index > 0 && <BreadcrumbSeparator />}
+                  <BreadcrumbItem>
+                    {index === buildBreadcrumbCategories(category).length - 1 ? (
+                      <BreadcrumbPage>{cat.name}</BreadcrumbPage>
+                    ) : (
                       <BreadcrumbLink asChild>
                         <Link to={getCategoryUrl(cat)}>{cat.name}</Link>
                       </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                  </React.Fragment>
-                );
-              })}
+                    )}
+                  </BreadcrumbItem>
+                </React.Fragment>
+              ))}
             </BreadcrumbList>
           </Breadcrumb>
         </div>
@@ -388,76 +327,15 @@ const CategoryPage = () => {
       
       <div className="container-custom py-12">
         <div className="flex flex-col md:flex-row gap-8">
-          <div className="md:hidden mb-4">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md"
-            >
-              <div className="flex items-center">
-                <SlidersHorizontal className="h-5 w-5 mr-2 text-text-light" />
-                <span>Filters</span>
-              </div>
-              {showFilters ? (
-                <ChevronUp className="h-5 w-5 text-text-light" />
-              ) : (
-                <ChevronDown className="h-5 w-5 text-text-light" />
-              )}
-            </button>
-          </div>
+          <MobileFilterToggle 
+            showFilters={showFilters} 
+            onToggleFilters={() => setShowFilters(!showFilters)} 
+          />
           
-          <div 
-            className={`md:w-1/4 lg:w-1/5 ${showFilters ? 'block' : 'hidden'} md:block`}
-          >
-            <div className="bg-white border border-gray-200 rounded-lg p-6 sticky top-24">
-              <h2 className="font-semibold text-lg mb-4">Filters</h2>
-              
-              <div className="mb-6">
-                <h3 className="font-medium mb-2">Price Range</h3>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
-                    <span className="ml-2 text-text-light">Under $25</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
-                    <span className="ml-2 text-text-light">$25 - $50</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
-                    <span className="ml-2 text-text-light">$50 - $100</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
-                    <span className="ml-2 text-text-light">Over $100</span>
-                  </label>
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <h3 className="font-medium mb-2">Rating</h3>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
-                    <span className="ml-2 text-text-light">4 Stars & Up</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
-                    <span className="ml-2 text-text-light">3 Stars & Up</span>
-                  </label>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="font-medium mb-2">Availability</h3>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
-                    <span className="ml-2 text-text-light">In Stock</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
+          <CategoryFiltersSection 
+            showFilters={showFilters} 
+            onToggleFilters={() => setShowFilters(!showFilters)} 
+          />
           
           <div className="md:w-3/4 lg:w-4/5">
             {products.length > 0 ? (
