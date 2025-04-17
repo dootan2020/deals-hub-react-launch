@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from './ProductCard';
@@ -23,7 +22,7 @@ interface ProductGridProps {
   showViewAll?: boolean;
   viewAllLink?: string;
   viewAllLabel?: string;
-  viewMode?: 'grid' | 'list'; // Added viewMode prop
+  viewMode?: 'grid' | 'list';
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({ 
@@ -40,7 +39,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   showViewAll = false,
   viewAllLink = '/products',
   viewAllLabel = 'View all products',
-  viewMode = 'grid' // Default to grid view
+  viewMode = 'grid'
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts || externalProducts || []);
   const [isLoading, setIsLoading] = useState(!initialProducts && !externalProducts);
@@ -128,7 +127,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   
   const showLoading = isLoading || externalLoading;
   
-  // Limit displayed products if limit prop is provided
   const displayedProducts = limit && products.length > limit 
     ? products.slice(0, limit) 
     : products;
@@ -137,23 +135,23 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     <div className="w-full">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
-          {title && <h2 className="text-2xl font-bold mb-2 text-text">{title}</h2>}
-          {description && <p className="text-text-light mb-4 max-w-3xl">{description}</p>}
+          {title && <h2 className="text-2xl font-bold mb-2 text-gray-800">{title}</h2>}
+          {description && <p className="text-gray-600 mb-4 max-w-3xl">{description}</p>}
         </div>
       </div>
 
       {showLoading ? (
         <div className="flex justify-center items-center min-h-[300px]">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="ml-3 text-text-light">Loading products...</p>
+          <p className="ml-3 text-gray-700">Loading products...</p>
         </div>
       ) : error ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-xl text-red-600 mb-4">{error}</p>
+        <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+          <p className="text-xl text-red-700 mb-4">{error}</p>
           <Button 
             onClick={handleRetry}
             variant="outline"
-            className="gap-2"
+            className="gap-2 text-gray-700 border-gray-400 hover:bg-gray-100"
           >
             <RefreshCw className="h-4 w-4" />
             Try Again
@@ -180,7 +178,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="min-w-[150px] bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-semibold px-8 py-6 flex items-center transition-all duration-300"
+                className="min-w-[150px] bg-primary/15 hover:bg-primary/25 text-primary border border-primary/40 font-semibold px-8 py-6 flex items-center transition-all duration-300"
                 asChild
               >
                 <Link to={viewAllLink} className="flex items-center">
@@ -223,9 +221,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({
           )}
         </div>
       ) : (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-xl text-text-light">No products found</p>
-          <p className="text-text-light mt-2">Try adjusting your filters or check back later for new products</p>
+        <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+          <p className="text-xl text-gray-700">No products found</p>
+          <p className="text-gray-600 mt-2">Try adjusting your filters or check back later for new products</p>
         </div>
       )}
     </div>

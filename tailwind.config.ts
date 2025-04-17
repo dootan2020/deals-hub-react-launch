@@ -26,8 +26,8 @@ export default {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: '#45C25A', // Reduced saturation by ~10% from #4CD964
-					dark: '#27AE60',
+					DEFAULT: '#27AE60', // Darkened from #45C25A for better contrast
+					dark: '#219653', // Darkened from #27AE60
 					foreground: '#FFFFFF'
 				},
 				secondary: {
@@ -43,7 +43,7 @@ export default {
 					foreground: 'hsl(var(--muted-foreground))'
 				},
 				accent: {
-					DEFAULT: '#3498DB',
+					DEFAULT: '#2980B9', // Darkened from #3498DB for better contrast
 					foreground: '#FFFFFF'
 				},
 				popover: {
@@ -56,8 +56,8 @@ export default {
 				},
 				text: {
 					DEFAULT: '#333333',
-					light: '#666666',
-					muted: '#999999',
+					light: '#555555', // Darkened from #666666
+					muted: '#777777', // Darkened from #999999
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
@@ -69,11 +69,11 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// New badge colors
+				// Updated badge colors for better contrast
 				badge: {
-					hot: '#FF9F43',
-					featured: '#45C25A',
-					bestseller: '#2E5BFF', 
+					hot: '#E67E22', // Darkened from #FF9F43
+					featured: '#27AE60', // Kept the same
+					bestseller: '#2E5BFF', // Kept the same
 				}
 			},
 			fontFamily: {
@@ -139,8 +139,8 @@ export default {
 				'hover-bounce': 'hover-bounce 1s ease-in-out infinite'
 			},
 			boxShadow: {
-				'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
-				'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04)',
+				'card': '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)',
+				'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
 			}
 		}
 	},

@@ -96,7 +96,7 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-poppins font-semibold;
+    @apply font-poppins font-semibold text-gray-800;
   }
 }
 
@@ -106,7 +106,7 @@
   }
 
   .btn-secondary {
-    @apply bg-secondary hover:opacity-90 text-white font-medium px-6 py-2 rounded-md transition-colors duration-200;
+    @apply bg-secondary hover:opacity-90 text-gray-800 font-medium px-6 py-2 rounded-md transition-colors duration-200;
   }
 
   .btn-accent {
@@ -121,13 +121,13 @@
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
   
-  /* New badge styles with subtle gradient */
+  /* New badge styles with improved contrast */
   .badge-hot {
-    @apply bg-gradient-to-r from-[#FF9F43] to-[#FFB976] text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm;
+    @apply bg-gradient-to-r from-[#E67E22] to-[#FF9F43] text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm;
   }
   
   .badge-featured {
-    @apply bg-gradient-to-r from-[#45C25A] to-[#5FD974] text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm;
+    @apply bg-gradient-to-r from-[#27AE60] to-[#45C25A] text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm;
   }
   
   .badge-bestseller {
@@ -135,7 +135,7 @@
   }
   
   .badge-discount {
-    @apply bg-gradient-to-r from-[#e74c3c] to-[#ff6b6b] text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm;
+    @apply bg-gradient-to-r from-[#c0392b] to-[#e74c3c] text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm;
   }
   
   /* Updated section backgrounds */
