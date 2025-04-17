@@ -7,9 +7,11 @@ import FeaturesSection from '@/components/home/FeaturesSection';
 import ProductGrid from '@/components/product/ProductGrid';
 import TestimonialsSection from '@/components/home/TestimonialsSection';
 import NewsletterSection from '@/components/home/NewsletterSection';
-import { featuredProducts } from '@/data/mockData';
+import { useState } from 'react';
 
 const Index = () => {
+  const [activeSort, setActiveSort] = useState('recommended');
+
   return (
     <Layout>
       <HeroSection />
@@ -18,9 +20,11 @@ const Index = () => {
       <div className="bg-white py-16">
         <div className="container-custom">
           <ProductGrid 
-            products={featuredProducts} 
             title="Featured Products" 
             description="Check out our most popular digital products available now."
+            showSort={true}
+            activeSort={activeSort}
+            onSortChange={setActiveSort}
           />
         </div>
       </div>

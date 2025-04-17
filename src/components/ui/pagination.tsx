@@ -1,5 +1,6 @@
+
 import * as React from "react"
-import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
+import { ChevronLeft, ChevronRight, MoreHorizontal, Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { ButtonProps, buttonVariants } from "@/components/ui/button"
@@ -36,12 +37,14 @@ PaginationItem.displayName = "PaginationItem"
 
 type PaginationLinkProps = {
   isActive?: boolean
+  isLoading?: boolean
 } & Pick<ButtonProps, "size"> &
   React.ComponentProps<"a">
 
 const PaginationLink = ({
   className,
   isActive,
+  isLoading = false,
   size = "icon",
   ...props
 }: PaginationLinkProps) => (
@@ -52,10 +55,15 @@ const PaginationLink = ({
         variant: isActive ? "outline" : "ghost",
         size,
       }),
+      {
+        "pointer-events-none opacity-50": isLoading,
+      },
       className
     )}
     {...props}
-  />
+  >
+    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : props.children}
+  </a>
 )
 PaginationLink.displayName = "PaginationLink"
 
@@ -106,6 +114,31 @@ const PaginationEllipsis = ({
 )
 PaginationEllipsis.displayName = "PaginationEllipsis"
 
+const PaginationLoadMore = ({
+  className,
+  isLoading,
+  ...props
+}: React.ComponentProps<"button"> & { isLoading?: boolean }) => (
+  <button
+    className={cn(
+      "inline-flex items-center justify-center whitespace-nowrap rounded-md bg-primary px-8 py-3 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+      className
+    )}
+    disabled={isLoading}
+    {...props}
+  >
+    {isLoading ? (
+      <>
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Loading...
+      </>
+    ) : (
+      'Load More'
+    )}
+  </button>
+)
+PaginationLoadMore.displayName = "PaginationLoadMore"
+
 export {
   Pagination,
   PaginationContent,
@@ -114,4 +147,5 @@ export {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
+  PaginationLoadMore
 }

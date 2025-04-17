@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ProductCard from './ProductCard';
 import { Product, FilterParams } from '@/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -10,11 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchProductsWithFilters } from '@/services/productService';
+import { Button } from "@/components/ui/button";
+import { fetchProductsWithFilters } from '@/services/product';
 import { useToast } from '@/components/ui/use-toast';
 
 interface ProductGridProps {
-  products?: Product[];
+  initialProducts?: Product[];
   title?: string;
   description?: string;
   showSort?: boolean;
@@ -25,7 +26,7 @@ interface ProductGridProps {
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({ 
-  products: initialProducts,
+  initialProducts,
   title,
   description,
   showSort = false,
@@ -36,47 +37,83 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts || []);
   const [isLoading, setIsLoading] = useState(!initialProducts);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const { toast } = useToast();
+
+  const fetchProducts = useCallback(async (page = 1, append = false) => {
+    try {
+      setError(null);
+      if (page === 1) {
+        setIsLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+      
+      const filters: FilterParams = {
+        sort: activeSort,
+        categoryId,
+        page
+      };
+      
+      const fetchedProducts = await fetchProductsWithFilters(filters);
+      
+      // If we received fewer products than the page size or none at all, there are no more to load
+      const pageSize = 12; // This should match the page size in the API
+      if (fetchedProducts.length < pageSize) {
+        setHasMore(false);
+      }
+      
+      if (append) {
+        setProducts(prev => [...prev, ...fetchedProducts]);
+      } else {
+        setProducts(fetchedProducts);
+      }
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError('Failed to load products. Please try again.');
+      toast({
+        title: "Error",
+        description: "Failed to load products. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+    }
+  }, [activeSort, categoryId, toast]);
 
   useEffect(() => {
     if (initialProducts) {
       setProducts(initialProducts);
+      setIsLoading(false);
+      setError(null);
       return;
     }
 
-    const loadProducts = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const filters: FilterParams = {
-          sort: activeSort,
-          categoryId
-        };
-        
-        const fetchedProducts = await fetchProductsWithFilters(filters);
-        setProducts(fetchedProducts);
-      } catch (err) {
-        console.error('Error fetching products:', err);
-        setError('Failed to load products. Please try again.');
-        toast({
-          title: "Error",
-          description: "Failed to load products. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadProducts();
-  }, [initialProducts, activeSort, categoryId, toast]);
+    setPage(1);
+    setHasMore(true);
+    fetchProducts(1, false);
+  }, [initialProducts, activeSort, categoryId, fetchProducts]);
 
   const handleSortChange = (value: string) => {
     if (onSortChange) {
       onSortChange(value);
     }
+  };
+  
+  const handleLoadMore = async () => {
+    const nextPage = page + 1;
+    await fetchProducts(nextPage, true);
+    setPage(nextPage);
+  };
+  
+  const handleRetry = () => {
+    setPage(1);
+    setHasMore(true);
+    fetchProducts(1, false);
   };
   
   const showLoading = isLoading || externalLoading;
@@ -114,19 +151,43 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         </div>
       ) : error ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-xl text-red-600 mb-2">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+          <p className="text-xl text-red-600 mb-4">{error}</p>
+          <Button 
+            onClick={handleRetry}
+            variant="outline"
+            className="gap-2"
           >
+            <RefreshCw className="h-4 w-4" />
             Try Again
-          </button>
+          </Button>
         </div>
       ) : products.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+          
+          {hasMore && (
+            <div className="flex justify-center mt-8">
+              <Button 
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+                className="px-8"
+                size="lg"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Load More'
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
