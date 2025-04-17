@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -9,7 +10,7 @@ import { CategoriesProvider } from "@/context/CategoriesContext";
 // Import all pages directly
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import EnhancedCategoryPage from "./pages/EnhancedCategoryPage";
+import CategoryPage from "./pages/CategoryPage";
 import EnhancedProductsPage from "./pages/EnhancedProductsPage";
 import SubcategoryPage from "./pages/SubcategoryPage";
 import ProductPage from "./pages/ProductPage";

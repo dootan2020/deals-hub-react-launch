@@ -82,7 +82,7 @@ export const useCategoryProducts = ({ categoryId }: UseCategoryProductsProps) =>
         shortDescription: p.short_description,
         price: Number(p.price),
         originalPrice: p.original_price ? Number(p.original_price) : undefined,
-        images: p.images,
+        images: p.images || [],
         categoryId: p.category_id,
         rating: Number(p.rating),
         reviewCount: p.review_count || 0,
@@ -91,8 +91,8 @@ export const useCategoryProducts = ({ categoryId }: UseCategoryProductsProps) =>
         badges: p.badges || [],
         slug: p.slug,
         features: p.features || [],
-        specifications: p.specifications || {},
-        salesCount: p.sales_count,
+        specifications: p.specifications ? p.specifications as Record<string, string | number | boolean | object> : {},
+        salesCount: p.sales_count || 0,
         createdAt: p.created_at
       }));
       
