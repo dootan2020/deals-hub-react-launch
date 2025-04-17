@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -7,12 +6,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CategoriesProvider } from "@/context/CategoriesContext";
 
-// Import all pages directly
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import CategoryPage from "./pages/CategoryPage";
 import ProductPage from "./pages/ProductPage";
-import CartPage from "./pages/CartPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
 import SupportPage from "./pages/SupportPage";
 import FaqsPage from "./pages/FaqsPage";
@@ -28,7 +25,6 @@ import SyncLogsAdmin from "./pages/admin/SyncLogsAdmin";
 import ApiTesterPage from './pages/admin/ApiTesterPage';
 import ProductManagerPage from './pages/admin/ProductManagerPage';
 
-// Create a new QueryClient instance
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -56,9 +52,6 @@ const App = () => {
               <Route path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />
               <Route path="/products" element={<CategoryPage />} />
               
-              <Route path="/cart" element={<CartPage />} />
-              <Route path="/order-success" element={<OrderSuccessPage />} />
-              
               {/* Static pages with SEO-friendly URLs */}
               <Route path="/page/support" element={<SupportPage />} />
               <Route path="/support" element={<SupportPage />} />
@@ -71,6 +64,8 @@ const App = () => {
               
               <Route path="/page/deposit" element={<DepositPage />} />
               <Route path="/deposit" element={<DepositPage />} />
+              
+              <Route path="/order-success" element={<OrderSuccessPage />} />
               
               {/* Admin routes */}
               <Route path="/admin" element={<AdminDashboard />} />
