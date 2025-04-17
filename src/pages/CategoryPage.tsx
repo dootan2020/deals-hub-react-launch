@@ -43,6 +43,33 @@ interface PaginationState {
   totalItems: number;
 }
 
+interface ProductData {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  original_price?: number;
+  images?: string[];
+  category_id: string;
+  rating?: number;
+  review_count?: number;
+  in_stock?: boolean;
+  stock_quantity?: number;
+  badges?: string[] | null;
+  slug: string;
+  features?: string[] | null;
+  specifications?: any;
+  created_at?: string;
+  sales_count?: number | null;
+  external_id?: string;
+  api_name?: string;
+  api_price?: number;
+  api_stock?: number;
+  last_synced_at?: string;
+  updated_at?: string;
+  kiosk_token?: string;
+}
+
 const CategoryPage = () => {
   const { categorySlug, parentCategorySlug } = useParams<CategoryPageParams>();
   const navigate = useNavigate();
@@ -195,7 +222,7 @@ const CategoryPage = () => {
         totalPages: Math.ceil(totalCount / pagination.pageSize) || 1
       });
       
-      const mappedProducts: Product[] = allProducts.map(item => ({
+      const mappedProducts: Product[] = allProducts.map((item: ProductData) => ({
         id: item.id,
         title: item.title,
         description: item.description,
