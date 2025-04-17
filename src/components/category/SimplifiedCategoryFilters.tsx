@@ -24,8 +24,8 @@ const SimplifiedCategoryFilters: React.FC<SimplifiedCategoryFiltersProps> = ({
   currentView
 }) => {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-      <div className="flex items-center gap-4">
+    <div className="flex items-center justify-between gap-4 mb-4">
+      <div className="flex items-center space-x-4">
         <Select value={activeSort} onValueChange={onSortChange}>
           <SelectTrigger className="w-[180px] md:w-[220px] focus:ring-primary">
             <SelectValue placeholder="Sort By" />
@@ -40,12 +40,10 @@ const SimplifiedCategoryFilters: React.FC<SimplifiedCategoryFiltersProps> = ({
         </Select>
         
         {onViewChange && currentView !== undefined && (
-          <div className="flex-shrink-0">
-            <ViewToggle 
-              currentView={currentView} 
-              onViewChange={onViewChange} 
-            />
-          </div>
+          <ViewToggle 
+            currentView={currentView} 
+            onViewChange={onViewChange} 
+          />
         )}
       </div>
     </div>
