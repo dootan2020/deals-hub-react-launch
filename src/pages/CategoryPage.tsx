@@ -211,7 +211,8 @@ const CategoryPage = () => {
         slug: item.slug,
         features: Array.isArray(item.features) ? item.features : [],
         specifications: convertSpecifications(item.specifications) || {},
-        salesCount: Number(item.sales_count || 0),
+        salesCount: Number(item.sales_count || item.salesCount || 0),
+        sales_count: Number(item.sales_count || item.salesCount || 0),
         createdAt: item.created_at || new Date().toISOString()
       }));
       

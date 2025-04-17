@@ -23,7 +23,8 @@ export interface Product {
   slug: string;
   features: string[];
   specifications: Record<string, string | number | boolean | object>;
-  salesCount: number;
+  salesCount?: number;
+  sales_count?: number;
   createdAt: string;
   kiosk_token?: string;
 }
