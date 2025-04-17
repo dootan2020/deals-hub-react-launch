@@ -8,6 +8,7 @@ import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryF
 const ProductsPage = () => {
   const [searchParams] = useSearchParams();
   const [activeSort, setActiveSort] = useState(searchParams.get('sort') || 'recommended');
+  const [currentView, setCurrentView] = useState<'grid' | 'list'>('grid');
 
   // Update active sort when URL search params change
   useEffect(() => {
@@ -25,6 +26,10 @@ const ProductsPage = () => {
     window.history.replaceState(null, '', `?${newSearchParams.toString()}`);
   };
 
+  const handleViewChange = (view: 'grid' | 'list') => {
+    setCurrentView(view);
+  };
+
   return (
     <Layout>
       <div className="bg-section-primary py-16">
@@ -35,6 +40,8 @@ const ProductsPage = () => {
             <SimplifiedCategoryFilters
               onSortChange={handleSortChange}
               activeSort={activeSort}
+              onViewChange={handleViewChange}
+              currentView={currentView}
             />
             
             <ProductGrid 
