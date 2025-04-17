@@ -11,8 +11,6 @@ import { CategoriesProvider } from "@/context/CategoriesContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import CategoryPage from "./pages/CategoryPage";
-import EnhancedProductsPage from "./pages/EnhancedProductsPage";
-import SubcategoryPage from "./pages/SubcategoryPage";
 import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
@@ -56,7 +54,7 @@ const App = () => {
               <Route path="/category/:parentCategorySlug/:categorySlug" element={<CategoryPage />} />
               <Route path="/product/:productSlug" element={<ProductPage />} />
               <Route path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />
-              <Route path="/products" element={<EnhancedProductsPage />} />
+              <Route path="/products" element={<CategoryPage />} />
               
               <Route path="/cart" element={<CartPage />} />
               <Route path="/order-success" element={<OrderSuccessPage />} />

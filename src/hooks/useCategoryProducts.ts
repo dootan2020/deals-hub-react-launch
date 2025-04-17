@@ -91,8 +91,8 @@ export const useCategoryProducts = ({ categoryId }: UseCategoryProductsProps) =>
         badges: p.badges || [],
         slug: p.slug,
         features: p.features || [],
-        specifications: p.specifications ? p.specifications as Record<string, string | number | boolean | object> : {},
-        salesCount: p.sales_count || 0,
+        specifications: p.specifications as Record<string, string | number | boolean | object> || {},
+        salesCount: p.stock_quantity || 0,  // Using stock_quantity instead of non-existent sales_count
         createdAt: p.created_at
       }));
       
