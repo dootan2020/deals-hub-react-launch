@@ -27,6 +27,32 @@ interface CategoryWithParent extends Category {
   subcategories?: Category[];
 }
 
+interface ProductData {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  original_price?: number;
+  images?: string[];
+  category_id: string;
+  rating?: number;
+  review_count?: number;
+  in_stock?: boolean;
+  badges?: string[];
+  slug: string;
+  features?: string[];
+  specifications?: Record<string, string | number | boolean | object>;
+  created_at?: string;
+  sales_count?: number;
+  external_id?: string;
+  api_name?: string;
+  api_price?: number;
+  api_stock?: number;
+  last_synced_at?: string;
+  updated_at?: string;
+  kiosk_token?: string;
+}
+
 const EnhancedCategoryPage = () => {
   const { categorySlug, parentCategorySlug } = useParams<CategoryPageParams>();
   const navigate = useNavigate();
@@ -51,7 +77,6 @@ const EnhancedCategoryPage = () => {
         setLoading(true);
         setError(null);
         
-        // Case 1: Parent category and subcategory
         if (parentCategorySlug && categorySlug) {
           const parentCat = await fetchCategoryBySlug(parentCategorySlug);
           if (!parentCat) throw new Error("Parent category not found");
@@ -59,7 +84,6 @@ const EnhancedCategoryPage = () => {
           const childCat = await fetchCategoryBySlug(categorySlug);
           if (!childCat) throw new Error("Category not found");
           
-          // Verify parent-child relationship
           if (childCat.parent_id !== parentCat.id) {
             navigate(`/category/${categorySlug}`, { replace: true });
             return;
@@ -72,13 +96,10 @@ const EnhancedCategoryPage = () => {
           
           await fetchProducts(childCat.id);
           await fetchFeaturedProducts(childCat.id);
-        }
-        // Case 2: Just a single category (could be parent)
-        else if (categorySlug) {
+        } else if (categorySlug) {
           const currentCategory = await fetchCategoryBySlug(categorySlug);
           if (!currentCategory) throw new Error("Category not found");
           
-          // If this is a subcategory, redirect to the full path
           if (currentCategory.parent_id) {
             const { data: parentData } = await supabase
               .from('categories')
@@ -92,7 +113,6 @@ const EnhancedCategoryPage = () => {
                 parent: parentData as CategoryWithParent
               });
               
-              // Redirect to full path
               navigate(`/category/${parentData.slug}/${currentCategory.slug}`, { replace: true });
               return;
             } else {
@@ -101,7 +121,6 @@ const EnhancedCategoryPage = () => {
           } else {
             setCategory(currentCategory);
             
-            // For parent categories, fetch subcategories
             await fetchSubcategories(currentCategory.id);
           }
           
@@ -144,27 +163,22 @@ const EnhancedCategoryPage = () => {
   
   const fetchProducts = async (categoryId: string) => {
     try {
-      // Construct the base query
       let query = supabase
         .from('products')
         .select('*', { count: 'exact' });
       
-      // Add category filter
       query = query.eq('category_id', categoryId);
       
-      // Apply any additional filters
       if (activeFilters.inStock !== undefined) {
         query = query.eq('in_stock', activeFilters.inStock);
       }
       
-      // Apply price filters if available
       if (activeFilters.priceRange) {
         const [min, max] = activeFilters.priceRange.map(Number);
         if (!isNaN(min)) query = query.gte('price', min);
         if (!isNaN(max)) query = query.lte('price', max);
       }
       
-      // Apply sorting
       if (activeFilters.sort) {
         switch (activeFilters.sort) {
           case 'price-low-high':
@@ -180,21 +194,17 @@ const EnhancedCategoryPage = () => {
             query = query.order('rating', { ascending: false });
             break;
           default:
-            // Default sorting (recommended)
             query = query.order('created_at', { ascending: false });
         }
       } else {
-        // Default sorting
         query = query.order('created_at', { ascending: false });
       }
       
-      // Execute query
       const { data: productData, error: productError, count } = await query;
       
       if (productError) throw productError;
       
-      // Map database products to application product type
-      const mappedProducts: Product[] = (productData || []).map(item => ({
+      const mappedProducts: Product[] = (productData || []).map((item: ProductData) => ({
         id: item.id,
         title: item.title,
         description: item.description,
@@ -234,7 +244,6 @@ const EnhancedCategoryPage = () => {
         .eq('badges', 'Featured')
         .limit(4);
         
-      // If no products have a "Featured" badge, just get the top rated ones
       if (!data || data.length === 0) {
         const { data: topRated } = await supabase
           .from('products')
@@ -243,7 +252,7 @@ const EnhancedCategoryPage = () => {
           .order('rating', { ascending: false })
           .limit(4);
           
-        const mappedProducts: Product[] = (topRated || []).map(item => ({
+        const mappedProducts: Product[] = (topRated || []).map((item: ProductData) => ({
           id: item.id,
           title: item.title,
           description: item.description,
@@ -264,8 +273,7 @@ const EnhancedCategoryPage = () => {
         
         setFeaturedProducts(mappedProducts);
       } else {
-        // Map featured products
-        const mappedProducts: Product[] = data.map(item => ({
+        const mappedProducts: Product[] = data.map((item: ProductData) => ({
           id: item.id,
           title: item.title,
           description: item.description,
@@ -288,7 +296,6 @@ const EnhancedCategoryPage = () => {
       }
     } catch (error) {
       console.error('Error fetching featured products:', error);
-      // This is not critical, so we don't show an error toast
     }
   };
   
@@ -344,7 +351,6 @@ const EnhancedCategoryPage = () => {
     );
   }
   
-  // Build breadcrumb items
   const buildBreadcrumbs = () => {
     const breadcrumbs = [
       { name: 'Home', path: '/' }
@@ -368,14 +374,13 @@ const EnhancedCategoryPage = () => {
   return (
     <Layout>
       <Helmet>
-        <title>{category.name} - Digital Deals Hub</title>
+        <title>{category ? category.name : 'Category'} - Digital Deals Hub</title>
         <meta 
           name="description" 
-          content={category.description || `Explore the best digital ${category.name} products on Digital Deals Hub.`} 
+          content={category ? (category.description || `Explore the best digital ${category.name} products on Digital Deals Hub.`) : 'Explore our product categories'} 
         />
       </Helmet>
       
-      {/* Breadcrumbs */}
       <div className="bg-white border-b">
         <div className="container-custom py-3">
           <Breadcrumb>
@@ -404,10 +409,9 @@ const EnhancedCategoryPage = () => {
         </div>
       </div>
       
-      {/* Header */}
       <div className="bg-gradient-to-r from-gray-50 to-gray-100 py-12">
         <div className="container-custom">
-          <h1 className="text-3xl font-bold mb-2">{category.name}</h1>
+          <h1 className="text-3xl font-bold mb-2">{category ? category.name : 'Category'}</h1>
           {category.description && (
             <p className="text-gray-600 max-w-3xl">{category.description}</p>
           )}
@@ -415,7 +419,6 @@ const EnhancedCategoryPage = () => {
       </div>
       
       <div className="container-custom py-12">
-        {/* If this is a parent category with subcategories, show tabs */}
         {subcategories.length > 0 && (
           <Tabs defaultValue="overview" className="mb-8">
             <TabsList className="mb-6 md:mb-8">
@@ -424,7 +427,6 @@ const EnhancedCategoryPage = () => {
             </TabsList>
             
             <TabsContent value="overview">
-              {/* Subcategories grid */}
               <div className="mb-12">
                 <h2 className="text-2xl font-bold mb-6">Subcategories</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -449,7 +451,6 @@ const EnhancedCategoryPage = () => {
                 </div>
               </div>
               
-              {/* Featured Products */}
               {featuredProducts.length > 0 && (
                 <div>
                   <h2 className="text-2xl font-bold mb-6">Featured Products</h2>
@@ -467,7 +468,6 @@ const EnhancedCategoryPage = () => {
             
             <TabsContent value="products">
               <div className="flex flex-col md:flex-row gap-8">
-                {/* Filters */}
                 <div className={`md:w-1/4 ${isMobileFilterOpen ? 'block' : 'hidden'} md:block`}>
                   <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm sticky top-24">
                     <EnhancedCategoryFilters 
@@ -479,7 +479,6 @@ const EnhancedCategoryPage = () => {
                   </div>
                 </div>
                 
-                {/* Products */}
                 <div className="md:w-3/4">
                   <EnhancedCategoryFilters 
                     activeFilters={activeFilters}
@@ -501,10 +500,8 @@ const EnhancedCategoryPage = () => {
           </Tabs>
         )}
         
-        {/* If this is a subcategory, show products directly with filters */}
         {subcategories.length === 0 && (
           <div className="flex flex-col md:flex-row gap-8">
-            {/* Filters */}
             <div className={`md:w-1/4 lg:w-1/5 ${isMobileFilterOpen ? 'block' : 'hidden'} md:block`}>
               <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm sticky top-24">
                 <EnhancedCategoryFilters 
@@ -516,7 +513,6 @@ const EnhancedCategoryPage = () => {
               </div>
             </div>
             
-            {/* Products */}
             <div className="md:w-3/4 lg:w-4/5">
               <EnhancedCategoryFilters 
                 activeFilters={activeFilters}
