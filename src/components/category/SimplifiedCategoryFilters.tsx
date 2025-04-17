@@ -24,32 +24,28 @@ const SimplifiedCategoryFilters: React.FC<SimplifiedCategoryFiltersProps> = ({
   currentView
 }) => {
   return (
-    <div className="flex justify-between items-center flex-wrap gap-4 mb-4">
-      {/* View toggle on the left */}
-      <div>
-        {onViewChange && currentView !== undefined && (
-          <ViewToggle 
-            currentView={currentView} 
-            onViewChange={onViewChange} 
-          />
-        )}
-      </div>
+    <div className="flex items-center gap-4 mb-4">
+      {/* View toggle */}
+      {onViewChange && currentView !== undefined && (
+        <ViewToggle 
+          currentView={currentView} 
+          onViewChange={onViewChange} 
+        />
+      )}
       
-      {/* Sort dropdown on the right */}
-      <div>
-        <Select value={activeSort} onValueChange={onSortChange}>
-          <SelectTrigger className="w-[180px] md:w-[220px] focus:ring-primary">
-            <SelectValue placeholder="Sort By" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="recommended">Recommended</SelectItem>
-            <SelectItem value="price-low-high">Price: Low to High</SelectItem>
-            <SelectItem value="price-high-low">Price: High to Low</SelectItem>
-            <SelectItem value="newest">Newest</SelectItem>
-            <SelectItem value="rating">Highest Rated</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Sort dropdown */}
+      <Select value={activeSort} onValueChange={onSortChange}>
+        <SelectTrigger className="w-[180px] md:w-[220px] focus:ring-primary">
+          <SelectValue placeholder="Sort By" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="recommended">Recommended</SelectItem>
+          <SelectItem value="price-low-high">Price: Low to High</SelectItem>
+          <SelectItem value="price-high-low">Price: High to Low</SelectItem>
+          <SelectItem value="newest">Newest</SelectItem>
+          <SelectItem value="rating">Highest Rated</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 };
