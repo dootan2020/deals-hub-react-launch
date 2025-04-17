@@ -138,8 +138,9 @@ const CategoryPage = () => {
         console.error('Error fetching category:', err);
         setError('Failed to load category');
         toast({
-          variant: "destructive",
+          title: "Error",
           description: "There was a problem loading the category data. Please try again later.",
+          variant: "destructive",
         });
       } finally {
         setLoading(false);

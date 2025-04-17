@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -172,8 +171,9 @@ const ProductPage = () => {
         console.error('Error fetching product details:', err);
         setError('Failed to load product information');
         toast({
-          variant: "destructive",
+          title: "Error",
           description: "There was a problem loading the product. Please try again later.",
+          variant: "destructive",
         });
       } finally {
         setLoading(false);
@@ -239,12 +239,12 @@ const ProductPage = () => {
   
   const handleAddToCart = () => {
     toast({
+      title: "Added to cart",
       description: `${product?.title} (${quantity} items) has been added to your cart.`
     });
     // In a real app, this would dispatch an action to add to cart
   };
 
-  // Generate canonical URL
   const getCanonicalUrl = () => {
     if (!product || !product.category) {
       return `/product/${productSlug}`;
@@ -257,7 +257,6 @@ const ProductPage = () => {
     return `/category/${product.category.slug}/${product.slug}`;
   };
   
-  // Generate category URL
   const getCategoryUrl = (category: CategoryWithParent) => {
     if (category.parent) {
       return `/${category.parent.slug}/${category.slug}`;
