@@ -146,7 +146,25 @@ const CategoryPage = () => {
         }
       }
       
-      setProducts(allProducts as Product[]);
+      // Map the database product format to the Product type format expected by the app
+      const mappedProducts: Product[] = allProducts.map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        price: Number(item.price),
+        originalPrice: item.original_price ? Number(item.original_price) : undefined,
+        images: item.images || [],
+        categoryId: item.category_id,
+        rating: item.rating || 0,
+        reviewCount: item.review_count || 0,
+        inStock: item.in_stock === true,
+        badges: item.badges || [],
+        slug: item.slug,
+        features: item.features || [],
+        specifications: item.specifications || {}
+      }));
+      
+      setProducts(mappedProducts);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -194,9 +212,9 @@ const CategoryPage = () => {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               
-              {breadcrumbCategories.map((cat, index) => {
+              {buildBreadcrumbCategories(category).map((cat, index) => {
                 // For all but the last item, make it a link
-                const isLast = index === breadcrumbCategories.length - 1;
+                const isLast = index === buildBreadcrumbCategories(category).length - 1;
                 
                 return isLast ? (
                   <BreadcrumbItem key={cat.id}>
@@ -221,8 +239,8 @@ const CategoryPage = () => {
       {/* Category Header */}
       <div className="bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] py-12">
         <div className="container-custom">
-          <h1 className="text-3xl font-bold mb-2">{category.name}</h1>
-          <p className="text-text-light">{category.description}</p>
+          <h1 className="text-3xl font-bold mb-2">{category?.name}</h1>
+          <p className="text-text-light">{category?.description}</p>
         </div>
       </div>
       

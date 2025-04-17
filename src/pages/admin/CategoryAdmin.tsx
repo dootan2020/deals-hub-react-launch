@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -118,20 +117,16 @@ const CategoryAdmin = () => {
   const buildCategoryHierarchy = (categories: Category[]): CategoryWithChildren[] => {
     const categoriesMap: Record<string, CategoryWithChildren> = {};
     
-    // First pass: create map of all categories with their properties
     categories.forEach(category => {
       categoriesMap[category.id] = { ...category, children: [] };
     });
     
-    // Second pass: establish parent-child relationships
     const rootCategories: CategoryWithChildren[] = [];
     
     categories.forEach(category => {
       if (category.parent_id && categoriesMap[category.parent_id]) {
-        // This is a child category, add it to its parent's children array
         categoriesMap[category.parent_id].children?.push(categoriesMap[category.id]);
       } else {
-        // This is a root category with no parent
         rootCategories.push(categoriesMap[category.id]);
       }
     });
@@ -216,7 +211,6 @@ const CategoryAdmin = () => {
     setDeleteError(null);
     
     try {
-      // Check if category has subcategories
       const { data: subcategories, error: subcategoriesError } = await supabase
         .from('categories')
         .select('id')
@@ -340,12 +334,9 @@ const CategoryAdmin = () => {
 
   const getParentOptions = () => {
     return categories.filter(category => {
-      // Prevent creating circular references
       if (selectedCategory) {
-        // Don't allow setting a category as its own parent
         if (category.id === selectedCategory.id) return false;
         
-        // Don't allow setting a child category as the parent of its ancestor
         let parent_id = category.parent_id;
         while (parent_id) {
           if (parent_id === selectedCategory.id) return false;
@@ -492,7 +483,7 @@ const CategoryAdmin = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None (Top-Level Category)</SelectItem>
+                          <SelectItem value="none">None (Top-Level Category)</SelectItem>
                           {getParentOptions().map((category) => (
                             <SelectItem key={category.id} value={category.id}>
                               {category.name}
@@ -607,7 +598,7 @@ const CategoryAdmin = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None (Top-Level Category)</SelectItem>
+                          <SelectItem value="none">None (Top-Level Category)</SelectItem>
                           {getParentOptions().map((category) => (
                             <SelectItem key={category.id} value={category.id}>
                               {category.name}
