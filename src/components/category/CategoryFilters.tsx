@@ -16,7 +16,7 @@ const CategoryFilters: React.FC<CategoryFiltersProps> = ({ onFilterChange, activ
   const [maxPrice, setMaxPrice] = useState<string>(activeFilters.priceRange?.[1]?.toString() || '1000');
   
   // Rating state
-  const [ratings, setRatings] = useState<string[]>(activeFilters.rating || []);
+  const [ratings, setRatings] = useState<string[]>(activeFilters.ratings?.map(String) || []);
   
   // In stock state
   const [inStock, setInStock] = useState<boolean | undefined>(activeFilters.inStock);
@@ -34,8 +34,8 @@ const CategoryFilters: React.FC<CategoryFiltersProps> = ({ onFilterChange, activ
       setMaxPrice(activeFilters.priceRange[1].toString());
     }
     
-    if (activeFilters.rating) {
-      setRatings(activeFilters.rating);
+    if (activeFilters.ratings) {
+      setRatings(activeFilters.ratings.map(String));
     } else {
       setRatings([]);
     }
@@ -88,12 +88,12 @@ const CategoryFilters: React.FC<CategoryFiltersProps> = ({ onFilterChange, activ
     
     // Apply price range filter if both values are valid
     if (minPrice !== '' && maxPrice !== '' && !isNaN(Number(minPrice)) && !isNaN(Number(maxPrice))) {
-      filters.priceRange = [minPrice, maxPrice];
+      filters.priceRange = [Number(minPrice), Number(maxPrice)];
     }
     
     // Apply rating filter if any ratings selected
     if (ratings.length > 0) {
-      filters.rating = ratings;
+      filters.ratings = ratings.map(Number);
     }
     
     // Apply in stock filter if set

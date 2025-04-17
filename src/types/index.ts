@@ -49,14 +49,31 @@ export interface FilterParams {
   categoryId?: string;
   minPrice?: number;
   maxPrice?: number;
-  ratings?: number[];
+  ratings?: number[]; // Changed from 'rating' to 'ratings' for consistency
   search?: string;
   tags?: string[];
   inStock?: boolean;
   sort?: string;
   page?: number;
   limit?: number;
-  priceRange?: { min: number; max: number };
+  priceRange?: [number, number]; // Changed from {min, max} to tuple for consistency with usage
+}
+
+export interface CategoryPageParams {
+  slug: string;
+}
+
+export interface SubcategoryPageParams {
+  categorySlug: string;
+  subcategorySlug: string;
+}
+
+export interface ProductPageParams {
+  slug: string;
+}
+
+export interface ProductWithCategory extends Product {
+  category: Category;
 }
 
 export interface TableColumn<T> {

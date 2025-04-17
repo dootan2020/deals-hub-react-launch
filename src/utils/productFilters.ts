@@ -12,15 +12,15 @@ export const applyFilters = (products: Product[], filters?: FilterParams): Produ
   return products.filter(product => {
     // Price Range Filter
     if (filters.priceRange && filters.priceRange.length === 2) {
-      const [min, max] = filters.priceRange.map(Number);
+      const [min, max] = filters.priceRange;
       if (!isNaN(min) && !isNaN(max)) {
         if (product.price < min || product.price > max) return false;
       }
     }
     
     // Rating Filter
-    if (filters.rating && filters.rating.length) {
-      const minRating = Math.min(...filters.rating.map(Number));
+    if (filters.ratings && filters.ratings.length) {
+      const minRating = Math.min(...filters.ratings.map(Number));
       if (!isNaN(minRating) && product.rating < minRating) return false;
     }
     

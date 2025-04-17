@@ -25,7 +25,7 @@ const EnhancedCategoryFilters: React.FC<EnhancedCategoryFiltersProps> = ({
   const [maxPrice, setMaxPrice] = useState<string>(activeFilters.priceRange?.[1]?.toString() || '1000');
   
   // Rating state
-  const [ratings, setRatings] = useState<string[]>(activeFilters.rating || []);
+  const [ratings, setRatings] = useState<string[]>(activeFilters.ratings?.map(String) || []);
   
   // In stock state
   const [inStock, setInStock] = useState<boolean | undefined>(activeFilters.inStock);
@@ -50,8 +50,8 @@ const EnhancedCategoryFilters: React.FC<EnhancedCategoryFiltersProps> = ({
       setMaxPrice(activeFilters.priceRange[1].toString());
     }
     
-    if (activeFilters.rating) {
-      setRatings(activeFilters.rating);
+    if (activeFilters.ratings) {
+      setRatings(activeFilters.ratings.map(String));
     } else {
       setRatings([]);
     }
@@ -61,7 +61,7 @@ const EnhancedCategoryFilters: React.FC<EnhancedCategoryFiltersProps> = ({
     // Count active filters
     let count = 0;
     if (activeFilters.priceRange) count++;
-    if (activeFilters.rating && activeFilters.rating.length > 0) count++;
+    if (activeFilters.ratings && activeFilters.ratings.length > 0) count++;
     if (activeFilters.inStock !== undefined) count++;
     setActiveFilterCount(count);
 
@@ -122,12 +122,12 @@ const EnhancedCategoryFilters: React.FC<EnhancedCategoryFiltersProps> = ({
     
     // Apply price range filter if both values are valid
     if (minPrice !== '' && maxPrice !== '' && !isNaN(Number(minPrice)) && !isNaN(Number(maxPrice))) {
-      filters.priceRange = [minPrice, maxPrice];
+      filters.priceRange = [Number(minPrice), Number(maxPrice)];
     }
     
     // Apply rating filter if any ratings selected
     if (ratings.length > 0) {
-      filters.rating = ratings;
+      filters.ratings = ratings.map(Number);
     }
     
     // Apply in stock filter if set
@@ -186,7 +186,7 @@ const EnhancedCategoryFilters: React.FC<EnhancedCategoryFiltersProps> = ({
       setMaxPrice('1000');
     }
     else if (filterType === 'rating') {
-      delete newFilters.rating;
+      delete newFilters.ratings;
       setRatings([]);
     }
     else if (filterType === 'stock') {
@@ -229,7 +229,7 @@ const EnhancedCategoryFilters: React.FC<EnhancedCategoryFiltersProps> = ({
   // Active filters display
   const renderActiveFilters = () => {
     if (
-      (!activeFilters.priceRange && !activeFilters.rating?.length && activeFilters.inStock === undefined) ||
+      (!activeFilters.priceRange && !activeFilters.ratings?.length && activeFilters.inStock === undefined) ||
       activeFilterCount === 0
     ) {
       return null;
@@ -264,9 +264,9 @@ const EnhancedCategoryFilters: React.FC<EnhancedCategoryFiltersProps> = ({
             </Badge>
           )}
           
-          {activeFilters.rating && activeFilters.rating.length > 0 && (
+          {activeFilters.ratings && activeFilters.ratings.length > 0 && (
             <Badge variant="outline" className="flex items-center gap-1 bg-gray-50">
-              Rating: {Math.min(...activeFilters.rating.map(Number))}+ stars
+              Rating: {Math.min(...activeFilters.ratings.map(Number))}+ stars
               <Button
                 variant="ghost"
                 size="sm"
