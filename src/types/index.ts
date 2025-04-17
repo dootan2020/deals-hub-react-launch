@@ -1,4 +1,3 @@
-
 export interface Product {
   id: string;
   title: string;
@@ -14,8 +13,8 @@ export interface Product {
   slug: string;
   features?: string[];
   specifications?: Record<string, string | number | boolean | object>;
-  salesCount?: number; // Field for tracking sales count
-  createdAt?: string; // Field for tracking when product was added
+  salesCount?: number; 
+  createdAt?: string;
 }
 
 export interface Category {

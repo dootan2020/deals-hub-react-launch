@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -206,11 +205,11 @@ const EnhancedCategoryPage = () => {
         rating: Number(item.rating) || 0,
         reviewCount: item.review_count || 0,
         inStock: item.in_stock === true,
-        badges: item.badges || [],
+        badges: Array.isArray(item.badges) ? item.badges : [],
         slug: item.slug,
-        features: item.features || [],
-        specifications: item.specifications || {},
-        salesCount: 0,
+        features: Array.isArray(item.features) ? item.features : [],
+        specifications: item.specifications as Record<string, string | number | boolean | object> || {},
+        salesCount: Number(item.sales_count) || 0,
         createdAt: item.created_at
       }));
       
@@ -255,11 +254,11 @@ const EnhancedCategoryPage = () => {
           rating: Number(item.rating) || 0,
           reviewCount: item.review_count || 0,
           inStock: item.in_stock === true,
-          badges: item.badges || [],
+          badges: Array.isArray(item.badges) ? item.badges : [],
           slug: item.slug,
-          features: item.features || [],
-          specifications: item.specifications || {},
-          salesCount: 0,
+          features: Array.isArray(item.features) ? item.features : [],
+          specifications: item.specifications as Record<string, string | number | boolean | object> || {},
+          salesCount: Number(item.sales_count) || 0,
           createdAt: item.created_at
         }));
         
@@ -277,11 +276,11 @@ const EnhancedCategoryPage = () => {
           rating: Number(item.rating) || 0,
           reviewCount: item.review_count || 0,
           inStock: item.in_stock === true,
-          badges: item.badges || [],
+          badges: Array.isArray(item.badges) ? item.badges : [],
           slug: item.slug,
-          features: item.features || [],
-          specifications: item.specifications || {},
-          salesCount: 0,
+          features: Array.isArray(item.features) ? item.features : [],
+          specifications: item.specifications as Record<string, string | number | boolean | object> || {},
+          salesCount: Number(item.sales_count) || 0,
           createdAt: item.created_at
         }));
         
