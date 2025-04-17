@@ -1,9 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
-import { getProductsByCategory, categories } from '@/data/mockData';
 import { Product, Category } from '@/types';
 import { Filter, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react';
 import { 
@@ -36,7 +34,6 @@ const CategoryPage = () => {
 
   const fetchCategoryWithParents = async (categoryId: string) => {
     try {
-      // First, get the current category
       const { data: categoryData, error } = await supabase
         .from('categories')
         .select('*')
@@ -48,7 +45,6 @@ const CategoryPage = () => {
       if (categoryData) {
         const categoryWithParents: CategoryWithParent = { ...categoryData };
         
-        // If this category has a parent, fetch the parent chain
         if (categoryWithParents.parent_id) {
           const parentChain = await fetchParentChain(categoryWithParents.parent_id);
           if (parentChain) {
@@ -63,7 +59,6 @@ const CategoryPage = () => {
     }
   };
 
-  // Recursive function to build the parent chain
   const fetchParentChain = async (parentId: string): Promise<CategoryWithParent | undefined> => {
     try {
       const { data: parentData, error } = await supabase
@@ -94,27 +89,23 @@ const CategoryPage = () => {
     }
   };
 
-  // Build array of categories for breadcrumb, from root to current
   const buildBreadcrumbCategories = (category: CategoryWithParent | undefined): CategoryWithParent[] => {
     if (!category) return [];
     
     const result: CategoryWithParent[] = [];
     let currentCategory: CategoryWithParent | undefined = category;
     
-    // Loop through the chain from current to root
     while (currentCategory) {
-      // Add to the beginning of the array (we want root first)
       result.unshift(currentCategory);
       currentCategory = currentCategory.parent;
     }
     
     return result;
   };
-  
+
   const fetchProductsByCategory = async (categoryId: string) => {
     setLoading(true);
     try {
-      // First get current category's products
       const { data: directProducts, error } = await supabase
         .from('products')
         .select('*')
@@ -122,7 +113,6 @@ const CategoryPage = () => {
         
       if (error) throw error;
       
-      // Then get subcategories
       const { data: subcategories, error: subcategoriesError } = await supabase
         .from('categories')
         .select('id')
@@ -130,7 +120,6 @@ const CategoryPage = () => {
         
       if (subcategoriesError) throw subcategoriesError;
       
-      // Get products from subcategories
       let allProducts = directProducts || [];
       if (subcategories && subcategories.length > 0) {
         const subcategoryIds = subcategories.map(sc => sc.id);
@@ -146,7 +135,6 @@ const CategoryPage = () => {
         }
       }
       
-      // Map the database product format to the Product type format expected by the app
       const mappedProducts: Product[] = allProducts.map(item => ({
         id: item.id,
         title: item.title,
@@ -161,7 +149,7 @@ const CategoryPage = () => {
         badges: item.badges || [],
         slug: item.slug,
         features: item.features || [],
-        specifications: item.specifications || {}
+        specifications: item.specifications ? convertSpecifications(item.specifications) : {}
       }));
       
       setProducts(mappedProducts);
@@ -170,6 +158,20 @@ const CategoryPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const convertSpecifications = (specs: any): Record<string, string> => {
+    if (typeof specs === 'object' && specs !== null) {
+      const result: Record<string, string> = {};
+      
+      Object.entries(specs).forEach(([key, value]) => {
+        result[key] = String(value);
+      });
+      
+      return result;
+    }
+    
+    return {};
   };
 
   if (loading) {
@@ -200,7 +202,6 @@ const CategoryPage = () => {
 
   return (
     <Layout>
-      {/* Breadcrumb Navigation */}
       <div className="bg-white border-b">
         <div className="container-custom py-3">
           <Breadcrumb>
@@ -213,7 +214,6 @@ const CategoryPage = () => {
               <BreadcrumbSeparator />
               
               {buildBreadcrumbCategories(category).map((cat, index) => {
-                // For all but the last item, make it a link
                 const isLast = index === buildBreadcrumbCategories(category).length - 1;
                 
                 return isLast ? (
@@ -236,7 +236,6 @@ const CategoryPage = () => {
         </div>
       </div>
 
-      {/* Category Header */}
       <div className="bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] py-12">
         <div className="container-custom">
           <h1 className="text-3xl font-bold mb-2">{category?.name}</h1>
@@ -244,10 +243,8 @@ const CategoryPage = () => {
         </div>
       </div>
       
-      {/* Products Section */}
       <div className="container-custom py-12">
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Mobile Filter Toggle */}
           <div className="md:hidden mb-4">
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -265,14 +262,12 @@ const CategoryPage = () => {
             </button>
           </div>
           
-          {/* Filters Sidebar */}
           <div 
             className={`md:w-1/4 lg:w-1/5 ${showFilters ? 'block' : 'hidden'} md:block`}
           >
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <h2 className="font-semibold text-lg mb-4">Filters</h2>
               
-              {/* Price Range */}
               <div className="mb-6">
                 <h3 className="font-medium mb-2">Price Range</h3>
                 <div className="space-y-2">
@@ -295,7 +290,6 @@ const CategoryPage = () => {
                 </div>
               </div>
               
-              {/* Rating */}
               <div className="mb-6">
                 <h3 className="font-medium mb-2">Rating</h3>
                 <div className="space-y-2">
@@ -310,7 +304,6 @@ const CategoryPage = () => {
                 </div>
               </div>
               
-              {/* Availability */}
               <div>
                 <h3 className="font-medium mb-2">Availability</h3>
                 <div className="space-y-2">
@@ -323,7 +316,6 @@ const CategoryPage = () => {
             </div>
           </div>
           
-          {/* Products Grid */}
           <div className="md:w-3/4 lg:w-4/5">
             {products.length > 0 ? (
               <>

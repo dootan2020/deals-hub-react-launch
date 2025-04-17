@@ -1,75 +1,51 @@
+
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, Edit, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Plus } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetClose,
 } from '@/components/ui/sheet';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import * as z from 'zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { Category } from '@/types';
-
-const categorySchema = z.object({
-  name: z.string().min(2, "Category name must be at least 2 characters"),
-  description: z.string().min(5, "Description must be at least 5 characters"),
-  slug: z.string().min(2, "Slug must be at least 2 characters").regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
-  image: z.string().url("Image must be a valid URL"),
-  parent_id: z.string().nullable().optional(),
-});
-
-type CategoryFormValues = z.infer<typeof categorySchema>;
-
-interface CategoryWithChildren extends Category {
-  children?: CategoryWithChildren[];
-  isExpanded?: boolean;
-}
+import { MainCategoriesTable } from '@/components/admin/categories/MainCategoriesTable';
+import { SubcategoriesTable } from '@/components/admin/categories/SubcategoriesTable';
+import { CategoryForm, categorySchema, CategoryFormValues } from '@/components/admin/categories/CategoryForm';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const CategoryAdmin = () => {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesHierarchy, setCategoriesHierarchy] = useState<CategoryWithChildren[]>([]);
+  const [mainCategories, setMainCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isAddMainOpen, setIsAddMainOpen] = useState(false);
+  const [isAddSubOpen, setIsAddSubOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [activeTab, setActiveTab] = useState("main");
+  const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const form = useForm<CategoryFormValues>({
+  const mainCategoryForm = useForm<CategoryFormValues>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      slug: '',
+      image: '',
+      parent_id: null,
+    }
+  });
+
+  const subcategoryForm = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: '',
@@ -96,6 +72,16 @@ const CategoryAdmin = () => {
   }, []);
 
   useEffect(() => {
+    if (categories.length > 0) {
+      const main = categories.filter(category => !category.parent_id);
+      const sub = categories.filter(category => category.parent_id);
+      
+      setMainCategories(main);
+      setSubcategories(sub);
+    }
+  }, [categories]);
+
+  useEffect(() => {
     if (selectedCategory && isEditOpen) {
       editForm.reset({
         name: selectedCategory.name,
@@ -106,33 +92,6 @@ const CategoryAdmin = () => {
       });
     }
   }, [selectedCategory, isEditOpen, editForm]);
-
-  useEffect(() => {
-    if (categories.length > 0) {
-      const hierarchy = buildCategoryHierarchy(categories);
-      setCategoriesHierarchy(hierarchy);
-    }
-  }, [categories]);
-
-  const buildCategoryHierarchy = (categories: Category[]): CategoryWithChildren[] => {
-    const categoriesMap: Record<string, CategoryWithChildren> = {};
-    
-    categories.forEach(category => {
-      categoriesMap[category.id] = { ...category, children: [] };
-    });
-    
-    const rootCategories: CategoryWithChildren[] = [];
-    
-    categories.forEach(category => {
-      if (category.parent_id && categoriesMap[category.parent_id]) {
-        categoriesMap[category.parent_id].children?.push(categoriesMap[category.id]);
-      } else {
-        rootCategories.push(categoriesMap[category.id]);
-      }
-    });
-    
-    return rootCategories;
-  };
 
   const fetchCategories = async () => {
     setIsLoading(true);
@@ -152,7 +111,7 @@ const CategoryAdmin = () => {
     }
   };
 
-  const onSubmitAdd = async (data: CategoryFormValues) => {
+  const onSubmitAddMain = async (data: CategoryFormValues) => {
     try {
       const { error } = await supabase
         .from('categories')
@@ -162,19 +121,50 @@ const CategoryAdmin = () => {
           slug: data.slug,
           image: data.image,
           count: 0,
-          parent_id: data.parent_id || null
+          parent_id: null // Ensure main categories have no parent
         });
 
       if (error) throw error;
 
-      toast.success('Category added successfully');
+      toast.success('Main category added successfully');
       fetchCategories();
       queryClient.invalidateQueries({ queryKey: ['categories'] });
-      setIsAddOpen(false);
-      form.reset();
+      setIsAddMainOpen(false);
+      mainCategoryForm.reset();
     } catch (error) {
-      console.error('Error adding category:', error);
-      toast.error('Failed to add category');
+      console.error('Error adding main category:', error);
+      toast.error('Failed to add main category');
+    }
+  };
+
+  const onSubmitAddSub = async (data: CategoryFormValues) => {
+    try {
+      if (!data.parent_id) {
+        toast.error('Parent category is required for subcategories');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('categories')
+        .insert({
+          name: data.name,
+          description: data.description,
+          slug: data.slug,
+          image: data.image,
+          count: 0,
+          parent_id: data.parent_id
+        });
+
+      if (error) throw error;
+
+      toast.success('Subcategory added successfully');
+      fetchCategories();
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      setIsAddSubOpen(false);
+      subcategoryForm.reset();
+    } catch (error) {
+      console.error('Error adding subcategory:', error);
+      toast.error('Failed to add subcategory');
     }
   };
 
@@ -182,6 +172,18 @@ const CategoryAdmin = () => {
     if (!selectedCategory) return;
 
     try {
+      // Check if we're editing a main category or subcategory
+      const isMainCategory = !selectedCategory.parent_id;
+      
+      // If editing a main category, ensure parent_id is null
+      // If editing a subcategory, ensure parent_id is set
+      const parent_id = isMainCategory ? null : data.parent_id;
+      
+      if (!isMainCategory && !parent_id) {
+        toast.error('Parent category is required for subcategories');
+        return;
+      }
+
       const { error } = await supabase
         .from('categories')
         .update({
@@ -189,7 +191,7 @@ const CategoryAdmin = () => {
           description: data.description,
           slug: data.slug,
           image: data.image,
-          parent_id: data.parent_id || null,
+          parent_id: parent_id,
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedCategory.id);
@@ -208,37 +210,7 @@ const CategoryAdmin = () => {
   };
 
   const handleDelete = async (category: Category) => {
-    setDeleteError(null);
-    
     try {
-      const { data: subcategories, error: subcategoriesError } = await supabase
-        .from('categories')
-        .select('id')
-        .eq('parent_id', category.id)
-        .limit(1);
-
-      if (subcategoriesError) throw subcategoriesError;
-
-      if (subcategories && subcategories.length > 0) {
-        setDeleteError(`Cannot delete category "${category.name}" because it has subcategories. Please delete or reassign these subcategories first.`);
-        toast.error('Cannot delete category with subcategories');
-        return;
-      }
-
-      const { data: products, error: checkError } = await supabase
-        .from('products')
-        .select('id')
-        .eq('category_id', category.id)
-        .limit(1);
-
-      if (checkError) throw checkError;
-
-      if (products && products.length > 0) {
-        setDeleteError(`Cannot delete category "${category.name}" because it has products associated with it. Please reassign or delete these products first.`);
-        toast.error('Cannot delete category with associated products');
-        return;
-      }
-
       const { error: deleteError } = await supabase
         .from('categories')
         .delete()
@@ -260,365 +232,152 @@ const CategoryAdmin = () => {
     setIsEditOpen(true);
   };
 
-  const handleAddClick = () => {
-    form.reset();
-    setIsAddOpen(true);
+  const handleAddMainClick = () => {
+    mainCategoryForm.reset();
+    setIsAddMainOpen(true);
   };
 
-  const toggleExpand = (categoryId: string) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [categoryId]: !prev[categoryId]
-    }));
-  };
-
-  const renderCategoryRows = (category: CategoryWithChildren, level = 0) => {
-    const isExpanded = expandedCategories[category.id] || false;
-    const hasChildren = category.children && category.children.length > 0;
-    
-    return (
-      <>
-        <TableRow key={category.id}>
-          <TableCell className="font-medium">
-            <div className="flex items-center">
-              {level > 0 && (
-                <div style={{ width: `${level * 20}px` }}></div>
-              )}
-              {hasChildren && (
-                <button
-                  onClick={() => toggleExpand(category.id)}
-                  className="mr-2 p-1 hover:bg-gray-100 rounded-sm"
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="w-4 h-4" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4" />
-                  )}
-                </button>
-              )}
-              {!hasChildren && <div className="mr-6"></div>}
-              {category.name}
-            </div>
-          </TableCell>
-          <TableCell className="max-w-xs truncate">{category.description}</TableCell>
-          <TableCell>{category.slug}</TableCell>
-          <TableCell>{category.count}</TableCell>
-          <TableCell className="text-right">
-            <div className="flex justify-end space-x-2">
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => handleEditClick(category)}
-              >
-                <Edit className="w-4 h-4" />
-                <span className="sr-only">Edit</span>
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => handleDelete(category)}
-              >
-                <Trash2 className="w-4 h-4" />
-                <span className="sr-only">Delete</span>
-              </Button>
-            </div>
-          </TableCell>
-        </TableRow>
-        
-        {hasChildren && isExpanded && category.children?.map(child => 
-          renderCategoryRows(child, level + 1)
-        )}
-      </>
-    );
-  };
-
-  const getParentOptions = () => {
-    return categories.filter(category => {
-      if (selectedCategory) {
-        if (category.id === selectedCategory.id) return false;
-        
-        let parent_id = category.parent_id;
-        while (parent_id) {
-          if (parent_id === selectedCategory.id) return false;
-          const parent = categories.find(c => c.id === parent_id);
-          parent_id = parent ? parent.parent_id : null;
-        }
-      }
-      return true;
+  const handleAddSubClick = () => {
+    // Reset form and set a default parent if one is selected in the filter
+    subcategoryForm.reset({
+      name: '',
+      description: '',
+      slug: '',
+      image: '',
+      parent_id: selectedParentId || null,
     });
+    
+    setIsAddSubOpen(true);
   };
+
+  const isSubcategoryTab = activeTab === "sub";
+  const hasMainCategories = mainCategories.length > 0;
 
   return (
     <AdminLayout title="Categories Management">
-      <div className="flex justify-between mb-6">
-        <Button onClick={handleAddClick}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add New Category
-        </Button>
-      </div>
-
-      {deleteError && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {deleteError}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="flex justify-between items-center mb-6">
+          <TabsList>
+            <TabsTrigger value="main">Main Categories</TabsTrigger>
+            <TabsTrigger value="sub">Subcategories</TabsTrigger>
+          </TabsList>
+          
+          {isSubcategoryTab ? (
+            <Button 
+              onClick={handleAddSubClick}
+              disabled={!hasMainCategories}
+              title={!hasMainCategories ? "Create a main category first" : undefined}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add New Subcategory
+            </Button>
+          ) : (
+            <Button onClick={handleAddMainClick}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add New Main Category
+            </Button>
+          )}
         </div>
-      )}
 
-      <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Slug</TableHead>
-              <TableHead>Product Count</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
-                  Loading categories...
-                </TableCell>
-              </TableRow>
-            ) : categoriesHierarchy.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
-                  No categories found
-                </TableCell>
-              </TableRow>
-            ) : (
-              categoriesHierarchy.map(category => renderCategoryRows(category))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+        {isLoading ? (
+          <div className="text-center py-8 bg-gray-50 rounded">
+            Loading categories...
+          </div>
+        ) : (
+          <>
+            <TabsContent value="main" className="mt-0">
+              <div className="border rounded-md">
+                <MainCategoriesTable
+                  mainCategories={mainCategories}
+                  onEdit={handleEditClick}
+                  onDelete={handleDelete}
+                  refreshCategories={fetchCategories}
+                />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="sub" className="mt-0">
+              {!hasMainCategories ? (
+                <div className="text-center py-8 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-yellow-800 font-medium">You need to create at least one main category first</p>
+                  <p className="text-yellow-700 text-sm mt-1">Switch to the "Main Categories" tab to create one</p>
+                </div>
+              ) : (
+                <div className="border rounded-md">
+                  <SubcategoriesTable
+                    subcategories={subcategories}
+                    mainCategories={mainCategories}
+                    onEdit={handleEditClick}
+                    onDelete={handleDelete}
+                    selectedParentId={selectedParentId}
+                    setSelectedParentId={setSelectedParentId}
+                  />
+                </div>
+              )}
+            </TabsContent>
+          </>
+        )}
+      </Tabs>
 
-      <Sheet open={isAddOpen} onOpenChange={setIsAddOpen}>
+      {/* Add Main Category Sheet */}
+      <Sheet open={isAddMainOpen} onOpenChange={setIsAddMainOpen}>
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>Add New Category</SheetTitle>
+            <SheetTitle>Add Main Category</SheetTitle>
             <SheetDescription>
-              Create a new category to organize your products
+              Create a new main category to organize your products
             </SheetDescription>
           </SheetHeader>
           <div className="py-4">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmitAdd)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter category name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter category description" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="slug"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Slug</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Enter category slug (e.g. email-accounts)" 
-                          {...field} 
-                          onChange={(e) => {
-                            field.onChange(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="image"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Image URL</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com/image.jpg" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="parent_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Parent Category (Optional)</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value || undefined}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a parent category (optional)" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">None (Top-Level Category)</SelectItem>
-                          {getParentOptions().map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex justify-end space-x-2 pt-4">
-                  <SheetClose asChild>
-                    <Button type="button" variant="outline">Cancel</Button>
-                  </SheetClose>
-                  <Button type="submit">Save Category</Button>
-                </div>
-              </form>
-            </Form>
+            <CategoryForm 
+              form={mainCategoryForm}
+              onSubmit={onSubmitAddMain}
+              isSubcategory={false}
+              mainCategories={mainCategories}
+              isEdit={false}
+            />
           </div>
         </SheetContent>
       </Sheet>
 
+      {/* Add Subcategory Sheet */}
+      <Sheet open={isAddSubOpen} onOpenChange={setIsAddSubOpen}>
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Add Subcategory</SheetTitle>
+            <SheetDescription>
+              Create a new subcategory under a main category
+            </SheetDescription>
+          </SheetHeader>
+          <div className="py-4">
+            <CategoryForm 
+              form={subcategoryForm}
+              onSubmit={onSubmitAddSub}
+              isSubcategory={true}
+              mainCategories={mainCategories}
+              isEdit={false}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Edit Category Sheet */}
       <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>Edit Category</SheetTitle>
+            <SheetTitle>Edit {selectedCategory?.parent_id ? 'Subcategory' : 'Main Category'}</SheetTitle>
             <SheetDescription>
               Update category details
             </SheetDescription>
           </SheetHeader>
           <div className="py-4">
-            <Form {...editForm}>
-              <form onSubmit={editForm.handleSubmit(onSubmitEdit)} className="space-y-4">
-                <FormField
-                  control={editForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter category name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={editForm.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter category description" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={editForm.control}
-                  name="slug"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Slug</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Enter category slug" 
-                          {...field}
-                          onChange={(e) => {
-                            field.onChange(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={editForm.control}
-                  name="image"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Image URL</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com/image.jpg" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={editForm.control}
-                  name="parent_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Parent Category (Optional)</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value || undefined}
-                        value={field.value || undefined}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a parent category (optional)" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">None (Top-Level Category)</SelectItem>
-                          {getParentOptions().map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <SheetFooter className="pt-4">
-                  <SheetClose asChild>
-                    <Button type="button" variant="outline">Cancel</Button>
-                  </SheetClose>
-                  <Button type="submit">Update Category</Button>
-                </SheetFooter>
-              </form>
-            </Form>
+            <CategoryForm 
+              form={editForm}
+              onSubmit={onSubmitEdit}
+              isSubcategory={Boolean(selectedCategory?.parent_id)}
+              mainCategories={mainCategories}
+              isEdit={true}
+            />
           </div>
         </SheetContent>
       </Sheet>
