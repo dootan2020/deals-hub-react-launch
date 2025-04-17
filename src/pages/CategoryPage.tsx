@@ -1,34 +1,21 @@
-
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import Layout from '@/components/layout/Layout';
-import ProductGrid from '@/components/product/ProductGrid';
-import { Product } from '@/types';
 import { Loader2 } from 'lucide-react';
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbList, 
-  BreadcrumbPage, 
-  BreadcrumbSeparator 
-} from '@/components/ui/breadcrumb';
-import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { 
-  Pagination, 
-  PaginationContent, 
-  PaginationItem, 
-  PaginationLink, 
-  PaginationNext, 
-  PaginationPrevious 
-} from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
-import { fetchCategoryBySlug } from '@/services/categoryService';
+
+import Layout from '@/components/layout/Layout';
+import CategoryBreadcrumbs from '@/components/category/CategoryBreadcrumbs';
+import CategoryHeader from '@/components/category/CategoryHeader';
+import CategoryProductsList from '@/components/category/CategoryProductsList';
 import CategoryFiltersSection from '@/components/category/CategoryFiltersSection';
 import MobileFilterToggle from '@/components/category/MobileFilterToggle';
+
+import { fetchCategoryBySlug } from '@/services/categoryService';
+import { supabase } from '@/integrations/supabase/client';
 import { CategoryWithParent, CategoryPageParams, PaginationState, ProductData } from '@/types/category.types';
+import { Product } from '@/types';
 
 const CategoryPage = () => {
   const { categorySlug, parentCategorySlug } = useParams<CategoryPageParams>();
@@ -47,18 +34,12 @@ const CategoryPage = () => {
     totalItems: 0
   });
 
-  // Helper function to build breadcrumb categories
   const buildBreadcrumbCategories = (currentCategory: CategoryWithParent): CategoryWithParent[] => {
     const result: CategoryWithParent[] = [];
-    
-    // Add the current category
     result.push(currentCategory);
-    
-    // Add parent if exists
     if (currentCategory.parent) {
       result.unshift(currentCategory.parent);
     }
-    
     return result;
   };
 
@@ -254,13 +235,6 @@ const CategoryPage = () => {
     }
   };
 
-  const getCategoryUrl = (cat: CategoryWithParent) => {
-    if (cat.parent) {
-      return `/${cat.parent.slug}/${cat.slug}`;
-    }
-    return `/category/${cat.slug}`;
-  };
-
   if (loading) {
     return (
       <Layout>
@@ -284,14 +258,6 @@ const CategoryPage = () => {
               {error || 'Category not found'}
             </AlertDescription>
           </Alert>
-          <div className="flex justify-center">
-            <Link 
-              to="/" 
-              className="text-primary hover:underline flex items-center"
-            >
-              Return to homepage
-            </Link>
-          </div>
         </div>
       </Layout>
     );
@@ -304,42 +270,8 @@ const CategoryPage = () => {
         <meta name="description" content={category.description} />
       </Helmet>
 
-      <div className="bg-white border-b">
-        <div className="container-custom py-3">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link to="/">Home</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              
-              {buildBreadcrumbCategories(category).map((cat, index) => (
-                <React.Fragment key={cat.id}>
-                  {index > 0 && <BreadcrumbSeparator />}
-                  <BreadcrumbItem>
-                    {index === buildBreadcrumbCategories(category).length - 1 ? (
-                      <BreadcrumbPage>{cat.name}</BreadcrumbPage>
-                    ) : (
-                      <BreadcrumbLink asChild>
-                        <Link to={getCategoryUrl(cat)}>{cat.name}</Link>
-                      </BreadcrumbLink>
-                    )}
-                  </BreadcrumbItem>
-                </React.Fragment>
-              ))}
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-      </div>
-
-      <div className="bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] py-12">
-        <div className="container-custom">
-          <h1 className="text-3xl font-bold mb-2">{category?.name}</h1>
-          <p className="text-text-light">{category?.description}</p>
-        </div>
-      </div>
+      <CategoryBreadcrumbs categories={buildBreadcrumbCategories(category)} />
+      <CategoryHeader name={category.name} description={category.description} />
       
       <div className="container-custom py-12">
         <div className="flex flex-col md:flex-row gap-8">
@@ -354,65 +286,13 @@ const CategoryPage = () => {
           />
           
           <div className="md:w-3/4 lg:w-4/5">
-            {products.length > 0 ? (
-              <>
-                <div className="flex justify-between items-center mb-6">
-                  <p className="text-text-light">{pagination.totalItems} products found</p>
-                  <div className="flex items-center">
-                    <span className="mr-2 text-text-light">Sort by:</span>
-                    <select className="border border-gray-300 rounded p-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
-                      <option>Recommended</option>
-                      <option>Price: Low to High</option>
-                      <option>Price: High to Low</option>
-                      <option>Newest</option>
-                      <option>Rating</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <ProductGrid products={products} />
-                
-                {pagination.totalPages > 1 && (
-                  <div className="mt-8">
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious 
-                            onClick={() => handlePageChange(pagination.page - 1)}
-                            className={pagination.page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
-                        </PaginationItem>
-                        
-                        {Array.from({ length: pagination.totalPages }).map((_, i) => (
-                          <PaginationItem key={i}>
-                            <PaginationLink
-                              isActive={pagination.page === i + 1}
-                              onClick={() => handlePageChange(i + 1)}
-                            >
-                              {i + 1}
-                            </PaginationLink>
-                          </PaginationItem>
-                        ))}
-                        
-                        <PaginationItem>
-                          <PaginationNext 
-                            onClick={() => handlePageChange(pagination.page + 1)}
-                            className={pagination.page >= pagination.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <p className="text-xl font-medium mb-2">No products found</p>
-                <p className="text-text-light">
-                  Try adjusting your filters or check back later for new products.
-                </p>
-              </div>
-            )}
+            <CategoryProductsList 
+              products={products}
+              totalProducts={pagination.totalItems}
+              currentPage={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
+            />
           </div>
         </div>
       </div>

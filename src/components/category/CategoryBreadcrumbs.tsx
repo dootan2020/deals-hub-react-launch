@@ -1,48 +1,48 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { CategoryWithParent } from '@/types/category.types';
 import { 
   Breadcrumb, 
   BreadcrumbItem, 
   BreadcrumbLink, 
   BreadcrumbList, 
-  BreadcrumbSeparator,
-  BreadcrumbPage 
+  BreadcrumbPage,
+  BreadcrumbSeparator 
 } from '@/components/ui/breadcrumb';
 
-interface BreadcrumbItem {
-  name: string;
-  path: string;
-}
-
 interface CategoryBreadcrumbsProps {
-  breadcrumbs: BreadcrumbItem[];
+  categories: CategoryWithParent[];
 }
 
-const CategoryBreadcrumbs: React.FC<CategoryBreadcrumbsProps> = ({ breadcrumbs }) => {
+const CategoryBreadcrumbs: React.FC<CategoryBreadcrumbsProps> = ({ categories }) => {
   return (
     <div className="bg-white border-b">
       <div className="container-custom py-3">
         <Breadcrumb>
           <BreadcrumbList>
-            {breadcrumbs.map((breadcrumb, index) => {
-              const isLast = index === breadcrumbs.length - 1;
-              
-              return (
-                <React.Fragment key={index}>
-                  <BreadcrumbItem>
-                    {isLast ? (
-                      <BreadcrumbPage>{breadcrumb.name}</BreadcrumbPage>
-                    ) : (
-                      <BreadcrumbLink href={breadcrumb.path}>
-                        {breadcrumb.name}
-                      </BreadcrumbLink>
-                    )}
-                  </BreadcrumbItem>
-                  
-                  {!isLast && <BreadcrumbSeparator />}
-                </React.Fragment>
-              );
-            })}
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/">Home</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            
+            {categories.map((cat, index) => (
+              <React.Fragment key={cat.id}>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  {index === categories.length - 1 ? (
+                    <BreadcrumbPage>{cat.name}</BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink asChild>
+                      <Link to={cat.parent ? `/${cat.parent.slug}/${cat.slug}` : `/category/${cat.slug}`}>
+                        {cat.name}
+                      </Link>
+                    </BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
+              </React.Fragment>
+            ))}
           </BreadcrumbList>
         </Breadcrumb>
       </div>
