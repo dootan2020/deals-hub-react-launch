@@ -27,18 +27,18 @@ interface SearchableCategorySelectProps {
 
 export function SearchableCategorySelect({
   categories = [],
-  value,
+  value = '',
   onValueChange,
   placeholder = "Select a category",
   disabled = false
 }: SearchableCategorySelectProps) {
   const [open, setOpen] = useState(false);
   
-  // Find the selected category name
-  const selectedCategory = categories?.find((category) => category.id === value);
-
-  // Ensure categories is always an array
+  // Make sure categories is always a valid array
   const safeCategories = Array.isArray(categories) ? categories : [];
+  
+  // Find the selected category name with null checks
+  const selectedCategory = safeCategories.find((category) => category && category.id === value);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -59,7 +59,7 @@ export function SearchableCategorySelect({
           <CommandInput placeholder="Search category..." className="h-9" />
           <CommandEmpty>No category found.</CommandEmpty>
           <CommandGroup className="max-h-64 overflow-y-auto">
-            {safeCategories.map((category) => (
+            {safeCategories.filter(Boolean).map((category) => (
               <CommandItem
                 key={category.id}
                 value={category.name}

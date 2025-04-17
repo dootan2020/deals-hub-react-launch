@@ -104,8 +104,13 @@ const ProductManagerPage = () => {
         
       if (error) {
         console.error('Error loading categories:', error);
+        setCategories([]);
       } else {
-        setCategories(data || []);
+        const formattedCategories = (data || []).map(cat => ({
+          id: cat.id || '',
+          name: cat.name || ''
+        }));
+        setCategories(formattedCategories);
       }
     };
 
@@ -588,10 +593,11 @@ const ProductManagerPage = () => {
                             <FormLabel>Category</FormLabel>
                             <FormControl>
                               <SearchableCategorySelect
-                                categories={categories}
-                                value={field.value}
+                                categories={categories || []}
+                                value={field.value || ''}
                                 onValueChange={field.onChange}
                                 placeholder="Search for a category"
+                                disabled={!categories || categories.length === 0}
                               />
                             </FormControl>
                             <FormMessage />
