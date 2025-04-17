@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { useState } from "react";
-import { Check, Search } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +16,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Category } from "@/types";
 
 interface SearchableCategorySelectProps {
   categories: Array<{ id: string; name: string }>;
@@ -27,7 +26,7 @@ interface SearchableCategorySelectProps {
 }
 
 export function SearchableCategorySelect({
-  categories,
+  categories = [],
   value,
   onValueChange,
   placeholder = "Select a category",
@@ -36,7 +35,10 @@ export function SearchableCategorySelect({
   const [open, setOpen] = useState(false);
   
   // Find the selected category name
-  const selectedCategory = categories.find((category) => category.id === value);
+  const selectedCategory = categories?.find((category) => category.id === value);
+
+  // Ensure categories is always an array
+  const safeCategories = Array.isArray(categories) ? categories : [];
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -49,7 +51,7 @@ export function SearchableCategorySelect({
           className="w-full justify-between"
         >
           {value && selectedCategory ? selectedCategory.name : placeholder}
-          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" style={{ width: "var(--radix-popover-trigger-width)" }}>
@@ -57,7 +59,7 @@ export function SearchableCategorySelect({
           <CommandInput placeholder="Search category..." className="h-9" />
           <CommandEmpty>No category found.</CommandEmpty>
           <CommandGroup className="max-h-64 overflow-y-auto">
-            {categories.map((category) => (
+            {safeCategories.map((category) => (
               <CommandItem
                 key={category.id}
                 value={category.name}
