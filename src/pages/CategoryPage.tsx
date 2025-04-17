@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
 import { Product, Category } from '@/types';
-import { Filter, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react';
+import { Filter, ChevronDown, ChevronUp, SlidersHorizontal, Loader2 } from 'lucide-react';
 import { 
   Breadcrumb, 
   BreadcrumbItem, 
@@ -13,127 +14,201 @@ import {
   BreadcrumbSeparator 
 } from '@/components/ui/breadcrumb';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/components/ui/pagination";
+import { useToast } from "@/hooks/use-toast";
+import { fetchCategoryBySlug } from '@/services/categoryService';
 
 interface CategoryWithParent extends Category {
   parent?: CategoryWithParent;
 }
 
+interface CategoryPageParams {
+  categorySlug?: string;
+  parentCategorySlug?: string;
+}
+
+interface PaginationState {
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalItems: number;
+}
+
 const CategoryPage = () => {
-  const { categoryId } = useParams<{ categoryId: string }>();
+  // Get category slug from params - supports both /category/:categorySlug and /:parentCategorySlug/:categorySlug routes
+  const { categorySlug, parentCategorySlug } = useParams<CategoryPageParams>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [category, setCategory] = useState<CategoryWithParent | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [pagination, setPagination] = useState<PaginationState>({
+    page: 1,
+    pageSize: 12, // Products per page
+    totalPages: 1,
+    totalItems: 0
+  });
   
   useEffect(() => {
-    if (categoryId) {
-      fetchCategoryWithParents(categoryId);
-      fetchProductsByCategory(categoryId);
-    }
-  }, [categoryId]);
-
-  const fetchCategoryWithParents = async (categoryId: string) => {
-    try {
-      const { data: categoryData, error } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('id', categoryId)
-        .single();
-
-      if (error) throw error;
+    const fetchCategory = async () => {
+      setLoading(true);
+      setError(null);
       
-      if (categoryData) {
-        const categoryWithParents: CategoryWithParent = { ...categoryData };
-        
-        if (categoryWithParents.parent_id) {
-          const parentChain = await fetchParentChain(categoryWithParents.parent_id);
-          if (parentChain) {
-            categoryWithParents.parent = parentChain;
+      try {
+        // If we have both parent and child slugs
+        if (parentCategorySlug && categorySlug) {
+          // First verify parent exists
+          const parentCategory = await fetchCategoryBySlug(parentCategorySlug);
+          
+          if (!parentCategory) {
+            setError('Parent category not found');
+            setLoading(false);
+            return;
           }
-        }
-        
-        setCategory(categoryWithParents);
-      }
-    } catch (error) {
-      console.error('Error fetching category:', error);
-    }
-  };
-
-  const fetchParentChain = async (parentId: string): Promise<CategoryWithParent | undefined> => {
-    try {
-      const { data: parentData, error } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('id', parentId)
-        .single();
-
-      if (error) throw error;
-
-      if (parentData) {
-        const parent: CategoryWithParent = { ...parentData };
-        
-        if (parent.parent_id) {
-          const grandparent = await fetchParentChain(parent.parent_id);
-          if (grandparent) {
-            parent.parent = grandparent;
+          
+          // Then check if child category exists and belongs to parent
+          const childCategory = await fetchCategoryBySlug(categorySlug);
+          
+          if (!childCategory) {
+            setError('Category not found');
+            setLoading(false);
+            return;
           }
+          
+          if (childCategory.parent_id !== parentCategory.id) {
+            // Redirect to the correct URL pattern if necessary
+            navigate(`/category/${categorySlug}`, { replace: true });
+          }
+          
+          // Set child category with parent info
+          setCategory({
+            ...childCategory,
+            parent: parentCategory
+          });
+          
+          await fetchProductsByCategory(childCategory.id);
+        } 
+        // If we only have category slug
+        else if (categorySlug) {
+          const fetchedCategory = await fetchCategoryBySlug(categorySlug);
+          
+          if (!fetchedCategory) {
+            setError('Category not found');
+            setLoading(false);
+            return;
+          }
+          
+          // If this is a child category, we need to fetch the parent and redirect
+          if (fetchedCategory.parent_id) {
+            const { data: parentData } = await supabase
+              .from('categories')
+              .select('*')
+              .eq('id', fetchedCategory.parent_id)
+              .maybeSingle();
+              
+            if (parentData) {
+              setCategory({
+                ...fetchedCategory,
+                parent: parentData
+              });
+              
+              // Redirect to canonical URL with parent slug
+              navigate(`/${parentData.slug}/${fetchedCategory.slug}`, { replace: true });
+            } else {
+              setCategory(fetchedCategory);
+            }
+          } else {
+            // Main category - no redirect needed
+            setCategory(fetchedCategory);
+          }
+          
+          await fetchProductsByCategory(fetchedCategory.id);
+        } else {
+          setError('Category not specified');
         }
-        
-        return parent;
+      } catch (err) {
+        console.error('Error fetching category:', err);
+        setError('Failed to load category');
+        toast({
+          title: "Error loading category",
+          description: "There was a problem loading the category data. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
-      
-      return undefined;
-    } catch (error) {
-      console.error('Error fetching parent category:', error);
-      return undefined;
-    }
-  };
-
-  const buildBreadcrumbCategories = (category: CategoryWithParent | undefined): CategoryWithParent[] => {
-    if (!category) return [];
+    };
     
-    const result: CategoryWithParent[] = [];
-    let currentCategory: CategoryWithParent | undefined = category;
-    
-    while (currentCategory) {
-      result.unshift(currentCategory);
-      currentCategory = currentCategory.parent;
-    }
-    
-    return result;
-  };
+    fetchCategory();
+  }, [categorySlug, parentCategorySlug, navigate]);
 
   const fetchProductsByCategory = async (categoryId: string) => {
-    setLoading(true);
     try {
-      const { data: directProducts, error } = await supabase
+      // Get direct products in this category
+      const { data: directProducts, error, count } = await supabase
         .from('products')
-        .select('*')
-        .eq('category_id', categoryId);
+        .select('*', { count: 'exact' })
+        .eq('category_id', categoryId)
+        .range(
+          (pagination.page - 1) * pagination.pageSize,
+          pagination.page * pagination.pageSize - 1
+        );
         
       if (error) throw error;
       
-      const { data: subcategories, error: subcategoriesError } = await supabase
+      // Get subcategories to include their products as well
+      const { data: subcategories } = await supabase
         .from('categories')
         .select('id')
         .eq('parent_id', categoryId);
         
-      if (subcategoriesError) throw subcategoriesError;
-      
       let allProducts = directProducts || [];
+      let totalCount = count || 0;
+      
+      // If there are subcategories, fetch their products too
       if (subcategories && subcategories.length > 0) {
         const subcategoryIds = subcategories.map(sc => sc.id);
-        const { data: subcategoryProducts, error: subProductsError } = await supabase
+        
+        // Get count of products in subcategories
+        const { count: subCount } = await supabase
           .from('products')
-          .select('*')
+          .select('*', { count: 'exact' })
           .in('category_id', subcategoryIds);
           
-        if (subProductsError) throw subProductsError;
+        totalCount += subCount || 0;
         
-        if (subcategoryProducts) {
-          allProducts = [...allProducts, ...subcategoryProducts];
+        // Fetch the actual products within pagination range
+        const remainingItems = pagination.pageSize - allProducts.length;
+        
+        if (remainingItems > 0) {
+          const { data: subcategoryProducts } = await supabase
+            .from('products')
+            .select('*')
+            .in('category_id', subcategoryIds)
+            .range(0, remainingItems - 1);
+            
+          if (subcategoryProducts) {
+            allProducts = [...allProducts, ...subcategoryProducts];
+          }
         }
       }
+      
+      setPagination({
+        ...pagination,
+        totalItems: totalCount,
+        totalPages: Math.ceil(totalCount / pagination.pageSize) || 1
+      });
       
       const mappedProducts: Product[] = allProducts.map(item => ({
         id: item.id,
@@ -155,8 +230,11 @@ const CategoryPage = () => {
       setProducts(mappedProducts);
     } catch (error) {
       console.error('Error fetching products:', error);
-    } finally {
-      setLoading(false);
+      toast({
+        title: "Error loading products",
+        description: "There was a problem loading the products. Please try again later.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -174,30 +252,76 @@ const CategoryPage = () => {
     return {};
   };
 
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      setPagination({...pagination, page: newPage});
+      window.scrollTo({top: 0, behavior: 'smooth'});
+      
+      if (category) {
+        fetchProductsByCategory(category.id);
+      }
+    }
+  };
+
+  // Generate proper URLs for categories
+  const getCategoryUrl = (cat: CategoryWithParent) => {
+    if (cat.parent) {
+      return `/${cat.parent.slug}/${cat.slug}`;
+    }
+    return `/category/${cat.slug}`;
+  };
+
   if (loading) {
     return (
       <Layout>
         <div className="container-custom py-16">
-          <div className="flex justify-center items-center h-64">
-            <p>Loading...</p>
+          <div className="flex flex-col justify-center items-center h-64">
+            <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+            <p className="text-lg">Loading category...</p>
           </div>
         </div>
       </Layout>
     );
   }
 
-  if (!category) {
+  if (error || !category) {
     return (
       <Layout>
         <div className="container-custom py-16">
-          <div className="flex justify-center items-center h-64">
-            <p>Category not found</p>
+          <Alert variant="destructive" className="mb-6">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              {error || 'Category not found'}
+            </AlertDescription>
+          </Alert>
+          <div className="flex justify-center">
+            <Link 
+              to="/" 
+              className="text-primary hover:underline flex items-center"
+            >
+              Return to homepage
+            </Link>
           </div>
         </div>
       </Layout>
     );
   }
   
+  // Build breadcrumb trail
+  const buildBreadcrumbCategories = (currentCategory: CategoryWithParent | undefined): CategoryWithParent[] => {
+    if (!currentCategory) return [];
+    
+    const result: CategoryWithParent[] = [];
+    let category: CategoryWithParent | undefined = currentCategory;
+    
+    while (category) {
+      result.unshift(category);
+      category = category.parent;
+    }
+    
+    return result;
+  };
+
   const breadcrumbCategories = buildBreadcrumbCategories(category);
 
   return (
@@ -221,14 +345,14 @@ const CategoryPage = () => {
                     <BreadcrumbPage>{cat.name}</BreadcrumbPage>
                   </BreadcrumbItem>
                 ) : (
-                  <>
-                    <BreadcrumbItem key={cat.id}>
+                  <React.Fragment key={cat.id}>
+                    <BreadcrumbItem>
                       <BreadcrumbLink asChild>
-                        <Link to={`/category/${cat.id}`}>{cat.name}</Link>
+                        <Link to={getCategoryUrl(cat)}>{cat.name}</Link>
                       </BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
-                  </>
+                  </React.Fragment>
                 );
               })}
             </BreadcrumbList>
@@ -265,7 +389,7 @@ const CategoryPage = () => {
           <div 
             className={`md:w-1/4 lg:w-1/5 ${showFilters ? 'block' : 'hidden'} md:block`}
           >
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className="bg-white border border-gray-200 rounded-lg p-6 sticky top-24">
               <h2 className="font-semibold text-lg mb-4">Filters</h2>
               
               <div className="mb-6">
@@ -320,7 +444,7 @@ const CategoryPage = () => {
             {products.length > 0 ? (
               <>
                 <div className="flex justify-between items-center mb-6">
-                  <p className="text-text-light">{products.length} products found</p>
+                  <p className="text-text-light">{pagination.totalItems} products found</p>
                   <div className="flex items-center">
                     <span className="mr-2 text-text-light">Sort by:</span>
                     <select className="border border-gray-300 rounded p-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
@@ -332,7 +456,42 @@ const CategoryPage = () => {
                     </select>
                   </div>
                 </div>
+                
                 <ProductGrid products={products} />
+                
+                {/* Pagination */}
+                {pagination.totalPages > 1 && (
+                  <div className="mt-8">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            onClick={() => handlePageChange(pagination.page - 1)}
+                            className={pagination.page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                        
+                        {Array.from({ length: pagination.totalPages }).map((_, i) => (
+                          <PaginationItem key={i}>
+                            <PaginationLink
+                              isActive={pagination.page === i + 1}
+                              onClick={() => handlePageChange(i + 1)}
+                            >
+                              {i + 1}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        
+                        <PaginationItem>
+                          <PaginationNext 
+                            onClick={() => handlePageChange(pagination.page + 1)}
+                            className={pagination.page >= pagination.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
               </>
             ) : (
               <div className="text-center py-12 bg-gray-50 rounded-lg">

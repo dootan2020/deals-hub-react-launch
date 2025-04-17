@@ -16,22 +16,6 @@ const Header = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
-  // Email accounts subcategories
-  const emailCategories = [
-    { name: "Gmail Accounts", path: "/category/gmail" },
-    { name: "Outlook Accounts", path: "/category/outlook" },
-    { name: "Yahoo Accounts", path: "/category/yahoo" },
-    { name: "Corporate Emails", path: "/category/corporate-email" }
-  ];
-
-  // Software key subcategories
-  const softwareCategories = [
-    { name: "Windows Keys", path: "/category/windows" },
-    { name: "Office Keys", path: "/category/office" },
-    { name: "Antivirus Software", path: "/category/antivirus" },
-    { name: "Adobe Products", path: "/category/adobe" }
-  ];
-
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <div className="container-custom py-4">
@@ -40,10 +24,7 @@ const Header = () => {
           <Logo />
 
           {/* Desktop Navigation */}
-          <DesktopNavigation 
-            emailCategories={emailCategories} 
-            softwareCategories={softwareCategories} 
-          />
+          <DesktopNavigation />
 
           {/* Right Icons */}
           <div className="flex items-center space-x-4">
@@ -67,8 +48,6 @@ const Header = () => {
           <MobileNavigation 
             isOpen={mobileMenuOpen}
             toggleMenu={toggleMobileMenu}
-            emailCategories={emailCategories}
-            softwareCategories={softwareCategories}
           />
         </div>
       </div>

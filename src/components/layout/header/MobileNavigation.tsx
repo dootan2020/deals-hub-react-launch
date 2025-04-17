@@ -1,26 +1,34 @@
 
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Globe, X } from 'lucide-react';
+import { ChevronDown, Globe, X, ChevronUp, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface Category {
-  name: string;
-  path: string;
-}
+import { useCategoriesContext } from '@/context/CategoriesContext';
+import { Category } from '@/types';
 
 interface MobileNavigationProps {
   isOpen: boolean;
   toggleMenu: () => void;
-  emailCategories: Category[];
-  softwareCategories: Category[];
 }
 
 const MobileNavigation = ({ 
   isOpen, 
-  toggleMenu, 
-  emailCategories, 
-  softwareCategories 
+  toggleMenu 
 }: MobileNavigationProps) => {
+  const { mainCategories, getSubcategoriesByParentId, isLoading } = useCategoriesContext();
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
+  };
+
+  const getCategoryUrl = (category: Category) => {
+    return `/category/${category.slug}`;
+  };
+
   return (
     <div
       className={cn(
@@ -44,69 +52,81 @@ const MobileNavigation = ({
         </div>
         
         <nav className="flex flex-col space-y-4">
-          {/* Email Accounts Dropdown */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200">
-              <span>Email Accounts</span>
-              <ChevronDown className="h-4 w-4" />
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+              <span>Loading...</span>
             </div>
-            <div className="pl-4 space-y-2">
-              {emailCategories.map((category) => (
-                <Link 
-                  key={category.path}
-                  to={category.path} 
-                  className="block text-text-light hover:text-primary transition-colors duration-200"
-                  onClick={toggleMenu}
-                >
-                  {category.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Software Keys Dropdown */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200">
-              <span>Software Keys</span>
-              <ChevronDown className="h-4 w-4" />
-            </div>
-            <div className="pl-4 space-y-2">
-              {softwareCategories.map((category) => (
-                <Link 
-                  key={category.path}
-                  to={category.path} 
-                  className="block text-text-light hover:text-primary transition-colors duration-200"
-                  onClick={toggleMenu}
-                >
-                  {category.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-          
-          <Link 
-            to="/support" 
-            className="text-text hover:text-primary transition-colors duration-200"
-            onClick={toggleMenu}
-          >
-            Support
-          </Link>
-          
-          <Link 
-            to="/faqs" 
-            className="text-text hover:text-primary transition-colors duration-200"
-            onClick={toggleMenu}
-          >
-            FAQs
-          </Link>
-          
-          <Link 
-            to="/deposit" 
-            className="text-text hover:text-primary transition-colors duration-200"
-            onClick={toggleMenu}
-          >
-            Deposit
-          </Link>
+          ) : (
+            <>
+              {/* Dynamic categories from database */}
+              {mainCategories.map((category) => {
+                const subcategories = getSubcategoriesByParentId(category.id);
+                const isExpanded = expandedCategories[category.id] || false;
+                
+                return (
+                  <div key={category.id} className="space-y-2">
+                    <div 
+                      className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200"
+                      onClick={() => toggleCategory(category.id)}
+                    >
+                      <span>{category.name}</span>
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </div>
+                    {isExpanded && (
+                      <div className="pl-4 space-y-2">
+                        {subcategories.length > 0 ? (
+                          subcategories.map((subcategory) => (
+                            <Link 
+                              key={subcategory.id}
+                              to={getCategoryUrl(subcategory)} 
+                              className="block text-text-light hover:text-primary transition-colors duration-200"
+                              onClick={toggleMenu}
+                            >
+                              {subcategory.name}
+                            </Link>
+                          ))
+                        ) : (
+                          <div className="text-sm text-muted-foreground">
+                            No subcategories found
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              
+              {/* Static menu items */}
+              <Link 
+                to="/support" 
+                className="text-text hover:text-primary transition-colors duration-200"
+                onClick={toggleMenu}
+              >
+                Support
+              </Link>
+              
+              <Link 
+                to="/faqs" 
+                className="text-text hover:text-primary transition-colors duration-200"
+                onClick={toggleMenu}
+              >
+                FAQs
+              </Link>
+              
+              <Link 
+                to="/deposit" 
+                className="text-text hover:text-primary transition-colors duration-200"
+                onClick={toggleMenu}
+              >
+                Deposit
+              </Link>
+            </>
+          )}
 
           {/* Language Selector for Mobile */}
           <div className="flex items-center pt-4 border-t border-gray-200 mt-4">
