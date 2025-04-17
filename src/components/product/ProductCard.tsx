@@ -22,13 +22,13 @@ const ProductCard = ({ product }: ProductCardProps) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md h-full flex flex-col">
-        {/* Product Image with hover effect */}
-        <div className="relative h-52 bg-gray-50 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md h-full flex flex-col card-hover">
+        {/* Product Image with hover effect - increased size by ~15-20% */}
+        <div className="relative h-60 bg-gray-50 overflow-hidden">
           <img
             src={product.images[0]}
             alt={product.title}
-            className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-105"
           />
           
           {/* Quick action buttons on hover */}
@@ -54,20 +54,20 @@ const ProductCard = ({ product }: ProductCardProps) => {
           <div className="absolute top-2 left-2 flex flex-col gap-1">
             {product.badges && product.badges.length > 0 && (
               product.badges.map((badge, index) => {
-                let badgeClass = "text-xs font-semibold px-2 py-1 rounded shadow-sm";
+                let badgeClass = "";
                 
                 if (badge.includes("OFF")) {
-                  badgeClass += " bg-red-500 text-white";
+                  badgeClass = "badge-discount";
                 } else if (badge === "Featured") {
-                  badgeClass += " bg-primary text-white";
+                  badgeClass = "badge-featured";
                 } else if (badge === "Hot") {
-                  badgeClass += " bg-orange-500 text-white";
+                  badgeClass = "badge-hot";
                 } else if (badge === "Best Seller") {
-                  badgeClass += " bg-accent text-white";
+                  badgeClass = "badge-bestseller";
                 } else if (badge === "Limited") {
-                  badgeClass += " bg-purple-500 text-white";
+                  badgeClass = "bg-purple-500 text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm";
                 } else {
-                  badgeClass += " bg-gray-200 text-gray-800";
+                  badgeClass = "bg-gray-200 text-gray-800 text-xs font-semibold px-2 py-1 rounded-md shadow-sm";
                 }
                 
                 return (
@@ -82,7 +82,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           {/* Discount Badge */}
           {discountPercentage > 0 && (
             <div className="absolute top-2 right-2">
-              <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded shadow-sm">
+              <span className="badge-discount">
                 {discountPercentage}% OFF
               </span>
             </div>
@@ -126,7 +126,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
                   {formatCurrency(product.price)}
                 </span>
                 {product.originalPrice && (
-                  <span className="text-text-light text-sm line-through ml-2">
+                  <span className="text-gray-400 text-sm line-through ml-2">
                     {formatCurrency(product.originalPrice)}
                   </span>
                 )}
