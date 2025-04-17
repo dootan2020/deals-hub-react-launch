@@ -16,3 +16,7 @@ export interface PaginationState {
   totalPages: number;
   totalItems: number;
 }
+
+export interface CategoryFilters {
+  sort?: string;
+}
