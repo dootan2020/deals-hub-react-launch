@@ -1,10 +1,17 @@
+
 import { useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
-import { SearchableCategorySelect } from '@/components/admin/SearchableCategorySelect';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Category } from '@/types';
 
 interface BasicProductInfoProps {
@@ -24,24 +31,12 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
 
   const generateSlugFromTitle = () => {
     const title = form.getValues('title');
-    if (!title) return;
-    
     const slug = title.toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
     
     form.setValue('slug', slug);
   };
-
-  // Ensure we have a valid array of categories with proper formatting
-  const formattedCategories = categories && Array.isArray(categories) 
-    ? categories
-        .filter(cat => cat && typeof cat === 'object') // Filter out null/undefined
-        .map(cat => ({ 
-          id: cat.id || '',
-          name: cat.name || ''
-        }))
-    : [];
 
   return (
     <>
@@ -108,15 +103,24 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
         render={({ field }) => (
           <FormItem>
             <FormLabel>Category</FormLabel>
-            <FormControl>
-              <SearchableCategorySelect
-                categories={formattedCategories}
-                value={field.value || ''}
-                onValueChange={field.onChange}
-                placeholder="Search and select a category"
-                disabled={formattedCategories.length === 0}
-              />
-            </FormControl>
+            <Select 
+              onValueChange={field.onChange} 
+              defaultValue={field.value}
+              value={field.value}
+            >
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <FormMessage />
           </FormItem>
         )}

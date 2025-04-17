@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/layout/AdminLayout';
@@ -23,8 +24,8 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { SearchableCategorySelect } from '@/components/admin/SearchableCategorySelect';
 
+// Define product schema
 const productSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().min(1, 'Description is required'),
@@ -39,6 +40,7 @@ const productSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
+// Define API response type
 type ApiResponse = {
   success: string;
   name: string;
@@ -48,6 +50,7 @@ type ApiResponse = {
 };
 
 const ProductManagerPage = () => {
+  // API Tester State
   const [kioskToken, setKioskToken] = useState<string>('');
   const [userToken, setUserToken] = useState<string>('');
   const [selectedProxy, setSelectedProxy] = useState<ProxyType>('allorigins');
@@ -62,6 +65,7 @@ const ProductManagerPage = () => {
   const [categories, setCategories] = useState<Array<{id: string, name: string}>>([]);
   const navigate = useNavigate();
 
+  // Initialize form
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -97,30 +101,15 @@ const ProductManagerPage = () => {
     };
     
     const loadCategories = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('categories')
-          .select('id, name')
-          .order('name');
-          
-        if (error) {
-          console.error('Error loading categories:', error);
-          setCategories([]);
-          return;
-        }
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name')
+        .order('name');
         
-        const formattedCategories = (data || [])
-          .filter(cat => cat && typeof cat === 'object')
-          .map(cat => ({
-            id: cat.id || '',
-            name: cat.name || 'Unnamed Category'
-          }));
-          
-        console.log('Formatted categories:', formattedCategories);
-        setCategories(formattedCategories);
-      } catch (err) {
-        console.error('Exception when loading categories:', err);
-        setCategories([]);
+      if (error) {
+        console.error('Error loading categories:', error);
+      } else {
+        setCategories(data || []);
       }
     };
 
@@ -128,20 +117,24 @@ const ProductManagerPage = () => {
     loadCategories();
   }, [form]);
 
+  // Function to add log entry
   const addLog = (message: string) => {
     const now = new Date();
     const timestamp = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}]`;
     setLogs(prev => [...prev, `${timestamp} ${message}`]);
   };
 
+  // Update form with API response data
   const updateFormWithApiData = (data: ApiResponse) => {
     if (!data) return;
     
+    // Update form values
     form.setValue('title', data.name || form.getValues('title'));
     form.setValue('description', data.description || `${data.name} - Digital Product` || '');
     form.setValue('price', parseFloat(data.price) || form.getValues('price'));
     form.setValue('inStock', parseInt(data.stock || '0') > 0);
     
+    // Generate slug if not provided
     if (!form.getValues('slug') && data.name) {
       const slug = data.name.toLowerCase()
         .replace(/\s+/g, '-')
@@ -149,6 +142,7 @@ const ProductManagerPage = () => {
       form.setValue('slug', slug);
     }
     
+    // Set the kiosk token
     form.setValue('kioskToken', kioskToken);
   };
 
@@ -210,6 +204,7 @@ const ProductManagerPage = () => {
         await handleServerlessFetch();
       }
       
+      // Update timestamp
       const now = new Date();
       setLastUpdated(
         `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`
@@ -222,6 +217,7 @@ const ProductManagerPage = () => {
     }
   };
 
+  // Function to use serverless function
   const handleServerlessFetch = async () => {
     if (!kioskToken || !userToken) {
       return;
@@ -230,6 +226,7 @@ const ProductManagerPage = () => {
     addLog('Falling back to serverless function...');
     
     try {
+      // URL to serverless function
       const serverlessUrl = `https://xcpwyvrlutlslgaueokd.supabase.co/functions/v1/api-proxy?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}&proxyType=${selectedProxy}`;
       addLog(`Calling serverless function: ${serverlessUrl.substring(0, 80)}...`);
       
@@ -260,6 +257,7 @@ const ProductManagerPage = () => {
     setIsSaving(true);
     
     try {
+      // Prepare data for submission
       const productData = {
         title: data.title,
         description: data.description,
@@ -275,6 +273,7 @@ const ProductManagerPage = () => {
         api_stock: apiResponse ? parseInt(apiResponse.stock) : null,
       };
 
+      // Save product to database
       const { data: createdProduct, error } = await supabase
         .from('products')
         .insert(productData)
@@ -283,8 +282,10 @@ const ProductManagerPage = () => {
         
       if (error) throw error;
       
+      // Show success message
       toast.success('Product created successfully!');
       
+      // Reset form
       form.reset({
         title: '',
         description: '',
@@ -297,6 +298,7 @@ const ProductManagerPage = () => {
         kioskToken: ''
       });
       
+      // Clear API response data
       setApiResponse(null);
       setRawResponse('');
       
@@ -308,6 +310,7 @@ const ProductManagerPage = () => {
     }
   };
 
+  // Generate slug from title
   const generateSlug = () => {
     const title = form.getValues('title');
     if (!title) return;
@@ -319,6 +322,7 @@ const ProductManagerPage = () => {
     form.setValue('slug', slug);
   };
 
+  // Clear logs function
   const clearLogs = () => {
     setLogs([]);
   };
@@ -335,6 +339,7 @@ const ProductManagerPage = () => {
       </Card>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* API Tester Section */}
         <div className="space-y-6">
           <Card className="border border-gray-200">
             <CardContent className="pt-6">
@@ -486,6 +491,7 @@ const ProductManagerPage = () => {
           </Card>
         </div>
         
+        {/* Product Form Section */}
         <div className="space-y-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -601,15 +607,26 @@ const ProductManagerPage = () => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Category</FormLabel>
-                            <FormControl>
-                              <SearchableCategorySelect
-                                categories={categories || []}
-                                value={field.value || ''}
-                                onValueChange={field.onChange}
-                                placeholder="Search for a category"
-                                disabled={!categories || categories.length === 0}
-                              />
-                            </FormControl>
+                            <Select 
+                              value={field.value} 
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {categories.map((category) => (
+                                  <SelectItem 
+                                    key={category.id} 
+                                    value={category.id}
+                                  >
+                                    {category.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
