@@ -90,7 +90,18 @@ export interface FilterParams {
   inStock?: boolean;
   sort?: string;
   page?: number;
+  categoryId?: string;
 }
 
 // Define a Json type to handle complex database structures
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+
+export interface SubcategoryItem {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface CategoryWithSubcategories extends Category {
+  subcategories: Category[];
+}

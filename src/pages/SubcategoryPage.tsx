@@ -1,0 +1,188 @@
+
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet';
+import { Loader2 } from 'lucide-react';
+import Layout from '@/components/layout/Layout';
+import ProductGrid from '@/components/product/ProductGrid';
+import CategoryFilters from '@/components/category/CategoryFilters';
+import { Button } from '@/components/ui/button';
+import { 
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { useToast } from "@/components/ui/use-toast";
+import { 
+  fetchCategoryBySlug, 
+  fetchCategoryHierarchy 
+} from '@/services/categoryService';
+import { fetchProductsWithFilters } from '@/services/productService';
+import { Category, Product, FilterParams } from '@/types';
+
+interface SubcategoryPageParams {
+  parentCategorySlug?: string;
+  categorySlug?: string;
+}
+
+const SubcategoryPage = () => {
+  const params = useParams<SubcategoryPageParams>();
+  const { toast } = useToast();
+  
+  const [category, setCategory] = useState<Category | null>(null);
+  const [parentCategory, setParentCategory] = useState<Category | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<FilterParams>({
+    priceRange: undefined,
+    rating: undefined,
+    inStock: undefined,
+    sort: 'recommended'
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        if (!params.parentCategorySlug || !params.categorySlug) {
+          throw new Error("Category parameters are missing");
+        }
+        
+        // Fetch subcategory details
+        const subcategory = await fetchCategoryBySlug(params.categorySlug);
+        if (!subcategory) {
+          throw new Error("Subcategory not found");
+        }
+        setCategory(subcategory);
+        
+        // Fetch parent category details
+        const parentCategory = await fetchCategoryBySlug(params.parentCategorySlug);
+        if (!parentCategory) {
+          throw new Error("Parent category not found");
+        }
+        setParentCategory(parentCategory);
+        
+        // Fetch products for this subcategory
+        const productsData = await fetchProductsWithFilters({
+          ...filters,
+          categoryId: subcategory.id
+        });
+        setProducts(productsData);
+      } catch (error) {
+        console.error('Error fetching subcategory data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load subcategory data. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [params.parentCategorySlug, params.categorySlug, filters, toast]);
+
+  const handleFilterChange = (newFilters: FilterParams) => {
+    setFilters(prev => ({
+      ...prev,
+      ...newFilters
+    }));
+  };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container-custom py-16">
+          <div className="flex justify-center items-center min-h-[400px]">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!category || !parentCategory) {
+    return (
+      <Layout>
+        <div className="container-custom py-16">
+          <div className="text-center py-16">
+            <h1 className="text-2xl font-bold mb-4">Category Not Found</h1>
+            <p className="mb-8 text-gray-600">
+              The category you're looking for doesn't exist or has been removed.
+            </p>
+            <Button asChild>
+              <Link to="/">Return to Home</Link>
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <Helmet>
+        <title>{`${category.name} - ${parentCategory.name} | Digital Deals Hub`}</title>
+        <meta 
+          name="description" 
+          content={`Browse our selection of ${category.name} products in the ${parentCategory.name} category. Find the best digital deals for your needs.`} 
+        />
+        <link rel="canonical" href={`/category/${parentCategory.slug}/${category.slug}`} />
+      </Helmet>
+      
+      <div className="bg-white py-8">
+        <div className="container-custom">
+          <div className="mb-8">
+            <Breadcrumb>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">Home</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href={`/category/${parentCategory.slug}`}>
+                  {parentCategory.name}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href={`/category/${parentCategory.slug}/${category.slug}`} isCurrentPage>
+                  {category.name}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+            </Breadcrumb>
+          </div>
+          
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold">{category.name}</h1>
+            <p className="text-gray-600 mt-2">{category.description}</p>
+          </div>
+          
+          <div className="flex flex-col lg:flex-row gap-8">
+            <div className="w-full lg:w-1/4">
+              <CategoryFilters 
+                onFilterChange={handleFilterChange} 
+                activeFilters={filters}
+              />
+            </div>
+            
+            <div className="w-full lg:w-3/4">
+              <ProductGrid 
+                products={products} 
+                title={`${category.name} Products`}
+                description={`Browse our selection of ${category.name} products in the ${parentCategory.name} category.`}
+                showSort={true}
+                onSortChange={(sort) => handleFilterChange({ sort })}
+                activeSort={filters.sort}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default SubcategoryPage;

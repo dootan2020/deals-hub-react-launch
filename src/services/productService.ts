@@ -55,12 +55,10 @@ const mockProductData = {
 
 // Function to get mock data based on kioskToken
 function getMockProductData(kioskToken: string) {
-  // If have data for kioskToken, return
   if (mockProductData[kioskToken]) {
     return mockProductData[kioskToken];
   }
 
-  // If not, create random data
   return {
     success: "true",
     name: `Product ${kioskToken.substring(0, 5)}`,
@@ -186,10 +184,15 @@ export async function fetchProductInfoByKioskToken(kioskToken: string, tempProxy
 
 export async function fetchProductsWithFilters(filters?: FilterParams) {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('products')
-      .select('*, categories:category_id(*)')
-      .order('title', { ascending: true });
+      .select('*, categories:category_id(*)');
+    
+    if (filters?.categoryId) {
+      query = query.eq('category_id', filters.categoryId);
+    }
+    
+    const { data, error } = await query.order('title', { ascending: true });
       
     if (error) throw error;
     
@@ -216,7 +219,10 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
       return products;
     }
     
-    const filteredProducts = applyFilters(products, filters);
+    const filteredProducts = applyFilters(products, {
+      ...filters,
+      categoryId: undefined
+    });
     
     const sortedProducts = sortProducts(filteredProducts, filters.sort);
     

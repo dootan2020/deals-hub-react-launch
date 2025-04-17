@@ -11,6 +11,7 @@ import { CategoriesProvider } from "@/context/CategoriesContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import CategoryPage from "./pages/CategoryPage";
+import SubcategoryPage from "./pages/SubcategoryPage";
 import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
@@ -51,7 +52,7 @@ const App = () => {
               
               {/* SEO-friendly category routes */}
               <Route path="/category/:categorySlug" element={<CategoryPage />} />
-              <Route path="/:parentCategorySlug/:categorySlug" element={<CategoryPage />} />
+              <Route path="/category/:parentCategorySlug/:categorySlug" element={<SubcategoryPage />} />
               <Route path="/product/:productSlug" element={<ProductPage />} />
               <Route path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />
               
