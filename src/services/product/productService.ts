@@ -19,14 +19,21 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
       .from('products')
       .select('*, categories:category_id(*)');
     
+    // Apply base filters from the database side when possible
     if (filters?.categoryId) {
       query = query.eq('category_id', filters.categoryId);
+    }
+    
+    // Apply in_stock filter if specified
+    if (filters?.inStock !== undefined) {
+      query = query.eq('in_stock', filters.inStock);
     }
     
     const { data, error } = await query.order('title', { ascending: true });
       
     if (error) throw error;
     
+    // Transform database records to Product objects
     const products: Product[] = data.map(item => ({
       id: item.id,
       title: item.title,
@@ -50,16 +57,95 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
       return products;
     }
     
+    // Apply client-side filters
     const filteredProducts = applyFilters(products, {
       ...filters,
-      categoryId: undefined
+      categoryId: undefined // Already applied on database side
     });
     
+    // Apply sorting
     const sortedProducts = sortProducts(filteredProducts, filters.sort);
+    
+    // Handle pagination if required
+    if (filters.page !== undefined) {
+      const pageSize = 12; // Default page size
+      const startIndex = (filters.page - 1) * pageSize;
+      return sortedProducts.slice(startIndex, startIndex + pageSize);
+    }
     
     return sortedProducts;
   } catch (error) {
     console.error("Error fetching products with filters:", error);
+    throw error;
+  }
+}
+
+export async function fetchProductById(id: string): Promise<Product | null> {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, categories:category_id(*)')
+      .eq('id', id)
+      .maybeSingle();
+    
+    if (error) throw error;
+    if (!data) return null;
+    
+    return {
+      id: data.id,
+      title: data.title,
+      description: data.description,
+      price: Number(data.price),
+      originalPrice: data.original_price ? Number(data.original_price) : undefined,
+      images: data.images || [],
+      categoryId: data.category_id,
+      rating: Number(data.rating) || 0,
+      reviewCount: data.review_count || 0,
+      inStock: data.in_stock === true,
+      badges: data.badges || [],
+      slug: data.slug,
+      features: data.features || [],
+      specifications: data.specifications as Record<string, string | number | boolean | object> || {},
+      salesCount: 0,
+      createdAt: data.created_at
+    };
+  } catch (error) {
+    console.error("Error fetching product by id:", error);
+    throw error;
+  }
+}
+
+export async function fetchProductBySlug(slug: string): Promise<Product | null> {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, categories:category_id(*)')
+      .eq('slug', slug)
+      .maybeSingle();
+    
+    if (error) throw error;
+    if (!data) return null;
+    
+    return {
+      id: data.id,
+      title: data.title,
+      description: data.description,
+      price: Number(data.price),
+      originalPrice: data.original_price ? Number(data.original_price) : undefined,
+      images: data.images || [],
+      categoryId: data.category_id,
+      rating: Number(data.rating) || 0,
+      reviewCount: data.review_count || 0,
+      inStock: data.in_stock === true,
+      badges: data.badges || [],
+      slug: data.slug,
+      features: data.features || [],
+      specifications: data.specifications as Record<string, string | number | boolean | object> || {},
+      salesCount: 0,
+      createdAt: data.created_at
+    };
+  } catch (error) {
+    console.error("Error fetching product by slug:", error);
     throw error;
   }
 }
