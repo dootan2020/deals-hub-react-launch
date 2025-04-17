@@ -1,3 +1,4 @@
+
 import { TableHTMLAttributes } from 'react';
 
 export interface Product {
@@ -24,7 +25,7 @@ export interface Product {
   features: string[];
   specifications: Record<string, string | number | boolean | object>;
   salesCount?: number;
-  sales_count?: number;
+  sales_count?: number;  // Added this line to match backend naming convention
   createdAt: string;
   kiosk_token?: string;
 }
