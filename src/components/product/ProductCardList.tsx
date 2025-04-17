@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingCart, Star, Eye } from 'lucide-react';
@@ -8,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import ProductQuickView from './ProductQuickView';
+import { BuyNowButton } from '@/components/checkout/BuyNowButton';
 
 interface ProductCardListProps {
   product: Product;
@@ -15,35 +15,9 @@ interface ProductCardListProps {
 
 const ProductCardList = ({ product }: ProductCardListProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
-
   const discountPercentage = product.originalPrice 
     ? calculateDiscountPercentage(product.originalPrice, product.price)
     : 0;
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (product.inStock) {
-      // Here would be the actual cart logic
-      toast({
-        title: "Added to cart",
-        description: `${product.title} has been added to your cart.`,
-        variant: "default",
-      });
-    }
-  };
-
-  const handleToggleWishlist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsWishlisted(!isWishlisted);
-    toast({
-      title: isWishlisted ? "Removed from wishlist" : "Added to wishlist",
-      description: `${product.title} has been ${isWishlisted ? "removed from" : "added to"} your wishlist.`,
-      variant: "default",
-    });
-  };
 
   return (
     <div 
@@ -178,26 +152,13 @@ const ProductCardList = ({ product }: ProductCardListProps) => {
                 <ProductQuickView product={product} />
               </DialogContent>
             </Dialog>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleToggleWishlist}
-              className={isWishlisted ? "text-red-500" : ""}
-            >
-              <Heart className={`h-4 w-4 mr-2 ${isWishlisted ? "fill-red-500 text-red-500" : ""}`} />
-              {isWishlisted ? "Wishlisted" : "Wishlist"}
-            </Button>
           </div>
           
-          <Button 
-            className="group-hover:bg-primary-dark transition-colors"
-            disabled={!product.inStock}
-            onClick={handleAddToCart}
-          >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            Add to Cart
-          </Button>
+          <BuyNowButton
+            kioskToken={product.kiosk_token || ''}
+            quantity={1}
+            isInStock={product.inStock}
+          />
         </div>
       </div>
     </div>

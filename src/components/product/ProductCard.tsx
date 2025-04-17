@@ -1,10 +1,11 @@
-
 import { Link } from 'react-router-dom';
-import { Star, ShoppingCart, Eye } from 'lucide-react';
+import { Star, ShoppingBag, Eye } from 'lucide-react';
 import { Product } from '@/types';
 import { formatCurrency, calculateDiscountPercentage } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { BuyNowButton } from '@/components/checkout/BuyNowButton';
 
 interface ProductCardProps {
   product: Product;
@@ -39,15 +40,6 @@ const ProductCard = ({ product }: ProductCardProps) => {
                 <span className="sr-only">Quick view</span>
               </Button>
             </Link>
-            <Button 
-              size="sm" 
-              variant="secondary" 
-              className="rounded-full p-2 bg-white text-text hover:bg-[#F3F4F6]"
-              disabled={!product.inStock}
-            >
-              <ShoppingCart className="h-4 w-4" />
-              <span className="sr-only">Add to cart</span>
-            </Button>
           </div>
           
           {/* Badges */}
@@ -139,13 +131,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
               )}
             </div>
             
-            <Button 
-              className="w-full hover:bg-primary-dark transition-colors"
-              disabled={!product.inStock}
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Add to Cart
-            </Button>
+            <BuyNowButton
+              kioskToken={product.kiosk_token || ''}
+              quantity={1}
+              isInStock={product.inStock}
+            />
           </div>
         </div>
       </div>

@@ -5,13 +5,13 @@ import ProductsPage from "@/pages/ProductsPage";
 import ProductPage from "@/pages/ProductPage";
 import CategoryPage from "@/pages/CategoryPage";
 import SubcategoryPage from "@/pages/SubcategoryPage";
-import CartPage from "@/pages/CartPage";
 import FaqsPage from "@/pages/FaqsPage";
 import SupportPage from "@/pages/SupportPage";
 import KnowledgeBasePage from "@/pages/KnowledgeBasePage";
 import DepositPage from "@/pages/DepositPage";
 import OrderSuccessPage from "@/pages/OrderSuccessPage";
 import EnhancedProductsPage from "@/pages/EnhancedProductsPage";
+import CheckoutPage from "@/pages/CheckoutPage";
 
 // Admin routes
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -25,7 +25,6 @@ import ApiConfigAdmin from "@/pages/admin/ApiConfigAdmin";
 import ApiTesterPage from "@/pages/admin/ApiTesterPage";
 import SyncLogsAdmin from "@/pages/admin/SyncLogsAdmin";
 import ProductFormWithTester from "@/pages/admin/ProductFormWithTester";
-import CheckoutPage from "@/pages/CheckoutPage";
 import ProxySettingsPage from "@/pages/admin/ProxySettingsPage";
 
 const router = createBrowserRouter([
@@ -49,10 +48,6 @@ const router = createBrowserRouter([
   {
     path: "/category/:parentCategorySlug/:categorySlug",
     element: <CategoryPage />,
-  },
-  {
-    path: "/cart",
-    element: <CartPage />,
   },
   {
     path: "/checkout/:slug",
