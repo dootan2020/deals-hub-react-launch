@@ -10,6 +10,7 @@ type ToastProps = {
   // Include any other properties that might be used
   duration?: number;
   className?: string;
+  variant?: "default" | "destructive"; // Add this for shadcn/ui compatibility
   [key: string]: any; // Allow other properties
 };
 

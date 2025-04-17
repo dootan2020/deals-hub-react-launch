@@ -18,8 +18,19 @@ export function Toaster() {
         // Map sonner toast type to shadcn/ui toast variant if needed
         const variant = props.type === "error" ? "destructive" : "default"
         
-        // Remove properties that don't match shadcn/ui Toast component props
-        const { type, icon, jsx, richColors, invert, closeButton, dismissible, ...compatibleProps } = props
+        // Extract properties that don't match shadcn/ui Toast component props
+        // to prevent them from being passed down and causing type errors
+        const { 
+          type, 
+          icon, 
+          jsx, 
+          richColors, 
+          invert, 
+          closeButton, 
+          dismissible,
+          // Add any other sonner-specific props that don't exist in shadcn/ui Toast
+          ...compatibleProps 
+        } = props
 
         return (
           <Toast key={id} {...compatibleProps} variant={variant}>
