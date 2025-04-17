@@ -9,7 +9,7 @@ import {
   syncAllProducts as apiSyncAllProducts, 
   createProduct as apiCreateProduct,
   updateProduct as apiUpdateProduct
-} from "@/services/productService";
+} from "@/services/product";
 import { fetchProxySettings, ProxyConfig, ProxyType } from "@/utils/proxyUtils";
 
 export type { ProxyType } from "@/utils/proxyUtils";
