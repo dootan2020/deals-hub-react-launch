@@ -25,7 +25,8 @@ export function Toaster() {
                 <ToastDescription>{description}</ToastDescription>
               )}
             </div>
-            {action}
+            {/* Cast action to React.ReactNode to fix type error */}
+            {action && <div className="action">{action as React.ReactNode}</div>}
             <ToastClose />
           </Toast>
         )
