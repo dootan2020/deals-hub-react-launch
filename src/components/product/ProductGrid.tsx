@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from './ProductCard';
+import ProductCardList from './ProductCardList';
 import { Product, FilterParams } from '@/types';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ interface ProductGridProps {
   showViewAll?: boolean;
   viewAllLink?: string;
   viewAllLabel?: string;
+  viewMode?: 'grid' | 'list'; // Added viewMode prop
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({ 
@@ -37,7 +39,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   limit,
   showViewAll = false,
   viewAllLink = '/products',
-  viewAllLabel = 'View all products'
+  viewAllLabel = 'View all products',
+  viewMode = 'grid' // Default to grid view
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts || externalProducts || []);
   const [isLoading, setIsLoading] = useState(!initialProducts && !externalProducts);
@@ -158,11 +161,19 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         </div>
       ) : displayedProducts.length > 0 ? (
         <div className="space-y-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {displayedProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {displayedProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {displayedProducts.map((product) => (
+                <ProductCardList key={product.id} product={product} />
+              ))}
+            </div>
+          )}
           
           {showViewAll && (
             <div className="flex justify-center mt-8">

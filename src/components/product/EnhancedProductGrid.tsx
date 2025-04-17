@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from './ProductCard';
@@ -26,6 +25,7 @@ interface EnhancedProductGridProps {
   viewAllLink?: string;
   viewAllLabel?: string;
   paginationType?: 'infinite-scroll' | 'load-more' | 'pagination';
+  viewMode?: 'grid' | 'list';
 }
 
 const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({ 
@@ -42,7 +42,8 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
   showViewAll = false,
   viewAllLink = '/products',
   viewAllLabel = 'View all products',
-  paginationType = 'load-more'
+  paginationType = 'load-more',
+  viewMode: externalViewMode
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts || externalProducts || []);
   const [isLoading, setIsLoading] = useState(!initialProducts && !externalProducts);
@@ -51,11 +52,14 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(externalViewMode || 'grid');
   const { toast } = useToast();
 
-  // Calculate the total number of pages based on total products and items per page (12)
-  const totalPages = Math.ceil(products.length / 12);
+  useEffect(() => {
+    if (externalViewMode) {
+      setViewMode(externalViewMode);
+    }
+  }, [externalViewMode]);
 
   const fetchProducts = useCallback(async (page = 1, append = false) => {
     if (externalProducts) return;
@@ -146,25 +150,24 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
   
   const handleViewModeChange = (mode: 'grid' | 'list') => {
     setViewMode(mode);
-    // Save user preference
     localStorage.setItem('productViewMode', mode);
   };
 
-  // Load user preference for view mode on initial load
   useEffect(() => {
     const savedViewMode = localStorage.getItem('productViewMode') as 'grid' | 'list' | null;
     if (savedViewMode) {
       setViewMode(savedViewMode);
     }
   }, []);
-  
+
   const showLoading = isLoading || externalLoading;
-  
-  // Limit displayed products if limit prop is provided
+
+  const totalPages = Math.ceil(products.length / 12);
+
   const displayedProducts = limit && products.length > limit 
     ? products.slice(0, limit) 
     : products;
-  
+
   const renderSkeletons = () => {
     if (viewMode === 'grid') {
       return (
@@ -210,7 +213,6 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
       const pages = [];
       const maxVisiblePages = 5;
       
-      // Always show first page
       pages.push(
         <Button
           key={1}
@@ -223,16 +225,13 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
         </Button>
       );
 
-      // Calculate range of pages to show
       let startPage = Math.max(2, page - Math.floor(maxVisiblePages / 2));
       let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 3);
       
-      // Adjust if we're near the beginning
       if (startPage > 2) {
         pages.push(<span key="ellipsis1" className="px-2">...</span>);
       }
 
-      // Add middle pages
       for (let i = startPage; i <= endPage; i++) {
         pages.push(
           <Button
@@ -247,12 +246,10 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
         );
       }
 
-      // Add ellipsis if needed
       if (endPage < totalPages - 1) {
         pages.push(<span key="ellipsis2" className="px-2">...</span>);
       }
 
-      // Always show last page if there is more than one page
       if (totalPages > 1) {
         pages.push(
           <Button
@@ -302,7 +299,7 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
       </div>
     );
   };
-  
+
   return (
     <div className="w-full">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
@@ -312,11 +309,12 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
         </div>
         
         <div className="w-full md:w-auto mt-4 md:mt-0 flex flex-wrap gap-3 items-center">
-          {/* View Toggle */}
-          <ViewToggle 
-            currentView={viewMode} 
-            onViewChange={handleViewModeChange} 
-          />
+          {!externalViewMode && (
+            <ViewToggle 
+              currentView={viewMode} 
+              onViewChange={handleViewModeChange} 
+            />
+          )}
         </div>
       </div>
 
@@ -357,7 +355,6 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
             </div>
           )}
           
-          {/* View All Button */}
           {showViewAll && (
             <div className="flex justify-center mt-8">
               <Button 
@@ -385,10 +382,8 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
             </div>
           )}
           
-          {/* Pagination Controls */}
           {renderPagination()}
 
-          {/* Load More Button */}
           {paginationType === 'load-more' && hasMore && !externalProducts && !limit && !showViewAll && (
             <div className="flex justify-center mt-8">
               <Button 
