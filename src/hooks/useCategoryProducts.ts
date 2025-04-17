@@ -74,7 +74,29 @@ export const useCategoryProducts = ({ categoryId }: UseCategoryProductsProps) =>
         totalPages: Math.ceil(totalCount / prev.pageSize)
       }));
       
-      setProducts(allProducts);
+      // Map the database fields to match the Product type
+      const mappedProducts: Product[] = allProducts.map(p => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        shortDescription: p.short_description,
+        price: Number(p.price),
+        originalPrice: p.original_price ? Number(p.original_price) : undefined,
+        images: p.images,
+        categoryId: p.category_id,
+        rating: Number(p.rating),
+        reviewCount: p.review_count || 0,
+        inStock: p.in_stock || false,
+        stockQuantity: p.stock_quantity || 0,
+        badges: p.badges || [],
+        slug: p.slug,
+        features: p.features || [],
+        specifications: p.specifications || {},
+        salesCount: p.sales_count,
+        createdAt: p.created_at
+      }));
+      
+      setProducts(mappedProducts);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast({
