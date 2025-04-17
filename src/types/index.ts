@@ -14,6 +14,8 @@ export interface Product {
   slug: string;
   features?: string[];
   specifications?: Record<string, string>;
+  salesCount?: number; // New field for tracking sales count
+  createdAt?: string; // New field for tracking when product was added
 }
 
 export interface Category {
@@ -80,4 +82,12 @@ export interface ProductPageParams extends Record<string, string | undefined> {
   productSlug?: string;
   categorySlug?: string;
   parentCategorySlug?: string;
+}
+
+export interface FilterParams {
+  priceRange?: string[];
+  rating?: string[];
+  inStock?: boolean;
+  sort?: string;
+  page?: number;
 }

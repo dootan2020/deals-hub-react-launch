@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProxyConfig } from "@/utils/proxyUtils";
 import { extractFromHtml, fetchActiveApiConfig, isHtmlResponse, normalizeProductInfo } from "@/utils/apiUtils";
 import { buildProxyUrl, getRequestHeaders } from "@/utils/proxyUtils";
+import { Product, FilterParams } from "@/types";
+import { applyFilters, sortProducts } from "@/utils/productFilters";
 
 // Dữ liệu mẫu cho các kioskToken khác nhau
 const mockProductData = {
@@ -189,6 +191,53 @@ export async function fetchProductInfoByKioskToken(kioskToken: string, tempProxy
   }
 }
 
+export async function fetchProductsWithFilters(filters?: FilterParams) {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, categories:category_id(*)')
+      .order('title', { ascending: true });
+      
+    if (error) throw error;
+    
+    // Map the data to the proper Product interface
+    const products: Product[] = data.map(item => ({
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      price: Number(item.price),
+      originalPrice: item.original_price ? Number(item.original_price) : undefined,
+      images: item.images || [],
+      categoryId: item.category_id,
+      rating: Number(item.rating) || 0,
+      reviewCount: item.review_count || 0,
+      inStock: item.in_stock === true,
+      badges: item.badges || [],
+      slug: item.slug,
+      features: item.features || [],
+      specifications: item.specifications || {},
+      salesCount: item.sales_count || 0,
+      createdAt: item.created_at
+    }));
+    
+    // If no filters, return all products
+    if (!filters) {
+      return products;
+    }
+    
+    // Apply filters
+    const filteredProducts = applyFilters(products, filters);
+    
+    // Apply sorting
+    const sortedProducts = sortProducts(filteredProducts, filters.sort);
+    
+    return sortedProducts;
+  } catch (error) {
+    console.error("Error fetching products with filters:", error);
+    throw error;
+  }
+}
+
 export async function syncAllProducts() {
   try {
     const apiConfig = await fetchActiveApiConfig();
@@ -300,20 +349,78 @@ export async function updateProduct({ id, ...product }: { id: string; [key: stri
 
 export async function updateCategoryCount(categoryId: string) {
   try {
-    const { count, error: countError } = await supabase
+    // Count direct products
+    const { count: directCount, error: directCountError } = await supabase
       .from('products')
       .select('id', { count: 'exact' })
       .eq('category_id', categoryId);
     
-    if (countError) throw countError;
+    if (directCountError) throw directCountError;
     
+    // Get subcategories
+    const { data: subcategories, error: subError } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('parent_id', categoryId);
+    
+    if (subError) throw subError;
+    
+    // Count products in subcategories
+    let totalSubcategoryCount = 0;
+    if (subcategories && subcategories.length > 0) {
+      const subcategoryIds = subcategories.map(sc => sc.id);
+      
+      const { count: subCount, error: subCountError } = await supabase
+        .from('products')
+        .select('id', { count: 'exact' })
+        .in('category_id', subcategoryIds);
+        
+      if (subCountError) throw subCountError;
+      totalSubcategoryCount = subCount || 0;
+    }
+    
+    const totalCount = (directCount || 0) + totalSubcategoryCount;
+    
+    // Update the category count
     const { error: updateError } = await supabase
       .from('categories')
-      .update({ count: count || 0 })
+      .update({ count: totalCount })
       .eq('id', categoryId);
     
     if (updateError) throw updateError;
+    
+    return totalCount;
   } catch (error) {
     console.error('Error updating category count:', error);
+    throw error;
+  }
+}
+
+export async function incrementProductSales(productId: string, quantity: number = 1) {
+  try {
+    // Get current sales count
+    const { data: product, error: fetchError } = await supabase
+      .from('products')
+      .select('sales_count')
+      .eq('id', productId)
+      .single();
+      
+    if (fetchError) throw fetchError;
+    
+    const currentSales = product?.sales_count || 0;
+    const newSalesCount = currentSales + quantity;
+    
+    // Update sales count
+    const { error: updateError } = await supabase
+      .from('products')
+      .update({ sales_count: newSalesCount })
+      .eq('id', productId);
+      
+    if (updateError) throw updateError;
+    
+    return newSalesCount;
+  } catch (error) {
+    console.error('Error incrementing product sales:', error);
+    throw error;
   }
 }
