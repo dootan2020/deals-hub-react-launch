@@ -1,4 +1,6 @@
 
+import { TableHTMLAttributes } from 'react';
+
 export interface Product {
   id: string;
   title: string;
@@ -8,108 +10,61 @@ export interface Product {
   originalPrice?: number;
   images: string[];
   categoryId: string;
+  categories?: {
+    id: string;
+    name: string;
+    slug: string;
+    [key: string]: any;
+  };
   rating: number;
   reviewCount: number;
   inStock: boolean;
-  stockQuantity?: number;
+  stockQuantity: number;
   badges: string[];
   slug: string;
-  features?: string[];
-  specifications?: Record<string, string | number | boolean | object>;
-  salesCount?: number; 
-  createdAt?: string;
+  features: string[];
+  specifications: Record<string, string | number | boolean | object>;
+  salesCount: number;
+  createdAt: string;
+  kiosk_token?: string;
 }
 
 export interface Category {
   id: string;
   name: string;
   description: string;
-  image: string;
   slug: string;
+  image: string;
   count: number;
   parent_id?: string | null;
+  subcategories?: Category[];
 }
 
-export interface CartItem {
-  product: Product;
-  quantity: number;
-}
-
-export interface OrderSummary {
-  subtotal: number;
-  discount: number;
-  tax: number;
-  shipping: number;
-  total: number;
-}
-
-export interface UserAddress {
-  firstName: string;
-  lastName: string;
-  email: string;
-  address: string;
-  city: string;
-  state: string;
-  zip: string;
-  country: string;
-}
-
-export interface PaymentMethod {
-  id: string;
-  type: 'credit_card' | 'paypal' | 'crypto';
-  name: string;
-  lastFour?: string;
-  expiryDate?: string;
-}
-
-export type Language = 'en' | 'es' | 'pt';
-
-export interface OrderDetails {
-  id: string;
-  items: CartItem[];
-  summary: OrderSummary;
-  paymentMethod: PaymentMethod;
-  shippingAddress: UserAddress;
-  date: string;
-  status: 'processing' | 'completed' | 'shipped' | 'cancelled';
-}
-
-// Define proper route parameter interfaces with index signatures
-export interface CategoryPageParams extends Record<string, string | undefined> {
-  categorySlug?: string;
-  parentCategorySlug?: string;
-}
-
-export interface ProductPageParams extends Record<string, string | undefined> {
-  productSlug?: string;
-  categorySlug?: string;
-  parentCategorySlug?: string;
-}
-
-export interface SubcategoryPageParams extends Record<string, string | undefined> {
-  categorySlug?: string;
-  parentCategorySlug?: string;
+export interface SortOption {
+  label: string;
+  value: string;
 }
 
 export interface FilterParams {
-  priceRange?: string[];
-  rating?: string[];
+  categoryId?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  ratings?: number[];
+  search?: string;
+  tags?: string[];
   inStock?: boolean;
   sort?: string;
   page?: number;
-  categoryId?: string;
-  limit?: number; // Added limit property
 }
 
-// Define a Json type to handle complex database structures
-export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
-
-export interface SubcategoryItem {
-  id: string;
-  name: string;
-  slug: string;
+export interface TableColumn<T> {
+  header: string;
+  accessorKey: keyof T | string;
+  cell?: (info: { row: { original: T } }) => React.ReactNode;
 }
 
-export interface CategoryWithSubcategories extends Category {
-  subcategories: Category[];
+export interface TableProps<T> extends TableHTMLAttributes<HTMLTableElement> {
+  data: T[];
+  columns: TableColumn<T>[];
+  isLoading?: boolean;
 }

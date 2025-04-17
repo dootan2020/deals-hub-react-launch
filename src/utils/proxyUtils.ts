@@ -1,3 +1,4 @@
+
 // src/utils/proxyUtils.ts
 import { supabase } from "@/integrations/supabase/client";
 
@@ -108,4 +109,57 @@ export function getRequestHeaders(): HeadersInit {
     'Referer': 'https://taphoammo.net/',
     'Access-Control-Allow-Origin': '*'
   };
+}
+
+// New function - Generic fetchViaProxy that can handle all types of CORS proxy requests
+export async function fetchViaProxy(url: string): Promise<any> {
+  try {
+    // Get the current proxy settings
+    const proxyConfig = await fetchProxySettings();
+    const { url: proxyUrl } = buildProxyUrl(url, proxyConfig);
+    
+    const response = await fetch(proxyUrl, {
+      headers: getRequestHeaders(),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Handle AllOrigins specific response format
+    if (proxyConfig.type === 'allorigins' && data.contents) {
+      try {
+        return JSON.parse(data.contents);
+      } catch (parseError) {
+        console.error('Error parsing AllOrigins contents:', parseError);
+        return data.contents; // Return raw content if parsing fails
+      }
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error fetching via proxy:', error);
+    throw error;
+  }
+}
+
+// Function to parse and handle responses from TapHoaMMO API
+export function parseTapHoaMMOResponse(data: any): any {
+  if (!data) {
+    throw new Error('Empty response received');
+  }
+  
+  // Handle both direct and proxy-wrapped responses
+  if (data.contents) {
+    try {
+      return JSON.parse(data.contents);
+    } catch (error) {
+      console.error('Failed to parse contents:', error);
+      return data;
+    }
+  }
+  
+  return data;
 }
