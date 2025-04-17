@@ -34,14 +34,42 @@ export function SearchableCategorySelect({
 }: SearchableCategorySelectProps) {
   const [open, setOpen] = useState(false);
   
-  // Make sure categories is always a valid array
-  const safeCategories = Array.isArray(categories) ? categories : [];
+  // Ensure we have a valid array to work with, even if categories is undefined
+  const safeCategories = Array.isArray(categories) 
+    ? categories.filter(category => category && typeof category === 'object') 
+    : [];
   
-  // Find the selected category name with null checks
-  const selectedCategory = safeCategories.find((category) => category && category.id === value);
+  // Find the selected category with proper null checks
+  const selectedCategory = safeCategories.find(
+    (category) => category && category.id === value
+  );
+
+  // Create a defensive CommandItem renderer to avoid issues
+  const renderCommandItem = (category: { id: string; name: string }) => {
+    if (!category || !category.id || !category.name) return null;
+    
+    return (
+      <CommandItem
+        key={category.id}
+        value={category.name}
+        onSelect={() => {
+          onValueChange(category.id);
+          setOpen(false);
+        }}
+      >
+        {category.name}
+        <Check
+          className={cn(
+            "ml-auto h-4 w-4",
+            value === category.id ? "opacity-100" : "opacity-0"
+          )}
+        />
+      </CommandItem>
+    );
+  };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -59,24 +87,7 @@ export function SearchableCategorySelect({
           <CommandInput placeholder="Search category..." className="h-9" />
           <CommandEmpty>No category found.</CommandEmpty>
           <CommandGroup className="max-h-64 overflow-y-auto">
-            {safeCategories.filter(Boolean).map((category) => (
-              <CommandItem
-                key={category.id}
-                value={category.name}
-                onSelect={() => {
-                  onValueChange(category.id);
-                  setOpen(false);
-                }}
-              >
-                {category.name}
-                <Check
-                  className={cn(
-                    "ml-auto h-4 w-4",
-                    value === category.id ? "opacity-100" : "opacity-0"
-                  )}
-                />
-              </CommandItem>
-            ))}
+            {safeCategories.map(renderCommandItem)}
           </CommandGroup>
         </Command>
       </PopoverContent>

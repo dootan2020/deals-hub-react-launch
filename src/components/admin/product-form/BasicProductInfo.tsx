@@ -1,4 +1,3 @@
-
 import { useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,6 +24,8 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
 
   const generateSlugFromTitle = () => {
     const title = form.getValues('title');
+    if (!title) return;
+    
     const slug = title.toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
@@ -32,12 +33,14 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
     form.setValue('slug', slug);
   };
 
-  // Make sure we have a valid array of categories with id and name
+  // Ensure we have a valid array of categories with proper formatting
   const formattedCategories = categories && Array.isArray(categories) 
-    ? categories.map(cat => ({ 
-        id: cat.id || '',
-        name: cat.name || ''
-      }))
+    ? categories
+        .filter(cat => cat && typeof cat === 'object') // Filter out null/undefined
+        .map(cat => ({ 
+          id: cat.id || '',
+          name: cat.name || ''
+        }))
     : [];
 
   return (
@@ -108,9 +111,10 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
             <FormControl>
               <SearchableCategorySelect
                 categories={formattedCategories}
-                value={field.value}
+                value={field.value || ''}
                 onValueChange={field.onChange}
                 placeholder="Search and select a category"
+                disabled={formattedCategories.length === 0}
               />
             </FormControl>
             <FormMessage />

@@ -97,20 +97,30 @@ const ProductManagerPage = () => {
     };
     
     const loadCategories = async () => {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('id, name')
-        .order('name');
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('id, name')
+          .order('name');
+          
+        if (error) {
+          console.error('Error loading categories:', error);
+          setCategories([]);
+          return;
+        }
         
-      if (error) {
-        console.error('Error loading categories:', error);
-        setCategories([]);
-      } else {
-        const formattedCategories = (data || []).map(cat => ({
-          id: cat.id || '',
-          name: cat.name || ''
-        }));
+        const formattedCategories = (data || [])
+          .filter(cat => cat && typeof cat === 'object')
+          .map(cat => ({
+            id: cat.id || '',
+            name: cat.name || 'Unnamed Category'
+          }));
+          
+        console.log('Formatted categories:', formattedCategories);
         setCategories(formattedCategories);
+      } catch (err) {
+        console.error('Exception when loading categories:', err);
+        setCategories([]);
       }
     };
 
