@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import Layout from '@/components/layout/Layout';
 import EnhancedProductGrid from '@/components/product/EnhancedProductGrid';
-import EnhancedCategoryFilters from '@/components/category/EnhancedCategoryFilters';
+import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
 import { FilterParams, Product } from '@/types';
 import { fetchProductsWithFilters } from '@/services/product';
 import { useToast } from "@/hooks/use-toast";
@@ -24,18 +24,10 @@ const EnhancedProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   
   // Active filters from URL search params or defaults
   const [activeFilters, setActiveFilters] = useState<FilterParams>({
     sort: searchParams.get('sort') || 'recommended',
-    priceRange: searchParams.get('minPrice') && searchParams.get('maxPrice') 
-      ? [searchParams.get('minPrice') || '0', searchParams.get('maxPrice') || '1000']
-      : undefined,
-    inStock: searchParams.get('inStock') === 'true' ? true : undefined,
-    rating: searchParams.get('rating') 
-      ? [searchParams.get('rating') || '']
-      : undefined
   });
 
   // Fetch products based on active filters
@@ -70,19 +62,6 @@ const EnhancedProductsPage = () => {
       newSearchParams.set('sort', activeFilters.sort);
     }
     
-    if (activeFilters.priceRange) {
-      newSearchParams.set('minPrice', activeFilters.priceRange[0]);
-      newSearchParams.set('maxPrice', activeFilters.priceRange[1]);
-    }
-    
-    if (activeFilters.inStock !== undefined) {
-      newSearchParams.set('inStock', activeFilters.inStock.toString());
-    }
-    
-    if (activeFilters.rating && activeFilters.rating.length > 0) {
-      newSearchParams.set('rating', Math.min(...activeFilters.rating.map(Number)).toString());
-    }
-    
     // Only update if changed to avoid unnecessary history entries
     const currentParamsString = searchParams.toString();
     const newParamsString = newSearchParams.toString();
@@ -92,12 +71,8 @@ const EnhancedProductsPage = () => {
     }
   }, [activeFilters, setSearchParams, searchParams]);
 
-  const handleFilterChange = (newFilters: FilterParams) => {
-    setActiveFilters(prev => ({ ...prev, ...newFilters }));
-  };
-  
-  const toggleMobileFilters = () => {
-    setIsMobileFilterOpen(prev => !prev);
+  const handleSortChange = (sort: string) => {
+    setActiveFilters(prev => ({ ...prev, sort }));
   };
 
   return (
@@ -139,38 +114,17 @@ const EnhancedProductsPage = () => {
       </div>
       
       <div className="container-custom py-12">
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className={`md:w-1/4 lg:w-1/5 ${isMobileFilterOpen ? 'block' : 'hidden'} md:block`}>
-            <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm sticky top-24">
-              <EnhancedCategoryFilters 
-                activeFilters={activeFilters}
-                onFilterChange={handleFilterChange}
-                onToggleMobileFilters={toggleMobileFilters}
-                isMobileFilterOpen={isMobileFilterOpen}
-              />
-            </div>
-          </div>
-          
-          {/* Products Section */}
-          <div className="md:w-3/4 lg:w-4/5">
-            <EnhancedCategoryFilters 
-              activeFilters={activeFilters}
-              onFilterChange={handleFilterChange}
-              onToggleMobileFilters={toggleMobileFilters}
-              isMobileFilterOpen={isMobileFilterOpen}
-            />
-            
-            <EnhancedProductGrid 
-              products={products}
-              isLoading={loading}
-              showSort={true}
-              activeSort={activeFilters.sort || 'recommended'} 
-              onSortChange={(sort) => handleFilterChange({ sort })}
-              paginationType="pagination"
-            />
-          </div>
-        </div>
+        <SimplifiedCategoryFilters
+          onSortChange={handleSortChange}
+          activeSort={activeFilters.sort || 'recommended'}
+        />
+        
+        <EnhancedProductGrid 
+          products={products}
+          isLoading={loading}
+          showSort={false}
+          paginationType="pagination"
+        />
       </div>
     </Layout>
   );

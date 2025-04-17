@@ -1,16 +1,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom'; // Added Link import
+import { Link } from 'react-router-dom';
 import ProductCard from './ProductCard';
 import { Product, FilterParams } from '@/types';
 import { Loader2, RefreshCw } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { fetchProductsWithFilters } from '@/services/product';
 import { useToast } from '@/components/ui/use-toast';
@@ -44,7 +37,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   limit,
   showViewAll = false,
   viewAllLink = '/products',
-  viewAllLabel = 'Xem tất cả sản phẩm'
+  viewAllLabel = 'View all products'
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts || externalProducts || []);
   const [isLoading, setIsLoading] = useState(!initialProducts && !externalProducts);
@@ -117,12 +110,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     setHasMore(true);
     fetchProducts(1, false);
   }, [initialProducts, externalProducts, activeSort, categoryId, fetchProducts]);
-
-  const handleSortChange = (value: string) => {
-    if (onSortChange) {
-      onSortChange(value);
-    }
-  };
   
   const handleLoadMore = async () => {
     const nextPage = page + 1;
@@ -150,23 +137,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({
           {title && <h2 className="text-2xl font-bold mb-2 text-text">{title}</h2>}
           {description && <p className="text-text-light mb-4 max-w-3xl">{description}</p>}
         </div>
-        
-        {showSort && (
-          <div className="w-full md:w-auto mt-4 md:mt-0">
-            <Select value={activeSort} onValueChange={handleSortChange}>
-              <SelectTrigger className="w-full md:w-[220px] focus:ring-primary">
-                <SelectValue placeholder="Sort By" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="recommended">Recommended</SelectItem>
-                <SelectItem value="price-low-high">Price: Low to High</SelectItem>
-                <SelectItem value="price-high-low">Price: High to Low</SelectItem>
-                <SelectItem value="newest">Newest</SelectItem>
-                <SelectItem value="rating">Highest Rated</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
       </div>
 
       {showLoading ? (

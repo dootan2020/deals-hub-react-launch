@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet';
 import { Loader2 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
-import CategoryFilters from '@/components/category/CategoryFilters';
+import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
 import { Button } from '@/components/ui/button';
 import { 
   Breadcrumb,
@@ -32,9 +32,6 @@ const SubcategoryPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterParams>({
-    priceRange: undefined,
-    rating: undefined,
-    inStock: undefined,
     sort: 'recommended'
   });
   const [productCount, setProductCount] = useState<number>(0);
@@ -85,10 +82,10 @@ const SubcategoryPage = () => {
     fetchData();
   }, [params.parentCategorySlug, params.categorySlug, filters, toast]);
 
-  const handleFilterChange = (newFilters: FilterParams) => {
+  const handleSortChange = (sort: string) => {
     setFilters(prev => ({
       ...prev,
-      ...newFilters
+      sort
     }));
   };
 
@@ -165,26 +162,17 @@ const SubcategoryPage = () => {
             <Separator className="mt-6" />
           </div>
           
-          <div className="flex flex-col lg:flex-row gap-8">
-            <div className="w-full lg:w-1/4">
-              <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm sticky top-24">
-                <h2 className="text-lg font-semibold mb-4">Filters</h2>
-                <CategoryFilters 
-                  onFilterChange={handleFilterChange} 
-                  activeFilters={filters}
-                />
-              </div>
-            </div>
+          <div>
+            <SimplifiedCategoryFilters
+              onSortChange={handleSortChange}
+              activeSort={filters.sort || 'recommended'}
+            />
             
-            <div className="w-full lg:w-3/4">
-              <ProductGrid 
-                products={products} 
-                showSort={true}
-                onSortChange={(sort) => handleFilterChange({ sort })}
-                activeSort={filters.sort}
-                isLoading={loading}
-              />
-            </div>
+            <ProductGrid 
+              products={products} 
+              showSort={false}
+              isLoading={loading}
+            />
           </div>
         </div>
       </div>

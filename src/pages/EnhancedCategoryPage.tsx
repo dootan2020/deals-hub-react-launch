@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -20,7 +21,7 @@ import {
 } from '@/components/ui/breadcrumb';
 
 import EnhancedProductGrid from '@/components/product/EnhancedProductGrid';
-import EnhancedCategoryFilters from '@/components/category/EnhancedCategoryFilters';
+import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
 
 interface CategoryWithParent extends Category {
   parent?: CategoryWithParent;
@@ -65,7 +66,6 @@ const EnhancedCategoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('products');
-  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<FilterParams>({
     sort: 'recommended',
   });
@@ -168,16 +168,6 @@ const EnhancedCategoryPage = () => {
         .select('*', { count: 'exact' });
       
       query = query.eq('category_id', categoryId);
-      
-      if (activeFilters.inStock !== undefined) {
-        query = query.eq('in_stock', activeFilters.inStock);
-      }
-      
-      if (activeFilters.priceRange) {
-        const [min, max] = activeFilters.priceRange.map(Number);
-        if (!isNaN(min)) query = query.gte('price', min);
-        if (!isNaN(max)) query = query.lte('price', max);
-      }
       
       if (activeFilters.sort) {
         switch (activeFilters.sort) {
@@ -299,9 +289,9 @@ const EnhancedCategoryPage = () => {
     }
   };
   
-  const handleFilterChange = (newFilters: FilterParams) => {
+  const handleSortChange = (sort: string) => {
     setActiveFilters(prev => {
-      const updatedFilters = { ...prev, ...newFilters };
+      const updatedFilters = { ...prev, sort };
       
       if (category) {
         fetchProducts(category.id);
@@ -309,10 +299,6 @@ const EnhancedCategoryPage = () => {
       
       return updatedFilters;
     });
-  };
-  
-  const toggleMobileFilters = () => {
-    setIsMobileFilterOpen(prev => !prev);
   };
   
   if (loading) {
@@ -467,58 +453,9 @@ const EnhancedCategoryPage = () => {
             </TabsContent>
             
             <TabsContent value="products">
-              <div className="flex flex-col md:flex-row gap-8">
-                <div className={`md:w-1/4 ${isMobileFilterOpen ? 'block' : 'hidden'} md:block`}>
-                  <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm sticky top-24">
-                    <EnhancedCategoryFilters 
-                      activeFilters={activeFilters}
-                      onFilterChange={handleFilterChange}
-                      onToggleMobileFilters={toggleMobileFilters}
-                      isMobileFilterOpen={isMobileFilterOpen}
-                    />
-                  </div>
-                </div>
-                
-                <div className="md:w-3/4">
-                  <EnhancedCategoryFilters 
-                    activeFilters={activeFilters}
-                    onFilterChange={handleFilterChange}
-                    onToggleMobileFilters={toggleMobileFilters}
-                    isMobileFilterOpen={isMobileFilterOpen}
-                  />
-                  
-                  <EnhancedProductGrid
-                    products={products}
-                    showSort={true}
-                    onSortChange={(sort) => handleFilterChange({ sort })}
-                    activeSort={activeFilters.sort}
-                    paginationType="pagination"
-                  />
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        )}
-        
-        {subcategories.length === 0 && (
-          <div className="flex flex-col md:flex-row gap-8">
-            <div className={`md:w-1/4 lg:w-1/5 ${isMobileFilterOpen ? 'block' : 'hidden'} md:block`}>
-              <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm sticky top-24">
-                <EnhancedCategoryFilters 
-                  activeFilters={activeFilters}
-                  onFilterChange={handleFilterChange}
-                  onToggleMobileFilters={toggleMobileFilters}
-                  isMobileFilterOpen={isMobileFilterOpen}
-                />
-              </div>
-            </div>
-            
-            <div className="md:w-3/4 lg:w-4/5">
-              <EnhancedCategoryFilters 
-                activeFilters={activeFilters}
-                onFilterChange={handleFilterChange}
-                onToggleMobileFilters={toggleMobileFilters}
-                isMobileFilterOpen={isMobileFilterOpen}
+              <SimplifiedCategoryFilters 
+                onSortChange={handleSortChange}
+                activeSort={activeFilters.sort || 'recommended'}
               />
               
               <div className="mb-4">
@@ -529,12 +466,31 @@ const EnhancedCategoryPage = () => {
               
               <EnhancedProductGrid
                 products={products}
-                showSort={true}
-                onSortChange={(sort) => handleFilterChange({ sort })}
-                activeSort={activeFilters.sort}
+                showSort={false}
                 paginationType="pagination"
               />
+            </TabsContent>
+          </Tabs>
+        )}
+        
+        {subcategories.length === 0 && (
+          <div>
+            <SimplifiedCategoryFilters 
+              onSortChange={handleSortChange}
+              activeSort={activeFilters.sort || 'recommended'}
+            />
+            
+            <div className="mb-4">
+              <p className="text-gray-600">
+                {totalProducts} products found
+              </p>
             </div>
+            
+            <EnhancedProductGrid
+              products={products}
+              showSort={false}
+              paginationType="pagination"
+            />
           </div>
         )}
       </div>

@@ -5,13 +5,6 @@ import ProductCard from './ProductCard';
 import ProductCardList from './ProductCardList';
 import { Product, FilterParams } from '@/types';
 import { Loader2, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { fetchProductsWithFilters } from '@/services/product';
 import { useToast } from '@/hooks/use-toast';
@@ -130,12 +123,6 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
     setHasMore(true);
     fetchProducts(1, false);
   }, [initialProducts, externalProducts, activeSort, categoryId, fetchProducts]);
-
-  const handleSortChange = (value: string) => {
-    if (onSortChange) {
-      onSortChange(value);
-    }
-  };
   
   const handleLoadMore = async () => {
     const nextPage = page + 1;
@@ -330,24 +317,6 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
             currentView={viewMode} 
             onViewChange={handleViewModeChange} 
           />
-          
-          {/* Sort Options */}
-          {showSort && (
-            <div>
-              <Select value={activeSort} onValueChange={handleSortChange}>
-                <SelectTrigger className="w-full md:w-[180px] focus:ring-primary">
-                  <SelectValue placeholder="Sort By" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recommended">Recommended</SelectItem>
-                  <SelectItem value="price-low-high">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high-low">Price: High to Low</SelectItem>
-                  <SelectItem value="newest">Newest</SelectItem>
-                  <SelectItem value="rating">Highest Rated</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
         </div>
       </div>
 
