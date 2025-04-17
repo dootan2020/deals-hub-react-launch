@@ -6,7 +6,38 @@ import { Star, ShoppingCart, ArrowLeft, Heart, Share2, Shield, Box, RefreshCw, L
 import { formatCurrency, calculateDiscountPercentage } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import ProductGrid from '@/components/product/ProductGrid';
-import { Product, Category, ProductPageParams } from '@/types';
+import { Product, Category } from '@/types';
+import { useToast } from "@/hooks/use-toast";
+import { Helmet } from 'react-helmet';
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator
+} from '@/components/ui/breadcrumb';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent
+} from '@/components/ui/tabs';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext
+} from '@/components/ui/carousel';
+
+interface ProductPageParams extends Record<string, string> {
+  productSlug?: string;
+  categorySlug?: string;
+  parentCategorySlug?: string;
+}
 
 interface CategoryWithParent extends Category {
   parent?: CategoryWithParent | null;

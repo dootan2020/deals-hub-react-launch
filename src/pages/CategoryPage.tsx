@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
-import { Product, Category, CategoryPageParams } from '@/types';
+import { Product, Category } from '@/types';
 import { Filter, ChevronDown, ChevronUp, SlidersHorizontal, Loader2 } from 'lucide-react';
 import { 
   Breadcrumb, 
@@ -26,6 +26,11 @@ import { useToast } from "@/hooks/use-toast";
 import { fetchCategoryBySlug } from '@/services/categoryService';
 import { Helmet } from 'react-helmet';
 import React from 'react';
+
+interface CategoryPageParams extends Record<string, string> {
+  categorySlug?: string;
+  parentCategorySlug?: string;
+}
 
 interface CategoryWithParent extends Category {
   parent?: CategoryWithParent;
@@ -198,15 +203,15 @@ const CategoryPage = () => {
         originalPrice: item.original_price ? Number(item.original_price) : undefined,
         images: item.images || [],
         categoryId: item.category_id,
-        rating: item.rating || 0,
+        rating: Number(item.rating) || 0,
         reviewCount: item.review_count || 0,
         inStock: item.in_stock === true,
         stockQuantity: item.stock_quantity ?? (item.in_stock === true ? 10 : 0),
-        badges: item.badges || [],
+        badges: Array.isArray(item.badges) ? item.badges : [],
         slug: item.slug,
-        features: item.features || [],
+        features: Array.isArray(item.features) ? item.features : [],
         specifications: convertSpecifications(item.specifications) || {},
-        salesCount: item.sales_count || 0,
+        salesCount: Number(item.sales_count || 0),
         createdAt: item.created_at || new Date().toISOString()
       }));
       
