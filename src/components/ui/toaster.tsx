@@ -10,22 +10,25 @@ import {
 } from "@/components/ui/toast"
 
 export function Toaster() {
-  // We're not actually using the toasts array from the hook
-  // The actual toast notifications are handled by the Sonner component
   const { toasts } = useToast()
 
   return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
+        // Map sonner toast type to shadcn/ui toast variant if needed
+        const variant = props.type === "error" ? "destructive" : "default"
+        
+        // Remove properties that don't match shadcn/ui Toast component props
+        const { type, icon, jsx, richColors, invert, closeButton, dismissible, ...compatibleProps } = props
+
         return (
-          <Toast key={id} {...props}>
+          <Toast key={id} {...compatibleProps} variant={variant}>
             <div className="grid gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && (
                 <ToastDescription>{description}</ToastDescription>
               )}
             </div>
-            {/* Cast action to React.ReactNode to fix type error */}
             {action && <div className="action">{action as React.ReactNode}</div>}
             <ToastClose />
           </Toast>

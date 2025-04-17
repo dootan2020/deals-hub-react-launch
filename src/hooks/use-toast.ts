@@ -1,7 +1,17 @@
 
-import { toast as sonnerToast, type ToastT } from "sonner";
+import { toast as sonnerToast } from "sonner";
 
-export type ToastProps = ToastT;
+type ToastProps = {
+  id: string | number;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  type?: "default" | "success" | "error" | "warning" | "info";
+  // Include any other properties that might be used
+  duration?: number;
+  className?: string;
+  [key: string]: any; // Allow other properties
+};
 
 export function toast(...args: Parameters<typeof sonnerToast>) {
   return sonnerToast(...args);
@@ -16,7 +26,7 @@ toast.dismiss = sonnerToast.dismiss;
 toast.custom = sonnerToast.custom;
 toast.promise = sonnerToast.promise;
 
-// This is a dummy array to make the `Toaster` component happy
+// Create a dummy array of toasts to satisfy the Toaster component
 const DUMMY_TOASTS: ToastProps[] = [];
 
 export const useToast = () => {
