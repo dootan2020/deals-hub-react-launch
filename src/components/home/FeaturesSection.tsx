@@ -35,15 +35,15 @@ const FeaturesSection = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
             <div 
               key={index} 
-              className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+              className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1"
             >
               <div className="flex flex-col items-center text-center">
-                <div className="p-3 bg-primary/10 rounded-full mb-4">
-                  <feature.icon className="h-8 w-8 text-primary" />
+                <div className="p-4 bg-primary/10 rounded-full mb-5 transform transition-transform duration-300 group-hover:scale-110">
+                  <feature.icon className="h-9 w-9 text-primary transition-colors duration-300 hover:text-primary-dark" />
                 </div>
                 <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
                 <p className="text-text-light">{feature.description}</p>
