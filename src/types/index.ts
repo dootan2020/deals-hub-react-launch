@@ -1,7 +1,9 @@
+
 export interface Product {
   id: string;
   title: string;
   description: string;
+  shortDescription?: string;
   price: number;
   originalPrice?: number;
   images: string[];
@@ -9,6 +11,7 @@ export interface Product {
   rating: number;
   reviewCount: number;
   inStock: boolean;
+  stockQuantity?: number;
   badges: string[];
   slug: string;
   features?: string[];
