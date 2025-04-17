@@ -12,6 +12,12 @@ import CategoryPage from "./pages/CategoryPage";
 import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
+import SupportPage from "./pages/SupportPage";
+import FaqsPage from "./pages/FaqsPage";
+import KnowledgeBasePage from "./pages/KnowledgeBasePage";
+import DepositPage from "./pages/DepositPage";
+
+// Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import CategoryAdmin from "./pages/admin/CategoryAdmin";
 import OrdersAdmin from "./pages/admin/OrdersAdmin";
@@ -43,6 +49,10 @@ const App = () => {
             <Route path="/product/:productSlug" element={<ProductPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/order-success" element={<OrderSuccessPage />} />
+            <Route path="/support" element={<SupportPage />} />
+            <Route path="/faqs" element={<FaqsPage />} />
+            <Route path="/knowledge" element={<KnowledgeBasePage />} />
+            <Route path="/deposit" element={<DepositPage />} />
             
             {/* Admin routes */}
             <Route path="/admin" element={<AdminDashboard />} />

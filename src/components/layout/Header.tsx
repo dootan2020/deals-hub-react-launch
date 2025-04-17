@@ -1,8 +1,17 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, User, Menu, X, Globe } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, Globe, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { 
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger
+} from '@/components/ui/navigation-menu';
+import { toast } from '@/components/ui/sonner';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -10,6 +19,35 @@ const Header = () => {
   
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  // Email accounts subcategories
+  const emailCategories = [
+    { name: "Gmail Accounts", path: "/category/gmail" },
+    { name: "Outlook Accounts", path: "/category/outlook" },
+    { name: "Yahoo Accounts", path: "/category/yahoo" },
+    { name: "Corporate Emails", path: "/category/corporate-email" }
+  ];
+
+  // Gaming account subcategories
+  const gamingCategories = [
+    { name: "Steam Accounts", path: "/category/steam" },
+    { name: "Epic Games", path: "/category/epic-games" },
+    { name: "Origin Accounts", path: "/category/origin" },
+    { name: "PlayStation Accounts", path: "/category/playstation" },
+    { name: "Xbox Accounts", path: "/category/xbox" }
+  ];
+
+  // Software key subcategories
+  const softwareCategories = [
+    { name: "Windows Keys", path: "/category/windows" },
+    { name: "Office Keys", path: "/category/office" },
+    { name: "Antivirus Software", path: "/category/antivirus" },
+    { name: "Adobe Products", path: "/category/adobe" }
+  ];
+
+  const handleAddToCart = () => {
+    toast.success("Added to cart!");
   };
 
   return (
@@ -23,21 +61,102 @@ const Header = () => {
             </h1>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-6">
-            <Link to="/" className="text-text hover:text-primary transition-colors duration-200">
-              Home
-            </Link>
-            <Link to="/category/email" className="text-text hover:text-primary transition-colors duration-200">
-              Email Accounts
-            </Link>
-            <Link to="/category/account" className="text-text hover:text-primary transition-colors duration-200">
-              Gaming Accounts
-            </Link>
-            <Link to="/category/other" className="text-text hover:text-primary transition-colors duration-200">
-              Software Keys
-            </Link>
-          </nav>
+          {/* Desktop Navigation using NavigationMenu */}
+          <div className="hidden md:block">
+            <NavigationMenu>
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <Link to="/" className="text-text hover:text-primary transition-colors duration-200 px-3 py-2">
+                    Home
+                  </Link>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent">
+                    Email Accounts
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                      {emailCategories.map((category) => (
+                        <li key={category.path}>
+                          <NavigationMenuLink asChild>
+                            <Link
+                              to={category.path}
+                              className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            >
+                              <div className="text-sm font-medium leading-none">{category.name}</div>
+                            </Link>
+                          </NavigationMenuLink>
+                        </li>
+                      ))}
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent">
+                    Gaming Accounts
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                      {gamingCategories.map((category) => (
+                        <li key={category.path}>
+                          <NavigationMenuLink asChild>
+                            <Link
+                              to={category.path}
+                              className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            >
+                              <div className="text-sm font-medium leading-none">{category.name}</div>
+                            </Link>
+                          </NavigationMenuLink>
+                        </li>
+                      ))}
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent">
+                    Software Keys
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                      {softwareCategories.map((category) => (
+                        <li key={category.path}>
+                          <NavigationMenuLink asChild>
+                            <Link
+                              to={category.path}
+                              className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            >
+                              <div className="text-sm font-medium leading-none">{category.name}</div>
+                            </Link>
+                          </NavigationMenuLink>
+                        </li>
+                      ))}
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+                
+                <NavigationMenuItem>
+                  <Link to="/support" className="text-text hover:text-primary transition-colors duration-200 px-3 py-2">
+                    Support
+                  </Link>
+                </NavigationMenuItem>
+                
+                <NavigationMenuItem>
+                  <Link to="/faqs" className="text-text hover:text-primary transition-colors duration-200 px-3 py-2">
+                    FAQs
+                  </Link>
+                </NavigationMenuItem>
+                
+                <NavigationMenuItem>
+                  <Link to="/deposit" className="text-text hover:text-primary transition-colors duration-200 px-3 py-2">
+                    Deposit
+                  </Link>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+          </div>
 
           {/* Right Icons */}
           <div className="flex items-center space-x-4">
@@ -57,14 +176,17 @@ const Header = () => {
             </button>
 
             {/* Cart Icon */}
-            <Link to="/cart" className="p-1 text-text-light hover:text-primary transition-colors relative">
+            <button 
+              onClick={handleAddToCart} 
+              className="p-1 text-text-light hover:text-primary transition-colors relative"
+            >
               <ShoppingCart className="h-6 w-6" />
               {cartItemsCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-primary text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
                   {cartItemsCount}
                 </span>
               )}
-            </Link>
+            </button>
 
             {/* Mobile Menu Toggle */}
             <button
@@ -106,26 +228,89 @@ const Header = () => {
               >
                 Home
               </Link>
+
+              {/* Email Accounts Dropdown */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200">
+                  <span>Email Accounts</span>
+                  <ChevronDown className="h-4 w-4" />
+                </div>
+                <div className="pl-4 space-y-2">
+                  {emailCategories.map((category) => (
+                    <Link 
+                      key={category.path}
+                      to={category.path} 
+                      className="block text-text-light hover:text-primary transition-colors duration-200"
+                      onClick={toggleMobileMenu}
+                    >
+                      {category.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              {/* Gaming Accounts Dropdown */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200">
+                  <span>Gaming Accounts</span>
+                  <ChevronDown className="h-4 w-4" />
+                </div>
+                <div className="pl-4 space-y-2">
+                  {gamingCategories.map((category) => (
+                    <Link 
+                      key={category.path}
+                      to={category.path} 
+                      className="block text-text-light hover:text-primary transition-colors duration-200"
+                      onClick={toggleMobileMenu}
+                    >
+                      {category.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              {/* Software Keys Dropdown */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200">
+                  <span>Software Keys</span>
+                  <ChevronDown className="h-4 w-4" />
+                </div>
+                <div className="pl-4 space-y-2">
+                  {softwareCategories.map((category) => (
+                    <Link 
+                      key={category.path}
+                      to={category.path} 
+                      className="block text-text-light hover:text-primary transition-colors duration-200"
+                      onClick={toggleMobileMenu}
+                    >
+                      {category.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+              
               <Link 
-                to="/category/email" 
+                to="/support" 
                 className="text-text hover:text-primary transition-colors duration-200"
                 onClick={toggleMobileMenu}
               >
-                Email Accounts
+                Support
               </Link>
+              
               <Link 
-                to="/category/account" 
+                to="/faqs" 
                 className="text-text hover:text-primary transition-colors duration-200"
                 onClick={toggleMobileMenu}
               >
-                Gaming Accounts
+                FAQs
               </Link>
+              
               <Link 
-                to="/category/other" 
+                to="/deposit" 
                 className="text-text hover:text-primary transition-colors duration-200"
                 onClick={toggleMobileMenu}
               >
-                Software Keys
+                Deposit
               </Link>
 
               {/* Language Selector for Mobile */}
