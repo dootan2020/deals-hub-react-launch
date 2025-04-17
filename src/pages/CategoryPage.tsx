@@ -1,31 +1,158 @@
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
 import { getProductsByCategory, categories } from '@/data/mockData';
 import { Product, Category } from '@/types';
 import { Filter, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react';
+import { 
+  Breadcrumb, 
+  BreadcrumbItem, 
+  BreadcrumbLink, 
+  BreadcrumbList, 
+  BreadcrumbPage, 
+  BreadcrumbSeparator 
+} from '@/components/ui/breadcrumb';
+import { supabase } from '@/integrations/supabase/client';
+
+interface CategoryWithParent extends Category {
+  parent?: CategoryWithParent;
+}
 
 const CategoryPage = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const [products, setProducts] = useState<Product[]>([]);
-  const [category, setCategory] = useState<Category | undefined>(undefined);
+  const [category, setCategory] = useState<CategoryWithParent | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   
   useEffect(() => {
     if (categoryId) {
-      // Find the category
-      const foundCategory = categories.find(cat => cat.id === categoryId);
-      setCategory(foundCategory);
-      
-      // Get products for this category
-      const categoryProducts = getProductsByCategory(categoryId);
-      setProducts(categoryProducts);
-      setLoading(false);
+      fetchCategoryWithParents(categoryId);
+      fetchProductsByCategory(categoryId);
     }
   }, [categoryId]);
+
+  const fetchCategoryWithParents = async (categoryId: string) => {
+    try {
+      // First, get the current category
+      const { data: categoryData, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('id', categoryId)
+        .single();
+
+      if (error) throw error;
+      
+      if (categoryData) {
+        const categoryWithParents: CategoryWithParent = { ...categoryData };
+        
+        // If this category has a parent, fetch the parent chain
+        if (categoryWithParents.parent_id) {
+          const parentChain = await fetchParentChain(categoryWithParents.parent_id);
+          if (parentChain) {
+            categoryWithParents.parent = parentChain;
+          }
+        }
+        
+        setCategory(categoryWithParents);
+      }
+    } catch (error) {
+      console.error('Error fetching category:', error);
+    }
+  };
+
+  // Recursive function to build the parent chain
+  const fetchParentChain = async (parentId: string): Promise<CategoryWithParent | undefined> => {
+    try {
+      const { data: parentData, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('id', parentId)
+        .single();
+
+      if (error) throw error;
+
+      if (parentData) {
+        const parent: CategoryWithParent = { ...parentData };
+        
+        if (parent.parent_id) {
+          const grandparent = await fetchParentChain(parent.parent_id);
+          if (grandparent) {
+            parent.parent = grandparent;
+          }
+        }
+        
+        return parent;
+      }
+      
+      return undefined;
+    } catch (error) {
+      console.error('Error fetching parent category:', error);
+      return undefined;
+    }
+  };
+
+  // Build array of categories for breadcrumb, from root to current
+  const buildBreadcrumbCategories = (category: CategoryWithParent | undefined): CategoryWithParent[] => {
+    if (!category) return [];
+    
+    const result: CategoryWithParent[] = [];
+    let currentCategory: CategoryWithParent | undefined = category;
+    
+    // Loop through the chain from current to root
+    while (currentCategory) {
+      // Add to the beginning of the array (we want root first)
+      result.unshift(currentCategory);
+      currentCategory = currentCategory.parent;
+    }
+    
+    return result;
+  };
+  
+  const fetchProductsByCategory = async (categoryId: string) => {
+    setLoading(true);
+    try {
+      // First get current category's products
+      const { data: directProducts, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('category_id', categoryId);
+        
+      if (error) throw error;
+      
+      // Then get subcategories
+      const { data: subcategories, error: subcategoriesError } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('parent_id', categoryId);
+        
+      if (subcategoriesError) throw subcategoriesError;
+      
+      // Get products from subcategories
+      let allProducts = directProducts || [];
+      if (subcategories && subcategories.length > 0) {
+        const subcategoryIds = subcategories.map(sc => sc.id);
+        const { data: subcategoryProducts, error: subProductsError } = await supabase
+          .from('products')
+          .select('*')
+          .in('category_id', subcategoryIds);
+          
+        if (subProductsError) throw subProductsError;
+        
+        if (subcategoryProducts) {
+          allProducts = [...allProducts, ...subcategoryProducts];
+        }
+      }
+      
+      setProducts(allProducts as Product[]);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -50,9 +177,47 @@ const CategoryPage = () => {
       </Layout>
     );
   }
+  
+  const breadcrumbCategories = buildBreadcrumbCategories(category);
 
   return (
     <Layout>
+      {/* Breadcrumb Navigation */}
+      <div className="bg-white border-b">
+        <div className="container-custom py-3">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/">Home</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              
+              {breadcrumbCategories.map((cat, index) => {
+                // For all but the last item, make it a link
+                const isLast = index === breadcrumbCategories.length - 1;
+                
+                return isLast ? (
+                  <BreadcrumbItem key={cat.id}>
+                    <BreadcrumbPage>{cat.name}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                ) : (
+                  <>
+                    <BreadcrumbItem key={cat.id}>
+                      <BreadcrumbLink asChild>
+                        <Link to={`/category/${cat.id}`}>{cat.name}</Link>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                  </>
+                );
+              })}
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+      </div>
+
       {/* Category Header */}
       <div className="bg-gradient-to-r from-[#f8f9fa] to-[#e9ecef] py-12">
         <div className="container-custom">

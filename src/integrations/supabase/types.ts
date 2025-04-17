@@ -47,6 +47,7 @@ export type Database = {
           id: string
           image: string
           name: string
+          parent_id: string | null
           slug: string
           updated_at: string | null
         }
@@ -57,6 +58,7 @@ export type Database = {
           id?: string
           image: string
           name: string
+          parent_id?: string | null
           slug: string
           updated_at?: string | null
         }
@@ -67,10 +69,19 @@ export type Database = {
           id?: string
           image?: string
           name?: string
+          parent_id?: string | null
           slug?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       order_items: {
         Row: {
@@ -294,7 +305,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      insert_category: {
+        Args: {
+          name_param: string
+          description_param: string
+          slug_param: string
+          image_param: string
+          parent_id_param: string
+        }
+        Returns: undefined
+      }
+      update_category: {
+        Args: {
+          id_param: string
+          name_param: string
+          description_param: string
+          slug_param: string
+          image_param: string
+          parent_id_param: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

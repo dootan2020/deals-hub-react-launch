@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -29,6 +29,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -42,17 +49,25 @@ const categorySchema = z.object({
   description: z.string().min(5, "Description must be at least 5 characters"),
   slug: z.string().min(2, "Slug must be at least 2 characters").regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
   image: z.string().url("Image must be a valid URL"),
+  parent_id: z.string().nullable().optional(),
 });
 
 type CategoryFormValues = z.infer<typeof categorySchema>;
 
+interface CategoryWithChildren extends Category {
+  children?: CategoryWithChildren[];
+  isExpanded?: boolean;
+}
+
 const CategoryAdmin = () => {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesHierarchy, setCategoriesHierarchy] = useState<CategoryWithChildren[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const queryClient = useQueryClient();
 
   const form = useForm<CategoryFormValues>({
@@ -62,6 +77,7 @@ const CategoryAdmin = () => {
       description: '',
       slug: '',
       image: '',
+      parent_id: null,
     }
   });
 
@@ -72,6 +88,7 @@ const CategoryAdmin = () => {
       description: '',
       slug: '',
       image: '',
+      parent_id: null,
     }
   });
 
@@ -86,9 +103,41 @@ const CategoryAdmin = () => {
         description: selectedCategory.description,
         slug: selectedCategory.slug,
         image: selectedCategory.image,
+        parent_id: selectedCategory.parent_id || null,
       });
     }
   }, [selectedCategory, isEditOpen, editForm]);
+
+  useEffect(() => {
+    if (categories.length > 0) {
+      const hierarchy = buildCategoryHierarchy(categories);
+      setCategoriesHierarchy(hierarchy);
+    }
+  }, [categories]);
+
+  const buildCategoryHierarchy = (categories: Category[]): CategoryWithChildren[] => {
+    const categoriesMap: Record<string, CategoryWithChildren> = {};
+    
+    // First pass: create map of all categories with their properties
+    categories.forEach(category => {
+      categoriesMap[category.id] = { ...category, children: [] };
+    });
+    
+    // Second pass: establish parent-child relationships
+    const rootCategories: CategoryWithChildren[] = [];
+    
+    categories.forEach(category => {
+      if (category.parent_id && categoriesMap[category.parent_id]) {
+        // This is a child category, add it to its parent's children array
+        categoriesMap[category.parent_id].children?.push(categoriesMap[category.id]);
+      } else {
+        // This is a root category with no parent
+        rootCategories.push(categoriesMap[category.id]);
+      }
+    });
+    
+    return rootCategories;
+  };
 
   const fetchCategories = async () => {
     setIsLoading(true);
@@ -110,7 +159,6 @@ const CategoryAdmin = () => {
 
   const onSubmitAdd = async (data: CategoryFormValues) => {
     try {
-      // Direct insert instead of using RPC
       const { error } = await supabase
         .from('categories')
         .insert({
@@ -118,7 +166,8 @@ const CategoryAdmin = () => {
           description: data.description,
           slug: data.slug,
           image: data.image,
-          count: 0
+          count: 0,
+          parent_id: data.parent_id || null
         });
 
       if (error) throw error;
@@ -138,7 +187,6 @@ const CategoryAdmin = () => {
     if (!selectedCategory) return;
 
     try {
-      // Direct update instead of using RPC
       const { error } = await supabase
         .from('categories')
         .update({
@@ -146,6 +194,7 @@ const CategoryAdmin = () => {
           description: data.description,
           slug: data.slug,
           image: data.image,
+          parent_id: data.parent_id || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedCategory.id);
@@ -167,6 +216,21 @@ const CategoryAdmin = () => {
     setDeleteError(null);
     
     try {
+      // Check if category has subcategories
+      const { data: subcategories, error: subcategoriesError } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('parent_id', category.id)
+        .limit(1);
+
+      if (subcategoriesError) throw subcategoriesError;
+
+      if (subcategories && subcategories.length > 0) {
+        setDeleteError(`Cannot delete category "${category.name}" because it has subcategories. Please delete or reassign these subcategories first.`);
+        toast.error('Cannot delete category with subcategories');
+        return;
+      }
+
       const { data: products, error: checkError } = await supabase
         .from('products')
         .select('id')
@@ -207,6 +271,92 @@ const CategoryAdmin = () => {
     setIsAddOpen(true);
   };
 
+  const toggleExpand = (categoryId: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
+  };
+
+  const renderCategoryRows = (category: CategoryWithChildren, level = 0) => {
+    const isExpanded = expandedCategories[category.id] || false;
+    const hasChildren = category.children && category.children.length > 0;
+    
+    return (
+      <>
+        <TableRow key={category.id}>
+          <TableCell className="font-medium">
+            <div className="flex items-center">
+              {level > 0 && (
+                <div style={{ width: `${level * 20}px` }}></div>
+              )}
+              {hasChildren && (
+                <button
+                  onClick={() => toggleExpand(category.id)}
+                  className="mr-2 p-1 hover:bg-gray-100 rounded-sm"
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4" />
+                  )}
+                </button>
+              )}
+              {!hasChildren && <div className="mr-6"></div>}
+              {category.name}
+            </div>
+          </TableCell>
+          <TableCell className="max-w-xs truncate">{category.description}</TableCell>
+          <TableCell>{category.slug}</TableCell>
+          <TableCell>{category.count}</TableCell>
+          <TableCell className="text-right">
+            <div className="flex justify-end space-x-2">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => handleEditClick(category)}
+              >
+                <Edit className="w-4 h-4" />
+                <span className="sr-only">Edit</span>
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => handleDelete(category)}
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="sr-only">Delete</span>
+              </Button>
+            </div>
+          </TableCell>
+        </TableRow>
+        
+        {hasChildren && isExpanded && category.children?.map(child => 
+          renderCategoryRows(child, level + 1)
+        )}
+      </>
+    );
+  };
+
+  const getParentOptions = () => {
+    return categories.filter(category => {
+      // Prevent creating circular references
+      if (selectedCategory) {
+        // Don't allow setting a category as its own parent
+        if (category.id === selectedCategory.id) return false;
+        
+        // Don't allow setting a child category as the parent of its ancestor
+        let parent_id = category.parent_id;
+        while (parent_id) {
+          if (parent_id === selectedCategory.id) return false;
+          const parent = categories.find(c => c.id === parent_id);
+          parent_id = parent ? parent.parent_id : null;
+        }
+      }
+      return true;
+    });
+  };
+
   return (
     <AdminLayout title="Categories Management">
       <div className="flex justify-between mb-6">
@@ -240,41 +390,14 @@ const CategoryAdmin = () => {
                   Loading categories...
                 </TableCell>
               </TableRow>
-            ) : categories.length === 0 ? (
+            ) : categoriesHierarchy.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8">
                   No categories found
                 </TableCell>
               </TableRow>
             ) : (
-              categories.map((category) => (
-                <TableRow key={category.id}>
-                  <TableCell className="font-medium">{category.name}</TableCell>
-                  <TableCell className="max-w-xs truncate">{category.description}</TableCell>
-                  <TableCell>{category.slug}</TableCell>
-                  <TableCell>{category.count}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleEditClick(category)}
-                      >
-                        <Edit className="w-4 h-4" />
-                        <span className="sr-only">Edit</span>
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleDelete(category)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        <span className="sr-only">Delete</span>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+              categoriesHierarchy.map(category => renderCategoryRows(category))
             )}
           </TableBody>
         </Table>
@@ -348,6 +471,35 @@ const CategoryAdmin = () => {
                       <FormControl>
                         <Input placeholder="https://example.com/image.jpg" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="parent_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Parent Category (Optional)</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value || undefined}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a parent category (optional)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="">None (Top-Level Category)</SelectItem>
+                          {getParentOptions().map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -433,6 +585,36 @@ const CategoryAdmin = () => {
                       <FormControl>
                         <Input placeholder="https://example.com/image.jpg" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="parent_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Parent Category (Optional)</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value || undefined}
+                        value={field.value || undefined}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a parent category (optional)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="">None (Top-Level Category)</SelectItem>
+                          {getParentOptions().map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

@@ -23,6 +23,7 @@ export interface Category {
   image: string;
   slug: string;
   count: number;
+  parent_id?: string | null;
 }
 
 export interface CartItem {
