@@ -66,23 +66,23 @@ const Footer = () => {
             <h3 className="text-lg font-semibold mb-4">Customer Service</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/faq" className="text-text-light hover:text-primary transition-colors">
+                <Link to="/faqs" className="text-text-light hover:text-primary transition-colors">
                   FAQs
                 </Link>
               </li>
               <li>
-                <Link to="/shipping" className="text-text-light hover:text-primary transition-colors">
-                  Shipping Policy
+                <Link to="/knowledge" className="text-text-light hover:text-primary transition-colors">
+                  Knowledge Base
                 </Link>
               </li>
               <li>
-                <Link to="/refund" className="text-text-light hover:text-primary transition-colors">
-                  Refund Policy
+                <Link to="/support" className="text-text-light hover:text-primary transition-colors">
+                  Support Center
                 </Link>
               </li>
               <li>
-                <Link to="/privacy" className="text-text-light hover:text-primary transition-colors">
-                  Privacy Policy
+                <Link to="/deposit" className="text-text-light hover:text-primary transition-colors">
+                  Deposit Funds
                 </Link>
               </li>
               <li>

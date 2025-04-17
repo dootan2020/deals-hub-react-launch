@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, User, Menu, X, Globe, ChevronDown } from 'lucide-react';
@@ -196,133 +195,133 @@ const Header = () => {
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
-        </div>
 
-        {/* Mobile Menu */}
-        <div
-          className={cn(
-            "fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden transition-opacity duration-200",
-            mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          )}
-          onClick={toggleMobileMenu}
-        >
+          {/* Mobile Menu */}
           <div
             className={cn(
-              "fixed top-0 right-0 bottom-0 w-64 bg-white p-6 shadow-xl transition-transform duration-300 z-50",
-              mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+              "fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden transition-opacity duration-200",
+              mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
             )}
-            onClick={(e) => e.stopPropagation()}
+            onClick={toggleMobileMenu}
           >
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-primary">Menu</h2>
-              <button onClick={toggleMobileMenu}>
-                <X className="h-6 w-6 text-text-light" />
-              </button>
+            <div
+              className={cn(
+                "fixed top-0 right-0 bottom-0 w-64 bg-white p-6 shadow-xl transition-transform duration-300 z-50",
+                mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+              )}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-primary">Menu</h2>
+                <button onClick={toggleMobileMenu}>
+                  <X className="h-6 w-6 text-text-light" />
+                </button>
+              </div>
+              
+              <nav className="flex flex-col space-y-4">
+                <Link 
+                  to="/" 
+                  className="text-text hover:text-primary transition-colors duration-200"
+                  onClick={toggleMobileMenu}
+                >
+                  Home
+                </Link>
+
+                {/* Email Accounts Dropdown */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200">
+                    <span>Email Accounts</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
+                  <div className="pl-4 space-y-2">
+                    {emailCategories.map((category) => (
+                      <Link 
+                        key={category.path}
+                        to={category.path} 
+                        className="block text-text-light hover:text-primary transition-colors duration-200"
+                        onClick={toggleMobileMenu}
+                      >
+                        {category.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Gaming Accounts Dropdown */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200">
+                    <span>Gaming Accounts</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
+                  <div className="pl-4 space-y-2">
+                    {gamingCategories.map((category) => (
+                      <Link 
+                        key={category.path}
+                        to={category.path} 
+                        className="block text-text-light hover:text-primary transition-colors duration-200"
+                        onClick={toggleMobileMenu}
+                      >
+                        {category.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Software Keys Dropdown */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200">
+                    <span>Software Keys</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
+                  <div className="pl-4 space-y-2">
+                    {softwareCategories.map((category) => (
+                      <Link 
+                        key={category.path}
+                        to={category.path} 
+                        className="block text-text-light hover:text-primary transition-colors duration-200"
+                        onClick={toggleMobileMenu}
+                      >
+                        {category.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+                
+                <Link 
+                  to="/support" 
+                  className="text-text hover:text-primary transition-colors duration-200"
+                  onClick={toggleMobileMenu}
+                >
+                  Support
+                </Link>
+                
+                <Link 
+                  to="/faqs" 
+                  className="text-text hover:text-primary transition-colors duration-200"
+                  onClick={toggleMobileMenu}
+                >
+                  FAQs
+                </Link>
+                
+                <Link 
+                  to="/deposit" 
+                  className="text-text hover:text-primary transition-colors duration-200"
+                  onClick={toggleMobileMenu}
+                >
+                  Deposit
+                </Link>
+
+                {/* Language Selector for Mobile */}
+                <div className="flex items-center pt-4 border-t border-gray-200 mt-4">
+                  <Globe className="h-5 w-5 text-text-light" />
+                  <select className="ml-2 text-sm text-text-light bg-transparent border-none focus:outline-none">
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="pt">Portuguese</option>
+                  </select>
+                </div>
+              </nav>
             </div>
-            
-            <nav className="flex flex-col space-y-4">
-              <Link 
-                to="/" 
-                className="text-text hover:text-primary transition-colors duration-200"
-                onClick={toggleMobileMenu}
-              >
-                Home
-              </Link>
-
-              {/* Email Accounts Dropdown */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200">
-                  <span>Email Accounts</span>
-                  <ChevronDown className="h-4 w-4" />
-                </div>
-                <div className="pl-4 space-y-2">
-                  {emailCategories.map((category) => (
-                    <Link 
-                      key={category.path}
-                      to={category.path} 
-                      className="block text-text-light hover:text-primary transition-colors duration-200"
-                      onClick={toggleMobileMenu}
-                    >
-                      {category.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              {/* Gaming Accounts Dropdown */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200">
-                  <span>Gaming Accounts</span>
-                  <ChevronDown className="h-4 w-4" />
-                </div>
-                <div className="pl-4 space-y-2">
-                  {gamingCategories.map((category) => (
-                    <Link 
-                      key={category.path}
-                      to={category.path} 
-                      className="block text-text-light hover:text-primary transition-colors duration-200"
-                      onClick={toggleMobileMenu}
-                    >
-                      {category.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              {/* Software Keys Dropdown */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200">
-                  <span>Software Keys</span>
-                  <ChevronDown className="h-4 w-4" />
-                </div>
-                <div className="pl-4 space-y-2">
-                  {softwareCategories.map((category) => (
-                    <Link 
-                      key={category.path}
-                      to={category.path} 
-                      className="block text-text-light hover:text-primary transition-colors duration-200"
-                      onClick={toggleMobileMenu}
-                    >
-                      {category.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-              
-              <Link 
-                to="/support" 
-                className="text-text hover:text-primary transition-colors duration-200"
-                onClick={toggleMobileMenu}
-              >
-                Support
-              </Link>
-              
-              <Link 
-                to="/faqs" 
-                className="text-text hover:text-primary transition-colors duration-200"
-                onClick={toggleMobileMenu}
-              >
-                FAQs
-              </Link>
-              
-              <Link 
-                to="/deposit" 
-                className="text-text hover:text-primary transition-colors duration-200"
-                onClick={toggleMobileMenu}
-              >
-                Deposit
-              </Link>
-
-              {/* Language Selector for Mobile */}
-              <div className="flex items-center pt-4 border-t border-gray-200 mt-4">
-                <Globe className="h-5 w-5 text-text-light" />
-                <select className="ml-2 text-sm text-text-light bg-transparent border-none focus:outline-none">
-                  <option value="en">English</option>
-                  <option value="es">Spanish</option>
-                  <option value="pt">Portuguese</option>
-                </select>
-              </div>
-            </nav>
           </div>
         </div>
       </div>
