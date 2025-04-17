@@ -243,4 +243,31 @@ const mockProducts: Product[] = [
   }
 ];
 
+export const testimonials = [
+  {
+    id: '1',
+    name: 'Nguyễn Văn A',
+    role: 'Digital Marketer',
+    content: 'Dịch vụ của Digital Deals Hub rất chuyên nghiệp và nhanh chóng. Tôi đã mua nhiều tài khoản và luôn hài lòng.',
+    avatar: '/images/avatars/avatar1.jpg',
+    rating: 4.5
+  },
+  {
+    id: '2',
+    name: 'Trần Thị B',
+    role: 'Social Media Manager',
+    content: 'Các sản phẩm ở đây đáng tin cậy và giá cả hợp lý. Đặc biệt là dịch vụ hỗ trợ rất nhiệt tình.',
+    avatar: '/images/avatars/avatar2.jpg',
+    rating: 5
+  },
+  {
+    id: '3',
+    name: 'Lê Văn C',
+    role: 'Freelancer',
+    content: 'Đã sử dụng nhiều dịch vụ từ Digital Deals Hub. Luôn được hỗ trợ nhanh chóng và chuyên nghiệp.',
+    avatar: '/images/avatars/avatar3.jpg',
+    rating: 4
+  }
+];
+
 export default mockProducts;
