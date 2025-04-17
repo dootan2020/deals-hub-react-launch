@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import ProductCard from './ProductCard';
 import { Product, FilterParams } from '@/types';
@@ -23,6 +24,10 @@ interface ProductGridProps {
   activeSort?: string;
   categoryId?: string;
   isLoading?: boolean;
+  limit?: number;
+  showViewAll?: boolean;
+  viewAllLink?: string;
+  viewAllLabel?: string;
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({ 
@@ -34,7 +39,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   onSortChange,
   activeSort = 'recommended',
   categoryId,
-  isLoading: externalLoading = false
+  isLoading: externalLoading = false,
+  limit,
+  showViewAll = false,
+  viewAllLink = '/products',
+  viewAllLabel = 'Xem tất cả sản phẩm'
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts || externalProducts || []);
   const [isLoading, setIsLoading] = useState(!initialProducts && !externalProducts);
@@ -58,12 +67,13 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       const filters: FilterParams = {
         sort: activeSort,
         categoryId,
-        page
+        page,
+        limit
       };
       
       const fetchedProducts = await fetchProductsWithFilters(filters);
       
-      const pageSize = 12;
+      const pageSize = limit || 12;
       if (fetchedProducts.length < pageSize) {
         setHasMore(false);
       }
@@ -85,7 +95,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  }, [activeSort, categoryId, toast, externalProducts]);
+  }, [activeSort, categoryId, toast, externalProducts, limit]);
 
   useEffect(() => {
     if (externalProducts) {
@@ -126,6 +136,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   };
   
   const showLoading = isLoading || externalLoading;
+  
+  // Limit displayed products if limit prop is provided
+  const displayedProducts = limit && products.length > limit 
+    ? products.slice(0, limit) 
+    : products;
   
   return (
     <div className="w-full">
@@ -170,15 +185,42 @@ const ProductGrid: React.FC<ProductGridProps> = ({
             Try Again
           </Button>
         </div>
-      ) : products.length > 0 ? (
+      ) : displayedProducts.length > 0 ? (
         <div className="space-y-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((product) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {displayedProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
           
-          {hasMore && !externalProducts && (
+          {showViewAll && (
+            <div className="flex justify-center mt-8">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="min-w-[150px] bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-semibold px-8 py-6 flex items-center transition-all duration-300"
+                asChild
+              >
+                <Link to={viewAllLink} className="flex items-center">
+                  {viewAllLabel}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="w-5 h-5 ml-2"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </Link>
+              </Button>
+            </div>
+          )}
+          
+          {hasMore && !externalProducts && !limit && !showViewAll && (
             <div className="flex justify-center mt-8">
               <Button 
                 onClick={handleLoadMore}
