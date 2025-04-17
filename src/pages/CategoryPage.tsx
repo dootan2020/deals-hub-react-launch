@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -40,7 +39,6 @@ interface PaginationState {
 }
 
 const CategoryPage = () => {
-  // Get category slug from params - supports both /category/:categorySlug and /:parentCategorySlug/:categorySlug routes
   const { categorySlug, parentCategorySlug } = useParams<CategoryPageParams>();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -52,20 +50,18 @@ const CategoryPage = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
-    pageSize: 12, // Products per page
+    pageSize: 12,
     totalPages: 1,
     totalItems: 0
   });
-  
+
   useEffect(() => {
     const fetchCategory = async () => {
       setLoading(true);
       setError(null);
       
       try {
-        // If we have both parent and child slugs
         if (parentCategorySlug && categorySlug) {
-          // First verify parent exists
           const parentCategory = await fetchCategoryBySlug(parentCategorySlug);
           
           if (!parentCategory) {
@@ -74,7 +70,6 @@ const CategoryPage = () => {
             return;
           }
           
-          // Then check if child category exists and belongs to parent
           const childCategory = await fetchCategoryBySlug(categorySlug);
           
           if (!childCategory) {
@@ -84,20 +79,16 @@ const CategoryPage = () => {
           }
           
           if (childCategory.parent_id !== parentCategory.id) {
-            // Redirect to the correct URL pattern if necessary
             navigate(`/category/${categorySlug}`, { replace: true });
           }
           
-          // Set child category with parent info
           setCategory({
             ...childCategory,
             parent: parentCategory
           });
           
           await fetchProductsByCategory(childCategory.id);
-        } 
-        // If we only have category slug
-        else if (categorySlug) {
+        } else if (categorySlug) {
           const fetchedCategory = await fetchCategoryBySlug(categorySlug);
           
           if (!fetchedCategory) {
@@ -106,7 +97,6 @@ const CategoryPage = () => {
             return;
           }
           
-          // If this is a child category, we need to fetch the parent and redirect
           if (fetchedCategory.parent_id) {
             const { data: parentData } = await supabase
               .from('categories')
@@ -120,13 +110,11 @@ const CategoryPage = () => {
                 parent: parentData
               });
               
-              // Redirect to canonical URL with parent slug
               navigate(`/${parentData.slug}/${fetchedCategory.slug}`, { replace: true });
             } else {
               setCategory(fetchedCategory);
             }
           } else {
-            // Main category - no redirect needed
             setCategory(fetchedCategory);
           }
           
@@ -140,7 +128,7 @@ const CategoryPage = () => {
         toast({
           title: "Error",
           description: "There was a problem loading the category data. Please try again later.",
-          variant: "destructive",
+          variant: "destructive"
         });
       } finally {
         setLoading(false);
@@ -152,7 +140,6 @@ const CategoryPage = () => {
 
   const fetchProductsByCategory = async (categoryId: string) => {
     try {
-      // Get direct products in this category
       const { data: directProducts, error, count } = await supabase
         .from('products')
         .select('*', { count: 'exact' })
@@ -164,7 +151,6 @@ const CategoryPage = () => {
         
       if (error) throw error;
       
-      // Get subcategories to include their products as well
       const { data: subcategories } = await supabase
         .from('categories')
         .select('id')
@@ -173,11 +159,9 @@ const CategoryPage = () => {
       let allProducts = directProducts || [];
       let totalCount = count || 0;
       
-      // If there are subcategories, fetch their products too
       if (subcategories && subcategories.length > 0) {
         const subcategoryIds = subcategories.map(sc => sc.id);
         
-        // Get count of products in subcategories
         const { count: subCount } = await supabase
           .from('products')
           .select('*', { count: 'exact' })
@@ -185,7 +169,6 @@ const CategoryPage = () => {
           
         totalCount += subCount || 0;
         
-        // Fetch the actual products within pagination range
         const remainingItems = pagination.pageSize - allProducts.length;
         
         if (remainingItems > 0) {
@@ -228,8 +211,9 @@ const CategoryPage = () => {
     } catch (error) {
       console.error('Error fetching products:', error);
       toast({
-        variant: "destructive",
+        title: "Error",
         description: "There was a problem loading the products. Please try again later.",
+        variant: "destructive"
       });
     }
   };
@@ -259,7 +243,6 @@ const CategoryPage = () => {
     }
   };
 
-  // Generate proper URLs for categories
   const getCategoryUrl = (cat: CategoryWithParent) => {
     if (cat.parent) {
       return `/${cat.parent.slug}/${cat.slug}`;
@@ -303,7 +286,6 @@ const CategoryPage = () => {
     );
   }
   
-  // Build breadcrumb trail
   const buildBreadcrumbCategories = (currentCategory: CategoryWithParent | undefined): CategoryWithParent[] => {
     if (!currentCategory) return [];
     
@@ -460,7 +442,6 @@ const CategoryPage = () => {
                 
                 <ProductGrid products={products} />
                 
-                {/* Pagination */}
                 {pagination.totalPages > 1 && (
                   <div className="mt-8">
                     <Pagination>

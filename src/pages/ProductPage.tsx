@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -173,7 +174,7 @@ const ProductPage = () => {
         toast({
           title: "Error",
           description: "There was a problem loading the product. Please try again later.",
-          variant: "destructive",
+          variant: "destructive"
         });
       } finally {
         setLoading(false);

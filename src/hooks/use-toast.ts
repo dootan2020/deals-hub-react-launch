@@ -1,23 +1,33 @@
 
-import { toast as sonnerToast } from "sonner";
+import { toast as sonnerToast, type ToastT } from "sonner";
 
 type ToastProps = {
-  id: string | number;
+  id?: string | number;
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: React.ReactNode;
-  type?: "default" | "success" | "error" | "warning" | "info";
-  // Include any other properties that might be used
+  variant?: "default" | "destructive";
   duration?: number;
   className?: string;
-  variant?: "default" | "destructive"; // Add this for shadcn/ui compatibility
   [key: string]: any; // Allow other properties
 };
 
-export function toast(...args: Parameters<typeof sonnerToast>) {
-  return sonnerToast(...args);
+// Our custom toast function that adapts the shadcn/ui toast API to Sonner
+export function toast(props: ToastProps) {
+  const { title, description, variant, ...rest } = props;
+  
+  // Map destructive variant to error type
+  const type = variant === "destructive" ? "error" : "default";
+  
+  return sonnerToast(title as string, {
+    description,
+    ...rest,
+    // Only add type if it's not default to avoid unnecessary props
+    ...(type !== "default" ? { type } : {})
+  });
 }
 
+// Expose original Sonner methods
 toast.success = sonnerToast.success;
 toast.error = sonnerToast.error;
 toast.info = sonnerToast.info;
@@ -27,12 +37,11 @@ toast.dismiss = sonnerToast.dismiss;
 toast.custom = sonnerToast.custom;
 toast.promise = sonnerToast.promise;
 
-// Create a dummy array of toasts to satisfy the Toaster component
-const DUMMY_TOASTS: ToastProps[] = [];
-
+// Create a hook for compatibility with shadcn/ui toast pattern
 export const useToast = () => {
   return {
     toast,
-    toasts: DUMMY_TOASTS,
+    // For compatibility with shadcn/ui Toaster component
+    toasts: [] as ToastT[],
   };
 };
