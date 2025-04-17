@@ -26,24 +26,24 @@ export default {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: '#27AE60', // Darkened from #45C25A for better contrast
-					dark: '#219653', // Darkened from #27AE60
+					DEFAULT: '#1A936F', // Updated primary green
+					dark: '#15734D', // Updated darker primary
 					foreground: '#FFFFFF'
 				},
 				secondary: {
-					DEFAULT: '#27AE60',
+					DEFAULT: '#1A936F', // Updated to match primary
 					foreground: '#FFFFFF'
 				},
 				destructive: {
-					DEFAULT: 'hsl(var(--destructive))',
-					foreground: 'hsl(var(--destructive-foreground))'
+					DEFAULT: '#D7263D', // Updated to discount red
+					foreground: '#FFFFFF'
 				},
 				muted: {
 					DEFAULT: 'hsl(var(--muted))',
 					foreground: 'hsl(var(--muted-foreground))'
 				},
 				accent: {
-					DEFAULT: '#2980B9', // Darkened from #3498DB for better contrast
+					DEFAULT: '#3D5AFE', // Updated accent blue
 					foreground: '#FFFFFF'
 				},
 				popover: {
@@ -55,9 +55,9 @@ export default {
 					foreground: 'hsl(var(--card-foreground))'
 				},
 				text: {
-					DEFAULT: '#333333',
-					light: '#555555', // Darkened from #666666
-					muted: '#777777', // Darkened from #999999
+					DEFAULT: '#1E1E1E', // Main text color
+					light: '#4B5563', // Soft text color
+					muted: '#6B7280', // Muted text color
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
@@ -71,14 +71,15 @@ export default {
 				},
 				// Updated badge colors for better contrast
 				badge: {
-					hot: '#E67E22', // Darkened from #FF9F43
-					featured: '#27AE60', // Kept the same
-					bestseller: '#2E5BFF', // Kept the same
+					hot: '#EF4444', // Hot red
+					featured: '#1A936F', // Primary green
+					bestseller: '#F59E0B', // Bestseller orange
+					discount: '#D7263D', // Discount red
 				}
 			},
 			fontFamily: {
-				poppins: ['Poppins', 'sans-serif'],
-				inter: ['Inter', 'sans-serif'],
+				inter: ['Inter', 'Noto Sans', 'system-ui', 'sans-serif'],
+				sans: ['Inter', 'Noto Sans', 'system-ui', 'sans-serif'], // Making Inter the default sans font
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

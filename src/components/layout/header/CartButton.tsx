@@ -15,6 +15,7 @@ const CartButton = ({ cartItemsCount }: CartButtonProps) => {
     <button 
       onClick={handleAddToCart} 
       className="p-1 text-text-light hover:text-primary transition-colors relative"
+      aria-label={`Cart with ${cartItemsCount} items`}
     >
       <ShoppingCart className="h-6 w-6" />
       {cartItemsCount > 0 && (

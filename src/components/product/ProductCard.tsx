@@ -22,9 +22,9 @@ const ProductCard = ({ product }: ProductCardProps) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-md h-full flex flex-col card-hover">
+      <div className="bg-white rounded-lg shadow-sm border border-border overflow-hidden transition-all duration-300 hover:shadow-md h-full flex flex-col card-hover">
         {/* Product Image with hover effect - increased size by ~15-20% */}
-        <div className="relative h-60 bg-gray-50 overflow-hidden">
+        <div className="relative h-60 bg-[#F3F4F6] overflow-hidden">
           <img
             src={product.images[0]}
             alt={product.title}
@@ -34,7 +34,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           {/* Quick action buttons on hover */}
           <div className={`absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center gap-2 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
             <Link to={`/product/${product.slug}`}>
-              <Button size="sm" variant="secondary" className="rounded-full p-2 bg-white text-gray-800 hover:bg-gray-100">
+              <Button size="sm" variant="secondary" className="rounded-full p-2 bg-white text-text hover:bg-[#F3F4F6]">
                 <Eye className="h-4 w-4" />
                 <span className="sr-only">Quick view</span>
               </Button>
@@ -42,7 +42,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             <Button 
               size="sm" 
               variant="secondary" 
-              className="rounded-full p-2 bg-white text-gray-800 hover:bg-gray-100"
+              className="rounded-full p-2 bg-white text-text hover:bg-[#F3F4F6]"
               disabled={!product.inStock}
             >
               <ShoppingCart className="h-4 w-4" />
@@ -92,7 +92,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         {/* Product Info */}
         <div className="p-4 flex flex-col flex-grow">
           <Link to={`/product/${product.slug}`} className="group">
-            <h3 className="font-medium text-lg mb-1 transition-colors duration-200 group-hover:text-primary truncate text-gray-800">
+            <h3 className="font-medium text-lg mb-1 transition-colors duration-200 group-hover:text-primary truncate text-text">
               {product.title}
             </h3>
           </Link>
@@ -104,43 +104,43 @@ const ProductCard = ({ product }: ProductCardProps) => {
                   key={i} 
                   className={`h-4 w-4 ${
                     i < Math.floor(product.rating) 
-                      ? "text-yellow-500 fill-yellow-500" 
+                      ? "text-[#F59E0B] fill-[#F59E0B]" 
                       : "text-gray-400"
                   }`} 
                 />
               ))}
             </div>
-            <span className="text-xs text-gray-600">
+            <span className="text-xs text-text-light">
               ({product.reviewCount})
             </span>
           </div>
           
-          <p className="text-sm text-gray-600 mb-3 line-clamp-2 flex-grow">
+          <p className="text-sm text-text-light mb-3 line-clamp-2 flex-grow">
             {product.description}
           </p>
           
           <div className="mt-auto">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <span className="font-semibold text-lg text-gray-800">
+                <span className="font-semibold text-lg text-text">
                   {formatCurrency(product.price)}
                 </span>
                 {product.originalPrice && (
-                  <span className="text-gray-500 text-sm line-through ml-2">
+                  <span className="text-text-muted text-sm line-through ml-2">
                     {formatCurrency(product.originalPrice)}
                   </span>
                 )}
               </div>
               
               {!product.inStock && (
-                <span className="text-xs font-medium px-2 py-1 bg-gray-200 text-gray-700 rounded-full">
+                <span className="text-xs font-medium px-2 py-1 bg-gray-200 text-text-light rounded-full">
                   Out of Stock
                 </span>
               )}
             </div>
             
             <Button 
-              className="w-full group-hover:bg-primary-dark transition-colors"
+              className="w-full hover:bg-primary-dark transition-colors"
               disabled={!product.inStock}
             >
               <ShoppingCart className="h-4 w-4 mr-2" />

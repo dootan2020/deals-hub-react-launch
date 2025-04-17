@@ -40,7 +40,7 @@ const ProductQuickView: React.FC<ProductQuickViewProps> = ({ product }) => {
     <div className="flex flex-col md:flex-row gap-6">
       {/* Product Images */}
       <div className="md:w-1/2">
-        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+        <div className="bg-[#F3F4F6] rounded-lg p-4 mb-4">
           <img 
             src={product.images[selectedImage]} 
             alt={product.title} 
@@ -54,7 +54,7 @@ const ProductQuickView: React.FC<ProductQuickViewProps> = ({ product }) => {
               <button
                 key={index}
                 onClick={() => setSelectedImage(index)}
-                className={`border rounded-md p-2 ${selectedImage === index ? 'border-primary' : 'border-gray-200'}`}
+                className={`border rounded-md p-2 ${selectedImage === index ? 'border-primary' : 'border-border'}`}
               >
                 <img src={image} alt={`${product.title} thumbnail ${index + 1}`} className="w-full h-12 object-contain" />
               </button>
@@ -65,7 +65,7 @@ const ProductQuickView: React.FC<ProductQuickViewProps> = ({ product }) => {
       
       {/* Product Info */}
       <div className="md:w-1/2">
-        <h2 className="text-2xl font-semibold mb-2">{product.title}</h2>
+        <h2 className="text-2xl font-semibold mb-2 text-text">{product.title}</h2>
         
         <div className="flex items-center mb-4">
           <div className="flex mr-2">
@@ -74,13 +74,13 @@ const ProductQuickView: React.FC<ProductQuickViewProps> = ({ product }) => {
                 key={i} 
                 className={`h-4 w-4 ${
                   i < Math.floor(product.rating) 
-                    ? "text-yellow-400 fill-yellow-400" 
-                    : "text-gray-300"
+                    ? "text-[#F59E0B] fill-[#F59E0B]" 
+                    : "text-gray-400"
                 }`} 
               />
             ))}
           </div>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-text-light">
             ({product.reviewCount} reviews)
           </span>
         </div>
@@ -90,25 +90,25 @@ const ProductQuickView: React.FC<ProductQuickViewProps> = ({ product }) => {
             {formatCurrency(product.price)}
           </span>
           {product.originalPrice && (
-            <span className="text-gray-400 text-lg line-through">
+            <span className="text-text-muted text-lg line-through">
               {formatCurrency(product.originalPrice)}
             </span>
           )}
           {product.originalPrice && (
-            <span className="ml-2 inline-block bg-red-100 text-red-800 text-sm px-2 py-0.5 rounded-md">
+            <span className="ml-2 inline-block bg-red-100 text-destructive text-sm px-2 py-0.5 rounded-md">
               {calculateDiscountPercentage(product.originalPrice, product.price)}% OFF
             </span>
           )}
         </div>
         
-        <p className="text-gray-600 mb-4">
+        <p className="text-text-light mb-4">
           {product.description}
         </p>
         
         {product.features && product.features.length > 0 && (
           <div className="mb-4">
-            <h3 className="font-medium mb-2">Key Features:</h3>
-            <ul className="space-y-1 text-gray-600">
+            <h3 className="font-medium mb-2 text-text">Key Features:</h3>
+            <ul className="space-y-1 text-text-light">
               {product.features.slice(0, 4).map((feature, index) => (
                 <li key={index} className="flex items-start">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 mr-2"></span>
@@ -120,25 +120,25 @@ const ProductQuickView: React.FC<ProductQuickViewProps> = ({ product }) => {
         )}
         
         <div className="flex items-center mb-6">
-          <span className="text-sm font-medium mr-4">Quantity:</span>
-          <div className="flex items-center border rounded-md">
+          <span className="text-sm font-medium mr-4 text-text">Quantity:</span>
+          <div className="flex items-center border rounded-md border-border">
             <button 
-              className="px-3 py-1 border-r"
+              className="px-3 py-1 border-r border-border text-text-light hover:bg-[#F3F4F6] transition-colors"
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
               disabled={quantity <= 1}
             >
               -
             </button>
-            <span className="px-4 py-1">{quantity}</span>
+            <span className="px-4 py-1 text-text">{quantity}</span>
             <button 
-              className="px-3 py-1 border-l"
+              className="px-3 py-1 border-l border-border text-text-light hover:bg-[#F3F4F6] transition-colors"
               onClick={() => setQuantity(Math.min(99, quantity + 1))}
             >
               +
             </button>
           </div>
           
-          <span className={`ml-4 text-sm ${product.inStock ? 'text-green-600' : 'text-red-600'}`}>
+          <span className={`ml-4 text-sm ${product.inStock ? 'text-primary' : 'text-destructive'}`}>
             {product.inStock ? 'In Stock' : 'Out of Stock'}
           </span>
         </div>
@@ -157,10 +157,10 @@ const ProductQuickView: React.FC<ProductQuickViewProps> = ({ product }) => {
           <Button
             variant="outline"
             size="lg"
-            className={`flex-1 ${isWishlisted ? 'text-red-500 border-red-500' : ''}`}
+            className={`flex-1 border-border ${isWishlisted ? 'text-destructive border-destructive' : 'text-text-light'}`}
             onClick={handleToggleWishlist}
           >
-            <Heart className={`h-4 w-4 mr-2 ${isWishlisted ? 'fill-red-500' : ''}`} />
+            <Heart className={`h-4 w-4 mr-2 ${isWishlisted ? 'fill-destructive' : ''}`} />
             {isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
           </Button>
         </div>
@@ -168,7 +168,7 @@ const ProductQuickView: React.FC<ProductQuickViewProps> = ({ product }) => {
         <div className="mt-6">
           <Link 
             to={`/product/${product.slug}`}
-            className="text-primary hover:underline text-sm"
+            className="text-accent hover:underline text-sm"
           >
             View full product details &rarr;
           </Link>
