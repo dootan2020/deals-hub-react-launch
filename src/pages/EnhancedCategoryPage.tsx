@@ -38,12 +38,12 @@ interface ProductData {
   rating?: number;
   review_count?: number;
   in_stock?: boolean;
-  badges?: string[];
+  badges?: string[] | null;
   slug: string;
-  features?: string[];
-  specifications?: Record<string, string | number | boolean | object>;
+  features?: string[] | null;
+  specifications?: any;
   created_at?: string;
-  sales_count?: number;
+  sales_count?: number | null;
   external_id?: string;
   api_name?: string;
   api_price?: number;
@@ -218,7 +218,7 @@ const EnhancedCategoryPage = () => {
         badges: Array.isArray(item.badges) ? item.badges : [],
         slug: item.slug,
         features: Array.isArray(item.features) ? item.features : [],
-        specifications: item.specifications as Record<string, string | number | boolean | object> || {},
+        specifications: (typeof item.specifications === 'object' && item.specifications !== null) ? item.specifications : {},
         salesCount: Number(item.sales_count) || 0,
         createdAt: item.created_at
       }));
@@ -266,7 +266,7 @@ const EnhancedCategoryPage = () => {
           badges: Array.isArray(item.badges) ? item.badges : [],
           slug: item.slug,
           features: Array.isArray(item.features) ? item.features : [],
-          specifications: item.specifications as Record<string, string | number | boolean | object> || {},
+          specifications: (typeof item.specifications === 'object' && item.specifications !== null) ? item.specifications : {},
           salesCount: Number(item.sales_count) || 0,
           createdAt: item.created_at
         }));
@@ -287,7 +287,7 @@ const EnhancedCategoryPage = () => {
           badges: Array.isArray(item.badges) ? item.badges : [],
           slug: item.slug,
           features: Array.isArray(item.features) ? item.features : [],
-          specifications: item.specifications as Record<string, string | number | boolean | object> || {},
+          specifications: (typeof item.specifications === 'object' && item.specifications !== null) ? item.specifications : {},
           salesCount: Number(item.sales_count) || 0,
           createdAt: item.created_at
         }));
