@@ -18,6 +18,7 @@ import OrdersAdmin from "./pages/admin/OrdersAdmin";
 import ApiConfigAdmin from "./pages/admin/ApiConfigAdmin";
 import SyncLogsAdmin from "./pages/admin/SyncLogsAdmin";
 import ApiTesterPage from './pages/admin/ApiTesterPage';
+import ProductManagerPage from './pages/admin/ProductManagerPage';
 
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
@@ -50,6 +51,7 @@ const App = () => {
             <Route path="/admin/api-config" element={<ApiConfigAdmin />} />
             <Route path="/admin/sync-logs" element={<SyncLogsAdmin />} />
             <Route path="/admin/api-tester" element={<ApiTesterPage />} />
+            <Route path="/admin/product-manager" element={<ProductManagerPage />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -7,7 +7,8 @@ import {
   Settings, 
   BarChart3,
   FolderTree,
-  Globe
+  Globe,
+  Package
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -43,6 +44,15 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
               >
                 <FolderTree className="w-5 h-5 mr-2" />
                 Categories
+              </Link>
+            </li>
+            <li>
+              <Link 
+                to="/admin/product-manager" 
+                className="flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100"
+              >
+                <Package className="w-5 h-5 mr-2" />
+                Product Manager
               </Link>
             </li>
             <li>
