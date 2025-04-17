@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
-import { Product, Category } from '@/types';
+import { Product, Category, CategoryPageParams } from '@/types';
 import { Filter, ChevronDown, ChevronUp, SlidersHorizontal, Loader2 } from 'lucide-react';
 import { 
   Breadcrumb, 
@@ -25,14 +25,11 @@ import {
 } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
 import { fetchCategoryBySlug } from '@/services/categoryService';
+import { Helmet } from 'react-helmet';
+import React from 'react';
 
 interface CategoryWithParent extends Category {
   parent?: CategoryWithParent;
-}
-
-interface CategoryPageParams {
-  categorySlug?: string;
-  parentCategorySlug?: string;
 }
 
 interface PaginationState {
@@ -141,9 +138,8 @@ const CategoryPage = () => {
         console.error('Error fetching category:', err);
         setError('Failed to load category');
         toast({
-          title: "Error loading category",
-          description: "There was a problem loading the category data. Please try again later.",
           variant: "destructive",
+          description: "There was a problem loading the category data. Please try again later.",
         });
       } finally {
         setLoading(false);
@@ -151,7 +147,7 @@ const CategoryPage = () => {
     };
     
     fetchCategory();
-  }, [categorySlug, parentCategorySlug, navigate]);
+  }, [categorySlug, parentCategorySlug, navigate, toast]);
 
   const fetchProductsByCategory = async (categoryId: string) => {
     try {
@@ -224,16 +220,15 @@ const CategoryPage = () => {
         badges: item.badges || [],
         slug: item.slug,
         features: item.features || [],
-        specifications: item.specifications ? convertSpecifications(item.specifications) : {}
+        specifications: convertSpecifications(item.specifications) || {}
       }));
       
       setProducts(mappedProducts);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast({
-        title: "Error loading products",
-        description: "There was a problem loading the products. Please try again later.",
         variant: "destructive",
+        description: "There was a problem loading the products. Please try again later.",
       });
     }
   };
@@ -326,6 +321,11 @@ const CategoryPage = () => {
 
   return (
     <Layout>
+      <Helmet>
+        <title>{category.name} - Digital Deals Hub</title>
+        <meta name="description" content={category.description} />
+      </Helmet>
+
       <div className="bg-white border-b">
         <div className="container-custom py-3">
           <Breadcrumb>

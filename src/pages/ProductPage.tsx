@@ -7,7 +7,7 @@ import { Star, ShoppingCart, ArrowLeft, Heart, Share2, Shield, Box, RefreshCw, L
 import { formatCurrency, calculateDiscountPercentage } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import ProductGrid from '@/components/product/ProductGrid';
-import { Product, Category } from '@/types';
+import { Product, Category, ProductPageParams } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
@@ -22,12 +22,6 @@ import {
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Helmet } from 'react-helmet';
 import { useToast } from '@/hooks/use-toast';
-
-interface ProductPageParams {
-  productSlug?: string;
-  categorySlug?: string;
-  parentCategorySlug?: string;
-}
 
 interface CategoryWithParent extends Category {
   parent?: CategoryWithParent | null;
@@ -113,6 +107,15 @@ const ProductPage = () => {
             navigate(`/category/${productCategory.slug}/${productSlug}`, { replace: true });
           }
           
+          // Convert specifications to Record<string, string> format
+          const specifications: Record<string, string> = {};
+          
+          if (productData.specifications && typeof productData.specifications === 'object') {
+            Object.entries(productData.specifications).forEach(([key, value]) => {
+              specifications[key] = String(value);
+            });
+          }
+          
           const mappedProduct: ProductWithCategory = {
             id: productData.id,
             title: productData.title,
@@ -127,7 +130,7 @@ const ProductPage = () => {
             badges: productData.badges || [],
             slug: productData.slug,
             features: productData.features || [],
-            specifications: productData.specifications || {},
+            specifications,
             category: productCategory
           };
           
@@ -137,6 +140,15 @@ const ProductPage = () => {
           await fetchRelatedProducts(categoryId);
         } else {
           // Product without category
+          // Convert specifications to Record<string, string> format
+          const specifications: Record<string, string> = {};
+          
+          if (productData.specifications && typeof productData.specifications === 'object') {
+            Object.entries(productData.specifications).forEach(([key, value]) => {
+              specifications[key] = String(value);
+            });
+          }
+          
           const mappedProduct: ProductWithCategory = {
             id: productData.id,
             title: productData.title,
@@ -151,7 +163,7 @@ const ProductPage = () => {
             badges: productData.badges || [],
             slug: productData.slug,
             features: productData.features || [],
-            specifications: productData.specifications || {}
+            specifications
           };
           
           setProduct(mappedProduct);
@@ -160,9 +172,8 @@ const ProductPage = () => {
         console.error('Error fetching product details:', err);
         setError('Failed to load product information');
         toast({
-          title: "Error loading product",
-          description: "There was a problem loading the product. Please try again later.",
           variant: "destructive",
+          description: "There was a problem loading the product. Please try again later.",
         });
       } finally {
         setLoading(false);
@@ -170,7 +181,7 @@ const ProductPage = () => {
     };
     
     fetchProductData();
-  }, [productSlug, categorySlug, parentCategorySlug, navigate]);
+  }, [productSlug, categorySlug, parentCategorySlug, navigate, toast]);
 
   const fetchRelatedProducts = async (categoryId: string) => {
     try {
@@ -184,22 +195,33 @@ const ProductPage = () => {
       if (error) throw error;
       
       if (data) {
-        const mappedProducts: Product[] = data.map(item => ({
-          id: item.id,
-          title: item.title,
-          description: item.description,
-          price: Number(item.price),
-          originalPrice: item.original_price ? Number(item.original_price) : undefined,
-          images: item.images || [],
-          categoryId: item.category_id,
-          rating: item.rating || 0,
-          reviewCount: item.review_count || 0,
-          inStock: item.in_stock === true,
-          badges: item.badges || [],
-          slug: item.slug,
-          features: item.features || [],
-          specifications: item.specifications || {}
-        }));
+        const mappedProducts: Product[] = data.map(item => {
+          // Convert specifications to Record<string, string> format
+          const specifications: Record<string, string> = {};
+          
+          if (item.specifications && typeof item.specifications === 'object') {
+            Object.entries(item.specifications).forEach(([key, value]) => {
+              specifications[key] = String(value);
+            });
+          }
+          
+          return {
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            price: Number(item.price),
+            originalPrice: item.original_price ? Number(item.original_price) : undefined,
+            images: item.images || [],
+            categoryId: item.category_id,
+            rating: item.rating || 0,
+            reviewCount: item.review_count || 0,
+            inStock: item.in_stock === true,
+            badges: item.badges || [],
+            slug: item.slug,
+            features: item.features || [],
+            specifications
+          };
+        });
         
         setRelatedProducts(mappedProducts);
       }
@@ -217,7 +239,6 @@ const ProductPage = () => {
   
   const handleAddToCart = () => {
     toast({
-      title: "Added to cart",
       description: `${product?.title} (${quantity} items) has been added to your cart.`
     });
     // In a real app, this would dispatch an action to add to cart

@@ -49,9 +49,8 @@ export const CategoriesProvider = ({ children }: CategoriesProviderProps) => {
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch categories'));
       toast({
-        title: "Error loading menu categories",
+        variant: "destructive",
         description: "There was a problem loading the menu structure. Please try refreshing the page.",
-        variant: "destructive"
       });
     } finally {
       setIsLoading(false);

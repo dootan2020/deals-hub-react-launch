@@ -69,3 +69,15 @@ export interface OrderDetails {
   date: string;
   status: 'processing' | 'completed' | 'shipped' | 'cancelled';
 }
+
+// Define proper route parameter interfaces with index signatures
+export interface CategoryPageParams extends Record<string, string | undefined> {
+  categorySlug?: string;
+  parentCategorySlug?: string;
+}
+
+export interface ProductPageParams extends Record<string, string | undefined> {
+  productSlug?: string;
+  categorySlug?: string;
+  parentCategorySlug?: string;
+}
