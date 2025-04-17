@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
@@ -22,6 +21,7 @@ interface ProductData {
   rating?: number;
   review_count?: number;
   in_stock?: boolean;
+  stock_quantity?: number;
   badges?: string[] | null;
   slug: string;
   features?: string[] | null;
@@ -192,12 +192,13 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: UseCategor
         rating: Number(item.rating) || 0,
         reviewCount: item.review_count || 0,
         inStock: item.in_stock === true,
+        stockQuantity: item.stock_quantity ?? (item.in_stock === true ? 10 : 0),
         badges: Array.isArray(item.badges) ? item.badges : [],
         slug: item.slug,
         features: Array.isArray(item.features) ? item.features : [],
         specifications: (typeof item.specifications === 'object' && item.specifications !== null) ? item.specifications : {},
         salesCount: Number(item.sales_count) || 0,
-        createdAt: item.created_at
+        createdAt: item.created_at || new Date().toISOString()
       }));
       
       setProducts(mappedProducts);
@@ -240,12 +241,13 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: UseCategor
           rating: Number(item.rating) || 0,
           reviewCount: item.review_count || 0,
           inStock: item.in_stock === true,
+          stockQuantity: item.stock_quantity ?? (item.in_stock === true ? 10 : 0),
           badges: Array.isArray(item.badges) ? item.badges : [],
           slug: item.slug,
           features: Array.isArray(item.features) ? item.features : [],
           specifications: (typeof item.specifications === 'object' && item.specifications !== null) ? item.specifications : {},
           salesCount: Number(item.sales_count) || 0,
-          createdAt: item.created_at
+          createdAt: item.created_at || new Date().toISOString()
         }));
         
         setFeaturedProducts(mappedProducts);
@@ -261,12 +263,13 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: UseCategor
           rating: Number(item.rating) || 0,
           reviewCount: item.review_count || 0,
           inStock: item.in_stock === true,
+          stockQuantity: item.stock_quantity ?? (item.in_stock === true ? 10 : 0),
           badges: Array.isArray(item.badges) ? item.badges : [],
           slug: item.slug,
           features: Array.isArray(item.features) ? item.features : [],
           specifications: (typeof item.specifications === 'object' && item.specifications !== null) ? item.specifications : {},
           salesCount: Number(item.sales_count) || 0,
-          createdAt: item.created_at
+          createdAt: item.created_at || new Date().toISOString()
         }));
         
         setFeaturedProducts(mappedProducts);

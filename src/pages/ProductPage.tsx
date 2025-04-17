@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -8,20 +7,6 @@ import { formatCurrency, calculateDiscountPercentage } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import ProductGrid from '@/components/product/ProductGrid';
 import { Product, Category, ProductPageParams } from '@/types';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbList, 
-  BreadcrumbPage, 
-  BreadcrumbSeparator 
-} from '@/components/ui/breadcrumb';
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Helmet } from 'react-helmet';
-import { useToast } from '@/hooks/use-toast';
 
 interface CategoryWithParent extends Category {
   parent?: CategoryWithParent | null;
@@ -43,13 +28,11 @@ const ProductPage = () => {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
   
-  // Get short description from full description
   const getShortDescription = (description: string): string => {
     if (!description) return '';
     const maxLength = 200;
     if (description.length <= maxLength) return description;
     
-    // Try to find a natural break point (period, question mark, exclamation)
     const breakPoints = ['. ', '? ', '! '];
     for (const point of breakPoints) {
       const endPos = description.substring(0, maxLength).lastIndexOf(point);
@@ -58,7 +41,6 @@ const ProductPage = () => {
       }
     }
     
-    // If no good break point, just cut at maxLength and add ellipsis
     return description.substring(0, maxLength) + '...';
   };
   
@@ -70,7 +52,6 @@ const ProductPage = () => {
       setError(null);
       
       try {
-        // Fetch product by slug
         const { data: productData, error: productError } = await supabase
           .from('products')
           .select('*, categories:category_id(*)')
@@ -85,11 +66,9 @@ const ProductPage = () => {
           return;
         }
         
-        // Get the product's category
         const categoryId = productData.category_id;
         
         if (categoryId) {
-          // Fetch the category data including parent if exists
           const { data: categoryData } = await supabase
             .from('categories')
             .select('*')
@@ -101,7 +80,6 @@ const ProductPage = () => {
           if (categoryData) {
             productCategory = { ...categoryData };
             
-            // If category has parent, fetch parent data
             if (categoryData.parent_id) {
               const { data: parentData } = await supabase
                 .from('categories')
@@ -115,18 +93,13 @@ const ProductPage = () => {
             }
           }
 
-          // Check if URL should be redirected to canonical form
           if (categorySlug && parentCategorySlug) {
-            // We already have the correct URL structure, no need to redirect
           } else if (productCategory && productCategory.parent) {
-            // Redirect to canonical URL with parent and category slugs
             navigate(`/${productCategory.parent.slug}/${productCategory.slug}/${productSlug}`, { replace: true });
           } else if (productCategory && !parentCategorySlug) {
-            // Redirect to canonical URL with just category slug
             navigate(`/category/${productCategory.slug}/${productSlug}`, { replace: true });
           }
           
-          // Convert specifications to Record<string, string> format
           const specifications: Record<string, string> = {};
           
           if (productData.specifications && typeof productData.specifications === 'object') {
@@ -147,21 +120,20 @@ const ProductPage = () => {
             rating: productData.rating || 0,
             reviewCount: productData.review_count || 0,
             inStock: productData.in_stock === true,
-            stockQuantity: productData.stock_quantity || 0,
+            stockQuantity: productData.stock_quantity ?? (productData.in_stock === true ? 10 : 0),
             badges: productData.badges || [],
             slug: productData.slug,
             features: productData.features || [],
             specifications,
-            category: productCategory
+            category: productCategory,
+            salesCount: Number(productData.sales_count) || 0,
+            createdAt: productData.created_at || new Date().toISOString()
           };
           
           setProduct(mappedProduct);
           
-          // Fetch related products
           await fetchRelatedProducts(categoryId);
         } else {
-          // Product without category
-          // Convert specifications to Record<string, string> format
           const specifications: Record<string, string> = {};
           
           if (productData.specifications && typeof productData.specifications === 'object') {
@@ -182,11 +154,13 @@ const ProductPage = () => {
             rating: productData.rating || 0,
             reviewCount: productData.review_count || 0,
             inStock: productData.in_stock === true,
-            stockQuantity: productData.stock_quantity || 0,
+            stockQuantity: productData.stock_quantity ?? (productData.in_stock === true ? 10 : 0),
             badges: productData.badges || [],
             slug: productData.slug,
             features: productData.features || [],
-            specifications
+            specifications,
+            salesCount: Number(productData.sales_count) || 0,
+            createdAt: productData.created_at || new Date().toISOString()
           };
           
           setProduct(mappedProduct);
@@ -220,7 +194,6 @@ const ProductPage = () => {
       
       if (data) {
         const mappedProducts: Product[] = data.map(item => {
-          // Convert specifications to Record<string, string> format
           const specifications: Record<string, string> = {};
           
           if (item.specifications && typeof item.specifications === 'object') {
@@ -240,10 +213,13 @@ const ProductPage = () => {
             rating: item.rating || 0,
             reviewCount: item.review_count || 0,
             inStock: item.in_stock === true,
+            stockQuantity: item.stock_quantity ?? (item.in_stock === true ? 10 : 0),
             badges: item.badges || [],
             slug: item.slug,
             features: item.features || [],
-            specifications
+            specifications,
+            salesCount: Number(item.sales_count) || 0,
+            createdAt: item.created_at || new Date().toISOString()
           };
         });
         
@@ -266,7 +242,6 @@ const ProductPage = () => {
       title: "Added to cart",
       description: `${product?.title} (${quantity} items) has been added to your cart.`
     });
-    // In a real app, this would dispatch an action to add to cart
   };
 
   const getCanonicalUrl = () => {
@@ -329,13 +304,11 @@ const ProductPage = () => {
     
   return (
     <Layout>
-      {/* SEO Meta Tags */}
       <Helmet>
         <title>{product.title} | Digital Deals Hub</title>
         <meta name="description" content={product.shortDescription ? product.shortDescription : product.description.substring(0, 160)} />
         <link rel="canonical" href={`https://digitaldeals.hub${getCanonicalUrl()}`} />
         
-        {/* Open Graph / Facebook */}
         <meta property="og:type" content="product" />
         <meta property="og:title" content={product.title} />
         <meta property="og:description" content={product.shortDescription ? product.shortDescription : product.description.substring(0, 160)} />
@@ -344,14 +317,12 @@ const ProductPage = () => {
         <meta property="product:price:amount" content={product.price.toString()} />
         <meta property="product:price:currency" content="USD" />
         
-        {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={product.title} />
         <meta name="twitter:description" content={product.shortDescription ? product.shortDescription : product.description.substring(0, 160)} />
         <meta name="twitter:image" content={ogImageUrl} />
       </Helmet>
       
-      {/* Breadcrumb */}
       <div className="bg-[#F3F4F6] py-4">
         <div className="container-custom">
           <Breadcrumb>
@@ -397,11 +368,9 @@ const ProductPage = () => {
         </div>
       </div>
       
-      {/* Product Details Section */}
       <section className="py-12">
         <div className="container-custom">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Product Images */}
             <div className="space-y-4">
               <div className="bg-[#F3F4F6] rounded-lg p-8 h-[400px] flex items-center justify-center">
                 <img 
@@ -434,10 +403,8 @@ const ProductPage = () => {
               )}
             </div>
             
-            {/* Product Info */}
             <div className="space-y-6">
               <div>
-                {/* Badges */}
                 {product.badges && product.badges.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
                     {product.badges.map((badge: string, index: number) => {
@@ -520,7 +487,6 @@ const ProductPage = () => {
                   )}
                 </div>
                 
-                {/* Quantity and Add to Cart */}
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="flex items-center border border-[#E5E7EB] rounded-md w-36">
                     <button 
@@ -601,7 +567,6 @@ const ProductPage = () => {
         </div>
       </section>
       
-      {/* Product Details Tabs */}
       <section className="py-8 bg-[#F3F4F6]">
         <div className="container-custom">
           <Tabs defaultValue="description">
@@ -735,7 +700,6 @@ const ProductPage = () => {
         </div>
       </section>
       
-      {/* Related Products */}
       {relatedProducts.length > 0 && (
         <section className="py-16">
           <div className="container-custom">

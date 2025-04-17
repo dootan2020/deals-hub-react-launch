@@ -201,10 +201,13 @@ const CategoryPage = () => {
         rating: item.rating || 0,
         reviewCount: item.review_count || 0,
         inStock: item.in_stock === true,
+        stockQuantity: item.stock_quantity ?? (item.in_stock === true ? 10 : 0),
         badges: item.badges || [],
         slug: item.slug,
         features: item.features || [],
-        specifications: convertSpecifications(item.specifications) || {}
+        specifications: convertSpecifications(item.specifications) || {},
+        salesCount: item.sales_count || 0,
+        createdAt: item.created_at || new Date().toISOString()
       }));
       
       setProducts(mappedProducts);
