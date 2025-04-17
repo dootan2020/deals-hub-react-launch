@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, User, Menu, X, Globe, ChevronDown } from 'lucide-react';
@@ -28,15 +29,6 @@ const Header = () => {
     { name: "Corporate Emails", path: "/category/corporate-email" }
   ];
 
-  // Gaming account subcategories
-  const gamingCategories = [
-    { name: "Steam Accounts", path: "/category/steam" },
-    { name: "Epic Games", path: "/category/epic-games" },
-    { name: "Origin Accounts", path: "/category/origin" },
-    { name: "PlayStation Accounts", path: "/category/playstation" },
-    { name: "Xbox Accounts", path: "/category/xbox" }
-  ];
-
   // Software key subcategories
   const softwareCategories = [
     { name: "Windows Keys", path: "/category/windows" },
@@ -53,8 +45,8 @@ const Header = () => {
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <div className="container-custom py-4">
         <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center">
+          {/* Logo - Now main navigation to home */}
+          <Link to="/" className="flex items-center" aria-label="Home">
             <h1 className="text-2xl font-bold text-primary">
               Digital<span className="text-accent">Deals</span>Hub
             </h1>
@@ -64,11 +56,7 @@ const Header = () => {
           <div className="hidden md:block">
             <NavigationMenu>
               <NavigationMenuList>
-                <NavigationMenuItem>
-                  <Link to="/" className="text-text hover:text-primary transition-colors duration-200 px-3 py-2">
-                    Home
-                  </Link>
-                </NavigationMenuItem>
+                {/* Home link removed - Logo now serves as home link */}
 
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className="bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent">
@@ -92,27 +80,7 @@ const Header = () => {
                   </NavigationMenuContent>
                 </NavigationMenuItem>
 
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className="bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent">
-                    Gaming Accounts
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                      {gamingCategories.map((category) => (
-                        <li key={category.path}>
-                          <NavigationMenuLink asChild>
-                            <Link
-                              to={category.path}
-                              className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                            >
-                              <div className="text-sm font-medium leading-none">{category.name}</div>
-                            </Link>
-                          </NavigationMenuLink>
-                        </li>
-                      ))}
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
+                {/* Gaming Accounts menu removed */}
 
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className="bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent">
@@ -219,13 +187,7 @@ const Header = () => {
               </div>
               
               <nav className="flex flex-col space-y-4">
-                <Link 
-                  to="/" 
-                  className="text-text hover:text-primary transition-colors duration-200"
-                  onClick={toggleMobileMenu}
-                >
-                  Home
-                </Link>
+                {/* Home link removed from mobile menu */}
 
                 {/* Email Accounts Dropdown */}
                 <div className="space-y-2">
@@ -247,25 +209,7 @@ const Header = () => {
                   </div>
                 </div>
 
-                {/* Gaming Accounts Dropdown */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200">
-                    <span>Gaming Accounts</span>
-                    <ChevronDown className="h-4 w-4" />
-                  </div>
-                  <div className="pl-4 space-y-2">
-                    {gamingCategories.map((category) => (
-                      <Link 
-                        key={category.path}
-                        to={category.path} 
-                        className="block text-text-light hover:text-primary transition-colors duration-200"
-                        onClick={toggleMobileMenu}
-                      >
-                        {category.name}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
+                {/* Gaming Accounts Dropdown removed from mobile menu */}
 
                 {/* Software Keys Dropdown */}
                 <div className="space-y-2">
