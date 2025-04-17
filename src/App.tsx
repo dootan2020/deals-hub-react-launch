@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -52,8 +51,8 @@ const App = () => {
               <Route path="/" element={<Index />} />
               
               {/* SEO-friendly category routes */}
-              <Route path="/category/:categorySlug" element={<EnhancedCategoryPage />} />
-              <Route path="/category/:parentCategorySlug/:categorySlug" element={<EnhancedCategoryPage />} />
+              <Route path="/category/:categorySlug" element={<CategoryPage />} />
+              <Route path="/category/:parentCategorySlug/:categorySlug" element={<CategoryPage />} />
               <Route path="/product/:productSlug" element={<ProductPage />} />
               <Route path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />
               <Route path="/products" element={<EnhancedProductsPage />} />
