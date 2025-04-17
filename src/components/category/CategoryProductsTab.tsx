@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Product } from '@/types';
 import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
+import ViewToggle from '@/components/category/ViewToggle';
 import EnhancedProductGrid from '@/components/product/EnhancedProductGrid';
 
 interface CategoryProductsTabProps {
@@ -17,12 +18,24 @@ const CategoryProductsTab: React.FC<CategoryProductsTabProps> = ({
   activeSort,
   handleSortChange
 }) => {
+  const [currentView, setCurrentView] = useState<'grid' | 'list'>('grid');
+
+  const handleViewChange = (view: 'grid' | 'list') => {
+    setCurrentView(view);
+  };
+
   return (
     <>
-      <SimplifiedCategoryFilters 
-        onSortChange={handleSortChange}
-        activeSort={activeSort || 'recommended'}
-      />
+      <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
+        <SimplifiedCategoryFilters 
+          onSortChange={handleSortChange}
+          activeSort={activeSort || 'recommended'}
+        />
+        <ViewToggle
+          currentView={currentView}
+          onViewChange={handleViewChange}
+        />
+      </div>
       
       <div className="mb-4">
         <p className="text-gray-600">
@@ -34,6 +47,7 @@ const CategoryProductsTab: React.FC<CategoryProductsTabProps> = ({
         products={products}
         showSort={false}
         paginationType="pagination"
+        viewMode={currentView}
       />
     </>
   );

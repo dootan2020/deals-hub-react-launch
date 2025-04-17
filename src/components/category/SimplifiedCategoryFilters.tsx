@@ -8,32 +8,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import ViewToggle from '@/components/category/ViewToggle';
 
 interface SimplifiedCategoryFiltersProps {
   onSortChange: (sort: string) => void;
   activeSort: string;
-  onViewChange?: (view: 'grid' | 'list') => void;
-  currentView?: 'grid' | 'list';
 }
 
 const SimplifiedCategoryFilters: React.FC<SimplifiedCategoryFiltersProps> = ({
   onSortChange,
   activeSort,
-  onViewChange,
-  currentView
 }) => {
   return (
-    <div className="flex items-center gap-4 mb-4">
-      {/* View toggle */}
-      {onViewChange && currentView !== undefined && (
-        <ViewToggle 
-          currentView={currentView} 
-          onViewChange={onViewChange} 
-        />
-      )}
-      
-      {/* Sort dropdown */}
+    <div>
       <Select value={activeSort} onValueChange={onSortChange}>
         <SelectTrigger className="w-[180px] md:w-[220px] focus:ring-primary">
           <SelectValue placeholder="Sort By" />

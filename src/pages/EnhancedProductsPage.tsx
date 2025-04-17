@@ -5,6 +5,7 @@ import { Helmet } from 'react-helmet';
 import Layout from '@/components/layout/Layout';
 import EnhancedProductGrid from '@/components/product/EnhancedProductGrid';
 import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
+import ViewToggle from '@/components/category/ViewToggle';
 import { FilterParams, Product } from '@/types';
 import { fetchProductsWithFilters } from '@/services/product';
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +25,7 @@ const EnhancedProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentView, setCurrentView] = useState<'grid' | 'list'>('grid');
   
   // Active filters from URL search params or defaults
   const [activeFilters, setActiveFilters] = useState<FilterParams>({
@@ -75,6 +77,10 @@ const EnhancedProductsPage = () => {
     setActiveFilters(prev => ({ ...prev, sort }));
   };
 
+  const handleViewChange = (view: 'grid' | 'list') => {
+    setCurrentView(view);
+  };
+
   return (
     <Layout>
       <Helmet>
@@ -114,16 +120,23 @@ const EnhancedProductsPage = () => {
       </div>
       
       <div className="container-custom py-12">
-        <SimplifiedCategoryFilters
-          onSortChange={handleSortChange}
-          activeSort={activeFilters.sort || 'recommended'}
-        />
+        <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
+          <SimplifiedCategoryFilters
+            onSortChange={handleSortChange}
+            activeSort={activeFilters.sort || 'recommended'}
+          />
+          <ViewToggle
+            currentView={currentView}
+            onViewChange={handleViewChange}
+          />
+        </div>
         
         <EnhancedProductGrid 
           products={products}
           isLoading={loading}
           showSort={false}
           paginationType="pagination"
+          viewMode={currentView}
         />
       </div>
     </Layout>

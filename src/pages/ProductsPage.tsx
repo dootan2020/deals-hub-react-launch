@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
 import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
+import ViewToggle from '@/components/category/ViewToggle';
 
 const ProductsPage = () => {
   const [searchParams] = useSearchParams();
@@ -37,12 +38,16 @@ const ProductsPage = () => {
           <div className="bg-white p-8 rounded-lg border border-gray-100 shadow-sm">
             <h1 className="text-3xl font-bold mb-8">All Products</h1>
             
-            <SimplifiedCategoryFilters
-              onSortChange={handleSortChange}
-              activeSort={activeSort}
-              onViewChange={handleViewChange}
-              currentView={currentView}
-            />
+            <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
+              <SimplifiedCategoryFilters
+                onSortChange={handleSortChange}
+                activeSort={activeSort}
+              />
+              <ViewToggle 
+                currentView={currentView} 
+                onViewChange={handleViewChange} 
+              />
+            </div>
             
             <ProductGrid 
               showSort={false}

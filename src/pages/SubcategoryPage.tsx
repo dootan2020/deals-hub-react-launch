@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -6,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
 import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
+import ViewToggle from '@/components/category/ViewToggle';
 import { Button } from '@/components/ui/button';
 import { 
   Breadcrumb,
@@ -35,6 +35,7 @@ const SubcategoryPage = () => {
     sort: 'recommended'
   });
   const [productCount, setProductCount] = useState<number>(0);
+  const [currentView, setCurrentView] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -87,6 +88,10 @@ const SubcategoryPage = () => {
       ...prev,
       sort
     }));
+  };
+
+  const handleViewChange = (view: 'grid' | 'list') => {
+    setCurrentView(view);
   };
 
   if (loading) {
@@ -163,15 +168,22 @@ const SubcategoryPage = () => {
           </div>
           
           <div>
-            <SimplifiedCategoryFilters
-              onSortChange={handleSortChange}
-              activeSort={filters.sort || 'recommended'}
-            />
+            <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
+              <SimplifiedCategoryFilters
+                onSortChange={handleSortChange}
+                activeSort={filters.sort || 'recommended'}
+              />
+              <ViewToggle 
+                currentView={currentView}
+                onViewChange={handleViewChange}
+              />
+            </div>
             
             <ProductGrid 
               products={products} 
               showSort={false}
               isLoading={loading}
+              viewMode={currentView}
             />
           </div>
         </div>
