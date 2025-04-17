@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import Layout from '@/components/layout/Layout';
@@ -45,6 +46,21 @@ const CategoryPage = () => {
     totalPages: 1,
     totalItems: 0
   });
+
+  // Helper function to build breadcrumb categories
+  const buildBreadcrumbCategories = (currentCategory: CategoryWithParent): CategoryWithParent[] => {
+    const result: CategoryWithParent[] = [];
+    
+    // Add the current category
+    result.push(currentCategory);
+    
+    // Add parent if exists
+    if (currentCategory.parent) {
+      result.unshift(currentCategory.parent);
+    }
+    
+    return result;
+  };
 
   useEffect(() => {
     const fetchCategory = async () => {
