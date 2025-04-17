@@ -1,314 +1,45 @@
 
-import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import Layout from '@/components/layout/Layout';
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from '@/integrations/supabase/client';
-import { fetchCategoryBySlug } from '@/services/categoryService';
-import { CategoryPageParams, Category, Product, FilterParams } from '@/types';
-import { Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { CategoryPageParams } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbList, 
-  BreadcrumbSeparator,
-  BreadcrumbPage 
-} from '@/components/ui/breadcrumb';
 
-import EnhancedProductGrid from '@/components/product/EnhancedProductGrid';
-import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
+// Imported components after refactoring
+import CategoryBreadcrumbs from '@/components/category/CategoryBreadcrumbs';
+import CategoryHeader from '@/components/category/CategoryHeader';
+import CategoryOverview from '@/components/category/CategoryOverview';
+import CategoryProductsTab from '@/components/category/CategoryProductsTab';
+import LoadingState from '@/components/category/LoadingState';
+import ErrorState from '@/components/category/ErrorState';
 
-interface CategoryWithParent extends Category {
-  parent?: CategoryWithParent;
-  subcategories?: Category[];
-}
-
-interface ProductData {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  original_price?: number;
-  images?: string[];
-  category_id: string;
-  rating?: number;
-  review_count?: number;
-  in_stock?: boolean;
-  badges?: string[] | null;
-  slug: string;
-  features?: string[] | null;
-  specifications?: any;
-  created_at?: string;
-  sales_count?: number | null;
-  external_id?: string;
-  api_name?: string;
-  api_price?: number;
-  api_stock?: number;
-  last_synced_at?: string;
-  updated_at?: string;
-  kiosk_token?: string;
-}
+// Custom hook
+import { useCategoryData } from '@/hooks/useCategoryData';
 
 const EnhancedCategoryPage = () => {
   const { categorySlug, parentCategorySlug } = useParams<CategoryPageParams>();
-  const navigate = useNavigate();
-  const { toast } = useToast();
   
-  const [category, setCategory] = useState<CategoryWithParent | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [subcategories, setSubcategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('products');
-  const [activeFilters, setActiveFilters] = useState<FilterParams>({
-    sort: 'recommended',
-  });
-  const [totalProducts, setTotalProducts] = useState(0);
-
-  useEffect(() => {
-    const fetchCategoryData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        if (parentCategorySlug && categorySlug) {
-          const parentCat = await fetchCategoryBySlug(parentCategorySlug);
-          if (!parentCat) throw new Error("Parent category not found");
-          
-          const childCat = await fetchCategoryBySlug(categorySlug);
-          if (!childCat) throw new Error("Category not found");
-          
-          if (childCat.parent_id !== parentCat.id) {
-            navigate(`/category/${categorySlug}`, { replace: true });
-            return;
-          }
-          
-          setCategory({
-            ...childCat,
-            parent: parentCat
-          });
-          
-          await fetchProducts(childCat.id);
-          await fetchFeaturedProducts(childCat.id);
-        } else if (categorySlug) {
-          const currentCategory = await fetchCategoryBySlug(categorySlug);
-          if (!currentCategory) throw new Error("Category not found");
-          
-          if (currentCategory.parent_id) {
-            const { data: parentData } = await supabase
-              .from('categories')
-              .select('*')
-              .eq('id', currentCategory.parent_id)
-              .maybeSingle();
-              
-            if (parentData) {
-              setCategory({
-                ...currentCategory,
-                parent: parentData as CategoryWithParent
-              });
-              
-              navigate(`/category/${parentData.slug}/${currentCategory.slug}`, { replace: true });
-              return;
-            } else {
-              setCategory(currentCategory);
-            }
-          } else {
-            setCategory(currentCategory);
-            
-            await fetchSubcategories(currentCategory.id);
-          }
-          
-          await fetchProducts(currentCategory.id);
-          await fetchFeaturedProducts(currentCategory.id);
-        } else {
-          throw new Error("Category not specified");
-        }
-      } catch (err) {
-        console.error("Error fetching category data:", err);
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-        setError(errorMessage);
-        toast({
-          title: "Error",
-          description: "Failed to load category data. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchCategoryData();
-  }, [categorySlug, parentCategorySlug, navigate, toast]);
-  
-  const fetchSubcategories = async (parentId: string) => {
-    try {
-      const { data: subcats, error: subcatsError } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('parent_id', parentId)
-        .order('name');
-        
-      if (subcatsError) throw subcatsError;
-      setSubcategories(subcats || []);
-    } catch (error) {
-      console.error('Error fetching subcategories:', error);
-    }
-  };
-  
-  const fetchProducts = async (categoryId: string) => {
-    try {
-      let query = supabase
-        .from('products')
-        .select('*', { count: 'exact' });
-      
-      query = query.eq('category_id', categoryId);
-      
-      if (activeFilters.sort) {
-        switch (activeFilters.sort) {
-          case 'price-low-high':
-            query = query.order('price', { ascending: true });
-            break;
-          case 'price-high-low':
-            query = query.order('price', { ascending: false });
-            break;
-          case 'newest':
-            query = query.order('created_at', { ascending: false });
-            break;
-          case 'rating':
-            query = query.order('rating', { ascending: false });
-            break;
-          default:
-            query = query.order('created_at', { ascending: false });
-        }
-      } else {
-        query = query.order('created_at', { ascending: false });
-      }
-      
-      const { data: productData, error: productError, count } = await query;
-      
-      if (productError) throw productError;
-      
-      const mappedProducts: Product[] = (productData || []).map((item: ProductData) => ({
-        id: item.id,
-        title: item.title,
-        description: item.description,
-        price: Number(item.price),
-        originalPrice: item.original_price ? Number(item.original_price) : undefined,
-        images: item.images || [],
-        categoryId: item.category_id,
-        rating: Number(item.rating) || 0,
-        reviewCount: item.review_count || 0,
-        inStock: item.in_stock === true,
-        badges: Array.isArray(item.badges) ? item.badges : [],
-        slug: item.slug,
-        features: Array.isArray(item.features) ? item.features : [],
-        specifications: (typeof item.specifications === 'object' && item.specifications !== null) ? item.specifications : {},
-        salesCount: Number(item.sales_count) || 0,
-        createdAt: item.created_at
-      }));
-      
-      setProducts(mappedProducts);
-      setTotalProducts(count || 0);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load products. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  const fetchFeaturedProducts = async (categoryId: string) => {
-    try {
-      const { data } = await supabase
-        .from('products')
-        .select('*')
-        .eq('category_id', categoryId)
-        .eq('badges', ['Featured'])
-        .limit(4);
-        
-      if (!data || data.length === 0) {
-        const { data: topRated } = await supabase
-          .from('products')
-          .select('*')
-          .eq('category_id', categoryId)
-          .order('rating', { ascending: false })
-          .limit(4);
-          
-        const mappedProducts: Product[] = (topRated || []).map((item: ProductData) => ({
-          id: item.id,
-          title: item.title,
-          description: item.description,
-          price: Number(item.price),
-          originalPrice: item.original_price ? Number(item.original_price) : undefined,
-          images: item.images || [],
-          categoryId: item.category_id,
-          rating: Number(item.rating) || 0,
-          reviewCount: item.review_count || 0,
-          inStock: item.in_stock === true,
-          badges: Array.isArray(item.badges) ? item.badges : [],
-          slug: item.slug,
-          features: Array.isArray(item.features) ? item.features : [],
-          specifications: (typeof item.specifications === 'object' && item.specifications !== null) ? item.specifications : {},
-          salesCount: Number(item.sales_count) || 0,
-          createdAt: item.created_at
-        }));
-        
-        setFeaturedProducts(mappedProducts);
-      } else {
-        const mappedProducts: Product[] = data.map((item: ProductData) => ({
-          id: item.id,
-          title: item.title,
-          description: item.description,
-          price: Number(item.price),
-          originalPrice: item.original_price ? Number(item.original_price) : undefined,
-          images: item.images || [],
-          categoryId: item.category_id,
-          rating: Number(item.rating) || 0,
-          reviewCount: item.review_count || 0,
-          inStock: item.in_stock === true,
-          badges: Array.isArray(item.badges) ? item.badges : [],
-          slug: item.slug,
-          features: Array.isArray(item.features) ? item.features : [],
-          specifications: (typeof item.specifications === 'object' && item.specifications !== null) ? item.specifications : {},
-          salesCount: Number(item.sales_count) || 0,
-          createdAt: item.created_at
-        }));
-        
-        setFeaturedProducts(mappedProducts);
-      }
-    } catch (error) {
-      console.error('Error fetching featured products:', error);
-    }
-  };
-  
-  const handleSortChange = (sort: string) => {
-    setActiveFilters(prev => {
-      const updatedFilters = { ...prev, sort };
-      
-      if (category) {
-        fetchProducts(category.id);
-      }
-      
-      return updatedFilters;
-    });
-  };
+  const {
+    category,
+    products,
+    featuredProducts,
+    subcategories,
+    loading,
+    error,
+    activeTab,
+    setActiveTab,
+    activeFilters,
+    totalProducts,
+    handleSortChange,
+    buildBreadcrumbs
+  } = useCategoryData({ categorySlug, parentCategorySlug });
   
   if (loading) {
     return (
       <Layout>
         <div className="container-custom py-16">
-          <div className="flex justify-center items-center min-h-[400px]">
-            <Loader2 className="h-10 w-10 animate-spin text-primary mr-3" />
-            <p className="text-gray-500">Loading category...</p>
-          </div>
+          <LoadingState />
         </div>
       </Layout>
     );
@@ -318,44 +49,11 @@ const EnhancedCategoryPage = () => {
     return (
       <Layout>
         <div className="container-custom py-16">
-          <Alert variant="destructive" className="mb-6">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              {error || 'Category not found'}
-            </AlertDescription>
-          </Alert>
-          <div className="flex justify-center">
-            <Link 
-              to="/" 
-              className="text-primary hover:underline flex items-center"
-            >
-              Return to homepage
-            </Link>
-          </div>
+          <ErrorState error={error || 'Category not found'} />
         </div>
       </Layout>
     );
   }
-  
-  const buildBreadcrumbs = () => {
-    const breadcrumbs = [
-      { name: 'Home', path: '/' }
-    ];
-    
-    if (category.parent) {
-      breadcrumbs.push({
-        name: category.parent.name,
-        path: `/category/${category.parent.slug}`
-      });
-    }
-    
-    breadcrumbs.push({
-      name: category.name,
-      path: category.parent ? `/category/${category.parent.slug}/${category.slug}` : `/category/${category.slug}`
-    });
-    
-    return breadcrumbs;
-  };
 
   return (
     <Layout>
@@ -367,107 +65,35 @@ const EnhancedCategoryPage = () => {
         />
       </Helmet>
       
-      <div className="bg-white border-b">
-        <div className="container-custom py-3">
-          <Breadcrumb>
-            <BreadcrumbList>
-              {buildBreadcrumbs().map((breadcrumb, index) => {
-                const isLast = index === buildBreadcrumbs().length - 1;
-                
-                return (
-                  <React.Fragment key={index}>
-                    <BreadcrumbItem>
-                      {isLast ? (
-                        <BreadcrumbPage>{breadcrumb.name}</BreadcrumbPage>
-                      ) : (
-                        <BreadcrumbLink href={breadcrumb.path}>
-                          {breadcrumb.name}
-                        </BreadcrumbLink>
-                      )}
-                    </BreadcrumbItem>
-                    
-                    {!isLast && <BreadcrumbSeparator />}
-                  </React.Fragment>
-                );
-              })}
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-      </div>
+      <CategoryBreadcrumbs breadcrumbs={buildBreadcrumbs()} />
       
-      <div className="bg-gradient-to-r from-gray-50 to-gray-100 py-12">
-        <div className="container-custom">
-          <h1 className="text-3xl font-bold mb-2">{category ? category.name : 'Category'}</h1>
-          {category.description && (
-            <p className="text-gray-600 max-w-3xl">{category.description}</p>
-          )}
-        </div>
-      </div>
+      <CategoryHeader 
+        name={category.name} 
+        description={category.description}
+      />
       
       <div className="container-custom py-12">
         {subcategories.length > 0 && (
-          <Tabs defaultValue="overview" className="mb-8">
+          <Tabs defaultValue="overview" className="mb-8" onValueChange={(value) => setActiveTab(value)}>
             <TabsList className="mb-6 md:mb-8">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="products">All Products</TabsTrigger>
             </TabsList>
             
             <TabsContent value="overview">
-              <div className="mb-12">
-                <h2 className="text-2xl font-bold mb-6">Subcategories</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {subcategories.map(subcategory => (
-                    <Link
-                      to={`/category/${category.slug}/${subcategory.slug}`}
-                      key={subcategory.id}
-                      className="bg-white border border-gray-100 rounded-lg p-6 flex flex-col items-center text-center hover:shadow-md transition-shadow duration-300"
-                    >
-                      <img 
-                        src={subcategory.image} 
-                        alt={subcategory.name}
-                        className="w-16 h-16 object-contain mb-4"
-                        loading="lazy"
-                      />
-                      <h3 className="font-medium">{subcategory.name}</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {subcategory.count} {subcategory.count === 1 ? 'product' : 'products'}
-                      </p>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-              
-              {featuredProducts.length > 0 && (
-                <div>
-                  <h2 className="text-2xl font-bold mb-6">Featured Products</h2>
-                  <EnhancedProductGrid
-                    products={featuredProducts}
-                    showSort={false}
-                    limit={4}
-                    showViewAll={true}
-                    viewAllLink={`/category/${category.slug}?tab=products`}
-                    viewAllLabel="View all products"
-                  />
-                </div>
-              )}
+              <CategoryOverview 
+                categorySlug={category.slug}
+                subcategories={subcategories}
+                featuredProducts={featuredProducts}
+              />
             </TabsContent>
             
             <TabsContent value="products">
-              <SimplifiedCategoryFilters 
-                onSortChange={handleSortChange}
-                activeSort={activeFilters.sort || 'recommended'}
-              />
-              
-              <div className="mb-4">
-                <p className="text-gray-600">
-                  {totalProducts} products found
-                </p>
-              </div>
-              
-              <EnhancedProductGrid
+              <CategoryProductsTab 
                 products={products}
-                showSort={false}
-                paginationType="pagination"
+                totalProducts={totalProducts}
+                activeSort={activeFilters.sort || 'recommended'}
+                handleSortChange={handleSortChange}
               />
             </TabsContent>
           </Tabs>
@@ -475,21 +101,11 @@ const EnhancedCategoryPage = () => {
         
         {subcategories.length === 0 && (
           <div>
-            <SimplifiedCategoryFilters 
-              onSortChange={handleSortChange}
-              activeSort={activeFilters.sort || 'recommended'}
-            />
-            
-            <div className="mb-4">
-              <p className="text-gray-600">
-                {totalProducts} products found
-              </p>
-            </div>
-            
-            <EnhancedProductGrid
+            <CategoryProductsTab 
               products={products}
-              showSort={false}
-              paginationType="pagination"
+              totalProducts={totalProducts}
+              activeSort={activeFilters.sort || 'recommended'}
+              handleSortChange={handleSortChange}
             />
           </div>
         )}
