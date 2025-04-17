@@ -19,6 +19,7 @@ import SupportPage from "./pages/SupportPage";
 import FaqsPage from "./pages/FaqsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import DepositPage from "./pages/DepositPage";
+import ProductsPage from "./pages/ProductsPage"; // Added import
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -55,6 +56,7 @@ const App = () => {
               <Route path="/category/:parentCategorySlug/:categorySlug" element={<SubcategoryPage />} />
               <Route path="/product/:productSlug" element={<ProductPage />} />
               <Route path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />
+              <Route path="/products" element={<ProductsPage />} />
               
               <Route path="/cart" element={<CartPage />} />
               <Route path="/order-success" element={<OrderSuccessPage />} />

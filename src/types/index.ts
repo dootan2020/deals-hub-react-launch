@@ -95,6 +95,7 @@ export interface FilterParams {
   sort?: string;
   page?: number;
   categoryId?: string;
+  limit?: number; // Added limit property
 }
 
 // Define a Json type to handle complex database structures

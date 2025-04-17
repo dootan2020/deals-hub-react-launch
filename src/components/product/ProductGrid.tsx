@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom'; // Added Link import
 import ProductCard from './ProductCard';
 import { Product, FilterParams } from '@/types';
 import { Loader2, RefreshCw } from 'lucide-react';
