@@ -10,7 +10,8 @@ import { CategoriesProvider } from "@/context/CategoriesContext";
 // Import all pages directly
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import CategoryPage from "./pages/CategoryPage";
+import EnhancedCategoryPage from "./pages/EnhancedCategoryPage";
+import EnhancedProductsPage from "./pages/EnhancedProductsPage";
 import SubcategoryPage from "./pages/SubcategoryPage";
 import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
@@ -19,7 +20,6 @@ import SupportPage from "./pages/SupportPage";
 import FaqsPage from "./pages/FaqsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import DepositPage from "./pages/DepositPage";
-import ProductsPage from "./pages/ProductsPage"; // Added import
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -52,11 +52,11 @@ const App = () => {
               <Route path="/" element={<Index />} />
               
               {/* SEO-friendly category routes */}
-              <Route path="/category/:categorySlug" element={<CategoryPage />} />
-              <Route path="/category/:parentCategorySlug/:categorySlug" element={<SubcategoryPage />} />
+              <Route path="/category/:categorySlug" element={<EnhancedCategoryPage />} />
+              <Route path="/category/:parentCategorySlug/:categorySlug" element={<EnhancedCategoryPage />} />
               <Route path="/product/:productSlug" element={<ProductPage />} />
               <Route path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />
-              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/products" element={<EnhancedProductsPage />} />
               
               <Route path="/cart" element={<CartPage />} />
               <Route path="/order-success" element={<OrderSuccessPage />} />
