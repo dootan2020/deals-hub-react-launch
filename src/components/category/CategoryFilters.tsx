@@ -1,21 +1,6 @@
-
-import React, { useState } from 'react';
-import { 
-  SlidersHorizontal, 
-  ChevronDown, 
-  ChevronUp,
-  Check,
-  X
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { Separator } from '@/components/ui/separator';
 import { FilterParams } from '@/types';
 
@@ -25,331 +10,290 @@ interface CategoryFiltersProps {
 }
 
 const CategoryFilters: React.FC<CategoryFiltersProps> = ({ onFilterChange, activeFilters }) => {
-  const [isPriceOpen, setIsPriceOpen] = useState(true);
-  const [isRatingOpen, setIsRatingOpen] = useState(true);
-  const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(true);
-  
   // Price range state
-  const [minPrice, setMinPrice] = useState<string>(activeFilters.priceRange?.[0] || '');
-  const [maxPrice, setMaxPrice] = useState<string>(activeFilters.priceRange?.[1] || '');
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
+  const [minPrice, setMinPrice] = useState<string>(activeFilters.priceRange?.[0]?.toString() || '0');
+  const [maxPrice, setMaxPrice] = useState<string>(activeFilters.priceRange?.[1]?.toString() || '1000');
   
   // Rating state
-  const [selectedRatings, setSelectedRatings] = useState<string[]>(
-    activeFilters.rating || []
-  );
+  const [ratings, setRatings] = useState<string[]>(activeFilters.rating || []);
   
-  // Stock state
-  const [inStock, setInStock] = useState<boolean | undefined>(
-    activeFilters.inStock
-  );
+  // In stock state
+  const [inStock, setInStock] = useState<boolean | undefined>(activeFilters.inStock);
+  
+  // Accordion states
+  const [priceOpen, setPriceOpen] = useState(true);
+  const [ratingsOpen, setRatingsOpen] = useState(true);
+  const [availabilityOpen, setAvailabilityOpen] = useState(true);
 
-  // Apply price range filter
-  const handlePriceFilter = () => {
-    if (minPrice === '' && maxPrice === '') {
-      onFilterChange({ priceRange: undefined });
-      return;
+  // Update local state when activeFilters change
+  useEffect(() => {
+    if (activeFilters.priceRange) {
+      setPriceRange([Number(activeFilters.priceRange[0]), Number(activeFilters.priceRange[1])]);
+      setMinPrice(activeFilters.priceRange[0].toString());
+      setMaxPrice(activeFilters.priceRange[1].toString());
     }
     
-    onFilterChange({
-      priceRange: [minPrice || '0', maxPrice || '999999']
-    });
-  };
-  
-  // Apply rating filter
-  const handleRatingToggle = (rating: string) => {
-    let newRatings: string[];
-    
-    if (selectedRatings.includes(rating)) {
-      newRatings = selectedRatings.filter(r => r !== rating);
+    if (activeFilters.rating) {
+      setRatings(activeFilters.rating);
     } else {
-      newRatings = [...selectedRatings, rating];
+      setRatings([]);
     }
     
-    setSelectedRatings(newRatings);
-    onFilterChange({ 
-      rating: newRatings.length > 0 ? newRatings : undefined 
+    setInStock(activeFilters.inStock);
+  }, [activeFilters]);
+
+  const handleMinPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMinPrice(value);
+    if (value === '' || isNaN(Number(value))) return;
+    
+    const numValue = Number(value);
+    if (numValue >= 0 && numValue <= Number(maxPrice)) {
+      setPriceRange([numValue, priceRange[1]]);
+    }
+  };
+
+  const handleMaxPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMaxPrice(value);
+    if (value === '' || isNaN(Number(value))) return;
+    
+    const numValue = Number(value);
+    if (numValue >= Number(minPrice)) {
+      setPriceRange([priceRange[0], numValue]);
+    }
+  };
+  
+  const toggleRating = (rating: string) => {
+    setRatings(prev => {
+      if (prev.includes(rating)) {
+        return prev.filter(r => r !== rating);
+      } else {
+        return [...prev, rating];
+      }
     });
   };
   
-  // Apply in-stock filter
-  const handleStockToggle = (value: boolean | undefined) => {
-    setInStock(value);
-    onFilterChange({ inStock: value });
+  const toggleInStock = () => {
+    setInStock(prev => {
+      // If it's undefined or false, make it true
+      // If it's true, make it undefined (not filtering)
+      return prev === true ? undefined : true;
+    });
   };
   
-  // Clear all filters
-  const clearAllFilters = () => {
-    setMinPrice('');
-    setMaxPrice('');
-    setSelectedRatings([]);
+  const handleApplyFilters = () => {
+    const filters: FilterParams = {};
+    
+    // Apply price range filter if both values are valid
+    if (minPrice !== '' && maxPrice !== '' && !isNaN(Number(minPrice)) && !isNaN(Number(maxPrice))) {
+      filters.priceRange = [minPrice, maxPrice];
+    }
+    
+    // Apply rating filter if any ratings selected
+    if (ratings.length > 0) {
+      filters.rating = ratings;
+    }
+    
+    // Apply in stock filter if set
+    if (inStock !== undefined) {
+      filters.inStock = inStock;
+    }
+    
+    // Maintain the current sort option if it exists
+    if (activeFilters.sort) {
+      filters.sort = activeFilters.sort;
+    }
+    
+    // Maintain the current category ID if it exists
+    if (activeFilters.categoryId) {
+      filters.categoryId = activeFilters.categoryId;
+    }
+    
+    onFilterChange(filters);
+  };
+  
+  const handleResetFilters = () => {
+    // Reset local state
+    setPriceRange([0, 1000]);
+    setMinPrice('0');
+    setMaxPrice('1000');
+    setRatings([]);
     setInStock(undefined);
     
-    onFilterChange({
-      priceRange: undefined,
-      rating: undefined,
-      inStock: undefined
-    });
+    // Remove all filters but keep sort and categoryId
+    const resetFilters: FilterParams = {};
+    
+    if (activeFilters.sort) {
+      resetFilters.sort = activeFilters.sort;
+    }
+    
+    if (activeFilters.categoryId) {
+      resetFilters.categoryId = activeFilters.categoryId;
+    }
+    
+    onFilterChange(resetFilters);
   };
-  
-  // Check if any filters are active
-  const hasActiveFilters = 
-    activeFilters.priceRange !== undefined || 
-    (activeFilters.rating !== undefined && activeFilters.rating.length > 0) || 
-    activeFilters.inStock !== undefined;
-  
-  // Filter section component
-  const FilterSection = ({ 
-    title, 
-    isOpen, 
-    setIsOpen, 
-    children 
-  }: { 
-    title: string; 
-    isOpen: boolean; 
-    setIsOpen: (value: boolean) => void; 
-    children: React.ReactNode;
-  }) => (
-    <div className="mb-6">
-      <div 
-        className="flex justify-between items-center cursor-pointer mb-2"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <h3 className="font-medium text-lg">{title}</h3>
-        <button className="text-gray-500">
-          {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+
+  return (
+    <div className="space-y-6">
+      {/* Price Range Filter */}
+      <div className="pb-4">
+        <button 
+          className="flex w-full items-center justify-between"
+          onClick={() => setPriceOpen(!priceOpen)}
+        >
+          <h3 className="text-base font-medium">Price Range</h3>
+          {priceOpen ? (
+            <ChevronUp className="h-5 w-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-gray-500" />
+          )}
         </button>
+        
+        {priceOpen && (
+          <div className="mt-4 space-y-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-full">
+                <label htmlFor="min-price" className="block text-sm text-gray-500 mb-1">
+                  Min Price
+                </label>
+                <input
+                  id="min-price"
+                  type="number"
+                  min="0"
+                  value={minPrice}
+                  onChange={handleMinPriceChange}
+                  className="w-full rounded-md border border-gray-300 p-2 text-sm"
+                />
+              </div>
+              <span className="pt-5">-</span>
+              <div className="w-full">
+                <label htmlFor="max-price" className="block text-sm text-gray-500 mb-1">
+                  Max Price
+                </label>
+                <input
+                  id="max-price"
+                  type="number"
+                  min="0"
+                  value={maxPrice}
+                  onChange={handleMaxPriceChange}
+                  className="w-full rounded-md border border-gray-300 p-2 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
-      {isOpen && children}
+      <Separator />
       
-      <Separator className="mt-4" />
-    </div>
-  );
-  
-  // Mobile filter sheet component
-  const MobileFilters = () => (
-    <div className="lg:hidden mb-6">
-      <Sheet>
-        <SheetTrigger asChild>
-          <Button variant="outline" className="w-full flex justify-between">
-            <span className="flex items-center">
-              <SlidersHorizontal className="mr-2 h-4 w-4" />
-              Filters
-            </span>
-            {hasActiveFilters && (
-              <span className="bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                !
-              </span>
-            )}
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="bottom" className="h-[85vh]">
-          <SheetHeader>
-            <SheetTitle>Filters</SheetTitle>
-            <SheetDescription>
-              Apply filters to narrow down your search results
-            </SheetDescription>
-          </SheetHeader>
-          
-          <div className="py-4">
-            {FiltersContent()}
-            
-            <div className="flex gap-2 mt-6">
-              <Button 
-                onClick={clearAllFilters} 
-                variant="outline" 
-                className="flex-1"
-                disabled={!hasActiveFilters}
-              >
-                Clear All
-              </Button>
-              <Button 
-                onClick={() => onFilterChange({ ...activeFilters })}
-                className="flex-1"
-              >
-                Apply Filters
-              </Button>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-    </div>
-  );
-  
-  // Filters content (used in both desktop and mobile views)
-  const FiltersContent = () => (
-    <>
-      <FilterSection 
-        title="Price Range" 
-        isOpen={isPriceOpen} 
-        setIsOpen={setIsPriceOpen}
-      >
-        <div className="flex flex-col space-y-2">
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-sm text-gray-600">Min</label>
-              <input
-                type="number"
-                className="w-full border rounded p-2"
-                placeholder="Min"
-                value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
-                min="0"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-gray-600">Max</label>
-              <input
-                type="number"
-                className="w-full border rounded p-2"
-                placeholder="Max"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                min="0"
-              />
-            </div>
-          </div>
-          <Button 
-            onClick={handlePriceFilter}
-            size="sm"
-          >
-            Apply
-          </Button>
-        </div>
-      </FilterSection>
-      
-      <FilterSection 
-        title="Rating" 
-        isOpen={isRatingOpen} 
-        setIsOpen={setIsRatingOpen}
-      >
-        <div className="space-y-2">
-          {[5, 4, 3, 2, 1].map((rating) => (
-            <div 
-              key={rating}
-              className="flex items-center cursor-pointer"
-              onClick={() => handleRatingToggle(rating.toString())}
-            >
-              <div className={`
-                w-4 h-4 border rounded mr-2 flex items-center justify-center
-                ${selectedRatings.includes(rating.toString()) 
-                  ? 'bg-primary border-primary' 
-                  : 'border-gray-300'}
-              `}>
-                {selectedRatings.includes(rating.toString()) && (
-                  <Check className="h-3 w-3 text-white" />
-                )}
-              </div>
-              <div className="flex items-center">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <span 
-                    key={index}
-                    className={`text-lg ${index < rating ? 'text-yellow-400' : 'text-gray-300'}`}
-                  >
-                    ★
-                  </span>
-                ))}
-                <span className="text-sm text-gray-600 ml-1">
-                  {rating === 1 ? '& Up' : `& Up`}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </FilterSection>
-      
-      <FilterSection 
-        title="Availability" 
-        isOpen={isAvailabilityOpen} 
-        setIsOpen={setIsAvailabilityOpen}
-      >
-        <div className="space-y-2">
-          <div 
-            className="flex items-center cursor-pointer"
-            onClick={() => handleStockToggle(true)}
-          >
-            <div className={`
-              w-4 h-4 border rounded mr-2 flex items-center justify-center
-              ${inStock === true ? 'bg-primary border-primary' : 'border-gray-300'}
-            `}>
-              {inStock === true && (
-                <Check className="h-3 w-3 text-white" />
-              )}
-            </div>
-            <span>In Stock</span>
-          </div>
-          
-          <div 
-            className="flex items-center cursor-pointer"
-            onClick={() => handleStockToggle(false)}
-          >
-            <div className={`
-              w-4 h-4 border rounded mr-2 flex items-center justify-center
-              ${inStock === false ? 'bg-primary border-primary' : 'border-gray-300'}
-            `}>
-              {inStock === false && (
-                <Check className="h-3 w-3 text-white" />
-              )}
-            </div>
-            <span>Out of Stock</span>
-          </div>
-          
-          <div 
-            className="flex items-center cursor-pointer"
-            onClick={() => handleStockToggle(undefined)}
-          >
-            <div className={`
-              w-4 h-4 border rounded mr-2 flex items-center justify-center
-              ${inStock === undefined ? 'bg-primary border-primary' : 'border-gray-300'}
-            `}>
-              {inStock === undefined && (
-                <Check className="h-3 w-3 text-white" />
-              )}
-            </div>
-            <span>Show All</span>
-          </div>
-        </div>
-      </FilterSection>
-      
-      {hasActiveFilters && (
-        <div className="mt-4">
-          <button
-            onClick={clearAllFilters}
-            className="text-primary flex items-center text-sm font-medium hover:underline"
-          >
-            <X size={16} className="mr-1" />
-            Clear All Filters
-          </button>
-        </div>
-      )}
-    </>
-  );
-  
-  return (
-    <div>
-      <MobileFilters />
-      
-      <div className="hidden lg:block">
-        <div className="bg-white p-6 rounded-lg border">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold flex items-center">
-              <SlidersHorizontal className="mr-2 h-5 w-5" />
-              Filters
-            </h2>
-            {hasActiveFilters && (
+      {/* Rating Filter */}
+      <div className="pb-4">
+        <button 
+          className="flex w-full items-center justify-between"
+          onClick={() => setRatingsOpen(!ratingsOpen)}
+        >
+          <h3 className="text-base font-medium">Rating</h3>
+          {ratingsOpen ? (
+            <ChevronUp className="h-5 w-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-gray-500" />
+          )}
+        </button>
+        
+        {ratingsOpen && (
+          <div className="mt-4 space-y-2">
+            {[5, 4, 3, 2, 1].map((rating) => (
               <button
-                onClick={clearAllFilters}
-                className="text-primary text-sm hover:underline"
+                key={rating}
+                onClick={() => toggleRating(rating.toString())}
+                className={`flex w-full items-center justify-between p-2 rounded-md ${
+                  ratings.includes(rating.toString())
+                    ? 'bg-primary-50 text-primary'
+                    : 'hover:bg-gray-50'
+                }`}
               >
-                Clear All
+                <div className="flex items-center">
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <svg
+                        key={i}
+                        xmlns="http://www.w3.org/2000/svg"
+                        className={`h-4 w-4 ${
+                          i < rating ? 'text-yellow-400' : 'text-gray-300'
+                        }`}
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    ))}
+                  </div>
+                  <span className="ml-1 text-sm">
+                    {rating === 5 ? '& Up' : '& Up'}
+                  </span>
+                </div>
+                {ratings.includes(rating.toString()) && (
+                  <Check className="h-4 w-4" />
+                )}
               </button>
-            )}
+            ))}
           </div>
-          
-          <Separator className="mb-4" />
-          
-          {FiltersContent()}
-        </div>
+        )}
+      </div>
+      
+      <Separator />
+      
+      {/* Availability Filter */}
+      <div className="pb-4">
+        <button 
+          className="flex w-full items-center justify-between"
+          onClick={() => setAvailabilityOpen(!availabilityOpen)}
+        >
+          <h3 className="text-base font-medium">Availability</h3>
+          {availabilityOpen ? (
+            <ChevronUp className="h-5 w-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-gray-500" />
+          )}
+        </button>
+        
+        {availabilityOpen && (
+          <div className="mt-4">
+            <button
+              onClick={toggleInStock}
+              className={`flex w-full items-center justify-between p-2 rounded-md ${
+                inStock === true
+                  ? 'bg-primary-50 text-primary'
+                  : 'hover:bg-gray-50'
+              }`}
+            >
+              <span>In Stock Only</span>
+              {inStock === true && <Check className="h-4 w-4" />}
+            </button>
+          </div>
+        )}
+      </div>
+      
+      <Separator />
+      
+      {/* Filter Actions */}
+      <div className="flex flex-col space-y-2 pt-2">
+        <Button 
+          onClick={handleApplyFilters}
+          className="w-full bg-primary hover:bg-primary-dark text-white"
+        >
+          Apply Filters
+        </Button>
+        <Button
+          onClick={handleResetFilters}
+          variant="outline"
+          className="w-full"
+        >
+          Reset Filters
+        </Button>
       </div>
     </div>
   );

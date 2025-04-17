@@ -1,7 +1,7 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
-import { Product } from '@/types';
+import { Product, FilterParams } from '@/types';
+import { Loader2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -9,29 +9,76 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { fetchProductsWithFilters } from '@/services/productService';
+import { useToast } from '@/components/ui/use-toast';
 
 interface ProductGridProps {
-  products: Product[];
+  products?: Product[];
   title?: string;
   description?: string;
   showSort?: boolean;
   onSortChange?: (sort: string) => void;
   activeSort?: string;
+  categoryId?: string;
+  isLoading?: boolean;
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({ 
-  products,
+  products: initialProducts,
   title,
   description,
   showSort = false,
   onSortChange,
-  activeSort = 'recommended'
+  activeSort = 'recommended',
+  categoryId,
+  isLoading: externalLoading = false
 }) => {
+  const [products, setProducts] = useState<Product[]>(initialProducts || []);
+  const [isLoading, setIsLoading] = useState(!initialProducts);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (initialProducts) {
+      setProducts(initialProducts);
+      return;
+    }
+
+    const loadProducts = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const filters: FilterParams = {
+          sort: activeSort,
+          categoryId
+        };
+        
+        const fetchedProducts = await fetchProductsWithFilters(filters);
+        setProducts(fetchedProducts);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to load products. Please try again.');
+        toast({
+          title: "Error",
+          description: "Failed to load products. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, [initialProducts, activeSort, categoryId, toast]);
+
   const handleSortChange = (value: string) => {
     if (onSortChange) {
       onSortChange(value);
     }
   };
+  
+  const showLoading = isLoading || externalLoading;
   
   return (
     <div className="w-full">
@@ -59,7 +106,22 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         )}
       </div>
 
-      {products.length > 0 ? (
+      {showLoading ? (
+        <div className="flex justify-center items-center min-h-[300px]">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="ml-3 text-text-light">Loading products...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <p className="text-xl text-red-600 mb-2">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      ) : products.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />

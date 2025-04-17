@@ -14,6 +14,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useToast } from "@/components/ui/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { 
   fetchCategoryBySlug, 
   fetchCategoryHierarchy 
@@ -35,6 +37,7 @@ const SubcategoryPage = () => {
     inStock: undefined,
     sort: 'recommended'
   });
+  const [productCount, setProductCount] = useState<number>(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -64,7 +67,9 @@ const SubcategoryPage = () => {
           ...filters,
           categoryId: subcategory.id
         });
+        
         setProducts(productsData);
+        setProductCount(productsData.length);
       } catch (error) {
         console.error('Error fetching subcategory data:', error);
         toast({
@@ -92,7 +97,8 @@ const SubcategoryPage = () => {
       <Layout>
         <div className="container-custom py-16">
           <div className="flex justify-center items-center min-h-[400px]">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <Loader2 className="h-10 w-10 animate-spin text-primary mr-3" />
+            <p className="text-text-light">Loading products...</p>
           </div>
         </div>
       </Layout>
@@ -143,7 +149,7 @@ const SubcategoryPage = () => {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href={`/category/${parentCategory.slug}/${category.slug}`}>
+                <BreadcrumbLink href={`/category/${parentCategory.slug}/${category.slug}`} className="text-gray-900 font-medium">
                   {category.name}
                 </BreadcrumbLink>
               </BreadcrumbItem>
@@ -151,26 +157,32 @@ const SubcategoryPage = () => {
           </div>
           
           <div className="mb-8">
-            <h1 className="text-3xl font-bold">{category.name}</h1>
+            <div className="flex flex-wrap items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold">{category.name}</h1>
+              <Badge variant="outline" className="bg-gray-100 text-gray-700">{productCount} products</Badge>
+            </div>
             <p className="text-gray-600 mt-2">{category.description}</p>
+            <Separator className="mt-6" />
           </div>
           
           <div className="flex flex-col lg:flex-row gap-8">
             <div className="w-full lg:w-1/4">
-              <CategoryFilters 
-                onFilterChange={handleFilterChange} 
-                activeFilters={filters}
-              />
+              <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm sticky top-24">
+                <h2 className="text-lg font-semibold mb-4">Filters</h2>
+                <CategoryFilters 
+                  onFilterChange={handleFilterChange} 
+                  activeFilters={filters}
+                />
+              </div>
             </div>
             
             <div className="w-full lg:w-3/4">
               <ProductGrid 
                 products={products} 
-                title={`${category.name} Products`}
-                description={`Browse our selection of ${category.name} products in the ${parentCategory.name} category.`}
                 showSort={true}
                 onSortChange={(sort) => handleFilterChange({ sort })}
                 activeSort={filters.sort}
+                isLoading={loading}
               />
             </div>
           </div>
