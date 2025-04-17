@@ -1,215 +1,246 @@
+import { Product } from '@/types';
 
-import { Product, Category } from '../types';
-
-export const categories: Category[] = [
-  {
-    id: 'email',
-    name: 'Email Accounts',
-    description: 'Premium email accounts with verified status',
-    image: '/images/categories/email.png',
-    slug: 'email-accounts',
-    count: 15,
-  },
-  {
-    id: 'account',
-    name: 'Gaming Accounts',
-    description: 'Premium gaming accounts with high stats and rare items',
-    image: '/images/categories/account.png',
-    slug: 'gaming-accounts',
-    count: 24,
-  },
-  {
-    id: 'other',
-    name: 'Software Keys',
-    description: 'Licensed software keys at discounted prices',
-    image: '/images/categories/other.png',
-    slug: 'software-keys',
-    count: 18,
-  },
-];
-
-export const featuredProducts: Product[] = [
+const mockProducts: Product[] = [
   {
     id: '1',
-    title: 'Gmail Premium Account',
-    description: 'Fully verified Gmail account with premium features and security',
-    price: 9.99,
-    originalPrice: 14.99,
-    images: ['https://placehold.co/300x300?text=Gmail'],
-    categoryId: 'email',
-    rating: 4.8,
-    reviewCount: 124,
+    title: 'Gmail USA 2023',
+    description: 'High-quality Gmail accounts with unique phone verification',
+    shortDescription: 'Gmail USA accounts',
+    price: 15000,
+    originalPrice: 20000,
+    images: ['/images/gmail-usa.jpg'],
+    categoryId: 'email-accounts',
+    rating: 4.5,
+    reviewCount: 120,
     inStock: true,
-    badges: ['Featured', 'Best Seller'],
-    slug: 'gmail-premium-account',
+    stockQuantity: 100,
+    badges: ['Best Seller', 'New'],
+    slug: 'gmail-usa-2023',
+    features: [
+      'Unique phone verification',
+      'Aged accounts',
+      'Full recovery access'
+    ],
+    specifications: {
+      country: 'USA',
+      type: 'Gmail',
+      recovery: true
+    },
+    salesCount: 50,
+    createdAt: new Date().toISOString()
   },
   {
     id: '2',
-    title: 'World of Warcraft Account',
-    description: 'Level 60 WoW account with rare mounts and achievements',
-    price: 59.99,
-    originalPrice: 79.99,
-    images: ['https://placehold.co/300x300?text=WoW'],
-    categoryId: 'account',
-    rating: 4.9,
-    reviewCount: 87,
+    title: 'Facebook Aged Accounts',
+    description: 'Aged Facebook accounts with real friends and activity history. Perfect for marketing and business purposes.',
+    shortDescription: 'Aged Facebook accounts with history',
+    price: 25000,
+    originalPrice: 35000,
+    images: ['/images/facebook-aged.jpg'],
+    categoryId: 'social-accounts',
+    rating: 4.8,
+    reviewCount: 89,
     inStock: true,
-    badges: ['Hot'],
-    slug: 'wow-account',
+    stockQuantity: 45,
+    badges: ['Premium', 'Verified'],
+    slug: 'facebook-aged-accounts',
+    features: [
+      'Real friends and connections',
+      'Activity history',
+      'Profile pictures and posts',
+      'Email access included'
+    ],
+    specifications: {
+      country: 'Mixed',
+      age: '2+ years',
+      friends: '50-200',
+      recovery: true
+    },
+    salesCount: 37,
+    createdAt: new Date().toISOString()
   },
   {
     id: '3',
-    title: 'Office 365 License Key',
-    description: 'Lifetime license key for Microsoft Office 365',
-    price: 29.99,
-    originalPrice: 49.99,
-    images: ['https://placehold.co/300x300?text=Office'],
-    categoryId: 'other',
-    rating: 4.7,
+    title: 'Instagram Followers',
+    description: 'High-quality Instagram followers to boost your social presence. Real-looking accounts with profile pictures.',
+    shortDescription: 'Real-looking Instagram followers',
+    price: 8000,
+    originalPrice: 10000,
+    images: ['/images/instagram-followers.jpg'],
+    categoryId: 'social-services',
+    rating: 4.2,
     reviewCount: 215,
     inStock: true,
-    badges: ['40% OFF'],
-    slug: 'office-365-key',
+    stockQuantity: 1000,
+    badges: ['Popular', 'Fast Delivery'],
+    slug: 'instagram-followers',
+    features: [
+      'High-quality accounts',
+      'No drop guarantee',
+      'Fast delivery',
+      'Natural growth pattern'
+    ],
+    specifications: {
+      quality: 'High',
+      delivery: '1-3 days',
+      guarantee: '30 days',
+      maxOrder: 10000
+    },
+    salesCount: 189,
+    createdAt: new Date().toISOString()
   },
   {
     id: '4',
-    title: 'Outlook Premium Account',
-    description: 'Premium Outlook account with 5TB storage and advanced features',
-    price: 12.99,
-    originalPrice: 19.99,
-    images: ['https://placehold.co/300x300?text=Outlook'],
-    categoryId: 'email',
-    rating: 4.5,
-    reviewCount: 78,
+    title: 'YouTube Premium Account',
+    description: 'YouTube Premium accounts with ad-free viewing, background play, and YouTube Music access.',
+    shortDescription: 'Ad-free YouTube experience',
+    price: 35000,
+    originalPrice: 45000,
+    images: ['/images/youtube-premium.jpg'],
+    categoryId: 'streaming-accounts',
+    rating: 4.7,
+    reviewCount: 67,
     inStock: true,
-    badges: [],
-    slug: 'outlook-premium',
+    stockQuantity: 30,
+    badges: ['Premium', 'Warranty'],
+    slug: 'youtube-premium-account',
+    features: [
+      'Ad-free viewing',
+      'Background play',
+      'YouTube Music access',
+      'Download videos'
+    ],
+    specifications: {
+      duration: '12 months',
+      devices: 'Unlimited',
+      warranty: '3 months',
+      type: 'Family account'
+    },
+    salesCount: 42,
+    createdAt: new Date().toISOString()
   },
   {
     id: '5',
-    title: 'Fortnite Rare Skin Account',
-    description: 'Fortnite account with over 100 rare skins and items',
-    price: 79.99,
-    originalPrice: 99.99,
-    images: ['https://placehold.co/300x300?text=Fortnite'],
-    categoryId: 'account',
+    title: 'Netflix Premium 4K',
+    description: 'Netflix Premium accounts with 4K Ultra HD streaming on up to 4 devices simultaneously.',
+    shortDescription: '4K streaming on 4 devices',
+    price: 45000,
+    originalPrice: 60000,
+    images: ['/images/netflix-premium.jpg'],
+    categoryId: 'streaming-accounts',
     rating: 4.9,
-    reviewCount: 142,
-    inStock: false,
-    badges: ['Hot', '20% OFF'],
-    slug: 'fortnite-rare-skins',
+    reviewCount: 132,
+    inStock: true,
+    stockQuantity: 25,
+    badges: ['Premium', '4K', 'Warranty'],
+    slug: 'netflix-premium-4k',
+    features: [
+      '4K Ultra HD streaming',
+      'Watch on 4 devices at once',
+      'Download shows to watch offline',
+      'No ads or interruptions'
+    ],
+    specifications: {
+      plan: 'Premium',
+      duration: '12 months',
+      devices: 4,
+      quality: '4K Ultra HD',
+      warranty: '3 months'
+    },
+    salesCount: 98,
+    createdAt: new Date().toISOString()
   },
   {
     id: '6',
-    title: 'Windows 11 Pro Key',
-    description: 'Genuine Windows 11 Professional activation key',
-    price: 39.99,
-    originalPrice: 69.99,
-    images: ['https://placehold.co/300x300?text=Windows11'],
-    categoryId: 'other',
-    rating: 4.8,
-    reviewCount: 230,
+    title: 'Spotify Premium',
+    description: 'Spotify Premium accounts with ad-free music listening, offline downloads, and high-quality audio.',
+    shortDescription: 'Ad-free music streaming',
+    price: 30000,
+    originalPrice: 40000,
+    images: ['/images/spotify-premium.jpg'],
+    categoryId: 'streaming-accounts',
+    rating: 4.6,
+    reviewCount: 94,
     inStock: true,
-    badges: ['Featured'],
-    slug: 'windows-11-pro',
+    stockQuantity: 50,
+    badges: ['Premium', 'Popular'],
+    slug: 'spotify-premium',
+    features: [
+      'Ad-free music listening',
+      'Download songs for offline listening',
+      'High-quality audio',
+      'Unlimited skips'
+    ],
+    specifications: {
+      plan: 'Premium Individual',
+      duration: '12 months',
+      devices: 'Unlimited',
+      quality: 'Very high (320 kbps)',
+      warranty: '2 months'
+    },
+    salesCount: 76,
+    createdAt: new Date().toISOString()
   },
-];
-
-export const allProducts: Product[] = [
-  ...featuredProducts,
   {
     id: '7',
-    title: 'ProtonMail Premium Account',
-    description: 'Secure and private ProtonMail account with premium features',
-    price: 15.99,
-    originalPrice: 24.99,
-    images: ['https://placehold.co/300x300?text=ProtonMail'],
-    categoryId: 'email',
-    rating: 4.7,
-    reviewCount: 93,
-    inStock: true,
-    badges: [],
-    slug: 'protonmail-premium',
+    title: 'Twitter Verified Accounts',
+    description: 'Aged Twitter accounts with verified status and established following. Perfect for influencers and businesses.',
+    shortDescription: 'Verified Twitter accounts',
+    price: 120000,
+    originalPrice: 150000,
+    images: ['/images/twitter-verified.jpg'],
+    categoryId: 'social-accounts',
+    rating: 4.8,
+    reviewCount: 23,
+    inStock: false,
+    stockQuantity: 0,
+    badges: ['Premium', 'Verified', 'Rare'],
+    slug: 'twitter-verified-accounts',
+    features: [
+      'Blue verification badge',
+      'Established following',
+      'Complete account access',
+      'Email access included'
+    ],
+    specifications: {
+      followers: '10,000+',
+      age: '3+ years',
+      verification: true,
+      recovery: true
+    },
+    salesCount: 12,
+    createdAt: new Date().toISOString()
   },
   {
     id: '8',
-    title: 'League of Legends Account',
-    description: 'Level 30 LoL account with all champions unlocked',
-    price: 49.99,
-    originalPrice: 69.99,
-    images: ['https://placehold.co/300x300?text=LoL'],
-    categoryId: 'account',
-    rating: 4.6,
-    reviewCount: 128,
+    title: 'Discord Nitro',
+    description: 'Discord Nitro subscription with custom emojis, higher upload limits, and HD video streaming.',
+    shortDescription: 'Enhanced Discord experience',
+    price: 25000,
+    originalPrice: 30000,
+    images: ['/images/discord-nitro.jpg'],
+    categoryId: 'gaming-accounts',
+    rating: 4.5,
+    reviewCount: 47,
     inStock: true,
-    badges: ['30% OFF'],
-    slug: 'lol-all-champions',
-  },
-  {
-    id: '9',
-    title: 'Adobe Creative Cloud Key',
-    description: '1 Year subscription key for Adobe Creative Cloud All Apps',
-    price: 149.99,
-    originalPrice: 239.99,
-    images: ['https://placehold.co/300x300?text=Adobe'],
-    categoryId: 'other',
-    rating: 4.9,
-    reviewCount: 176,
-    inStock: true,
-    badges: ['Limited'],
-    slug: 'adobe-cc-key',
-  },
+    stockQuantity: 35,
+    badges: ['Gaming', 'Popular'],
+    slug: 'discord-nitro',
+    features: [
+      'Custom emoji anywhere',
+      'Higher upload limit (100MB)',
+      'HD video streaming',
+      'Animated avatar and custom tag'
+    ],
+    specifications: {
+      plan: 'Nitro',
+      duration: '12 months',
+      perks: 'Server boosts, custom tag',
+      warranty: '1 month'
+    },
+    salesCount: 31,
+    createdAt: new Date().toISOString()
+  }
 ];
 
-export const testimonials = [
-  {
-    id: '1',
-    name: 'John Doe',
-    role: 'Game Developer',
-    content: 'I purchased a premium account from Digital Deals Hub and was impressed by the smooth transaction and instant delivery. Will definitely shop again!',
-    rating: 5,
-    avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-  },
-  {
-    id: '2',
-    name: 'Sarah Smith',
-    role: 'Digital Marketer',
-    content: 'The Microsoft Office key I bought has been working perfectly. Customer service was excellent when I had questions. Highly recommended!',
-    rating: 4,
-    avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
-  },
-  {
-    id: '3',
-    name: 'Michael Brown',
-    role: 'Software Engineer',
-    content: 'I was skeptical at first, but the gaming account I purchased had even more items than advertised. Great value for money.',
-    rating: 5,
-    avatar: 'https://randomuser.me/api/portraits/men/67.jpg',
-  },
-  {
-    id: '4',
-    name: 'Emma Wilson',
-    role: 'Content Creator',
-    content: 'Quick delivery and excellent customer support. The product worked exactly as described. Will be a returning customer!',
-    rating: 4,
-    avatar: 'https://randomuser.me/api/portraits/women/23.jpg',
-  },
-];
-
-export function getProductsByCategory(categoryId: string): Product[] {
-  return allProducts.filter(product => product.categoryId === categoryId);
-}
-
-export function getProductBySlug(slug: string): Product | undefined {
-  return allProducts.find(product => product.slug === slug);
-}
-
-export function getProduct(id: string): Product | undefined {
-  return allProducts.find(product => product.id === id);
-}
-
-export function getRelatedProducts(product: Product, limit: number = 4): Product[] {
-  return allProducts
-    .filter(p => p.categoryId === product.categoryId && p.id !== product.id)
-    .slice(0, limit);
-}
+export default mockProducts;

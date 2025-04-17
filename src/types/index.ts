@@ -55,6 +55,8 @@ export interface FilterParams {
   inStock?: boolean;
   sort?: string;
   page?: number;
+  limit?: number;
+  priceRange?: { min: number; max: number };
 }
 
 export interface TableColumn<T> {
