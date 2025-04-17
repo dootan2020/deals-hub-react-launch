@@ -197,7 +197,8 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: UseCategor
         slug: item.slug,
         features: Array.isArray(item.features) ? item.features : [],
         specifications: (typeof item.specifications === 'object' && item.specifications !== null) ? item.specifications : {},
-        salesCount: Number(item.sales_count || 0),
+        salesCount: Number(0),
+        sales_count: Number(0),
         createdAt: item.created_at || new Date().toISOString()
       }));
       
@@ -246,7 +247,8 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: UseCategor
           slug: item.slug,
           features: Array.isArray(item.features) ? item.features : [],
           specifications: (typeof item.specifications === 'object' && item.specifications !== null) ? item.specifications : {},
-          salesCount: Number(item.sales_count || 0),
+          salesCount: Number(0),
+          sales_count: Number(0),
           createdAt: item.created_at || new Date().toISOString()
         }));
         
@@ -268,7 +270,8 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: UseCategor
           slug: item.slug,
           features: Array.isArray(item.features) ? item.features : [],
           specifications: (typeof item.specifications === 'object' && item.specifications !== null) ? item.specifications : {},
-          salesCount: Number(item.sales_count || 0),
+          salesCount: Number(0),
+          sales_count: Number(0),
           createdAt: item.created_at || new Date().toISOString()
         }));
         

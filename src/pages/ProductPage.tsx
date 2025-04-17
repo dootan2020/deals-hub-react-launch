@@ -157,8 +157,8 @@ const ProductPage = () => {
             features: productData.features || [],
             specifications,
             category: productCategory,
-            salesCount: Number(productData.sales_count || productData.salesCount || 0),
-            sales_count: Number(productData.sales_count || productData.salesCount || 0),
+            salesCount: Number(0),
+            sales_count: Number(0),
             createdAt: productData.created_at || new Date().toISOString()
           };
           
@@ -191,8 +191,8 @@ const ProductPage = () => {
             slug: productData.slug,
             features: productData.features || [],
             specifications,
-            salesCount: Number(productData.sales_count || productData.salesCount || 0),
-            sales_count: Number(productData.sales_count || productData.salesCount || 0),
+            salesCount: Number(0),
+            sales_count: Number(0),
             createdAt: productData.created_at || new Date().toISOString()
           };
           
@@ -251,8 +251,8 @@ const ProductPage = () => {
             slug: item.slug,
             features: item.features || [],
             specifications,
-            salesCount: Number(item.sales_count || item.salesCount || 0),
-            sales_count: Number(item.sales_count || item.salesCount || 0),
+            salesCount: Number(0),
+            sales_count: Number(0),
             createdAt: item.created_at || new Date().toISOString()
           };
         });
