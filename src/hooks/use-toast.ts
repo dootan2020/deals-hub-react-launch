@@ -1,7 +1,7 @@
 
-import { toast as sonnerToast, type Toast } from "sonner";
+import { toast as sonnerToast, type ToastT } from "sonner";
 
-export type ToastProps = Toast;
+export type ToastProps = ToastT;
 
 export function toast(...args: Parameters<typeof sonnerToast>) {
   return sonnerToast(...args);
@@ -16,8 +16,12 @@ toast.dismiss = sonnerToast.dismiss;
 toast.custom = sonnerToast.custom;
 toast.promise = sonnerToast.promise;
 
+// This is a dummy array to make the `Toaster` component happy
+const DUMMY_TOASTS: ToastProps[] = [];
+
 export const useToast = () => {
   return {
     toast,
+    toasts: DUMMY_TOASTS,
   };
 };

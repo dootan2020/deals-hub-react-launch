@@ -1,3 +1,4 @@
+
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -9,6 +10,8 @@ import {
 } from "@/components/ui/toast"
 
 export function Toaster() {
+  // We're not actually using the toasts array from the hook
+  // The actual toast notifications are handled by the Sonner component
   const { toasts } = useToast()
 
   return (
