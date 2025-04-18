@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
@@ -47,7 +47,6 @@ const CategoryPage: React.FC = () => {
   
   const filteredProducts = activeSubcategories.length > 0
     ? products.filter(product => {
-        const subcategoryIds = subcategories.map(sub => sub.id);
         return activeSubcategories.some(subId => product.categoryId === subId);
       })
     : products;
