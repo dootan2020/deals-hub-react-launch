@@ -1,7 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface BuyNowButtonProps {
   product?: any;
@@ -27,9 +30,41 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   quantity = 1,
   promotionCode
 }) => {
-  const handleBuyNow = () => {
-    console.log("Buy Now clicked with:", { kioskToken, productId, quantity, promotionCode });
-    if (onSuccess) onSuccess();
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleBuyNow = async () => {
+    if (!kioskToken) {
+      toast.error('Không thể mua sản phẩm này');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('order-api', {
+        body: {
+          action: 'place-order',
+          kioskToken,
+          productId,
+          quantity,
+          promotionCode
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.order_id) {
+        if (onSuccess) onSuccess();
+        navigate(`/order-success?orderId=${data.order_id}`);
+      } else {
+        throw new Error(data?.message || 'Không thể tạo đơn hàng');
+      }
+    } catch (error: any) {
+      console.error('Error placing order:', error);
+      toast.error(error.message || 'Đã xảy ra lỗi khi đặt hàng');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -37,11 +72,20 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       variant={variant} 
       size={size}
       className={className}
-      disabled={!isInStock}
+      disabled={!isInStock || isLoading}
       onClick={handleBuyNow}
     >
-      <ShoppingBag className="w-4 h-4 mr-2" />
-      {isInStock ? 'Buy Now' : 'Out of Stock'}
+      {isLoading ? (
+        <>
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          Đang xử lý...
+        </>
+      ) : (
+        <>
+          <ShoppingBag className="w-4 h-4 mr-2" />
+          {isInStock ? 'Mua Ngay' : 'Hết Hàng'}
+        </>
+      )}
     </Button>
   );
 };

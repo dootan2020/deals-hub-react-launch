@@ -26,136 +26,34 @@ const OrderSuccessPage = () => {
   const [orderData, setOrderData] = useState<OrderResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retries, setRetries] = useState(0);
-  const [htmlContent, setHtmlContent] = useState<string | null>(null);
   
   const fetchOrderData = async () => {
     if (!orderId) {
-      setError('No order ID provided');
+      setError('Không tìm thấy mã đơn hàng');
       return;
     }
     
     setIsLoading(true);
     setError(null);
-    setHtmlContent(null);
     
     try {
-      const response = await fetch('/functions/v1/order-api?action=check-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store',
-          'Pragma': 'no-cache',
-          'X-Request-Time': new Date().getTime().toString(),
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/json, text/plain, */*',
-          'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8'
-        },
-        body: JSON.stringify({ orderId }),
+      const { data, error } = await supabase.functions.invoke('order-api', {
+        body: {
+          action: 'check-order',
+          orderId
+        }
       });
+
+      if (error) throw error;
+      setOrderData(data);
       
-      if (!response.ok) {
-        let errorMessage = `Error ${response.status}: Failed to fetch order data`;
-        
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch (e) {
-          // If parsing JSON fails, try to get the text
-          try {
-            const errorText = await response.text();
-            if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
-              errorMessage = `API returned HTML instead of JSON. Please check your API configuration.`;
-              setHtmlContent(errorText);
-            } else if (errorText) {
-              errorMessage = `${errorMessage}. Response: ${errorText.substring(0, 100)}`;
-            }
-          } catch (textError) {
-            // If we can't even get the text, just use the status code error
-          }
-        }
-        
-        throw new Error(errorMessage);
-      }
-      
-      const contentType = response.headers.get('content-type');
-      console.log(`API response content type: ${contentType}`);
-      
-      if (contentType && !contentType.includes('application/json')) {
-        console.warn(`API returned non-JSON content type: ${contentType}. Attempting to parse anyway.`);
-      }
-      
-      const responseText = await response.text();
-      
-      // Check for HTML response
-      if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
-        console.log("API returned HTML instead of JSON");
-        setHtmlContent(responseText);
-        
-        // Try to extract order information from HTML
-        try {
-          // Check for common success patterns in the HTML
-          if (responseText.toLowerCase().includes('success') || 
-              responseText.toLowerCase().includes('thành công') ||
-              responseText.toLowerCase().includes('order completed')) {
-            
-            // Try to extract products from the HTML - this is a simplified approach
-            const products: OrderProduct[] = [];
-            const productMatches = responseText.matchAll(/data-product=['"]([^'"]+)['"]/g) || 
-                                  responseText.matchAll(/product:\s*['"]([^'"]+)['"]/g);
-            
-            if (productMatches) {
-              for (const match of productMatches) {
-                if (match[1]) {
-                  products.push({ product: match[1] });
-                }
-              }
-            }
-            
-            if (products.length > 0) {
-              setOrderData({
-                success: 'true',
-                data: products,
-                description: 'Order information extracted from HTML response'
-              });
-              return;
-            }
-          }
-          
-          // If we couldn't extract products but it might be processing
-          if (responseText.toLowerCase().includes('processing') || 
-              responseText.toLowerCase().includes('đang xử lý')) {
-            setOrderData({
-              success: 'false',
-              description: 'Order in processing!'
-            });
-            return;
-          }
-          
-          throw new Error('Could not extract order information from HTML response');
-        } catch (extractError) {
-          throw new Error('API returned HTML instead of JSON. Could not extract order information.');
-        }
-      }
-      
-      // Try to parse as JSON
-      try {
-        const data: OrderResponse = JSON.parse(responseText);
-        setOrderData(data);
-        
-        if (data.success === 'false') {
-          if (data.description === 'Order in processing!') {
-            // This is actually an expected status for orders that are processing
-            console.log('Order is still processing');
-          } else {
-            setError(data.description || 'Unknown error occurred');
-          }
-        }
-      } catch (parseError) {
-        throw new Error(`Failed to parse response as JSON: ${parseError.message}`);
+      if (data.success === 'false' && data.description === 'Order in processing!') {
+        // This is actually an expected status for orders that are processing
+        console.log('Đơn hàng đang được xử lý');
       }
     } catch (err: any) {
       console.error('Error fetching order data:', err);
-      setError(err.message || 'Failed to fetch order data');
+      setError(err.message || 'Không thể tải thông tin đơn hàng');
     } finally {
       setIsLoading(false);
     }
@@ -163,9 +61,9 @@ const OrderSuccessPage = () => {
   
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
-      toast.success('Copied to clipboard');
+      toast.success('Đã sao chép');
     }).catch(err => {
-      toast.error('Failed to copy text');
+      toast.error('Không thể sao chép văn bản');
       console.error('Failed to copy:', err);
     });
   };
@@ -176,7 +74,7 @@ const OrderSuccessPage = () => {
         orderData?.description === 'Order in processing!' && 
         retries < 5) {
       const timer = setTimeout(() => {
-        console.log(`Auto-retrying order check (${retries + 1}/5)...`);
+        console.log(`Đang thử lại lần ${retries + 1}/5...`);
         fetchOrderData();
         setRetries(prev => prev + 1);
       }, 5000); // Retry every 5 seconds, up to 5 times
@@ -190,15 +88,15 @@ const OrderSuccessPage = () => {
       fetchOrderData();
     }
   }, [orderId]);
-  
+
   return (
     <Layout>
       <div className="container mx-auto py-12 px-4">
         <Card className="max-w-2xl mx-auto">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Order Status</CardTitle>
+            <CardTitle className="text-2xl font-bold">Trạng thái đơn hàng</CardTitle>
             <CardDescription>
-              {orderId ? `Order ID: ${orderId}` : 'No order ID provided'}
+              {orderId ? `Mã đơn hàng: ${orderId}` : 'Không tìm thấy mã đơn hàng'}
             </CardDescription>
           </CardHeader>
           
@@ -206,22 +104,14 @@ const OrderSuccessPage = () => {
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-                <p className="text-lg font-medium">Loading order information...</p>
-                <p className="text-sm text-muted-foreground mt-2">Please wait while we check the status of your order</p>
+                <p className="text-lg font-medium">Đang tải thông tin đơn hàng...</p>
+                <p className="text-sm text-muted-foreground mt-2">Vui lòng đợi trong giây lát</p>
               </div>
             ) : error ? (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
+                <AlertTitle>Lỗi</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
-                {htmlContent && (
-                  <details className="mt-3">
-                    <summary className="text-xs cursor-pointer">View HTML Response</summary>
-                    <div className="mt-2 p-2 bg-red-50 rounded max-h-40 overflow-auto">
-                      <code className="text-xs whitespace-pre-wrap">{htmlContent}</code>
-                    </div>
-                  </details>
-                )}
               </Alert>
             ) : orderData ? (
               <>
@@ -229,12 +119,12 @@ const OrderSuccessPage = () => {
                   <div className="space-y-6">
                     <div className="flex items-center justify-center flex-col">
                       <CheckCircle2 className="h-16 w-16 text-primary mb-4" />
-                      <h3 className="text-xl font-medium">Order Completed Successfully</h3>
-                      <p className="text-muted-foreground mt-1">Your order has been processed and the products are ready</p>
+                      <h3 className="text-xl font-medium">Đơn hàng đã hoàn tất</h3>
+                      <p className="text-muted-foreground mt-1">Đơn hàng của bạn đã được xử lý và sản phẩm đã sẵn sàng</p>
                     </div>
                     
                     <div className="border rounded-lg p-4 bg-slate-50">
-                      <h4 className="font-medium mb-2">Your Products:</h4>
+                      <h4 className="font-medium mb-2">Sản phẩm của bạn:</h4>
                       <ul className="space-y-2">
                         {orderData.data.map((item, index) => (
                           <li key={index} className="flex justify-between items-center p-2 border-b last:border-b-0">
@@ -245,7 +135,7 @@ const OrderSuccessPage = () => {
                               onClick={() => copyToClipboard(item.product)}
                             >
                               <Copy className="h-4 w-4 mr-1" />
-                              Copy
+                              Sao chép
                             </Button>
                           </li>
                         ))}
@@ -256,20 +146,20 @@ const OrderSuccessPage = () => {
                   <div className="space-y-6">
                     <div className="flex items-center justify-center flex-col">
                       <AlertTriangle className="h-16 w-16 text-amber-500 mb-4" />
-                      <h3 className="text-xl font-medium">Order is Processing</h3>
+                      <h3 className="text-xl font-medium">Đơn hàng đang xử lý</h3>
                       <p className="text-muted-foreground mt-1">
                         {orderData.description === 'Order in processing!' 
-                          ? 'Your order is still being processed. Please check back soon.' 
-                          : orderData.description || 'Something went wrong with your order.'}
+                          ? 'Đơn hàng của bạn đang được xử lý. Vui lòng kiểm tra lại sau.' 
+                          : orderData.description || 'Có lỗi xảy ra với đơn hàng của bạn.'}
                       </p>
                     </div>
                     
                     <Alert>
-                      <AlertTitle>Please note</AlertTitle>
+                      <AlertTitle>Lưu ý</AlertTitle>
                       <AlertDescription>
                         {retries > 0 
-                          ? `Auto-checking order status (attempt ${retries}/5)...` 
-                          : 'Orders typically process within a few minutes. You can refresh this page to check the latest status.'}
+                          ? `Đang tự động kiểm tra trạng thái đơn hàng (lần ${retries}/5)...` 
+                          : 'Đơn hàng thường được xử lý trong vài phút. Bạn có thể làm mới trang để kiểm tra trạng thái mới nhất.'}
                       </AlertDescription>
                     </Alert>
                   </div>
@@ -277,7 +167,7 @@ const OrderSuccessPage = () => {
               </>
             ) : (
               <div className="text-center py-6">
-                <p>No order information available</p>
+                <p>Không có thông tin đơn hàng</p>
               </div>
             )}
           </CardContent>
@@ -287,7 +177,7 @@ const OrderSuccessPage = () => {
               variant="outline" 
               onClick={() => window.location.href = '/'}
             >
-              Return to Home
+              Quay lại Trang chủ
             </Button>
             
             {orderId && !isLoading && (
@@ -300,7 +190,7 @@ const OrderSuccessPage = () => {
                 ) : (
                   <RefreshCw className="h-4 w-4 mr-2" />
                 )}
-                Refresh Status
+                Làm mới trạng thái
               </Button>
             )}
           </CardFooter>
