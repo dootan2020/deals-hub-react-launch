@@ -32,6 +32,7 @@ const ProductCardList = ({ product }: ProductCardListProps) => {
           alt={product.title}
           className="w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
+          onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
         />
         <ProductBadges badges={product.badges} discountPercentage={discountPercentage} />
       </div>

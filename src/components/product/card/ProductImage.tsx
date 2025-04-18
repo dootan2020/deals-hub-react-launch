@@ -16,6 +16,7 @@ const ProductImage = ({ product, isHovered }: ProductImageProps) => {
         src={product.images[0]}
         alt={product.title}
         className="w-full h-full object-contain p-3 transition-transform duration-500 group-hover:scale-105"
+        onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
       />
       
       {/* Quick action buttons on hover */}

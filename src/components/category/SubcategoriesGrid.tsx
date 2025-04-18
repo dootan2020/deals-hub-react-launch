@@ -26,6 +26,7 @@ const SubcategoriesGrid: React.FC<SubcategoriesGridProps> = ({ categorySlug, sub
               alt={subcategory.name}
               className="w-16 h-16 object-contain mb-4"
               loading="lazy"
+              onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
             />
             <h3 className="font-medium">{subcategory.name}</h3>
             <p className="text-sm text-gray-500 mt-1">

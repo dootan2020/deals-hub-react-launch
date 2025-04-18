@@ -104,7 +104,9 @@ export function ImageUploader({ existingImages = [] }: ImageUploaderProps) {
       
       toast.success('Images uploaded successfully');
     } catch (error) {
-      console.error('Error uploading images:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error uploading images:', error);
+      }
       toast.error('Failed to upload images');
     } finally {
       setIsUploading(false);
@@ -147,6 +149,7 @@ export function ImageUploader({ existingImages = [] }: ImageUploaderProps) {
                 src={url} 
                 alt={`Preview ${index}`} 
                 className="w-full h-full object-cover"
+                onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
               />
               <button
                 type="button"

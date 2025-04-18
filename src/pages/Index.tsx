@@ -8,7 +8,6 @@ import FeaturesSection from '@/components/home/FeaturesSection';
 import ProductGrid from '@/components/product/ProductGrid';
 import TestimonialsSection from '@/components/home/TestimonialsSection';
 import NewsletterSection from '@/components/home/NewsletterSection';
-import { toast } from 'sonner';
 
 const Index = () => {
   const [activeSort, setActiveSort] = useState('recommended');
