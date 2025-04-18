@@ -1,13 +1,30 @@
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, CheckCircle2, AlertTriangle, Copy, RefreshCw } from 'lucide-react';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { 
+  Loader2, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Copy, 
+  RefreshCw,
+  Download,
+  Home,
+  AlertCircle
+} from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { useOrderApi } from '@/hooks/use-order-api';
 
 interface OrderProduct {
   product: string;
@@ -28,6 +45,8 @@ const OrderSuccessPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [retries, setRetries] = useState(0);
   
+  const { checkOrder } = useOrderApi();
+  
   const fetchOrderData = async () => {
     if (!orderId) {
       setError('Không tìm thấy mã đơn hàng');
@@ -38,18 +57,10 @@ const OrderSuccessPage = () => {
     setError(null);
     
     try {
-      const { data, error } = await supabase.functions.invoke('order-api', {
-        body: {
-          action: 'check-order',
-          orderId
-        }
-      });
-
-      if (error) throw error;
-      setOrderData(data);
+      const result = await checkOrder({ orderId });
+      setOrderData(result);
       
-      if (data.success === 'false' && data.description === 'Order in processing!') {
-        // This is actually an expected status for orders that are processing
+      if (result.success === 'false' && result.description === 'Order in processing!') {
         console.log('Đơn hàng đang được xử lý');
       }
     } catch (err: any) {
@@ -59,17 +70,45 @@ const OrderSuccessPage = () => {
       setIsLoading(false);
     }
   };
-  
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast.success('Đã sao chép');
-    }).catch(err => {
-      toast.error('Không thể sao chép văn bản');
-      console.error('Failed to copy:', err);
-    });
+
+  const downloadTxt = () => {
+    if (!orderData?.data) return;
+    
+    const content = orderData.data
+      .map((item, index) => `${index + 1}. ${item.product}`)
+      .join('\n');
+      
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `order-${orderId}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success('Đã tải xuống danh sách sản phẩm');
   };
   
-  // Auto-retry for processing orders
+  const copyAllProducts = () => {
+    if (!orderData?.data) return;
+    
+    const content = orderData.data
+      .map((item, index) => `${index + 1}. ${item.product}`)
+      .join('\n');
+      
+    navigator.clipboard.writeText(content)
+      .then(() => toast.success('Đã sao chép tất cả sản phẩm'))
+      .catch(() => toast.error('Không thể sao chép'));
+  };
+  
+  const copyProduct = (text: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => toast.success('Đã sao chép'))
+      .catch(() => toast.error('Không thể sao chép'));
+  };
+  
   useEffect(() => {
     if (orderData?.success === 'false' && 
         orderData?.description === 'Order in processing!' && 
@@ -78,7 +117,7 @@ const OrderSuccessPage = () => {
         console.log(`Đang thử lại lần ${retries + 1}/5...`);
         fetchOrderData();
         setRetries(prev => prev + 1);
-      }, 5000); // Retry every 5 seconds, up to 5 times
+      }, 5000);
       
       return () => clearTimeout(timer);
     }
@@ -92,8 +131,8 @@ const OrderSuccessPage = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto py-12 px-4">
-        <Card className="max-w-2xl mx-auto">
+      <div className="container max-w-4xl mx-auto py-8 px-4">
+        <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold">Trạng thái đơn hàng</CardTitle>
             <CardDescription>
@@ -121,27 +160,59 @@ const OrderSuccessPage = () => {
                     <div className="flex items-center justify-center flex-col">
                       <CheckCircle2 className="h-16 w-16 text-primary mb-4" />
                       <h3 className="text-xl font-medium">Đơn hàng đã hoàn tất</h3>
-                      <p className="text-muted-foreground mt-1">Đơn hàng của bạn đã được xử lý và sản phẩm đã sẵn sàng</p>
+                      <p className="text-muted-foreground mt-1">
+                        Đơn hàng của bạn đã được xử lý và sản phẩm đã sẵn sàng
+                      </p>
                     </div>
                     
-                    <div className="border rounded-lg p-4 bg-slate-50">
-                      <h4 className="font-medium mb-2">Sản phẩm của bạn:</h4>
-                      <ul className="space-y-2">
-                        {orderData.data.map((item, index) => (
-                          <li key={index} className="flex justify-between items-center p-2 border-b last:border-b-0">
-                            <span className="font-mono break-all mr-2">{item.product}</span>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              onClick={() => copyToClipboard(item.product)}
-                            >
-                              <Copy className="h-4 w-4 mr-1" />
-                              Sao chép
-                            </Button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    <Card className="border-2">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-lg">Sản phẩm của bạn</CardTitle>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={copyAllProducts}
+                          >
+                            <Copy className="h-4 w-4 mr-2" />
+                            Sao chép tất cả
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={downloadTxt}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Tải về .TXT
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <ScrollArea className="h-[300px] w-full rounded-md border p-4">
+                          <ol className="space-y-4 list-decimal list-inside">
+                            {orderData.data.map((item, index) => (
+                              <li key={index} className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-lg">
+                                <span className="font-mono break-all mr-2">{item.product}</span>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  onClick={() => copyProduct(item.product)}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              </li>
+                            ))}
+                          </ol>
+                        </ScrollArea>
+                        
+                        <Alert className="mt-4" variant="warning">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            Đơn hàng này sẽ được xóa sau 48 giờ. Vui lòng lưu lại thông tin sản phẩm trước khi đơn hàng hết hạn.
+                          </AlertDescription>
+                        </Alert>
+                      </CardContent>
+                    </Card>
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -173,12 +244,13 @@ const OrderSuccessPage = () => {
             )}
           </CardContent>
           
-          <CardFooter className="flex justify-center gap-4 pt-4">
+          <CardFooter className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
             <Button 
               variant="outline" 
               onClick={() => window.location.href = '/'}
             >
-              Quay lại Trang chủ
+              <Home className="h-4 w-4 mr-2" />
+              Quay về trang chủ
             </Button>
             
             {orderId && !isLoading && (
