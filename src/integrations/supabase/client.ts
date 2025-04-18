@@ -3,9 +3,17 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// Ensure global is defined
-if (typeof window !== 'undefined' && !window.global) {
-  window.global = window;
+// Ensure all necessary globals are defined
+if (typeof globalThis !== 'undefined') {
+  // Use globalThis which is standard across modern browsers and Node.js
+  if (!globalThis.global) {
+    (globalThis as any).global = globalThis;
+  }
+  
+  // Minimal stream polyfill for browser compatibility
+  if (!(globalThis as any).stream) {
+    (globalThis as any).stream = { Readable: {} };
+  }
 }
 
 const SUPABASE_URL = "https://xcpwyvrlutlslgaueokd.supabase.co";

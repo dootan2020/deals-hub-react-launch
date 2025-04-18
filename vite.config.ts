@@ -24,7 +24,13 @@ export default defineConfig(({ mode }) => ({
     }
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom']
+    include: ['react', 'react-dom', 'react-router-dom'],
+    esbuildOptions: {
+      // Node.js global to browser globalThis
+      define: {
+        global: 'globalThis',
+      },
+    },
   },
   plugins: [
     react(),
@@ -36,11 +42,11 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
     // Add mainFields to help resolve packages correctly
-    mainFields: ['module', 'jsnext:main', 'jsnext', 'main']
+    mainFields: ['browser', 'module', 'jsnext:main', 'jsnext', 'main']
   },
   define: {
     // Add polyfills for Node.js globals
-    global: 'window',
+    global: 'globalThis',
     'process.env': {},
   },
 }));
