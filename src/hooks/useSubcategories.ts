@@ -55,8 +55,8 @@ export const useSubcategories = (categoryId?: string) => {
             features: p.features || [],
             specifications: p.specifications as Record<string, string | number | boolean | object>,
             stock: p.stock || 0,
-            kiosk_token: p.kiosk_token || '', // Added kiosk_token
-            salesCount: p.sales_count || 0,
+            kiosk_token: p.kiosk_token || '', // Ensure kiosk_token is set
+            salesCount: p.stock_quantity || 0, // Use stock_quantity instead of sales_count which doesn't exist
             createdAt: p.created_at
           }));
           

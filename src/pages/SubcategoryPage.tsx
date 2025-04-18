@@ -33,7 +33,7 @@ const SubcategoryPage = () => {
         const result = await fetchProductsWithFilters({
           subcategory: slug,
           page: currentPage,
-          limit: 12
+          perPage: 12  // Changed from 'limit' to 'perPage' which exists in ProductFilters
         });
         
         // Check if result is the expected structure
