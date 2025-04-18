@@ -21,9 +21,7 @@ const DashboardPage = () => {
             <div className="text-2xl font-bold">
               {isLoading ? '...' : `${userBalance.toLocaleString('vi-VN')} VNĐ`}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Số dư hiện tại của bạn
-            </p>
+            <p className="text-xs text-muted-foreground">Số dư hiện tại của bạn</p>
           </CardContent>
         </Card>
 
@@ -34,10 +32,10 @@ const DashboardPage = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isLoading ? '...' : stats.processingOrders}
+              {isLoading ? '...' : stats.processing}
             </div>
             <p className="text-xs text-muted-foreground">
-              Trên tổng số {stats.totalOrders} đơn hàng
+              Trên tổng số {stats.total} đơn hàng
             </p>
           </CardContent>
         </Card>
@@ -49,11 +47,9 @@ const DashboardPage = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isLoading ? '...' : stats.completedOrders}
+              {isLoading ? '...' : stats.completed}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Đơn hàng thành công
-            </p>
+            <p className="text-xs text-muted-foreground">Đơn hàng thành công</p>
           </CardContent>
         </Card>
       </div>
