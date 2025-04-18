@@ -1,5 +1,5 @@
 
-import { fetchViaProxy } from '@/utils/proxyUtils';
+import { fetchViaProxy, ProxyConfig, fetchProxySettings } from '@/utils/proxyUtils';
 import { supabase } from '@/integrations/supabase/client';
 
 interface OrderApiResponse {
@@ -50,6 +50,7 @@ export async function fetchApiConfig() {
 export async function placeOrder({ kioskToken, quantity, promotionCode }: PlaceOrderParams): Promise<OrderApiResponse> {
   try {
     const apiConfig = await fetchApiConfig();
+    const proxyConfig = await fetchProxySettings();
     
     let url = `https://taphoammo.net/api/buyProducts?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(apiConfig.user_token)}&quantity=${quantity}`;
     
@@ -57,7 +58,7 @@ export async function placeOrder({ kioskToken, quantity, promotionCode }: PlaceO
       url += `&promotion=${encodeURIComponent(promotionCode)}`;
     }
     
-    const data = await fetchViaProxy(url);
+    const data = await fetchViaProxy(url, proxyConfig);
     
     if (data.success !== "true") {
       console.error('Order API error:', data.description || 'Unknown error');
@@ -77,10 +78,11 @@ export async function placeOrder({ kioskToken, quantity, promotionCode }: PlaceO
 export async function fetchOrderProducts(orderId: string): Promise<OrderApiResponse> {
   try {
     const apiConfig = await fetchApiConfig();
+    const proxyConfig = await fetchProxySettings();
     
     const url = `https://taphoammo.net/api/getProducts?orderId=${encodeURIComponent(orderId)}&userToken=${encodeURIComponent(apiConfig.user_token)}`;
     
-    const data = await fetchViaProxy(url);
+    const data = await fetchViaProxy(url, proxyConfig);
     
     return data;
   } catch (error) {
@@ -133,10 +135,11 @@ export async function waitForOrderProcessing(orderId: string, maxRetries = 5, re
 export async function fetchProductStock(kioskToken: string): Promise<any> {
   try {
     const apiConfig = await fetchApiConfig();
+    const proxyConfig = await fetchProxySettings();
     
     const url = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(apiConfig.user_token)}`;
     
-    const data = await fetchViaProxy(url);
+    const data = await fetchViaProxy(url, proxyConfig);
     
     if (data.success !== "true") {
       console.error('Stock API error:', data.description || 'Unknown error');
