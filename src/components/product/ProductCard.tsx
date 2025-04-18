@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Product } from '@/types';
 import { calculateDiscountPercentage } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { BuyNowButton } from '@/components/checkout/BuyNowButton';
 import ProductImage from './card/ProductImage';
 import ProductBadges from './card/ProductBadges';
@@ -59,6 +58,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
                 quantity={1}
                 isInStock={product.inStock}
                 className="w-full bg-primary hover:bg-primary-dark"
+                product={product}
               />
             </div>
           </div>

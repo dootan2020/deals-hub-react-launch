@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
   ShoppingCart, 
@@ -11,6 +12,10 @@ import {
 import { toast } from 'sonner';
 import { placeOrder, waitForOrderProcessing } from '@/services/orderService';
 import { OrderSuccessModal } from './OrderSuccessModal';
+import { PurchaseConfirmationModal } from './PurchaseConfirmationModal';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Product } from '@/types';
 
 interface BuyNowButtonProps {
   kioskToken: string;
@@ -20,6 +25,7 @@ interface BuyNowButtonProps {
   isInStock: boolean;
   onSuccess?: () => void;
   className?: string; // Added className prop
+  product?: Product; // Add product for confirmation modal
 }
 
 export function BuyNowButton({ 
@@ -29,7 +35,8 @@ export function BuyNowButton({
   promotionCode, 
   isInStock = true, 
   onSuccess,
-  className
+  className,
+  product
 }: BuyNowButtonProps) {
   const [loading, setLoading] = useState(false);
   const [orderProcessing, setOrderProcessing] = useState(false);
@@ -38,8 +45,31 @@ export function BuyNowButton({
   const [orderProducts, setOrderProducts] = useState<any[] | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  
+  const { isAuthenticated, user, userBalance } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   
   const handleBuyNow = async () => {
+    // Step 1: Check if user is authenticated
+    if (!isAuthenticated) {
+      // Save the current location to redirect back after login
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+    
+    // Step 2: Show confirmation modal if we have product details
+    if (product) {
+      setShowConfirmation(true);
+      return;
+    } else {
+      // If no product details provided, proceed with legacy flow
+      proceedWithOrder();
+    }
+  };
+  
+  const proceedWithOrder = async () => {
     setLoading(true);
     setError(null);
     
@@ -95,6 +125,57 @@ export function BuyNowButton({
     } finally {
       setLoading(false);
       setRetrying(false);
+    }
+  };
+  
+  const handleConfirmPurchase = async () => {
+    if (!user || !product || !productId) {
+      toast.error('Missing required information to complete purchase');
+      return;
+    }
+    
+    try {
+      const totalAmount = product.price * quantity;
+      
+      // Process the purchase using the edge function
+      const { data, error } = await supabase.functions.invoke('process-purchase', {
+        body: {
+          userId: user.id,
+          productId,
+          quantity,
+          totalAmount,
+          kioskToken,
+          promotionCode
+        }
+      });
+      
+      if (error) {
+        console.error('Purchase function error:', error);
+        throw new Error(error.message || 'Failed to process purchase');
+      }
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Purchase failed');
+      }
+      
+      // Close confirmation modal
+      setShowConfirmation(false);
+      
+      // Show order details
+      setOrderId(data.orderId);
+      setOrderProducts(data.orderData);
+      setShowModal(true);
+      
+      toast.success('Purchase completed successfully!', {
+        duration: 5000,
+      });
+      
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (err: any) {
+      console.error('Purchase error:', err);
+      toast.error(err.message || 'An unknown error occurred');
     }
   };
   
@@ -201,6 +282,18 @@ export function BuyNowButton({
         )}
       </div>
       
+      {/* Confirmation modal */}
+      {product && (
+        <PurchaseConfirmationModal
+          isOpen={showConfirmation}
+          onClose={() => setShowConfirmation(false)}
+          onConfirm={handleConfirmPurchase}
+          product={product}
+          quantity={quantity}
+        />
+      )}
+      
+      {/* Success modal */}
       {orderProducts && showModal && (
         <OrderSuccessModal
           open={showModal}

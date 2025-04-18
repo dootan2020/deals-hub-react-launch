@@ -46,6 +46,7 @@ export function BuyNowSection({ product }: BuyNowSectionProps) {
           quantity={quantity}
           isInStock={product.inStock}
           className="w-full py-6 text-base font-medium bg-primary hover:bg-primary-dark transition-all"
+          product={product}
         />
       </div>
     </div>
