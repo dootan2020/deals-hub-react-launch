@@ -5,7 +5,7 @@ import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
 import CategoryFiltersSection from '@/components/category/CategoryFiltersSection';
 import { CategoryHeader } from '@/components/category/CategoryHeader';
-import SubcategoriesGrid from '@/components/category/SubcategoriesGrid';
+import SubcategoryPills from '@/components/category/SubcategoryPills';
 import { useCategoryData } from '@/hooks/useCategoryData';
 import LoadingState from '@/components/category/LoadingState';
 import ErrorState from '@/components/category/ErrorState';
@@ -33,6 +33,9 @@ const CategoryPage: React.FC = () => {
   if (loading) return <LoadingState />;
   if (error || !category) return <ErrorState />;
 
+  // Chỉ hiển thị subcategories nếu category hiện tại là category chính (không có parent)
+  const showSubcategories = !category.parent_id && subcategories.length > 0;
+
   return (
     <Layout>
       <div className="container-custom py-8">
@@ -52,11 +55,10 @@ const CategoryPage: React.FC = () => {
 
           {/* Main Content */}
           <div className="lg:col-span-9 space-y-8">
-            {/* Subcategories Grid */}
-            {subcategories.length > 0 && (
+            {/* Subcategories Pills */}
+            {showSubcategories && (
               <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
-                <SubcategoriesGrid
-                  categorySlug={category.slug}
+                <SubcategoryPills
                   subcategories={subcategories}
                 />
               </div>

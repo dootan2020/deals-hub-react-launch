@@ -8,19 +8,24 @@ import ProductSorter from '@/components/product/ProductSorter';
 import ViewToggle from '@/components/product/ViewToggle';
 import { useCategoryProducts } from '@/hooks/useCategoryProducts';
 import { useCategoriesContext } from '@/context/CategoriesContext';
-import SubcategoriesGrid from '@/components/category/SubcategoriesGrid';
+import SubcategoryPills from '@/components/category/SubcategoryPills';
+import { Category } from '@/types';
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const initialSort = searchParams.get('sort') || 'recommended';
-  const { mainCategories } = useCategoriesContext();
+  const { categories } = useCategoriesContext();
+  
+  // Get level 1 subcategories (those with parent_id)
+  const subcategories = categories.filter(cat => cat.parent_id !== null);
   
   const { 
     products, 
     loading: isLoading,
-    handleSortChange: handleSort 
+    handleSortChange: handleSort,
+    setSelectedCategory 
   } = useCategoryProducts({
     isProductsPage: true,
     sort: initialSort
@@ -37,6 +42,14 @@ const ProductsPage = () => {
     setViewMode(newView);
   };
 
+  const handleSubcategoryClick = (category: Category) => {
+    setSelectedCategory(category.id);
+    toast({
+      title: "Category Filter Applied",
+      description: `Showing products from ${category.name}`,
+    });
+  };
+
   return (
     <Layout>
       <div className="bg-background py-8 min-h-screen">
@@ -50,13 +63,15 @@ const ProductsPage = () => {
               </p>
             </div>
 
-            {/* Subcategories Section */}
-            {mainCategories.length > 0 && (
-              <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
-                <SubcategoriesGrid 
-                  categorySlug="" 
-                  subcategories={mainCategories} 
-                />
+            {/* Subcategories Section with Pills */}
+            {subcategories.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-100 shadow-sm">
+                <div className="p-4">
+                  <SubcategoryPills 
+                    subcategories={subcategories}
+                    onSubcategoryClick={handleSubcategoryClick}
+                  />
+                </div>
               </div>
             )}
 
