@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -150,6 +149,50 @@ export function ProductForm({
     }
   };
 
+  // Function to apply API data to form
+  const applyApiDataToForm = (data: ApiResponse) => {
+    if (!data) {
+      toast.error('No API data available to apply');
+      return;
+    }
+
+    try {
+      console.log('Applying API data to form:', data);
+
+      // Get current kiosk token
+      const currentKioskToken = form.getValues('kioskToken');
+      
+      // Update form values
+      form.setValue('title', data.name || '', { shouldValidate: true });
+      form.setValue('kioskToken', currentKioskToken, { shouldValidate: true });
+      
+      // Calculate price (original price * 3)
+      const originalPrice = parseFloat(data.price) || 0;
+      const calculatedPrice = originalPrice * 3;
+      form.setValue('price', calculatedPrice, { shouldValidate: true });
+      
+      // Set stock quantity
+      const stockValue = parseInt(data.stock) || 0;
+      form.setValue('stock', stockValue, { shouldValidate: true });
+      
+      // Generate slug if title is available
+      if (data.name) {
+        const slug = data.name.toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w\-]+/g, '')
+          .replace(/\-\-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
+        form.setValue('slug', slug, { shouldValidate: true });
+      }
+
+      toast.success('API data applied to form successfully');
+    } catch (error) {
+      console.error('Error applying API data:', error);
+      toast.error('Failed to apply API data to form');
+    }
+  };
+
   const handleFormSubmit = async (formData: ProductFormValues) => {
     try {
       setIsLoading(true);
@@ -270,6 +313,17 @@ export function ProductForm({
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+          {/* Add button to apply API data */}
+          <div className="flex justify-end mb-4">
+            <Button
+              type="button"
+              onClick={() => onApiDataReceived && applyApiDataToForm(onApiDataReceived)}
+              variant="secondary"
+              className="bg-green-500 hover:bg-green-600 text-white"
+            >
+              Apply API Data to Form
+            </Button>
+          </div>
           <div className="space-y-6">
             {/* Kiosk Token */}
             <div className="space-y-4">
@@ -580,3 +634,5 @@ export function ProductForm({
     </>
   );
 }
+
+export default ProductForm;
