@@ -123,8 +123,14 @@ const ProductsPage = () => {
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold">All Products</h1>
             <div className="flex items-center gap-4">
-              <SimplifiedCategoryFilters />
-              <ViewToggle activeView={viewMode} onChange={toggleViewMode} />
+              <SimplifiedCategoryFilters 
+                onSortChange={setActiveSort}
+                activeSort={activeSort}
+              />
+              <ViewToggle 
+                currentView={viewMode} 
+                onViewChange={toggleViewMode}
+              />
             </div>
           </div>
           
