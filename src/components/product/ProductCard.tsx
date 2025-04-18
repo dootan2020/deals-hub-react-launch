@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { Product } from '@/types';
 import { calculateDiscountPercentage } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart } from 'lucide-react';
 import { BuyNowButton } from '@/components/checkout/BuyNowButton';
 import ProductImage from './card/ProductImage';
 import ProductBadges from './card/ProductBadges';
@@ -53,16 +52,14 @@ const ProductCard = ({ product }: ProductCardProps) => {
               inStock={product.inStock}
             />
             
-            <div className="flex flex-col gap-2 mt-3">
-              <Button className="w-full" variant="outline">
-                <ShoppingCart className="h-4 w-4 mr-2" /> Add to Cart
-              </Button>
-              
-              <Link to={`/checkout/${product.slug}`} className="w-full">
-                <Button className="w-full bg-primary hover:bg-primary-dark">
-                  Buy Now
-                </Button>
-              </Link>
+            <div className="mt-3">
+              <BuyNowButton
+                kioskToken={product.kiosk_token}
+                productId={product.id}
+                quantity={1}
+                isInStock={product.inStock}
+                className="w-full bg-primary hover:bg-primary-dark"
+              />
             </div>
           </div>
         </div>

@@ -3,13 +3,13 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart } from 'lucide-react';
 import { calculateDiscountPercentage } from '@/lib/utils';
 import ProductBadges from './card/ProductBadges';
 import ProductRating from './card/ProductRating';
 import ProductPrice from './card/ProductPrice';
 import ProductFeatures from './card/ProductFeatures';
 import ProductQuickViewDialog from './card/ProductQuickViewDialog';
+import { BuyNowButton } from '@/components/checkout/BuyNowButton';
 
 interface ProductCardListProps {
   product: Product;
@@ -27,7 +27,6 @@ const ProductCardList = ({ product }: ProductCardListProps) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Product Image with hover effect */}
       <div className="relative h-[180px] w-[180px] min-w-[180px] bg-gray-50 overflow-hidden">
         <img
           src={product.images[0]}
@@ -38,7 +37,6 @@ const ProductCardList = ({ product }: ProductCardListProps) => {
         <ProductBadges badges={product.badges} discountPercentage={discountPercentage} />
       </div>
       
-      {/* Product Info */}
       <div className="p-4 flex-grow flex flex-col">
         <div className="flex justify-between items-start">
           <div className="flex-grow">
@@ -71,16 +69,14 @@ const ProductCardList = ({ product }: ProductCardListProps) => {
             <ProductQuickViewDialog product={product} />
           </div>
           
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex items-center">
-              <ShoppingCart className="h-4 w-4 mr-1" /> Add to Cart
-            </Button>
-            
-            <Button asChild size="sm" className="bg-primary hover:bg-primary-dark">
-              <Link to={`/checkout/${product.slug}`}>
-                Buy Now
-              </Link>
-            </Button>
+          <div>
+            <BuyNowButton
+              kioskToken={product.kiosk_token}
+              productId={product.id}
+              quantity={1}
+              isInStock={product.inStock}
+              className="bg-primary hover:bg-primary-dark"
+            />
           </div>
         </div>
       </div>
