@@ -3,6 +3,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+// Ensure global is defined
+if (typeof window !== 'undefined' && !window.global) {
+  window.global = window;
+}
+
 const SUPABASE_URL = "https://xcpwyvrlutlslgaueokd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjcHd5dnJsdXRsc2xnYXVlb2tkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTMwMDAsImV4cCI6MjA2MDMyOTAwMH0.6uScHil1Q02Mz-x6p_GQui7vchxIYLRcOCd8UsNiOp0";
 

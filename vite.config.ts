@@ -38,4 +38,9 @@ export default defineConfig(({ mode }) => ({
     // Add mainFields to help resolve packages correctly
     mainFields: ['module', 'jsnext:main', 'jsnext', 'main']
   },
+  define: {
+    // Add polyfills for Node.js globals
+    global: 'window',
+    'process.env': {},
+  },
 }));
