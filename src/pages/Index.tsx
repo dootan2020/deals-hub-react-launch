@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import HeroSection from '@/components/home/HeroSection';
 import SearchSection from '@/components/home/SearchSection';
@@ -8,9 +8,12 @@ import FeaturesSection from '@/components/home/FeaturesSection';
 import ProductGrid from '@/components/product/ProductGrid';
 import TestimonialsSection from '@/components/home/TestimonialsSection';
 import NewsletterSection from '@/components/home/NewsletterSection';
+import { fetchProductsWithFilters } from '@/services/product';
+import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [activeSort, setActiveSort] = useState('recommended');
+  const { toast } = useToast();
 
   return (
     <Layout>
@@ -26,10 +29,10 @@ const Index = () => {
               showSort={true}
               activeSort={activeSort}
               onSortChange={setActiveSort}
-              limit={8} // Limit to 8 products (2 rows of 4)
+              limit={8}
               showViewAll={true}
               viewAllLink={`/products?sort=${activeSort}`}
-              viewAllLabel="Xem tất cả sản phẩm"
+              viewAllLabel="View all products"
             />
           </div>
         </div>

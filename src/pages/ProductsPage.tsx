@@ -5,17 +5,12 @@ import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
 import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
 import ViewToggle from '@/components/category/ViewToggle';
-import { fetchAllCategories } from '@/services/categoryService';
-import { fetchProductsWithFilters } from '@/services/product';
-import { Product } from '@/types';
 import { useToast } from "@/components/ui/use-toast";
 
 const ProductsPage = () => {
   const [searchParams] = useSearchParams();
   const [activeSort, setActiveSort] = useState(searchParams.get('sort') || 'recommended');
   const [currentView, setCurrentView] = useState<'grid' | 'list'>('grid');
-  const [isLoading, setIsLoading] = useState(true);
-  const [products, setProducts] = useState<Product[]>([]);
   const { toast } = useToast();
 
   // Update active sort when URL search params change
@@ -25,31 +20,6 @@ const ProductsPage = () => {
       setActiveSort(sort);
     }
   }, [searchParams]);
-
-  // Fetch all products when the page loads
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        setIsLoading(true);
-        const allProducts = await fetchProductsWithFilters({
-          sort: activeSort,
-          limit: 20
-        });
-        setProducts(allProducts);
-      } catch (error) {
-        console.error('Error loading products:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load products. Please try again.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadProducts();
-  }, [activeSort, toast]);
 
   const handleSortChange = (sort: string) => {
     setActiveSort(sort);
@@ -82,9 +52,8 @@ const ProductsPage = () => {
             </div>
             
             <ProductGrid 
-              products={products}
-              isLoading={isLoading}
               showSort={false}
+              activeSort={activeSort}
               viewMode={currentView}
             />
           </div>
