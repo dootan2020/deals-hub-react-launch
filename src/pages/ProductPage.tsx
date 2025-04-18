@@ -9,6 +9,7 @@ import ProductGrid from '@/components/product/ProductGrid';
 import { Product, Category } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Helmet } from 'react-helmet';
+import { BuyNowButton } from '@/components/checkout/BuyNowButton';
 import {
   Breadcrumb,
   BreadcrumbList,
