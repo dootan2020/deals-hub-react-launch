@@ -1,20 +1,11 @@
 
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { 
-  ShoppingCart, 
-  Loader2, 
-  AlertCircle,
-  CheckCircle2, 
-  Package
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { placeOrder, waitForOrderProcessing } from '@/services/orderService';
+import { ShoppingCart, Loader2, CheckCircle2 } from 'lucide-react';
 import { OrderSuccessModal } from './OrderSuccessModal';
 import { PurchaseConfirmationModal } from './PurchaseConfirmationModal';
-import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { OrderError } from './OrderError';
+import { OrderProcessing } from './OrderProcessing';
+import { useBuyNow } from '@/hooks/use-buy-now';
 import { Product } from '@/types';
 
 interface BuyNowButtonProps {
@@ -24,8 +15,8 @@ interface BuyNowButtonProps {
   promotionCode?: string;
   isInStock: boolean;
   onSuccess?: () => void;
-  className?: string; // Added className prop
-  product?: Product; // Add product for confirmation modal
+  className?: string;
+  product?: Product;
 }
 
 export function BuyNowButton({ 
@@ -38,178 +29,31 @@ export function BuyNowButton({
   className,
   product
 }: BuyNowButtonProps) {
-  const [loading, setLoading] = useState(false);
-  const [orderProcessing, setOrderProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [retrying, setRetrying] = useState(false);
-  const [orderProducts, setOrderProducts] = useState<any[] | null>(null);
-  const [orderId, setOrderId] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  
-  const { isAuthenticated, user, userBalance } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  
-  const handleBuyNow = async () => {
-    // Step 1: Check if user is authenticated
-    if (!isAuthenticated) {
-      // Save the current location to redirect back after login
-      navigate('/login', { state: { from: location.pathname } });
-      return;
-    }
-    
-    // Step 2: Show confirmation modal if we have product details
-    if (product) {
-      setShowConfirmation(true);
-      return;
-    } else {
-      // If no product details provided, proceed with legacy flow
-      proceedWithOrder();
-    }
-  };
-  
-  const proceedWithOrder = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Validate both kioskToken and productId
-      if (!kioskToken || kioskToken.trim() === '') {
-        throw new Error('Product information is incomplete: missing kiosk token');
-      }
-      
-      if (quantity <= 0) {
-        throw new Error('Quantity must be greater than 0');
-      }
-      
-      // Step 1: Place the order
-      const orderResponse = await placeOrder({
-        kioskToken,
-        quantity,
-        promotionCode
-      });
-      
-      if (orderResponse.success !== "true" || !orderResponse.order_id) {
-        throw new Error(orderResponse.description || 'Order failed');
-      }
-      
-      setOrderId(orderResponse.order_id);
-      setOrderProcessing(true);
-      toast.info('Order placed! Processing your request...', {
-        duration: 3000,
-      });
-      
-      // Step 2: Wait for order processing
-      const products = await waitForOrderProcessing(orderResponse.order_id);
-      
-      setOrderProducts(products);
-      setShowModal(true);
-      setOrderProcessing(false);
-      
-      toast.success('Order completed successfully!', {
-        duration: 5000,
-      });
-      
-      if (onSuccess) {
-        onSuccess();
-      }
-    } catch (err: any) {
-      setError(err.message || 'An unknown error occurred');
-      
-      toast.error('Order failed: ' + (err.message || 'Unknown error'), {
-        duration: 5000,
-      });
-      
-      console.error('Buy now error:', err);
-    } finally {
-      setLoading(false);
-      setRetrying(false);
-    }
-  };
-  
-  const handleConfirmPurchase = async () => {
-    if (!user || !product || !productId) {
-      toast.error('Missing required information to complete purchase');
-      return;
-    }
-    
-    try {
-      const totalAmount = product.price * quantity;
-      
-      // Process the purchase using the edge function
-      const { data, error } = await supabase.functions.invoke('process-purchase', {
-        body: {
-          userId: user.id,
-          productId,
-          quantity,
-          totalAmount,
-          kioskToken,
-          promotionCode
-        }
-      });
-      
-      if (error) {
-        console.error('Purchase function error:', error);
-        throw new Error(error.message || 'Failed to process purchase');
-      }
-      
-      if (!data.success) {
-        throw new Error(data.message || 'Purchase failed');
-      }
-      
-      // Close confirmation modal
-      setShowConfirmation(false);
-      
-      // Show order details
-      setOrderId(data.orderId);
-      setOrderProducts(data.orderData);
-      setShowModal(true);
-      
-      toast.success('Purchase completed successfully!', {
-        duration: 5000,
-      });
-      
-      if (onSuccess) {
-        onSuccess();
-      }
-    } catch (err: any) {
-      console.error('Purchase error:', err);
-      toast.error(err.message || 'An unknown error occurred');
-    }
-  };
-  
-  const retryProcessing = async () => {
-    if (!orderId) return;
-    
-    setRetrying(true);
-    setError(null);
-    
-    try {
-      const products = await waitForOrderProcessing(orderId, 1);
-      
-      setOrderProducts(products);
-      setShowModal(true);
-      setOrderProcessing(false);
-      
-      toast.success('Order data retrieved successfully!');
-      
-      if (onSuccess) {
-        onSuccess();
-      }
-    } catch (err: any) {
-      setError(err.message || 'Still processing, please try again later');
-      toast.error('Failed to retrieve order data: ' + (err.message || 'Unknown error'), {
-        duration: 5000,
-      });
-    } finally {
-      setRetrying(false);
-    }
-  };
-  
-  // Disable button if the product is not ready for purchase
+  const {
+    loading,
+    orderProcessing,
+    error,
+    retrying,
+    orderProducts,
+    orderId,
+    showModal,
+    showConfirmation,
+    setShowModal,
+    setShowConfirmation,
+    handleBuyNow,
+    handleConfirmPurchase,
+    retryProcessing
+  } = useBuyNow({
+    kioskToken,
+    productId,
+    quantity,
+    promotionCode,
+    onSuccess,
+    product
+  });
+
   const isDisabled = loading || orderProcessing || !isInStock || !kioskToken || kioskToken.trim() === '';
-  
+
   return (
     <>
       <div className="w-full space-y-3">
@@ -236,29 +80,8 @@ export function BuyNowButton({
           )}
         </Button>
         
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm flex items-start">
-            <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
-        
-        {orderProcessing && (
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm">
-            <p className="font-medium text-blue-700 mb-1 flex items-center">
-              <Package className="h-5 w-5 mr-2" />
-              Order is being processed
-            </p>
-            <p className="text-blue-600 mb-3">
-              Please wait while we prepare your order. This usually takes 5-10 seconds.
-            </p>
-            
-            <div className="w-full bg-blue-200 rounded-full h-1.5 mb-1">
-              <div className="bg-blue-600 h-1.5 rounded-full animate-pulse"></div>
-            </div>
-            <p className="text-xs text-blue-500 text-right">Waiting for confirmation...</p>
-          </div>
-        )}
+        {error && <OrderError error={error} />}
+        {orderProcessing && <OrderProcessing />}
         
         {error && orderId && (
           <Button 
@@ -282,7 +105,6 @@ export function BuyNowButton({
         )}
       </div>
       
-      {/* Confirmation modal */}
       {product && (
         <PurchaseConfirmationModal
           isOpen={showConfirmation}
@@ -293,7 +115,6 @@ export function BuyNowButton({
         />
       )}
       
-      {/* Success modal */}
       {orderProducts && showModal && (
         <OrderSuccessModal
           open={showModal}
