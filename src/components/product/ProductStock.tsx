@@ -13,8 +13,7 @@ export const ProductStock: React.FC<ProductStockProps> = ({ stock, className }) 
       "text-xs text-gray-500 whitespace-nowrap",
       className
     )}>
-      Còn lại: {stock}
+      In stock: {stock}
     </span>
   );
 };
-

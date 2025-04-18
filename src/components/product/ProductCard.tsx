@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -49,7 +50,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
           </div>
         </div>
 
-        {/* Price and Stock Information */}
+        {/* Price and Stock */}
         <div className="flex items-center justify-between mb-4">
           <span className="text-base font-bold text-primary">
             {formatPrice(product.price)}
@@ -66,7 +67,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
             asChild
           >
             <a href={`/product/${product.slug}`}>
-              <span>Chi tiết</span>
+              <span>Details</span>
               <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
             </a>
           </Button>
@@ -81,7 +82,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
             product={product}
           >
             <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
-            Mua Ngay
+            Buy Now
           </BuyNowButton>
         </div>
       </div>
