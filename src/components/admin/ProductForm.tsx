@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -25,9 +24,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw } from 'lucide-react';
-import { fetchProxySettings } from '@/utils/proxyUtils';
-import { fetchViaProxy } from '@/utils/proxyUtils';
-import { fetchActiveApiConfig } from '@/utils/apiUtils';
 
 interface ApiResponse {
   success: string;
@@ -239,35 +235,28 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       setIsLoading(true);
       toast.info('Fetching product data...');
 
-      // Get the proxy configuration
       const proxyConfig = await fetchProxySettings();
       
-      // Get the user token from API config
       const apiConfig = await fetchActiveApiConfig();
       const userToken = apiConfig.user_token;
       
-      // Use the improved fetchViaProxy function
       const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${userToken}`;
       const data = await fetchViaProxy(apiUrl, proxyConfig);
       
       if (data?.success === "true") {
-        // Update form with the API data
         form.setValue('title', data.name);
         form.setValue('description', `${data.name}\n\n${data.description || ''}`.trim());
         form.setValue('price', parseFloat(data.price));
         form.setValue('stock', parseInt(data.stock || '0', 10));
         form.setValue('inStock', parseInt(data.stock || '0', 10) > 0);
         
-        // Generate slug if not already set
-        if (!form.getValues('slug')) {
-          const slug = data.name.toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^\w\-]+/g, '')
-            .replace(/\-\-+/g, '-')
-            .replace(/^-+/, '')
-            .replace(/-+$/, '');
-          form.setValue('slug', slug);
-        }
+        const slug = data.name.toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w\-]+/g, '')
+          .replace(/\-\-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
+        form.setValue('slug', slug);
         
         toast.success('Product data fetched successfully!');
       } else {
@@ -282,15 +271,16 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   };
 
   const handleApiDataReceived = (data: ApiResponse) => {
-    // Update form with API data
+    if (!data) return;
+
+    form.setValue('kioskToken', form.getValues('kioskToken'));
     form.setValue('title', data.name || '');
-    form.setValue('description', data.description || `${data.name} - Digital Product`);
-    form.setValue('price', parseFloat(data.price) || 0);
+    const originalPrice = parseFloat(data.price) || 0;
+    form.setValue('price', originalPrice * 3);
     form.setValue('stock', parseInt(data.stock) || 0);
     form.setValue('inStock', parseInt(data.stock) > 0);
-    
-    // Generate slug if not already set
-    if (!form.getValues('slug')) {
+
+    if (!form.getValues('slug') && data.name) {
       const slug = data.name.toLowerCase()
         .replace(/\s+/g, '-')
         .replace(/[^\w\-]+/g, '')
@@ -299,8 +289,8 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         .replace(/-+$/, '');
       form.setValue('slug', slug);
     }
-    
-    toast.success('Product data applied successfully!');
+
+    toast.success('Product data applied successfully');
   };
 
   return (
