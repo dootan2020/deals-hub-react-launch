@@ -3,16 +3,16 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface OrderStats {
-  totalOrders: number;
-  processingOrders: number;
-  completedOrders: number;
+  total: number;
+  processing: number;
+  completed: number;
 }
 
 export const useOrderStats = (userId: string | undefined) => {
   const [stats, setStats] = useState<OrderStats>({
-    totalOrders: 0,
-    processingOrders: 0,
-    completedOrders: 0
+    total: 0,
+    processing: 0,
+    completed: 0
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -24,30 +24,36 @@ export const useOrderStats = (userId: string | undefined) => {
       }
 
       try {
-        // Fetch total orders count
-        const { count: totalCount } = await supabase
+        // Instead of using complex type inference, use simpler query approach
+        // Query 1: Get total orders
+        const totalResult = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('user_id', userId);
-
-        // Fetch processing orders count
-        const { count: processingCount } = await supabase
+          
+        // Query 2: Get processing orders
+        const processingResult = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
           .eq('status', 'processing');
-
-        // Fetch completed orders count
-        const { count: completedCount } = await supabase
+          
+        // Query 3: Get completed orders
+        const completedResult = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
           .eq('status', 'completed');
+        
+        // Get the count values, defaulting to 0 if count is null
+        const totalCount = totalResult.count ?? 0;
+        const processingCount = processingResult.count ?? 0;
+        const completedCount = completedResult.count ?? 0;
 
         setStats({
-          totalOrders: totalCount || 0,
-          processingOrders: processingCount || 0,
-          completedOrders: completedCount || 0
+          total: totalCount,
+          processing: processingCount,
+          completed: completedCount
         });
       } catch (error) {
         console.error('Error fetching order stats:', error);
