@@ -270,3 +270,26 @@ export async function incrementProductSales(productId: string, quantity: number 
     throw error;
   }
 }
+
+export async function deleteProduct(id: string) {
+  try {
+    const { error: syncLogsError } = await supabase
+      .from('sync_logs')
+      .delete()
+      .eq('product_id', id);
+
+    if (syncLogsError) throw syncLogsError;
+
+    const { error: productError } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id);
+
+    if (productError) throw productError;
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    throw error;
+  }
+}

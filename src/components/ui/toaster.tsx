@@ -8,7 +8,13 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
-import { createElement, ReactNode } from "react"
+import { ReactNode } from "react"
+
+interface ToastAction {
+  altText: string;
+  onClick: () => void;
+  element: ReactNode;
+}
 
 export function Toaster() {
   const { toasts } = useToast()
@@ -16,11 +22,8 @@ export function Toaster() {
   return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
-        // Map sonner toast type to shadcn/ui toast variant if needed
         const variant = props.type === "error" ? "destructive" : "default"
         
-        // Extract properties that don't match shadcn/ui Toast component props
-        // to prevent them from being passed down and causing type errors
         const { 
           type, 
           icon, 
@@ -29,7 +32,6 @@ export function Toaster() {
           invert, 
           closeButton, 
           dismissible,
-          // Add any other sonner-specific props that don't exist in shadcn/ui Toast
           ...compatibleProps 
         } = props
 

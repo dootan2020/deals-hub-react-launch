@@ -12,12 +12,14 @@
   border-bottom-right-radius: 0.375rem;
   border-color: #e5e7eb;
   min-height: 120px;
+  background-color: white;
 }
 
 .rich-text-editor .ql-editor {
   min-height: 120px;
   font-family: inherit;
   font-size: 0.875rem;
+  line-height: 1.6;
 }
 
 .rich-text-editor .ql-editor p {
@@ -39,4 +41,21 @@
 /* Custom editor placeholder */
 .rich-text-editor .ql-editor.ql-blank::before {
   color: #9ca3af;
+  font-style: normal;
+}
+
+/* Error state */
+.rich-text-editor.error .ql-toolbar {
+  border-color: #ef4444;
+}
+
+.rich-text-editor.error .ql-container {
+  border-color: #ef4444;
+}
+
+/* Link tooltip */
+.rich-text-editor .ql-tooltip {
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid #e5e7eb;
 }

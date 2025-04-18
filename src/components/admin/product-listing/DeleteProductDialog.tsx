@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Trash } from 'lucide-react';
+import { Loader2, Trash, AlertTriangle } from 'lucide-react';
 
 interface DeleteProductDialogProps {
   isOpen: boolean;
@@ -32,10 +32,13 @@ export function DeleteProductDialog({
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you sure you want to delete this product?</AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            Delete Product
+          </AlertDialogTitle>
+          <AlertDialogDescription className="space-y-2">
             <p>You are about to delete: <strong>{productName}</strong></p>
-            <p className="mt-2">This action cannot be undone. This will permanently delete the product and remove all associated data.</p>
+            <p className="text-destructive">This action cannot be undone. This will permanently delete the product and remove all associated data.</p>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
