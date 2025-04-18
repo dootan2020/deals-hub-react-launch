@@ -36,17 +36,22 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   // Debug log when the component mounts to verify the kioskToken
   useEffect(() => {
     console.log(`BuyNowButton for product ${productId}:`, {
-      kioskToken: kioskToken || 'missing',
+      kioskToken: typeof kioskToken === 'string' ? kioskToken.substring(0, 10) + '...' : 'invalid type: ' + typeof kioskToken,
       productId,
       isInStock
     });
   }, [kioskToken, productId, isInStock]);
 
-  const hasValidKioskToken = kioskToken && kioskToken.trim() !== '';
+  // Make sure kioskToken is a string and not empty
+  const hasValidKioskToken = typeof kioskToken === 'string' && kioskToken.trim() !== '';
 
   const handleBuyNow = async () => {
     if (!hasValidKioskToken) {
-      console.error('Missing kioskToken', { kioskToken, productId });
+      console.error('Missing or invalid kioskToken', { 
+        kioskToken, 
+        type: typeof kioskToken,
+        productId 
+      });
       toast.error('Không thể mua sản phẩm này: Thiếu thông tin sản phẩm (kioskToken)');
       return;
     }

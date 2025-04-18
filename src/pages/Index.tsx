@@ -11,6 +11,7 @@ import FeaturesSection from '@/components/home/FeaturesSection';
 import ProductGrid from '@/components/product/ProductGrid';
 import TestimonialsSection from '@/components/home/TestimonialsSection';
 import NewsletterSection from '@/components/home/NewsletterSection';
+import { toast } from 'sonner';
 
 const Index = () => {
   const [products, setProducts] = useState([]);
@@ -20,12 +21,20 @@ const Index = () => {
   useEffect(() => {
     const loadProducts = async () => {
       try {
+        setLoading(true);
         const fetchedProducts = await fetchProductsWithFilters({
           sort: activeSort,
         });
+        
+        console.log('Featured products in Index page:', fetchedProducts.map(p => ({
+          title: p.title,
+          kiosk_token: p.kiosk_token ? 'present' : 'missing'
+        })));
+        
         setProducts(fetchedProducts);
       } catch (error) {
         console.error('Error loading products:', error);
+        toast('Failed to load products');
       } finally {
         setLoading(false);
       }

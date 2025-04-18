@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Product, FilterParams } from '@/types';
 import { applyFilters, sortProducts } from '@/utils/productFilters';
@@ -30,6 +31,8 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
       
     if (error) throw error;
     
+    console.log('Raw products data from API:', data);
+    
     const products: Product[] = data.map(item => ({
       id: item.id,
       title: item.title,
@@ -49,8 +52,14 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
       specifications: item.specifications as Record<string, string | number | boolean | object> || {},
       salesCount: 0,
       stock: item.stock || 0,
+      kiosk_token: item.kiosk_token || '',
       createdAt: item.created_at
     }));
+    
+    console.log('Mapped products with kiosk_token:', products.map(p => ({
+      title: p.title,
+      kiosk_token: p.kiosk_token ? 'present' : 'missing'
+    })));
     
     if (!filters) {
       return products;

@@ -26,8 +26,8 @@ export interface Product {
   salesCount?: number;
   sales_count?: number;  // Added this line to match backend naming convention
   createdAt: string;
-  kiosk_token?: string;
-  stock: number; // Added required stock field
+  kiosk_token: string;  // Changed from optional to required
+  stock: number;
 }
 
 export interface Category {
