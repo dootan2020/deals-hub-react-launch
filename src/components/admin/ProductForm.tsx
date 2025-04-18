@@ -155,8 +155,8 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     updatedData.title = data.name || formData.title;
     updatedData.description = data.description || `${data.name} - Digital Product` || formData.description;
     updatedData.price = parseFloat(data.price) || formData.price;
-    updatedData.stock = parseInt(data.stock || '0');
-    updatedData.inStock = parseInt(data.stock || '0') > 0;
+    updatedData.stock = parseInt(data.stock || '0', 10);
+    updatedData.inStock = parseInt(data.stock || '0', 10) > 0;
     
     return updatedData;
   };
@@ -279,8 +279,31 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     }
   };
 
+  const handleApiDataReceived = (data: ApiResponse) => {
+    // Update form with API data
+    form.setValue('title', data.name || '');
+    form.setValue('description', data.description || `${data.name} - Digital Product`);
+    form.setValue('price', parseFloat(data.price) || 0);
+    form.setValue('stock', parseInt(data.stock) || 0);
+    form.setValue('inStock', parseInt(data.stock) > 0);
+    
+    // Generate slug if not already set
+    if (!form.getValues('slug')) {
+      const slug = data.name.toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
+      form.setValue('slug', slug);
+    }
+    
+    toast.success('Product data applied successfully!');
+  };
+
   return (
     <>
+      <ApiProductTester onApiDataReceived={handleApiDataReceived} />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <ProductFormFields 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, RefreshCw, Info, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { ProxyType, ProxyConfig, fetchProxySettings } from '@/utils/proxyUtils';
+import { ProxyType, fetchProxySettings } from '@/utils/proxyUtils';
 import { fetchActiveApiConfig, fetchProductInfoViaServerless } from '@/utils/apiUtils';
 import { supabase } from "@/integrations/supabase/client";
 
@@ -78,7 +77,7 @@ export function ApiProductTester({
     setRawResponse('');
     setIsMockData(false);
 
-    addLog(`Starting API test using direct serverless function...`);
+    addLog('Starting API test using direct serverless function...');
 
     try {
       if (!kioskToken) {
@@ -119,7 +118,6 @@ export function ApiProductTester({
       }
       
       setApiResponse(data);
-      onApiDataReceived(data);
       setLastUpdated(new Date().toLocaleString());
       
       if (data.success === "true") {
@@ -134,21 +132,21 @@ export function ApiProductTester({
       setError(errorMsg);
       addLog(`Error: ${err.message}`);
       toast.error(errorMsg);
-      
-      // Use fallback mock data when an error occurs
-      const mockData = {
-        success: "true",
-        name: "Gmail USA 2023-2024",
-        price: "16000",
-        stock: "3276",
-        description: "This is mock data because the API request failed"
-      };
-      
-      setIsMockData(true);
-      setApiResponse(mockData);
-      onApiDataReceived(mockData);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const applyApiDataToForm = () => {
+    if (apiResponse) {
+      onApiDataReceived({
+        success: apiResponse.success,
+        name: apiResponse.name,
+        price: apiResponse.price,
+        stock: apiResponse.stock,
+        description: apiResponse.description
+      });
+      toast.success('Data applied to form successfully');
     }
   };
 
@@ -280,7 +278,7 @@ export function ApiProductTester({
             </div>
             
             <Button 
-              onClick={() => onApiDataReceived(apiResponse)}
+              onClick={applyApiDataToForm}
               type="button"
               className="w-full"
               variant="secondary"
