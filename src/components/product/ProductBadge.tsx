@@ -10,24 +10,24 @@ interface ProductBadgeProps {
 export const ProductBadge: React.FC<ProductBadgeProps> = ({ type, className }) => {
   const badges = {
     gmail: {
-      bg: 'bg-red-100',
+      bg: 'bg-red-50',
       text: 'text-red-600',
-      icon: 'M'
+      label: 'G'
     },
     facebook: {
-      bg: 'bg-blue-100',
+      bg: 'bg-blue-50',
       text: 'text-blue-600',
-      icon: 'f'
+      label: 'f'
     },
     outlook: {
-      bg: 'bg-sky-100',
+      bg: 'bg-sky-50',
       text: 'text-sky-600',
-      icon: 'O'
+      label: 'O'
     },
     default: {
-      bg: 'bg-gray-100',
+      bg: 'bg-gray-50',
       text: 'text-gray-600',
-      icon: '#'
+      label: '#'
     }
   };
 
@@ -35,12 +35,12 @@ export const ProductBadge: React.FC<ProductBadgeProps> = ({ type, className }) =
 
   return (
     <div className={cn(
-      "w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm",
+      "w-10 h-10 rounded-full flex items-center justify-center font-semibold text-base",
       badge.bg,
       badge.text,
       className
     )}>
-      {badge.icon}
+      {badge.label}
     </div>
   );
 };

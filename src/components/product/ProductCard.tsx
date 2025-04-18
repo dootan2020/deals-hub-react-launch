@@ -6,7 +6,7 @@ import BuyNowButton from '@/components/checkout/BuyNowButton';
 import { formatPrice } from '@/utils/productUtils';
 import { ProductBadge } from './ProductBadge';
 import { ProductStock } from './ProductStock';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ShoppingCart } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -41,18 +41,16 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
         <div className="flex items-start gap-3 mb-3">
           <ProductBadge type={getBadgeType(product.title)} />
           <div className="flex-1">
-            <h3 className="font-semibold text-lg line-clamp-2 text-gray-900">
+            <h3 className="font-semibold text-lg text-gray-900 line-clamp-2">
               {product.title}
             </h3>
+            <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+              {product.shortDescription || product.description}
+            </p>
           </div>
         </div>
 
-        {/* Description */}
-        <p className="text-sm text-gray-500 line-clamp-2 mb-4">
-          {product.shortDescription || product.description}
-        </p>
-
-        {/* Price and Stock */}
+        {/* Price and Stock Information */}
         <div className="flex items-center justify-between mb-4">
           <span className="text-lg font-bold text-primary">
             {formatPrice(product.price)}
@@ -61,11 +59,11 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 mt-auto">
+        <div className="flex flex-wrap gap-2 mt-auto">
           <Button
             variant="outline"
             size="sm"
-            className="flex-1"
+            className="flex-1 min-w-[120px]"
             asChild
           >
             <a href={`/product/${product.slug}`}>
@@ -79,10 +77,13 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
             kioskToken={product.kiosk_token}
             variant="default"
             size="sm"
-            className="flex-1 bg-gradient-to-r from-primary to-primary-dark"
+            className="flex-1 min-w-[120px] bg-gradient-to-r from-primary to-primary-dark"
             isInStock={product.inStock}
             product={product}
-          />
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            Mua Ngay
+          </BuyNowButton>
         </div>
       </div>
     </div>
