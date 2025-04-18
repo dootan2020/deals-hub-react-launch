@@ -21,7 +21,8 @@ const productSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens.'),
   category_id: z.string().min(1, 'Category is required'),
   images: z.string().optional(),
-  kioskToken: z.string().optional()
+  kioskToken: z.string().optional(),
+  stock: z.number().int().min(0, 'Stock must be a non-negative integer')
 });
 
 export type ProductFormValues = z.infer<typeof productSchema>;
@@ -38,6 +39,7 @@ interface Product {
   description: string;
   images?: string[];
   kiosk_token?: string | null;
+  stock: number;
 }
 
 interface ProductFormManagerProps {
@@ -75,7 +77,8 @@ export function ProductFormManager({
       slug: '',
       category_id: '',
       images: '',
-      kioskToken: ''
+      kioskToken: '',
+      stock: 0
     }
   });
 
@@ -94,7 +97,8 @@ export function ProductFormManager({
         slug: initialProductData.slug,
         category_id: initialProductData.category_id || '',
         images: initialProductData.images ? initialProductData.images.join('\n') : '',
-        kioskToken: initialProductData.kiosk_token || ''
+        kioskToken: initialProductData.kiosk_token || '',
+        stock: initialProductData.stock || 0
       });
     } else {
       resetForm();
@@ -113,7 +117,8 @@ export function ProductFormManager({
       slug: '',
       category_id: '',
       images: '',
-      kioskToken: ''
+      kioskToken: '',
+      stock: 0
     });
   };
 

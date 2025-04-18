@@ -38,7 +38,6 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 
-// Define product schema
 const productSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().min(1, 'Description is required'),
@@ -372,7 +371,6 @@ const ProductManagerPage = () => {
   };
 
   const resetForm = () => {
-    setSelectedProduct(null);
     form.reset({
       title: '',
       description: '',
@@ -383,7 +381,9 @@ const ProductManagerPage = () => {
       category_id: '',
       images: '',
       kioskToken: '',
+      stock: 0
     });
+    setFormDirty(false);
     toast.info('Form has been reset');
   };
 
