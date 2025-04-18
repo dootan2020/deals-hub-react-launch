@@ -4,13 +4,15 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 import { PaginationState } from '@/types/category.types';
+import { applyFilters, sortProducts } from '@/utils/productFilters';
 
 interface UseCategoryProductsProps {
   categoryId?: string;
   isProductsPage?: boolean;
+  sort?: string;
 }
 
-export const useCategoryProducts = ({ categoryId, isProductsPage = false }: UseCategoryProductsProps) => {
+export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort = 'recommended' }: UseCategoryProductsProps) => {
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [pagination, setPagination] = useState<PaginationState>({
@@ -20,17 +22,16 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false }: UseC
     totalItems: 0
   });
   const [loading, setLoading] = useState(true);
+  const [currentSort, setCurrentSort] = useState(sort);
 
   const fetchProducts = async () => {
     try {
       let query = supabase.from('products').select('*', { count: 'exact' });
       
-      // Only filter by category if we have a category ID and we're not on the products page
       if (categoryId && !isProductsPage) {
         query = query.eq('category_id', categoryId);
       }
       
-      // Add pagination
       const from = (pagination.page - 1) * pagination.pageSize;
       const to = pagination.page * pagination.pageSize - 1;
       
@@ -81,7 +82,7 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false }: UseC
         totalPages: Math.ceil(totalCount / prev.pageSize)
       }));
       
-      // Map the database fields to match the Product type
+      // Map and sort the products
       const mappedProducts: Product[] = allProducts.map(p => ({
         id: p.id,
         title: p.title,
@@ -100,11 +101,12 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false }: UseC
         features: p.features || [],
         specifications: p.specifications as Record<string, string | number | boolean | object> || {},
         salesCount: p.stock_quantity || 0,
-        stock: p.stock || 0, // Added stock field
+        stock: p.stock || 0,
         createdAt: p.created_at
       }));
-      
-      setProducts(mappedProducts);
+
+      const sortedProducts = sortProducts(mappedProducts, currentSort);
+      setProducts(sortedProducts);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Error fetching products:', error);
@@ -125,9 +127,13 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false }: UseC
     }
   };
 
+  const handleSortChange = (newSort: string) => {
+    setCurrentSort(newSort);
+  };
+
   useEffect(() => {
     fetchProducts();
-  }, [categoryId, pagination.page, isProductsPage]);
+  }, [categoryId, pagination.page, isProductsPage, currentSort]);
 
-  return { products, pagination, handlePageChange, loading };
+  return { products, pagination, handlePageChange, handleSortChange, loading };
 };

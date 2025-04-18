@@ -17,12 +17,13 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPa
   const { 
     products, 
     pagination,
-    handlePageChange,
     loading: productsLoading,
+    handlePageChange,
     handleSortChange, 
   } = useCategoryProducts({
     categoryId: category?.id,
-    isProductsPage: !categorySlug && !parentCategorySlug
+    isProductsPage: !categorySlug && !parentCategorySlug,
+    sort: activeFilters.sort
   });
 
   const { subcategories, featuredProducts } = useSubcategories(category?.id);
@@ -40,6 +41,11 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPa
     return result;
   };
 
+  const handleSort = (newSort: string) => {
+    setActiveFilters(prev => ({ ...prev, sort: newSort }));
+    handleSortChange(newSort);
+  };
+
   return {
     category,
     products,
@@ -51,7 +57,7 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPa
     setActiveTab,
     activeFilters,
     totalProducts: pagination.totalItems,
-    handleSortChange,
+    handleSortChange: handleSort,
     buildBreadcrumbs,
     subcategories,
     featuredProducts,
