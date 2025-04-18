@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -10,7 +9,7 @@ import { useProductSync } from '@/hooks/use-product-sync';
 import { Form } from '@/components/ui/form';
 import { Category } from '@/types';
 import { KioskTokenField } from './product-form/KioskTokenField';
-import { BasicProductInfo } from './product-form/BasicProductInfo';
+import { ProductFormFields } from './product-form/ProductFormFields';
 import { FormFooter } from './product-form/FormFooter';
 import {
   AlertDialog,
@@ -25,7 +24,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw } from 'lucide-react';
 
-// Add the missing ApiResponse type
 interface ApiResponse {
   success: string;
   name: string;
@@ -37,12 +35,8 @@ interface ApiResponse {
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
   description: z.string().min(10, 'Description must be at least 10 characters.'),
-  price: z.string().min(1).refine(val => !isNaN(parseFloat(val)), {
-    message: 'Price must be a valid number.',
-  }),
-  originalPrice: z.string().optional().refine(val => !val || !isNaN(parseFloat(val)), {
-    message: 'Original price must be a valid number.',
-  }),
+  price: z.coerce.number().min(0, 'Price must be a positive number.'),
+  originalPrice: z.coerce.number().min(0, 'Original price must be positive').optional(),
   inStock: z.boolean().default(true),
   slug: z.string().min(3, 'Slug must be at least 3 characters.')
     .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens.'),
@@ -73,8 +67,8 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     defaultValues: {
       title: '',
       description: '',
-      price: '',
-      originalPrice: '',
+      price: 0,
+      originalPrice: undefined,
       inStock: true,
       slug: '',
       externalId: '',
@@ -82,10 +76,10 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       images: '',
       kioskToken: '',
       stock: 0,
-    }
+    },
+    mode: 'onChange'
   });
 
-  // Track form changes
   useEffect(() => {
     const subscription = form.watch(() => {
       setFormDirty(true);
@@ -130,8 +124,8 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         form.reset({
           title: data.title,
           description: data.description,
-          price: String(data.price),
-          originalPrice: data.original_price ? String(data.original_price) : '',
+          price: data.price,
+          originalPrice: data.original_price || undefined,
           inStock: data.in_stock ?? true,
           slug: data.slug,
           externalId: data.external_id || '',
@@ -156,11 +150,8 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     const updatedData = { ...formData };
     
     updatedData.title = data.name || formData.title;
-    updatedData.description = data.description || `${data.name} - Digital Product` || '';
+    updatedData.description = data.description || `${data.name} - Digital Product` || formData.description;
     updatedData.price = parseFloat(data.price) || formData.price;
-    updatedData.inStock = parseInt(data.stock || '0') > 0;
-    
-    // Map API stock to form
     updatedData.stock = parseInt(data.stock || '0');
     updatedData.inStock = parseInt(data.stock || '0') > 0;
     
@@ -173,8 +164,8 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       const productData = {
         title: formData.title,
         description: formData.description,
-        price: parseFloat(formData.price),
-        original_price: formData.originalPrice ? parseFloat(formData.originalPrice) : null,
+        price: formData.price,
+        original_price: formData.originalPrice || null,
         in_stock: formData.inStock,
         slug: formData.slug,
         external_id: formData.externalId || null,
@@ -219,8 +210,8 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     form.reset({
       title: '',
       description: '',
-      price: '',
-      originalPrice: '',
+      price: 0,
+      originalPrice: undefined,
       inStock: true,
       slug: '',
       externalId: '',
@@ -237,8 +228,10 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <KioskTokenField />
-          <BasicProductInfo categories={categories} />
+          <ProductFormFields 
+            categories={categories} 
+            isEditMode={!!productId}
+          />
 
           <div className="flex justify-between">
             <Button 
