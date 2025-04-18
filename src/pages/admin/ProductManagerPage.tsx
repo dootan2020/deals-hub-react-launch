@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { toast } from 'sonner';
@@ -28,14 +27,6 @@ interface Product {
   last_synced_at?: string;
   created_at: string;
   [key: string]: any;
-}
-
-interface ApiResponse {
-  success: string;
-  name: string;
-  price: string;
-  stock: string;
-  description?: string;
 }
 
 const ProductManagerPage = () => {

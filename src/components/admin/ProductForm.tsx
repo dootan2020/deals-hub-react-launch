@@ -28,14 +28,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw } from 'lucide-react';
 
-interface ApiResponse {
-  success: string;
-  name: string;
-  price: string;
-  stock: string;
-  description?: string;
-}
-
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
   description: z.string().min(10, 'Description must be at least 10 characters.'),
