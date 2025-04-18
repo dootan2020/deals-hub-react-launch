@@ -68,7 +68,7 @@ const ProductCardList = ({ product }: ProductCardListProps) => {
             <ProductQuickViewDialog product={product} />
           </div>
           
-          <div>
+          <div className="relative z-10">
             <BuyNowButton
               kioskToken={product.kiosk_token}
               productId={product.id}

@@ -55,12 +55,12 @@ export function BuyNowButton({
 
   const isDisabled = loading || orderProcessing || !isInStock || !kioskToken || kioskToken.trim() === '';
 
-  const onClickBuyNow = (e: React.MouseEvent) => {
+  const onClickBuyNow = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Show a toast notification for debugging
-    toast.info('Processing Buy Now request...');
+    // Show a toast notification for debugging and user feedback
+    toast.info('Processing your request...');
     
     // Call the handler
     handleBuyNow();

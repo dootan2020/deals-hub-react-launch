@@ -42,7 +42,7 @@ export function Toaster() {
           </Toast>
         )
       })}
-      <ToastViewport />
+      <ToastViewport className="z-50" />
     </ToastProvider>
   )
 }

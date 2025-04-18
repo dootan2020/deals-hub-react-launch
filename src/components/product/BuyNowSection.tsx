@@ -37,7 +37,7 @@ export function BuyNowSection({ product }: BuyNowSectionProps) {
         </div>
       </div>
       
-      <div className="relative">
+      <div className="relative z-10">
         <BuyNowButton
           kioskToken={product.kiosk_token || ''}
           productId={product.id}
