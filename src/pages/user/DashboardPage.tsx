@@ -1,78 +1,13 @@
 
-import { useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import UserLayout from '@/components/layout/UserLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wallet, ShoppingCart, Clock } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-
-interface OrderStats {
-  totalOrders: number;
-  processingOrders: number;
-  completedOrders: number;
-}
+import { useOrderStats } from '@/hooks/useOrderStats';
 
 const DashboardPage = () => {
   const { user, userBalance } = useAuth();
-  const [orderStats, setOrderStats] = useState<OrderStats>({
-    totalOrders: 0,
-    processingOrders: 0,
-    completedOrders: 0
-  });
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchOrderStats = async () => {
-      if (!user) return;
-
-      try {
-        // Using explicit type casting to avoid deep type instantiation
-        
-        // Fetch all orders for this user - we only need the count
-        const { count: totalCount, error: totalError } = await supabase
-          .from('orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id);
-          
-        // Fetch processing orders for this user
-        const { count: processingCount, error: processingError } = await supabase
-          .from('orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('status', 'processing');
-        
-        // Fetch completed orders for this user
-        const { count: completedCount, error: completedError } = await supabase
-          .from('orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('status', 'completed');
-
-        // Check for errors
-        if (totalError || processingError || completedError) {
-          console.error('Error fetching order statistics', { 
-            totalError, 
-            processingError, 
-            completedError
-          });
-        }
-
-        // Update state with counts, defaulting to 0 for undefined values
-        setOrderStats({
-          totalOrders: totalCount ?? 0,
-          processingOrders: processingCount ?? 0,
-          completedOrders: completedCount ?? 0
-        });
-      } catch (error) {
-        console.error('Error fetching order stats:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchOrderStats();
-  }, [user]);
+  const { stats, isLoading } = useOrderStats(user?.id);
 
   return (
     <UserLayout title="Bảng điều khiển">
@@ -99,10 +34,10 @@ const DashboardPage = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isLoading ? '...' : orderStats.processingOrders}
+              {isLoading ? '...' : stats.processingOrders}
             </div>
             <p className="text-xs text-muted-foreground">
-              Trên tổng số {orderStats.totalOrders} đơn hàng
+              Trên tổng số {stats.totalOrders} đơn hàng
             </p>
           </CardContent>
         </Card>
@@ -114,7 +49,7 @@ const DashboardPage = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isLoading ? '...' : orderStats.completedOrders}
+              {isLoading ? '...' : stats.completedOrders}
             </div>
             <p className="text-xs text-muted-foreground">
               Đơn hàng thành công
