@@ -16,20 +16,22 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPa
   
   const { 
     products, 
-    pagination,
     loading: productsLoading,
-    handlePageChange,
+    loadingMore,
+    hasMore,
+    loadMore,
     handleSortChange, 
+    setSelectedCategory
   } = useCategoryProducts({
     categoryId: category?.id,
     isProductsPage: !categorySlug && !parentCategorySlug,
     sort: activeFilters.sort
   });
 
-  const { subcategories, featuredProducts } = useSubcategories(category?.id);
-  
   const loading = categoryLoading || productsLoading;
 
+  const { subcategories, featuredProducts } = useSubcategories(category?.id);
+  
   const buildBreadcrumbs = () => {
     const result = [];
     if (category?.parent) {
@@ -51,16 +53,17 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPa
     products,
     loading,
     error,
-    pagination,
-    handlePageChange,
+    loadingMore,
+    hasMore,
+    loadMore,
     activeTab,
     setActiveTab,
     activeFilters,
-    totalProducts: pagination.totalItems,
     handleSortChange: handleSort,
     buildBreadcrumbs,
     subcategories,
     featuredProducts,
+    setSelectedCategory,
     isProductsPage: !categorySlug && !parentCategorySlug
   };
 };

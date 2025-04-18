@@ -21,10 +21,14 @@ const CategoryPage: React.FC = () => {
     category,
     products,
     loading,
+    loadingMore,
+    hasMore,
+    loadMore,
     error,
     handleSortChange,
     activeFilters,
-    subcategories
+    subcategories,
+    setSelectedCategory
   } = useCategoryData({
     categorySlug: params.categorySlug,
     parentCategorySlug: params.parentCategorySlug
@@ -33,8 +37,12 @@ const CategoryPage: React.FC = () => {
   if (loading) return <LoadingState />;
   if (error || !category) return <ErrorState />;
 
-  // Chỉ hiển thị subcategories nếu category hiện tại là category chính (không có parent)
+  // Only show subcategories if the current category is a main category (no parent)
   const showSubcategories = !category.parent_id && subcategories.length > 0;
+
+  const handleSubcategoryClick = (subcategory: any) => {
+    setSelectedCategory(subcategory.id);
+  };
 
   return (
     <Layout>
@@ -60,6 +68,7 @@ const CategoryPage: React.FC = () => {
               <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
                 <SubcategoryPills
                   subcategories={subcategories}
+                  onSubcategoryClick={handleSubcategoryClick}
                 />
               </div>
             )}
@@ -81,6 +90,9 @@ const CategoryPage: React.FC = () => {
                 products={products}
                 viewMode={viewMode}
                 isLoading={loading}
+                loadingMore={loadingMore}
+                hasMore={hasMore}
+                onLoadMore={loadMore}
               />
             </div>
           </div>

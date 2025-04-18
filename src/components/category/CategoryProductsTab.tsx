@@ -11,18 +11,18 @@ interface CategoryProductsTabProps {
   category: CategoryWithParent | null;
   products: Product[];
   isLoading: boolean;
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
+  loadingMore?: boolean;
+  hasMore?: boolean;
+  loadMore?: () => void;
 }
 
 export const CategoryProductsTab = ({
   category,
   products,
   isLoading,
-  currentPage,
-  totalPages,
-  onPageChange
+  loadingMore,
+  hasMore,
+  loadMore
 }: CategoryProductsTabProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -71,9 +71,9 @@ export const CategoryProductsTab = ({
         showSort={false}
         viewMode={viewMode}
         isLoading={isLoading}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={onPageChange}
+        loadingMore={loadingMore}
+        hasMore={hasMore}
+        onLoadMore={loadMore}
       />
     </div>
   );
