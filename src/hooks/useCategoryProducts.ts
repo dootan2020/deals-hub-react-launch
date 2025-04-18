@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
-import { PaginationState } from '@/types/category.types';
 import { sortProducts } from '@/utils/productFilters';
 
 interface UseCategoryProductsProps {
@@ -15,42 +14,36 @@ interface UseCategoryProductsProps {
 export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort = 'recommended' }: UseCategoryProductsProps) => {
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
-  const [pagination, setPagination] = useState<PaginationState>({
-    page: 1,
-    pageSize: 12,
-    totalPages: 1,
-    totalItems: 0
-  });
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [currentSort, setCurrentSort] = useState(sort);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20; // Initial load size
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (isLoadMore = false) => {
     try {
+      const offset = isLoadMore ? products.length : 0;
       let query = supabase.from('products').select('*', { count: 'exact' });
       
       if (categoryId && !isProductsPage) {
         query = query.eq('category_id', categoryId);
       }
       
-      // If we're on the products page and a specific subcategory is selected
       if (isProductsPage && selectedCategory) {
         query = query.eq('category_id', selectedCategory);
       }
       
-      const from = (pagination.page - 1) * pagination.pageSize;
-      const to = pagination.page * pagination.pageSize - 1;
-      
       const { data: fetchedProducts, error, count } = await query
-        .range(from, to);
+        .range(offset, offset + PAGE_SIZE - 1);
         
       if (error) throw error;
       
       let allProducts = fetchedProducts || [];
-      let totalCount = count || 0;
       
       // If we're filtering by category, also get products from subcategories
-      if (categoryId && !isProductsPage) {
+      if (categoryId && !isProductsPage && !isLoadMore) {
         const { data: subcategories } = await supabase
           .from('categories')
           .select('id')
@@ -59,34 +52,17 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
         if (subcategories && subcategories.length > 0) {
           const subcategoryIds = subcategories.map(sc => sc.id);
           
-          const { count: subCount } = await supabase
+          const { data: subcategoryProducts } = await supabase
             .from('products')
-            .select('*', { count: 'exact' })
-            .in('category_id', subcategoryIds);
+            .select('*')
+            .in('category_id', subcategoryIds)
+            .range(0, PAGE_SIZE - allProducts.length - 1);
             
-          totalCount += subCount || 0;
-          
-          const remainingItems = pagination.pageSize - allProducts.length;
-          
-          if (remainingItems > 0) {
-            const { data: subcategoryProducts } = await supabase
-              .from('products')
-              .select('*')
-              .in('category_id', subcategoryIds)
-              .range(0, remainingItems - 1);
-              
-            if (subcategoryProducts) {
-              allProducts = [...allProducts, ...subcategoryProducts];
-            }
+          if (subcategoryProducts) {
+            allProducts = [...allProducts, ...subcategoryProducts];
           }
         }
       }
-      
-      setPagination(prev => ({
-        ...prev,
-        totalItems: totalCount,
-        totalPages: Math.ceil(totalCount / prev.pageSize)
-      }));
       
       // Map and sort the products
       const mappedProducts: Product[] = allProducts.map(p => ({
@@ -112,7 +88,9 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
       }));
 
       const sortedProducts = sortProducts(mappedProducts, currentSort);
-      setProducts(sortedProducts);
+      
+      setProducts(prev => isLoadMore ? [...prev, ...sortedProducts] : sortedProducts);
+      setHasMore((count || 0) > (isLoadMore ? products.length + sortedProducts.length : sortedProducts.length));
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error("Error fetching products:", error);
@@ -124,29 +102,40 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
       });
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
-  const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= pagination.totalPages) {
-      setPagination(prev => ({ ...prev, page: newPage }));
-    }
+  const loadMore = async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    setPage(prev => prev + 1);
+    await fetchProducts(true);
   };
 
   const handleSortChange = (newSort: string) => {
     setCurrentSort(newSort);
+    setProducts([]);
+    setPage(1);
+    setHasMore(true);
   };
 
   useEffect(() => {
+    setLoading(true);
+    setProducts([]);
+    setPage(1);
+    setHasMore(true);
     fetchProducts();
-  }, [categoryId, pagination.page, isProductsPage, currentSort, selectedCategory]);
+  }, [categoryId, isProductsPage, currentSort, selectedCategory]);
 
   return { 
     products, 
-    pagination, 
-    handlePageChange, 
-    handleSortChange, 
     loading,
+    loadingMore,
+    hasMore,
+    loadMore,
+    handleSortChange,
     setSelectedCategory 
   };
 };
+
