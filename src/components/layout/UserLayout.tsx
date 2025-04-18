@@ -1,3 +1,4 @@
+
 import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -22,8 +23,8 @@ const UserLayout = ({ children, title }: UserLayoutProps) => {
       <div className="w-64 bg-white shadow-md">
         <div className="p-4 border-b">
           <Link to="/" className="text-2xl font-bold">
-            <span className="text-[#9b87f5]">Acc</span>
-            <span className="text-[#7E69AB]">Zen.net</span>
+            <span className="text-[#1A936F]">Acc</span>
+            <span className="text-[#1A936F]">Zen.net</span>
           </Link>
         </div>
         <nav className="p-4">
