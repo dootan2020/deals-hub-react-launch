@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -38,7 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Define schema for form validation
+// Định nghĩa schema xác thực form
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
   description: z.string().min(10, 'Description must be at least 10 characters.'),
@@ -56,7 +56,7 @@ const productSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
-export interface ApiResponse {
+interface ApiResponse {
   success: string;
   name: string;
   price: string;
@@ -82,7 +82,6 @@ export function ProductForm({
   const [isLoading, setIsLoading] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
-  const [apiData, setApiData] = useState<ApiResponse | null>(null);
   
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -151,58 +150,6 @@ export function ProductForm({
     }
   };
 
-  // Function to apply API data to form
-  const applyApiDataToForm = (data: ApiResponse) => {
-    if (!data) {
-      toast.error('No API data available to apply');
-      return;
-    }
-
-    try {
-      console.log('Applying API data to form:', data);
-
-      // Get current kiosk token
-      const currentKioskToken = form.getValues('kioskToken');
-      
-      // Update form values
-      form.setValue('title', data.name || '', { shouldValidate: true });
-      form.setValue('kioskToken', currentKioskToken || data.kioskToken || '', { shouldValidate: true });
-      
-      // Calculate price (original price * 3)
-      const originalPrice = parseFloat(data.price) || 0;
-      const calculatedPrice = originalPrice * 3;
-      form.setValue('price', calculatedPrice, { shouldValidate: true });
-      
-      // Set stock quantity
-      const stockValue = parseInt(data.stock) || 0;
-      form.setValue('stock', stockValue, { shouldValidate: true });
-      form.setValue('inStock', stockValue > 0, { shouldValidate: true });
-      
-      // Generate slug if title is available and slug is empty
-      if (data.name && !form.getValues('slug')) {
-        const slug = data.name.toLowerCase()
-          .replace(/\s+/g, '-')
-          .replace(/[^\w\-]+/g, '')
-          .replace(/\-\-+/g, '-')
-          .replace(/^-+/, '')
-          .replace(/-+$/, '');
-        form.setValue('slug', slug, { shouldValidate: true });
-      }
-
-      // Set description if available
-      if (data.description) {
-        form.setValue('description', data.description, { shouldValidate: true });
-      } else if (data.name && !form.getValues('description')) {
-        form.setValue('description', `${data.name} - Digital Product`, { shouldValidate: true });
-      }
-
-      toast.success('API data applied to form successfully');
-    } catch (error) {
-      console.error('Error applying API data:', error);
-      toast.error('Failed to apply API data to form');
-    }
-  };
-
   const handleFormSubmit = async (formData: ProductFormValues) => {
     try {
       setIsLoading(true);
@@ -210,7 +157,7 @@ export function ProductForm({
       if (onSubmit) {
         await onSubmit(formData);
       } else {
-        // Default handling if no onSubmit provided
+        // Mặc định xử lý nếu không có hàm onSubmit được truyền vào
         const productData = {
           title: formData.title,
           description: formData.description,
@@ -312,38 +259,17 @@ export function ProductForm({
     }
   };
 
-  // Handle receiving API data
+  // Cập nhật form với dữ liệu từ API
   useEffect(() => {
-    if (apiData) {
-      applyApiDataToForm(apiData);
+    if (onApiDataReceived) {
+      // Thực hiện cập nhật form khi nhận được dữ liệu API
     }
-  }, [apiData]);
+  }, [onApiDataReceived]);
 
   return (
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-          {/* Add button to apply API data if available */}
-          {onApiDataReceived && (
-            <div className="flex justify-end mb-4">
-              <Button
-                type="button"
-                onClick={() => {
-                  // This is now correctly typed - we're passing the received data directly to applyApiDataToForm
-                  if (apiData) {
-                    applyApiDataToForm(apiData);
-                  } else {
-                    toast.error('No API data available yet. Please use "Get Product Info" first.');
-                  }
-                }}
-                variant="secondary"
-                className="bg-green-500 hover:bg-green-600 text-white"
-              >
-                Apply API Data to Form
-              </Button>
-            </div>
-          )}
-
           <div className="space-y-6">
             {/* Kiosk Token */}
             <div className="space-y-4">
@@ -378,7 +304,7 @@ export function ProductForm({
               />
             </div>
 
-            {/* Product Title */}
+            {/* Tiêu đề sản phẩm */}
             <FormField
               control={form.control}
               name="title"
@@ -393,7 +319,7 @@ export function ProductForm({
               )}
             />
 
-            {/* Description */}
+            {/* Mô tả */}
             <FormField
               control={form.control}
               name="description"
@@ -443,7 +369,7 @@ export function ProductForm({
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Price */}
+              {/* Giá */}
               <FormField
                 control={form.control}
                 name="price"
@@ -458,7 +384,7 @@ export function ProductForm({
                 )}
               />
 
-              {/* Original Price */}
+              {/* Giá gốc */}
               <FormField
                 control={form.control}
                 name="originalPrice"
@@ -487,7 +413,7 @@ export function ProductForm({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Category */}
+              {/* Danh mục */}
               <FormField
                 control={form.control}
                 name="categoryId"
@@ -519,7 +445,7 @@ export function ProductForm({
                 )}
               />
 
-              {/* Stock Quantity */}
+              {/* Số lượng tồn kho */}
               <FormField
                 control={form.control}
                 name="stock"
@@ -542,7 +468,7 @@ export function ProductForm({
               />
             </div>
 
-            {/* In Stock Status */}
+            {/* Trạng thái tồn kho */}
             <FormField
               control={form.control}
               name="inStock"
@@ -566,7 +492,7 @@ export function ProductForm({
               )}
             />
 
-            {/* Images */}
+            {/* Hình ảnh */}
             <FormField
               control={form.control}
               name="images"
@@ -654,5 +580,3 @@ export function ProductForm({
     </>
   );
 }
-
-export default ProductForm;

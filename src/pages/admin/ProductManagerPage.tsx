@@ -394,7 +394,7 @@ const ProductManagerPage = () => {
                   <CardContent>
                     <ProductForm
                       onApiTest={handleApiTest}
-                      onApiDataReceived={(data) => handleApiDataReceived(data)}
+                      onApiDataReceived={handleApiDataReceived}
                       onSubmit={handleProductSubmit}
                       categories={categories}
                     />
@@ -425,7 +425,7 @@ const ProductManagerPage = () => {
                       <ProductForm
                         productId={selectedProduct.id}
                         onApiTest={handleApiTest}
-                        onApiDataReceived={(data) => handleApiDataReceived(data)}
+                        onApiDataReceived={handleApiDataReceived}
                         onSubmit={handleProductSubmit}
                         categories={categories}
                       />
