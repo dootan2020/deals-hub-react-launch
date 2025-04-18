@@ -273,6 +273,7 @@ export async function incrementProductSales(productId: string, quantity: number 
 
 export async function deleteProduct(id: string) {
   try {
+    // First delete all sync logs for this product
     const { error: syncLogsError } = await supabase
       .from('sync_logs')
       .delete()
@@ -280,6 +281,7 @@ export async function deleteProduct(id: string) {
 
     if (syncLogsError) throw syncLogsError;
 
+    // Then delete the product
     const { error: productError } = await supabase
       .from('products')
       .delete()

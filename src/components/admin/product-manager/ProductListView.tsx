@@ -34,6 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { deleteProduct } from '@/services/product/productService';
 
 interface Product {
   id: string;
@@ -107,13 +108,7 @@ export function ProductListView({
     if (!productToDelete) return;
     
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', productToDelete.id);
-
-      if (error) throw error;
-      
+      await deleteProduct(productToDelete.id);
       setProducts(products.filter(p => p.id !== productToDelete.id));
       toast.success('Product deleted successfully');
     } catch (error) {
