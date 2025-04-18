@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wallet, ShoppingCart, Clock } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface OrderStats {
   totalOrders: number;
@@ -26,39 +27,39 @@ const DashboardPage = () => {
       if (!user) return;
 
       try {
-        // Using type-safe approach to avoid deep type instantiation
+        // Using a different approach to avoid type instantiation issues
         
-        // Get total orders count with explicit casting
-        const totalResult = await supabase
+        // Get total orders count
+        const totalQuery = await supabase
           .from('orders')
-          .select('id', { count: 'exact' })
+          .select('*', { count: 'exact' })
           .eq('user_id', user.id);
           
-        // Get processing orders count with explicit casting
-        const processingResult = await supabase
+        // Get processing orders count
+        const processingQuery = await supabase
           .from('orders')
-          .select('id', { count: 'exact' })
+          .select('*', { count: 'exact' })
           .eq('user_id', user.id)
           .eq('status', 'processing');
         
-        // Get completed orders count with explicit casting
-        const completedResult = await supabase
+        // Get completed orders count
+        const completedQuery = await supabase
           .from('orders')
-          .select('id', { count: 'exact' })
+          .select('*', { count: 'exact' })
           .eq('user_id', user.id)
           .eq('status', 'completed');
 
-        // Extract count values with safe defaults
-        const totalCount = totalResult.count !== null ? totalResult.count : 0;
-        const processingCount = processingResult.count !== null ? processingResult.count : 0;
-        const completedCount = completedResult.count !== null ? completedResult.count : 0;
+        // Safely handle count values - use type assertion to avoid deep instantiation
+        const totalCount = typeof totalQuery.count === 'number' ? totalQuery.count : 0;
+        const processingCount = typeof processingQuery.count === 'number' ? processingQuery.count : 0;
+        const completedCount = typeof completedQuery.count === 'number' ? completedQuery.count : 0;
 
         // Check for errors
-        if (totalResult.error || processingResult.error || completedResult.error) {
+        if (totalQuery.error || processingQuery.error || completedQuery.error) {
           console.error('Error fetching order statistics', { 
-            totalError: totalResult.error, 
-            processingError: processingResult.error, 
-            completedError: completedResult.error 
+            totalError: totalQuery.error, 
+            processingError: processingQuery.error, 
+            completedError: completedQuery.error 
           });
         }
 
