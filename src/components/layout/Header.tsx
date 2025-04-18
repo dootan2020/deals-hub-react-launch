@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Logo from './header/Logo';
 import DesktopNavigation from './header/DesktopNavigation';
 import LanguageSelector from './header/LanguageSelector';
-import UserButton from './header/UserButton';
+import { UserButton } from './header/UserButton';  // Changed from default import to named import
 import MobileMenuToggle from './header/MobileMenuToggle';
 import MobileNavigation from './header/MobileNavigation';
 
