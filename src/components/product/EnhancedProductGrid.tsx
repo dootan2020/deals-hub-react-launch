@@ -1,8 +1,12 @@
 
 import React from 'react';
+import ProductCard from './ProductCard';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
+import { Product } from '@/types';
 
 export interface EnhancedProductGridProps {
-  products: any[];
+  products: Product[];
   showSort?: boolean;
   isLoading?: boolean;
   viewMode?: "grid" | "list";
@@ -18,6 +22,10 @@ export interface EnhancedProductGridProps {
   currentPage?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
+  // New props for "Load More" functionality
+  loadingMore?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({ 
@@ -36,8 +44,24 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
   paginationType,
   currentPage,
   totalPages,
-  onPageChange
+  onPageChange,
+  // New props
+  loadingMore = false,
+  hasMore = false,
+  onLoadMore
 }) => {
+  const gridClasses = viewMode === "list"
+    ? "space-y-4"
+    : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4";
+    
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[200px]">
+        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+      </div>
+    );
+  }
+  
   return (
     <div className="space-y-4">
       {title && <h2 className="text-2xl font-bold">{title}</h2>}
@@ -49,16 +73,45 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
         </div>
       )}
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <div className="p-4 text-center col-span-full">
-          <p className="text-lg font-medium text-gray-500">Enhanced product display has been removed</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            {products.length} products would be displayed here
-          </p>
-        </div>
+      <div className={gridClasses}>
+        {products.length > 0 ? (
+          products.map((product) => (
+            <ProductCard 
+              key={product.id} 
+              product={product}
+              viewMode={viewMode}
+            />
+          ))
+        ) : (
+          <div className="p-4 text-center col-span-full">
+            <p className="text-lg font-medium text-gray-500">No products found</p>
+          </div>
+        )}
       </div>
       
-      {/* Add pagination UI based on paginationType */}
+      {/* Load More Button */}
+      {hasMore && onLoadMore && (
+        <div className="flex justify-center mt-6">
+          <Button
+            variant="outline"
+            size="lg"
+            className="rounded-full px-8"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+          >
+            {loadingMore ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'Load More'
+            )}
+          </Button>
+        </div>
+      )}
+      
+      {/* Pagination UI */}
       {paginationType === 'pagination' && totalPages && totalPages > 1 && (
         <div className="flex justify-center mt-6">
           <div className="flex space-x-2">
