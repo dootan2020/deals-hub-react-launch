@@ -28,7 +28,8 @@ const mockProducts: Product[] = [
       recovery: true
     },
     salesCount: 50,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    kiosk_token: 'IEB8KZ8SAJQ5616W2M21'
   },
   {
     id: '2',
@@ -59,7 +60,8 @@ const mockProducts: Product[] = [
       recovery: true
     },
     salesCount: 37,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    kiosk_token: 'DUP32BXSLWAP4847J84B'
   },
   {
     id: '3',
@@ -90,7 +92,8 @@ const mockProducts: Product[] = [
       maxOrder: 10000
     },
     salesCount: 189,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    kiosk_token: 'FPLM5G8SNW3HBY7DT2X9'
   },
   {
     id: '4',
@@ -121,7 +124,8 @@ const mockProducts: Product[] = [
       type: 'Family account'
     },
     salesCount: 42,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    kiosk_token: 'WK76IVBVK3X0WW9DKZ4R'
   },
   {
     id: '5',
@@ -153,7 +157,8 @@ const mockProducts: Product[] = [
       warranty: '3 months'
     },
     salesCount: 98,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    kiosk_token: 'VPMY2EKXSNY5Y3A4A35B'
   },
   {
     id: '6',
@@ -185,7 +190,8 @@ const mockProducts: Product[] = [
       warranty: '2 months'
     },
     salesCount: 76,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    kiosk_token: 'FPLM5G8SNW3HBY7DT2X9'
   },
   {
     id: '7',
@@ -216,7 +222,8 @@ const mockProducts: Product[] = [
       recovery: true
     },
     salesCount: 12,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    kiosk_token: 'A0YR4F4DHM4Z4NQ13B'
   },
   {
     id: '8',
@@ -247,7 +254,8 @@ const mockProducts: Product[] = [
       warranty: '1 month'
     },
     salesCount: 31,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    kiosk_token: 'VPMY2EKXSNY5Y3A4A35B'
   }
 ];
 

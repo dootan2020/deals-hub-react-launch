@@ -259,6 +259,7 @@ const ProductPage = () => {
             salesCount: Number(0),
             sales_count: Number(0),
             stock: item.stock || 0,
+            kiosk_token: item.kiosk_token || '',
             createdAt: item.created_at || new Date().toISOString()
           };
         });
@@ -775,39 +776,4 @@ const ProductPage = () => {
                                       className={`h-3 w-3 ${
                                         i < Math.floor(product.rating) 
                                           ? "text-yellow-400 fill-yellow-400" 
-                                          : "text-gray-300"
-                                      }`} 
-                                    />
-                                  ))}
-                                </div>
-                                <span className="text-xs text-text-light ml-1">({product.reviewCount})</span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <span className="font-bold">{formatCurrency(product.price)}</span>
-                                  {product.originalPrice && (
-                                    <span className="text-sm text-text-light line-through ml-2">
-                                      {formatCurrency(product.originalPrice)}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="left-0" />
-              <CarouselNext className="right-0" />
-            </Carousel>
-          </div>
-        </section>
-      )}
-    </Layout>
-  );
-};
-
-export default ProductPage;
+                                          : "text

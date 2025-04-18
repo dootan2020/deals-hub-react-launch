@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Category, Product } from '@/types';
@@ -54,6 +55,7 @@ export const useSubcategories = (categoryId?: string) => {
             features: p.features || [],
             specifications: p.specifications as Record<string, string | number | boolean | object>,
             stock: p.stock || 0,
+            kiosk_token: p.kiosk_token || '', // Added kiosk_token
             createdAt: p.created_at
           }));
           

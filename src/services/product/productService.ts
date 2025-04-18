@@ -115,6 +115,7 @@ export async function fetchProductById(id: string): Promise<Product | null> {
       specifications: data.specifications as Record<string, string | number | boolean | object> || {},
       salesCount: 0,
       stock: data.stock || 0,
+      kiosk_token: data.kiosk_token || '', // Added kiosk_token
       createdAt: data.created_at
     };
   } catch (error) {
@@ -153,6 +154,7 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
       specifications: data.specifications as Record<string, string | number | boolean | object> || {},
       salesCount: 0,
       stock: data.stock || 0,
+      kiosk_token: data.kiosk_token || '', // Added kiosk_token
       createdAt: data.created_at
     };
   } catch (error) {

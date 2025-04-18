@@ -1,3 +1,4 @@
+
 import { Product } from '@/types';
 
 /**
@@ -24,8 +25,8 @@ export const ensureProductFields = (product: Partial<Product>): Product => {
     specifications: product.specifications || {},
     salesCount: product.salesCount || 0,
     createdAt: product.createdAt || new Date().toISOString(),
-    kiosk_token: product.kiosk_token,
-    stock: product.stock !== undefined ? product.stock : 0 // Added stock field with default
+    kiosk_token: product.kiosk_token || '', // Added default empty string for kiosk_token
+    stock: product.stock !== undefined ? product.stock : 0
   };
 };
 

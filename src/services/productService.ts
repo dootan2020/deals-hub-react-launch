@@ -31,6 +31,15 @@ export const fetchProductBySlug = async (slug: string) => {
     images: [],
     stockQuantity: 10,
     inStock: true,
-    kiosk_token: "mock-token"
+    kiosk_token: "mock-token",
+    stock: 10,
+    categoryId: "mock-category",
+    rating: 4.5,
+    reviewCount: 10,
+    badges: [],
+    slug: "mock-product",
+    features: [],
+    specifications: {},
+    createdAt: new Date().toISOString()
   };
 };
