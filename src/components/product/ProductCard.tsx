@@ -53,7 +53,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             
             <div className="mt-3 relative z-10">
               <BuyNowButton
-                kioskToken={product.kiosk_token}
+                kioskToken={product.kiosk_token || ''}
                 productId={product.id}
                 quantity={1}
                 isInStock={product.inStock}

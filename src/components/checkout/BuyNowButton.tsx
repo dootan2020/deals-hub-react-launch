@@ -59,8 +59,8 @@ export function BuyNowButton({
     e.preventDefault();
     e.stopPropagation();
     
-    // Show a toast notification for debugging and user feedback
-    toast.info('Processing your request...');
+    // Remove this debug toast in production
+    // toast.info('Processing your request...');
     
     // Call the handler
     handleBuyNow();

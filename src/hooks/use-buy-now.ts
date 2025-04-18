@@ -120,6 +120,7 @@ export function useBuyNow({
     }
     
     try {
+      setLoading(true);
       const totalAmount = product.price * quantity;
       
       const { data, error } = await supabase.functions.invoke('process-purchase', {
@@ -151,6 +152,8 @@ export function useBuyNow({
     } catch (err: any) {
       console.error("Purchase error:", err);
       toast.error(err.message || 'An unknown error occurred');
+    } finally {
+      setLoading(false);
     }
   };
   
