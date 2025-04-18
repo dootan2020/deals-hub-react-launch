@@ -11,6 +11,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isAuthenticated: false,
   isAdmin: false,
+  userBalance: 0,
   login: async () => {},
   logout: async () => {},
   register: async () => {},
@@ -21,23 +22,73 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userBalance, setUserBalance] = useState(0);
+
+  // Fetch user balance from profiles table
+  const fetchUserBalance = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user balance:', error);
+        return;
+      }
+
+      if (data) {
+        setUserBalance(data.balance || 0);
+      }
+    } catch (error) {
+      console.error('Error in fetchUserBalance:', error);
+    }
+  };
+
+  // Check if user has admin role
+  const checkAdminRole = async (userId: string) => {
+    try {
+      // Using custom SQL function created in the migration
+      const { data: hasAdminRole, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking admin role:', error);
+        return false;
+      }
+      
+      return !!hasAdminRole;
+    } catch (error) {
+      console.error('Error in checkAdminRole:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
-        setUser(session?.user ?? null);
         
         if (session?.user) {
+          const authUser = session.user as AuthUser;
+          setUser(authUser);
+          
           // Check if user is admin
-          const { data: hasAdminRole } = await supabase.rpc('has_role', {
-            _user_id: session.user.id,
-            _role: 'admin'
-          });
-          setIsAdmin(hasAdminRole || false);
+          const isUserAdmin = await checkAdminRole(authUser.id);
+          setIsAdmin(isUserAdmin);
+          
+          // Fetch user balance
+          await fetchUserBalance(authUser.id);
         } else {
+          setUser(null);
           setIsAdmin(false);
+          setUserBalance(0);
         }
       }
     );
@@ -45,14 +96,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
       
       if (session?.user) {
-        const { data: hasAdminRole } = await supabase.rpc('has_role', {
-          _user_id: session.user.id,
-          _role: 'admin'
-        });
-        setIsAdmin(hasAdminRole || false);
+        const authUser = session.user as AuthUser;
+        setUser(authUser);
+        
+        // Check if user is admin
+        const isUserAdmin = await checkAdminRole(authUser.id);
+        setIsAdmin(isUserAdmin);
+        
+        // Fetch user balance
+        await fetchUserBalance(authUser.id);
       }
       
       setLoading(false);
@@ -103,6 +157,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       loading,
       isAuthenticated: !!user,
       isAdmin,
+      userBalance,
       login,
       logout,
       register,
