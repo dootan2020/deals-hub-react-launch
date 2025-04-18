@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,11 +17,23 @@ interface ApiResponse {
   description?: string;
 }
 
-export function ApiProductTester({ onApiDataReceived }: { onApiDataReceived: (data: any) => void }) {
-  const [kioskToken, setKioskToken] = useState<string>('');
+interface ApiProductTesterProps {
+  onApiDataReceived: (data: any) => void;
+  initialKioskToken?: string;
+}
+
+export function ApiProductTester({ onApiDataReceived, initialKioskToken = '' }: ApiProductTesterProps) {
+  const [kioskToken, setKioskToken] = useState<string>(initialKioskToken);
   const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Update kioskToken when initialKioskToken prop changes
+  useEffect(() => {
+    if (initialKioskToken) {
+      setKioskToken(initialKioskToken);
+    }
+  }, [initialKioskToken]);
 
   const handleApiTest = async () => {
     try {
@@ -122,6 +135,13 @@ export function ApiProductTester({ onApiDataReceived }: { onApiDataReceived: (da
                 </CardContent>
               </Card>
             </div>
+
+            <Button
+              onClick={() => onApiDataReceived(apiResponse)}
+              className="w-full bg-green-500 hover:bg-green-600 text-white"
+            >
+              Apply API Data to Form
+            </Button>
           </div>
         )}
       </CardContent>

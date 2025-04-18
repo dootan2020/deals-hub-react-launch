@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -37,7 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Định nghĩa schema xác thực form
+// Define schema for form validation
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
   description: z.string().min(10, 'Description must be at least 10 characters.'),
@@ -55,7 +56,7 @@ const productSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
-interface ApiResponse {
+export interface ApiResponse {
   success: string;
   name: string;
   price: string;
@@ -81,6 +82,7 @@ export function ProductForm({
   const [isLoading, setIsLoading] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
+  const [apiData, setApiData] = useState<ApiResponse | null>(null);
   
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -164,7 +166,7 @@ export function ProductForm({
       
       // Update form values
       form.setValue('title', data.name || '', { shouldValidate: true });
-      form.setValue('kioskToken', currentKioskToken, { shouldValidate: true });
+      form.setValue('kioskToken', currentKioskToken || data.kioskToken || '', { shouldValidate: true });
       
       // Calculate price (original price * 3)
       const originalPrice = parseFloat(data.price) || 0;
@@ -174,9 +176,10 @@ export function ProductForm({
       // Set stock quantity
       const stockValue = parseInt(data.stock) || 0;
       form.setValue('stock', stockValue, { shouldValidate: true });
+      form.setValue('inStock', stockValue > 0, { shouldValidate: true });
       
-      // Generate slug if title is available
-      if (data.name) {
+      // Generate slug if title is available and slug is empty
+      if (data.name && !form.getValues('slug')) {
         const slug = data.name.toLowerCase()
           .replace(/\s+/g, '-')
           .replace(/[^\w\-]+/g, '')
@@ -184,6 +187,13 @@ export function ProductForm({
           .replace(/^-+/, '')
           .replace(/-+$/, '');
         form.setValue('slug', slug, { shouldValidate: true });
+      }
+
+      // Set description if available
+      if (data.description) {
+        form.setValue('description', data.description, { shouldValidate: true });
+      } else if (data.name && !form.getValues('description')) {
+        form.setValue('description', `${data.name} - Digital Product`, { shouldValidate: true });
       }
 
       toast.success('API data applied to form successfully');
@@ -200,7 +210,7 @@ export function ProductForm({
       if (onSubmit) {
         await onSubmit(formData);
       } else {
-        // Mặc định xử lý nếu không có hàm onSubmit được truyền vào
+        // Default handling if no onSubmit provided
         const productData = {
           title: formData.title,
           description: formData.description,
@@ -302,28 +312,38 @@ export function ProductForm({
     }
   };
 
-  // Cập nhật form với dữ liệu từ API
+  // Handle receiving API data
   useEffect(() => {
-    if (onApiDataReceived) {
-      // Thực hiện cập nhật form khi nhận được dữ liệu API
+    if (apiData) {
+      applyApiDataToForm(apiData);
     }
-  }, [onApiDataReceived]);
+  }, [apiData]);
 
   return (
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-          {/* Add button to apply API data */}
-          <div className="flex justify-end mb-4">
-            <Button
-              type="button"
-              onClick={() => onApiDataReceived && applyApiDataToForm(onApiDataReceived)}
-              variant="secondary"
-              className="bg-green-500 hover:bg-green-600 text-white"
-            >
-              Apply API Data to Form
-            </Button>
-          </div>
+          {/* Add button to apply API data if available */}
+          {onApiDataReceived && (
+            <div className="flex justify-end mb-4">
+              <Button
+                type="button"
+                onClick={() => {
+                  // This is now correctly typed - we're passing the received data directly to applyApiDataToForm
+                  if (apiData) {
+                    applyApiDataToForm(apiData);
+                  } else {
+                    toast.error('No API data available yet. Please use "Get Product Info" first.');
+                  }
+                }}
+                variant="secondary"
+                className="bg-green-500 hover:bg-green-600 text-white"
+              >
+                Apply API Data to Form
+              </Button>
+            </div>
+          )}
+
           <div className="space-y-6">
             {/* Kiosk Token */}
             <div className="space-y-4">
@@ -358,7 +378,7 @@ export function ProductForm({
               />
             </div>
 
-            {/* Tiêu đề sản phẩm */}
+            {/* Product Title */}
             <FormField
               control={form.control}
               name="title"
@@ -373,7 +393,7 @@ export function ProductForm({
               )}
             />
 
-            {/* Mô tả */}
+            {/* Description */}
             <FormField
               control={form.control}
               name="description"
@@ -423,7 +443,7 @@ export function ProductForm({
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Giá */}
+              {/* Price */}
               <FormField
                 control={form.control}
                 name="price"
@@ -438,7 +458,7 @@ export function ProductForm({
                 )}
               />
 
-              {/* Giá gốc */}
+              {/* Original Price */}
               <FormField
                 control={form.control}
                 name="originalPrice"
@@ -467,7 +487,7 @@ export function ProductForm({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Danh mục */}
+              {/* Category */}
               <FormField
                 control={form.control}
                 name="categoryId"
@@ -499,7 +519,7 @@ export function ProductForm({
                 )}
               />
 
-              {/* Số lượng tồn kho */}
+              {/* Stock Quantity */}
               <FormField
                 control={form.control}
                 name="stock"
@@ -522,7 +542,7 @@ export function ProductForm({
               />
             </div>
 
-            {/* Trạng thái tồn kho */}
+            {/* In Stock Status */}
             <FormField
               control={form.control}
               name="inStock"
@@ -546,7 +566,7 @@ export function ProductForm({
               )}
             />
 
-            {/* Hình ảnh */}
+            {/* Images */}
             <FormField
               control={form.control}
               name="images"
