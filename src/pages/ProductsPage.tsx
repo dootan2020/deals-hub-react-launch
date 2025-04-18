@@ -1,23 +1,20 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
-import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
-import ViewToggle from '@/components/category/ViewToggle';
 import { Product } from '@/types';
 import { ensureProductsFields } from '@/utils/productUtils';
 import { useToast } from "@/components/ui/use-toast";
-import { fetchProductsWithFilters } from '@/services/productService';
 import { Loader2 } from 'lucide-react';
+import ProductSorter from '@/components/product/ProductSorter';
 
 const ProductsPage = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [activeSort, setActiveSort] = useState(searchParams.get('sort') || 'recommended');
+  const [sortOption, setSortOption] = useState(searchParams.get('sort') || 'recommended');
   
   useEffect(() => {
     const loadProducts = async () => {
@@ -41,7 +38,7 @@ const ProductsPage = () => {
             rating: 4.5,
             reviewCount: 10,
             salesCount: 0,
-            createdAt: new Date().toISOString()
+            createdAt: "2023-01-15T00:00:00Z"
           },
           {
             id: "2",
@@ -59,7 +56,7 @@ const ProductsPage = () => {
             rating: 4.7,
             reviewCount: 23,
             salesCount: 0,
-            createdAt: new Date().toISOString()
+            createdAt: "2023-02-20T00:00:00Z"
           },
           {
             id: "3",
@@ -77,7 +74,7 @@ const ProductsPage = () => {
             rating: 4.9,
             reviewCount: 156,
             salesCount: 0,
-            createdAt: new Date().toISOString()
+            createdAt: "2023-03-10T00:00:00Z"
           }
         ];
         
@@ -87,7 +84,7 @@ const ProductsPage = () => {
         // Uncomment the following when you want to fetch real data
         /*
         const result = await fetchProductsWithFilters({
-          sort: activeSort,
+          sort: sortOption,
           page: 1,
           limit: 24
         });
@@ -110,10 +107,39 @@ const ProductsPage = () => {
     };
     
     loadProducts();
-  }, [activeSort, toast]);
+  }, [toast]);
   
-  const toggleViewMode = () => {
-    setViewMode(viewMode === "grid" ? "list" : "grid");
+  const handleSortChange = (value: string) => {
+    setSortOption(value);
+    
+    // Update URL search params
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set('sort', value);
+    setSearchParams(newSearchParams);
+    
+    // Sort products based on the selected option
+    const sortedProducts = [...products];
+    
+    switch (value) {
+      case 'price-high-low':
+        sortedProducts.sort((a, b) => b.price - a.price);
+        break;
+      case 'price-low-high':
+        sortedProducts.sort((a, b) => a.price - b.price);
+        break;
+      case 'newest':
+        sortedProducts.sort((a, b) => {
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateB - dateA;
+        });
+        break;
+      default:
+        // Keep the default order
+        break;
+    }
+    
+    setProducts(sortedProducts);
   };
 
   return (
@@ -122,16 +148,7 @@ const ProductsPage = () => {
         <div className="container-custom">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold">All Products</h1>
-            <div className="flex items-center gap-4">
-              <SimplifiedCategoryFilters 
-                onSortChange={setActiveSort}
-                activeSort={activeSort}
-              />
-              <ViewToggle 
-                currentView={viewMode} 
-                onViewChange={toggleViewMode}
-              />
-            </div>
+            <ProductSorter currentSort={sortOption} onSortChange={handleSortChange} />
           </div>
           
           <div className="bg-white p-8 rounded-lg border border-gray-100 shadow-sm">

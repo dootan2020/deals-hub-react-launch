@@ -1,32 +1,33 @@
 
 import React from 'react';
-import { SlidersHorizontal, ChevronUp, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Filter } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface MobileFilterToggleProps {
-  showFilters: boolean;
-  onToggleFilters: () => void;
+  onToggle: () => void;
+  isOpen: boolean;
+  activeFilterCount: number;
 }
 
 const MobileFilterToggle: React.FC<MobileFilterToggleProps> = ({
-  showFilters,
-  onToggleFilters
+  onToggle,
+  isOpen,
+  activeFilterCount
 }) => {
   return (
-    <div className="md:hidden mb-4">
-      <button
-        onClick={onToggleFilters}
-        className="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md"
+    <div className="md:hidden">
+      <Button 
+        variant="outline" 
+        onClick={onToggle}
+        className="flex items-center gap-2"
       >
-        <div className="flex items-center">
-          <SlidersHorizontal className="h-5 w-5 mr-2 text-text-light" />
-          <span>Filters</span>
-        </div>
-        {showFilters ? (
-          <ChevronUp className="h-5 w-5 text-text-light" />
-        ) : (
-          <ChevronDown className="h-5 w-5 text-text-light" />
+        <Filter className="h-4 w-4" />
+        Subcategories
+        {activeFilterCount > 0 && (
+          <Badge variant="secondary">{activeFilterCount}</Badge>
         )}
-      </button>
+      </Button>
     </div>
   );
 };

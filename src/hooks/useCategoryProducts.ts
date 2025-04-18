@@ -4,7 +4,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 import { PaginationState } from '@/types/category.types';
-import { applyFilters, sortProducts } from '@/utils/productFilters';
+import { sortProducts } from '@/utils/productFilters';
 
 interface UseCategoryProductsProps {
   categoryId?: string;
@@ -109,7 +109,7 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
       setProducts(sortedProducts);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Error fetching products:', error);
+        console.error("Error fetching products:", error);
       }
       toast({
         title: "Error",

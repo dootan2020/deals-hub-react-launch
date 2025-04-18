@@ -1,38 +1,5 @@
 
-// src/utils/productFilters.ts
-
-import { Product, FilterParams } from '@/types';
-
-/**
- * Filter products based on various filtering criteria
- */
-export const applyFilters = (products: Product[], filters?: FilterParams): Product[] => {
-  if (!filters) return products;
-  
-  return products.filter(product => {
-    // Price Range Filter
-    if (filters.priceRange && filters.priceRange.length === 2) {
-      const [min, max] = filters.priceRange;
-      if (!isNaN(min) && !isNaN(max)) {
-        if (product.price < min || product.price > max) return false;
-      }
-    }
-    
-    // Rating Filter
-    if (filters.ratings && filters.ratings.length) {
-      const minRating = Math.min(...filters.ratings.map(Number));
-      if (!isNaN(minRating) && product.rating < minRating) return false;
-    }
-    
-    // In Stock Filter
-    if (filters.inStock !== undefined && product.inStock !== filters.inStock) return false;
-    
-    // Category ID filter
-    if (filters.categoryId && product.categoryId !== filters.categoryId) return false;
-    
-    return true;
-  });
-};
+import { Product } from '@/types';
 
 /**
  * Sort products based on specified sort criteria
