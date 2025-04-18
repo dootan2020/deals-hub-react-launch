@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,7 @@ const getBadgeType = (title: string): 'gmail' | 'facebook' | 'outlook' | 'defaul
 
 const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
   const containerClasses = viewMode === "list" 
-    ? "flex gap-6 p-4" 
+    ? "flex gap-6 p-5" 
     : "flex flex-col h-full";
 
   const contentClasses = viewMode === "list"
@@ -32,26 +31,26 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
 
   return (
     <div className={`
-      bg-white rounded-2xl border border-gray-100 p-4
-      transition duration-300 hover:shadow-xl
+      bg-[#F3F4F6] rounded-xl border border-[#E5E7EB] p-5
+      shadow-sm hover:shadow-md transition-all duration-300
       ${containerClasses}
     `}>
       <div className={contentClasses}>
         {/* Header with Badge and Title */}
-        <div className="flex items-start gap-3 mb-3">
+        <div className="flex items-start gap-3 mb-4">
           <ProductBadge type={getBadgeType(product.title)} />
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-base text-gray-900 line-clamp-2">
+            <h3 className="font-semibold text-base text-[#1E1E1E] line-clamp-2">
               {product.title}
             </h3>
-            <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+            <p className="text-sm text-[#4B5563] line-clamp-2 mt-1">
               {product.shortDescription || product.description}
             </p>
           </div>
         </div>
 
         {/* Price and Stock Information */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-4">
           <span className="text-base font-bold text-primary">
             {formatPrice(product.price)}
           </span>
@@ -63,12 +62,12 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 min-w-[100px] text-sm"
+            className="flex-1 min-w-[100px] text-sm font-normal"
             asChild
           >
             <a href={`/product/${product.slug}`}>
-              <span>Xem chi tiết</span>
-              <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              <span>Chi tiết</span>
+              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
             </a>
           </Button>
           
@@ -81,7 +80,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
             isInStock={product.inStock}
             product={product}
           >
-            <ShoppingCart className="mr-1 h-3.5 w-3.5" />
+            <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
             Mua Ngay
           </BuyNowButton>
         </div>
@@ -91,4 +90,3 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
 };
 
 export default ProductCard;
-
