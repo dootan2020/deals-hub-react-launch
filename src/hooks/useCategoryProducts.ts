@@ -92,7 +92,8 @@ export const useCategoryProducts = ({ categoryId }: UseCategoryProductsProps) =>
         slug: p.slug,
         features: p.features || [],
         specifications: p.specifications as Record<string, string | number | boolean | object> || {},
-        salesCount: p.stock_quantity || 0,  // Using stock_quantity instead of non-existent sales_count
+        salesCount: p.stock_quantity || 0,
+        stock: p.stock || 0, // Added stock field
         createdAt: p.created_at
       }));
       

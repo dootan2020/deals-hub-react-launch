@@ -14,6 +14,7 @@ const mockProducts: Product[] = [
     reviewCount: 120,
     inStock: true,
     stockQuantity: 100,
+    stock: 100,
     badges: ['Best Seller', 'New'],
     slug: 'gmail-usa-2023',
     features: [
@@ -42,6 +43,7 @@ const mockProducts: Product[] = [
     reviewCount: 89,
     inStock: true,
     stockQuantity: 45,
+    stock: 45,
     badges: ['Premium', 'Verified'],
     slug: 'facebook-aged-accounts',
     features: [
@@ -72,6 +74,7 @@ const mockProducts: Product[] = [
     reviewCount: 215,
     inStock: true,
     stockQuantity: 1000,
+    stock: 1000,
     badges: ['Popular', 'Fast Delivery'],
     slug: 'instagram-followers',
     features: [
@@ -102,6 +105,7 @@ const mockProducts: Product[] = [
     reviewCount: 67,
     inStock: true,
     stockQuantity: 30,
+    stock: 30,
     badges: ['Premium', 'Warranty'],
     slug: 'youtube-premium-account',
     features: [
@@ -132,6 +136,7 @@ const mockProducts: Product[] = [
     reviewCount: 132,
     inStock: true,
     stockQuantity: 25,
+    stock: 25,
     badges: ['Premium', '4K', 'Warranty'],
     slug: 'netflix-premium-4k',
     features: [
@@ -163,6 +168,7 @@ const mockProducts: Product[] = [
     reviewCount: 94,
     inStock: true,
     stockQuantity: 50,
+    stock: 50,
     badges: ['Premium', 'Popular'],
     slug: 'spotify-premium',
     features: [
@@ -194,6 +200,7 @@ const mockProducts: Product[] = [
     reviewCount: 23,
     inStock: false,
     stockQuantity: 0,
+    stock: 0,
     badges: ['Premium', 'Verified', 'Rare'],
     slug: 'twitter-verified-accounts',
     features: [
@@ -224,6 +231,7 @@ const mockProducts: Product[] = [
     reviewCount: 47,
     inStock: true,
     stockQuantity: 35,
+    stock: 35,
     badges: ['Gaming', 'Popular'],
     slug: 'discord-nitro',
     features: [

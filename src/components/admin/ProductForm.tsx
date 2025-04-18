@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -23,6 +24,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw } from 'lucide-react';
+
+// Add the missing ApiResponse type
+interface ApiResponse {
+  success: string;
+  name: string;
+  price: string;
+  stock: string;
+  description?: string;
+}
 
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),

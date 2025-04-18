@@ -25,7 +25,8 @@ export const ensureProductFields = (product: Partial<Product>): Product => {
     specifications: product.specifications || {},
     salesCount: product.salesCount || 0,
     createdAt: product.createdAt || new Date().toISOString(),
-    kiosk_token: product.kiosk_token
+    kiosk_token: product.kiosk_token,
+    stock: product.stock !== undefined ? product.stock : 0 // Added stock field with default
   };
 };
 

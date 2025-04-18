@@ -48,6 +48,7 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
       features: item.features || [],
       specifications: item.specifications as Record<string, string | number | boolean | object> || {},
       salesCount: 0,
+      stock: item.stock || 0,
       createdAt: item.created_at
     }));
     
@@ -104,6 +105,7 @@ export async function fetchProductById(id: string): Promise<Product | null> {
       features: data.features || [],
       specifications: data.specifications as Record<string, string | number | boolean | object> || {},
       salesCount: 0,
+      stock: data.stock || 0,
       createdAt: data.created_at
     };
   } catch (error) {
@@ -141,6 +143,7 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
       features: data.features || [],
       specifications: data.specifications as Record<string, string | number | boolean | object> || {},
       salesCount: 0,
+      stock: data.stock || 0,
       createdAt: data.created_at
     };
   } catch (error) {
