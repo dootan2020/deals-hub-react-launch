@@ -1,7 +1,8 @@
 
-import { useState } from 'react';
-import { Product } from '@/types';
-import { ensureProductFields } from '@/utils/productUtils';
+import { useState, useEffect } from 'react';
+import { fetchProductsWithFilters } from '@/services/product/productService';
+import { ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import Layout from '@/components/layout/Layout';
 import HeroSection from '@/components/home/HeroSection';
 import SearchSection from '@/components/home/SearchSection';
@@ -12,27 +13,26 @@ import TestimonialsSection from '@/components/home/TestimonialsSection';
 import NewsletterSection from '@/components/home/NewsletterSection';
 
 const Index = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeSort, setActiveSort] = useState('recommended');
-  const [products] = useState<Product[]>([
-    ensureProductFields({
-      id: "1",
-      title: "Gmail Account",
-      description: "Fresh Gmail account with full access",
-      shortDescription: "Fresh Gmail account with full access",
-      price: 599, // Price in cents
-      images: ["/placeholder.svg"],
-      categoryId: "email",
-      inStock: true,
-      stockQuantity: 100,
-      badges: ["New"],
-      slug: "gmail-account",
-      features: ["Instant delivery", "Full access"],
-      rating: 4.5,
-      reviewCount: 10,
-      salesCount: 0,
-      createdAt: new Date().toISOString()
-    })
-  ]);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const fetchedProducts = await fetchProductsWithFilters({
+          sort: activeSort,
+        });
+        setProducts(fetchedProducts);
+      } catch (error) {
+        console.error('Error loading products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, [activeSort]);
 
   return (
     <Layout>
@@ -43,13 +43,13 @@ const Index = () => {
         <div className="container-custom">
           <div className="bg-white p-8 rounded-lg border border-gray-100 shadow-sm">
             <ProductGrid 
-              products={products}
+              products={products.slice(0, 8)}
               title="Featured Products" 
               description="Check out our most popular digital products available now."
               showSort={true}
               activeSort={activeSort}
               onSortChange={setActiveSort}
-              limit={8}
+              isLoading={loading}
               showViewAll={true}
               viewAllLink={`/products?sort=${activeSort}`}
               viewAllLabel="View all products"
@@ -65,4 +65,3 @@ const Index = () => {
 };
 
 export default Index;
-
