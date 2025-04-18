@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, Loader2 } from 'lucide-react';
@@ -17,6 +18,7 @@ interface BuyNowButtonProps {
   isInStock?: boolean;
   promotionCode?: string;
   onSuccess?: () => void;
+  children?: React.ReactNode; // Added children prop
 }
 
 export const BuyNowButton: React.FC<BuyNowButtonProps> = ({ 
@@ -28,6 +30,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   kioskToken,
   productId,
   product,
+  children, // Added children prop
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -87,8 +90,12 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
           </>
         ) : (
           <>
-            <ShoppingBag className="w-4 h-4 mr-2" />
-            {!hasValidKioskToken ? 'Không có sẵn' : isInStock ? 'Mua Ngay' : 'Hết Hàng'}
+            {children || (
+              <>
+                <ShoppingBag className="w-4 h-4 mr-2" />
+                {!hasValidKioskToken ? 'Không có sẵn' : isInStock ? 'Mua Ngay' : 'Hết Hàng'}
+              </>
+            )}
           </>
         )}
       </Button>
