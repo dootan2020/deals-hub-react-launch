@@ -12,11 +12,6 @@ interface OrderStats {
   completedOrders: number;
 }
 
-// Define a simple type for the count result
-interface CountQueryResult {
-  count: number | null;
-}
-
 const DashboardPage = () => {
   const { user, userBalance } = useAuth();
   const [orderStats, setOrderStats] = useState<OrderStats>({
@@ -31,28 +26,27 @@ const DashboardPage = () => {
       if (!user) return;
 
       try {
-        // Fetch total orders count with explicit type annotation
-        const { count: totalCount }: { count: number | null } = await supabase
+        // Using direct count query approach to avoid deep type issues
+        const { count: totalCount, error: totalError } = await supabase
           .from('orders')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .then(result => ({ count: result.count }));
+          .eq('user_id', user.id);
         
-        // Fetch processing orders count with explicit type annotation
-        const { count: processingCount }: { count: number | null } = await supabase
+        const { count: processingCount, error: processingError } = await supabase
           .from('orders')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .eq('status', 'processing')
-          .then(result => ({ count: result.count }));
+          .eq('status', 'processing');
         
-        // Fetch completed orders count with explicit type annotation
-        const { count: completedCount }: { count: number | null } = await supabase
+        const { count: completedCount, error: completedError } = await supabase
           .from('orders')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .eq('status', 'completed')
-          .then(result => ({ count: result.count }));
+          .eq('status', 'completed');
+
+        if (totalError || processingError || completedError) {
+          throw new Error('Error fetching order statistics');
+        }
 
         setOrderStats({
           totalOrders: totalCount || 0,
