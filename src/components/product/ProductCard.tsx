@@ -55,6 +55,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
           <div className={viewMode === "list" ? "flex gap-2" : "mt-3"}>
             <BuyNowButton
               productId={product.id}
+              kioskToken={product.kiosk_token}
               variant="default"
               size="sm"
               className="w-full"

@@ -161,6 +161,7 @@ const ProductPage = () => {
             salesCount: Number(0),
             sales_count: Number(0),
             stock: productData.stock || 0,
+            kiosk_token: productData.kiosk_token || '',
             createdAt: productData.created_at || new Date().toISOString()
           };
           
@@ -196,6 +197,7 @@ const ProductPage = () => {
             salesCount: Number(0),
             sales_count: Number(0),
             stock: productData.stock || 0,
+            kiosk_token: productData.kiosk_token || '',
             createdAt: productData.created_at || new Date().toISOString()
           };
           
