@@ -12,6 +12,11 @@ interface OrderStats {
   completedOrders: number;
 }
 
+// Define a simple type for the count result
+interface CountQueryResult {
+  count: number | null;
+}
+
 const DashboardPage = () => {
   const { user, userBalance } = useAuth();
   const [orderStats, setOrderStats] = useState<OrderStats>({
@@ -26,30 +31,33 @@ const DashboardPage = () => {
       if (!user) return;
 
       try {
-        // Fetch total orders count
-        const totalResult = await supabase
-          .from('orders')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id);
-        
-        // Fetch processing orders count
-        const processingResult = await supabase
+        // Fetch total orders count with explicit type annotation
+        const { count: totalCount }: { count: number | null } = await supabase
           .from('orders')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .eq('status', 'processing');
+          .then(result => ({ count: result.count }));
         
-        // Fetch completed orders count
-        const completedResult = await supabase
+        // Fetch processing orders count with explicit type annotation
+        const { count: processingCount }: { count: number | null } = await supabase
           .from('orders')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .eq('status', 'completed');
+          .eq('status', 'processing')
+          .then(result => ({ count: result.count }));
+        
+        // Fetch completed orders count with explicit type annotation
+        const { count: completedCount }: { count: number | null } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .then(result => ({ count: result.count }));
 
         setOrderStats({
-          totalOrders: totalResult.count || 0,
-          processingOrders: processingResult.count || 0,
-          completedOrders: completedResult.count || 0
+          totalOrders: totalCount || 0,
+          processingOrders: processingCount || 0,
+          completedOrders: completedCount || 0
         });
       } catch (error) {
         console.error('Error fetching order stats:', error);
