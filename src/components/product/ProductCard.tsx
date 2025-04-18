@@ -20,6 +20,10 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
     ? "w-48 h-48 flex-shrink-0"
     : "w-full aspect-square";
 
+  const contentClasses = viewMode === "list"
+    ? "flex-1 flex flex-col justify-between"
+    : "flex flex-col flex-1 p-4";
+
   return (
     <div className={`bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow ${containerClasses}`}>
       <div className={imageClasses}>
@@ -30,22 +34,25 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
         />
       </div>
       
-      <div className={`flex flex-col ${viewMode === "grid" ? "p-4" : "flex-1 p-4"}`}>
-        <h3 className="text-lg font-semibold mb-2 line-clamp-2">{product.title}</h3>
+      <div className={contentClasses}>
+        <div>
+          <h3 className="text-lg font-semibold mb-2 line-clamp-2">{product.title}</h3>
+          <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+            {product.shortDescription || product.description}
+          </p>
+        </div>
         
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.shortDescription}</p>
-        
-        <div className={`flex ${viewMode === "grid" ? "flex-col gap-2" : "items-center justify-between mt-auto"}`}>
+        <div className={`mt-auto ${viewMode === "list" ? "flex items-center justify-between" : "space-y-3"}`}>
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-bold text-primary">{formatPrice(product.price)}</span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-sm text-gray-500 line-through">
+              <span className="text-sm text-muted-foreground line-through">
                 {formatPrice(product.originalPrice)}
               </span>
             )}
           </div>
           
-          <div className={`flex gap-2 ${viewMode === "grid" ? "flex-col" : "mt-2"}`}>
+          <div className={viewMode === "list" ? "flex gap-2" : "mt-3"}>
             <BuyNowButton
               productId={product.id}
               variant="default"

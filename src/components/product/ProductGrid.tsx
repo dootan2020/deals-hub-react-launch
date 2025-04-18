@@ -33,7 +33,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 }) => {
   const gridClasses = viewMode === "list"
     ? "space-y-4"
-    : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4";
+    : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4";
 
   if (isLoading) {
     return (
@@ -60,7 +60,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         </div>
       ) : (
         <div className="text-center py-12">
-          <p className="text-gray-500">No products found</p>
+          <p className="text-muted-foreground">No products found</p>
         </div>
       )}
       

@@ -4,18 +4,18 @@ import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
 import CategoryFiltersSection from '@/components/category/CategoryFiltersSection';
-import MobileFilterToggle from '@/components/category/MobileFilterToggle';
 import { CategoryHeader } from '@/components/category/CategoryHeader';
-import CategoryBreadcrumbs from '@/components/category/CategoryBreadcrumbs';
+import SubcategoriesGrid from '@/components/category/SubcategoriesGrid';
 import { useCategoryData } from '@/hooks/useCategoryData';
 import LoadingState from '@/components/category/LoadingState';
 import ErrorState from '@/components/category/ErrorState';
 import ProductSorter from '@/components/product/ProductSorter';
+import ViewToggle from '@/components/product/ViewToggle';
 
 const CategoryPage: React.FC = () => {
   const params = useParams<{ categorySlug: string; parentCategorySlug: string }>();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [activeSubcategories, setActiveSubcategories] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   
   const {
     category,
@@ -24,68 +24,61 @@ const CategoryPage: React.FC = () => {
     error,
     handleSortChange,
     activeFilters,
-    buildBreadcrumbs,
     subcategories
   } = useCategoryData({
     categorySlug: params.categorySlug,
     parentCategorySlug: params.parentCategorySlug
   });
   
-  const toggleMobileFilters = () => {
-    setShowMobileFilters(!showMobileFilters);
-  };
-  
-  const handleSubcategoryToggle = (subcategoryId: string) => {
-    setActiveSubcategories(prev => {
-      if (prev.includes(subcategoryId)) {
-        return prev.filter(id => id !== subcategoryId);
-      } else {
-        return [...prev, subcategoryId];
-      }
-    });
-  };
-  
-  const filteredProducts = activeSubcategories.length > 0
-    ? products.filter(product => {
-        return activeSubcategories.some(subId => product.categoryId === subId);
-      })
-    : products;
-  
   if (loading) return <LoadingState />;
   if (error || !category) return <ErrorState />;
 
   return (
     <Layout>
-      <div className="container-custom py-6">
-        <CategoryBreadcrumbs breadcrumbs={buildBreadcrumbs()} />
+      <div className="container-custom py-8">
         <CategoryHeader category={category} />
         
-        <div className="mt-6">
-          <div className="flex justify-between items-center mb-6">
-            <MobileFilterToggle
-              onToggle={toggleMobileFilters}
-              isOpen={showMobileFilters}
-              activeFilterCount={activeSubcategories.length}
-            />
-            <ProductSorter
-              currentSort={activeFilters.sort || 'recommended'}
-              onSortChange={handleSortChange}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+          {/* Sidebar Filters - Desktop */}
+          <div className="hidden lg:block lg:col-span-3">
+            <CategoryFiltersSection
+              showFilters={true}
+              onToggleFilters={() => {}}
+              subcategories={subcategories}
+              activeSubcategories={[]}
+              onSubcategoryToggle={() => {}}
             />
           </div>
-          
-          <div className="flex flex-col md:flex-row gap-8">
-            <CategoryFiltersSection
-              showFilters={showMobileFilters}
-              onToggleFilters={toggleMobileFilters}
-              subcategories={subcategories}
-              activeSubcategories={activeSubcategories}
-              onSubcategoryToggle={handleSubcategoryToggle}
-            />
-            
-            <div className="flex-1">
+
+          {/* Main Content */}
+          <div className="lg:col-span-9 space-y-8">
+            {/* Subcategories Grid */}
+            {subcategories.length > 0 && (
+              <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
+                <SubcategoriesGrid
+                  categorySlug={category.slug}
+                  subcategories={subcategories}
+                />
+              </div>
+            )}
+
+            {/* Products Section */}
+            <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
+              <div className="flex justify-between items-center mb-6">
+                <ProductSorter
+                  currentSort={activeFilters.sort || 'recommended'}
+                  onSortChange={handleSortChange}
+                />
+                <ViewToggle
+                  currentView={viewMode}
+                  onViewChange={setViewMode}
+                />
+              </div>
+
               <ProductGrid
-                products={filteredProducts}
-                showViewAll={false}
+                products={products}
+                viewMode={viewMode}
+                isLoading={loading}
               />
             </div>
           </div>
