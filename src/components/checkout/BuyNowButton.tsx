@@ -61,6 +61,7 @@ export function BuyNowButton({
           className={`w-full py-6 text-base font-medium bg-primary hover:bg-primary-dark transition-all ${className || ''}`}
           disabled={isDisabled}
           onClick={handleBuyNow}
+          type="button"
         >
           {loading ? (
             <>
@@ -89,6 +90,7 @@ export function BuyNowButton({
             className="w-full"
             onClick={retryProcessing}
             disabled={retrying}
+            type="button"
           >
             {retrying ? (
               <>

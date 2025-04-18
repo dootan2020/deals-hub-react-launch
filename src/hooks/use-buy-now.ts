@@ -37,7 +37,7 @@ export function useBuyNow({
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: location.pathname } });
       return;

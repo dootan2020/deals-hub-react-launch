@@ -10,12 +10,6 @@ import {
 } from "@/components/ui/toast"
 import { ReactNode } from "react"
 
-interface ToastAction {
-  altText: string;
-  onClick: () => void;
-  element: ReactNode;
-}
-
 export function Toaster() {
   const { toasts } = useToast()
 
