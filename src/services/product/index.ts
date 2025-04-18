@@ -30,4 +30,15 @@ export const updateProduct = async (productData: any) => {
   return { success: true };
 };
 
+// Add missing function
+export const fetchProductsWithFilters = async (filters: any) => {
+  console.log("Fetch products with filters requested:", filters);
+  return {
+    products: [],
+    total: 0,
+    page: 1,
+    totalPages: 0
+  };
+};
+
 // Re-export functions from other files if needed in the future

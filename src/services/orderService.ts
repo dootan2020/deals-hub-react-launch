@@ -14,3 +14,14 @@ export const processOrder = async (orderData: any) => {
   console.log("Process order requested:", orderData);
   return { success: false, message: "Order functionality has been removed" };
 };
+
+// Add the missing fetchProductStock function
+export const fetchProductStock = async (kioskToken: string) => {
+  console.log("Fetch product stock requested for kiosk token:", kioskToken);
+  return { 
+    success: "true", 
+    stock: 10, 
+    price: 100000, 
+    name: "Mock Product" 
+  };
+};

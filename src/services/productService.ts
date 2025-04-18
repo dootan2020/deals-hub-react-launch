@@ -19,3 +19,18 @@ export const fetchRelatedProducts = async (productId: string) => {
   console.log("Fetch related products requested for:", productId);
   return [];
 };
+
+export const fetchProductBySlug = async (slug: string) => {
+  console.log("Fetch product by slug requested for:", slug);
+  return {
+    id: "mock-id",
+    title: "Mock Product",
+    description: "This is a mock product description",
+    price: 100000,
+    originalPrice: 150000,
+    images: [],
+    stockQuantity: 10,
+    inStock: true,
+    kiosk_token: "mock-token"
+  };
+};

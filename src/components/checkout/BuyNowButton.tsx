@@ -11,12 +11,21 @@ interface BuyNowButtonProps {
   className?: string;
   variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link' | 'destructive';
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  isInStock?: boolean;
+  promotionCode?: string;
+  onSuccess?: () => void;
 }
 
 export const BuyNowButton: React.FC<BuyNowButtonProps> = ({ 
   className, 
   variant = 'default',
-  size = 'default'
+  size = 'default',
+  isInStock,
+  onSuccess,
+  kioskToken,
+  productId,
+  quantity,
+  promotionCode
 }) => {
   return (
     <Button 
@@ -24,6 +33,10 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       size={size}
       className={className}
       disabled
+      onClick={() => {
+        console.log("Buy Now clicked with:", { kioskToken, productId, quantity, promotionCode });
+        if (onSuccess) onSuccess();
+      }}
     >
       Buy Now (Disabled)
     </Button>

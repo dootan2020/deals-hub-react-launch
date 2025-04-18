@@ -1,192 +1,154 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
-import { Loader2 } from 'lucide-react';
+
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
+import CategoryHeader from '@/components/category/CategoryHeader';
 import ProductGrid from '@/components/product/ProductGrid';
-import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
-import ViewToggle from '@/components/category/ViewToggle';
 import { Button } from '@/components/ui/button';
-import { 
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { useToast } from "@/components/ui/use-toast";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { 
-  fetchCategoryBySlug, 
-  fetchCategoryHierarchy 
-} from '@/services/categoryService';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { fetchProductsWithFilters } from '@/services/productService';
-import { Category, Product, FilterParams, SubcategoryPageParams } from '@/types';
+
+// Define Product type
+interface Product {
+  id: string;
+  title: string;
+  price: number;
+  image?: string;
+  // Add other properties as needed
+}
 
 const SubcategoryPage = () => {
-  const params = useParams<SubcategoryPageParams>();
-  const { toast } = useToast();
-  
-  const [category, setCategory] = useState<Category | null>(null);
-  const [parentCategory, setParentCategory] = useState<Category | null>(null);
+  const { slug } = useParams<{ slug: string }>();
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<FilterParams>({
-    sort: 'recommended'
-  });
-  const [productCount, setProductCount] = useState<number>(0);
-  const [currentView, setCurrentView] = useState<'grid' | 'list'>('grid');
-
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  
+  // Fetch products for the subcategory
   useEffect(() => {
-    const fetchData = async () => {
+    const loadProducts = async () => {
+      if (!slug) return;
+      
+      setIsLoading(true);
+      setError(null);
+      
       try {
-        setLoading(true);
-        
-        if (!params.parentCategorySlug || !params.categorySlug) {
-          throw new Error("Category parameters are missing");
-        }
-        
-        // Fetch subcategory details
-        const subcategory = await fetchCategoryBySlug(params.categorySlug);
-        if (!subcategory) {
-          throw new Error("Subcategory not found");
-        }
-        setCategory(subcategory);
-        
-        // Fetch parent category details
-        const parentCategory = await fetchCategoryBySlug(params.parentCategorySlug);
-        if (!parentCategory) {
-          throw new Error("Parent category not found");
-        }
-        setParentCategory(parentCategory);
-        
-        // Fetch products for this subcategory
-        const productsData = await fetchProductsWithFilters({
-          ...filters,
-          categoryId: subcategory.id
+        const result = await fetchProductsWithFilters({
+          subcategory: slug,
+          page: currentPage,
+          limit: 12
         });
         
-        setProducts(productsData);
-        setProductCount(productsData.length);
-      } catch (error) {
-        console.error('Error fetching subcategory data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load subcategory data. Please try again.",
-          variant: "destructive",
-        });
+        // Check if result is the expected structure
+        if (result && Array.isArray(result.products)) {
+          setProducts(result.products as Product[]);
+          setTotalPages(result.totalPages || 1);
+          
+          if (result.products.length === 0 && currentPage > 1) {
+            setCurrentPage(1); // Reset to first page if current page has no results
+          }
+        } else {
+          // Handle empty or invalid response
+          setProducts([]);
+          setTotalPages(1);
+          console.warn("Unexpected response format:", result);
+        }
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        setError("Failed to load products. Please try again later.");
+        setProducts([]);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-
-    fetchData();
-  }, [params.parentCategorySlug, params.categorySlug, filters, toast]);
-
-  const handleSortChange = (sort: string) => {
-    setFilters(prev => ({
-      ...prev,
-      sort
-    }));
+    
+    loadProducts();
+  }, [slug, currentPage]);
+  
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo(0, 0);
   };
-
-  const handleViewChange = (view: 'grid' | 'list') => {
-    setCurrentView(view);
+  
+  // Toggle view mode
+  const toggleViewMode = () => {
+    setViewMode(prev => prev === "grid" ? "list" : "grid");
   };
-
-  if (loading) {
+  
+  if (error) {
     return (
       <Layout>
-        <div className="container-custom py-16">
-          <div className="flex justify-center items-center min-h-[400px]">
-            <Loader2 className="h-10 w-10 animate-spin text-primary mr-3" />
-            <p className="text-text-light">Loading products...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (!category || !parentCategory) {
-    return (
-      <Layout>
-        <div className="container-custom py-16">
-          <div className="text-center py-16">
-            <h1 className="text-2xl font-bold mb-4">Category Not Found</h1>
-            <p className="mb-8 text-gray-600">
-              The category you're looking for doesn't exist or has been removed.
-            </p>
-            <Button asChild>
-              <Link to="/">Return to Home</Link>
+        <div className="container py-12">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-red-500">Error</h2>
+            <p className="mt-4">{error}</p>
+            <Button
+              onClick={() => window.location.reload()}
+              className="mt-6"
+            >
+              Try Again
             </Button>
           </div>
         </div>
       </Layout>
     );
   }
-
+  
   return (
     <Layout>
-      <Helmet>
-        <title>{`${category.name} - ${parentCategory.name} | Digital Deals Hub`}</title>
-        <meta 
-          name="description" 
-          content={`Browse our selection of ${category.name} products in the ${parentCategory.name} category. Find the best digital deals for your needs.`} 
-        />
-        <link rel="canonical" href={`/category/${parentCategory.slug}/${category.slug}`} />
-      </Helmet>
-      
-      <div className="bg-white py-8">
-        <div className="container-custom">
-          <div className="mb-8">
-            <Breadcrumb>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/">Home</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink href={`/category/${parentCategory.slug}`}>
-                  {parentCategory.name}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink href={`/category/${parentCategory.slug}/${category.slug}`} className="text-gray-900 font-medium">
-                  {category.name}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-            </Breadcrumb>
-          </div>
-          
-          <div className="mb-8">
-            <div className="flex flex-wrap items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold">{category.name}</h1>
-              <Badge variant="outline" className="bg-gray-100 text-gray-700">{productCount} products</Badge>
+      <div className="container py-8">
+        {isLoading ? (
+          <>
+            <Skeleton className="h-16 w-full mb-8" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {Array(8).fill(0).map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <Skeleton className="h-40 w-full" />
+                  <div className="p-4">
+                    <Skeleton className="h-6 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/4" />
+                  </div>
+                </Card>
+              ))}
             </div>
-            <p className="text-gray-600 mt-2">{category.description}</p>
-            <Separator className="mt-6" />
-          </div>
-          
-          <div>
-            <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
-              <SimplifiedCategoryFilters
-                onSortChange={handleSortChange}
-                activeSort={filters.sort || 'recommended'}
-              />
-              <ViewToggle 
-                currentView={currentView}
-                onViewChange={handleViewChange}
-              />
-            </div>
+          </>
+        ) : (
+          <>
+            <CategoryHeader
+              title={`${slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : 'Products'}`}
+              description="Browse our collection of products"
+              resultsCount={products.length}
+            />
             
             <ProductGrid 
               products={products} 
-              showSort={false}
-              isLoading={loading}
-              viewMode={currentView}
+              showSort={true}
+              isLoading={isLoading}
+              viewMode={viewMode}
             />
-          </div>
-        </div>
+            
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-8">
+                <div className="flex gap-2">
+                  {Array(totalPages).fill(0).map((_, i) => (
+                    <Button
+                      key={i}
+                      variant={currentPage === i + 1 ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handlePageChange(i + 1)}
+                    >
+                      {i + 1}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </Layout>
   );
