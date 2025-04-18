@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2, RefreshCw, AlertCircle, Info, CheckCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { buildProxyUrl, ProxyType, ProxyConfig, fetchViaProxy } from '@/utils/proxyUtils';
+import { buildProxyUrl, ProxyType, ProxyConfig, fetchViaProxy, fetchViaProxyWithFallback } from '@/utils/proxyUtils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
@@ -311,14 +311,36 @@ const ProductManagerPage = () => {
         throw new Error('Kiosk Token is required');
       }
 
-      const url = `https://api.taphoammo.net/kioskapi.php?kiosk=${kioskToken}&usertoken=${userToken}`;
+      // Create proper proxy configuration object
       const proxyConfig: ProxyConfig = { type: selectedProxy };
+      
+      // Format the API URL properly
+      const url = `https://api.taphoammo.net/kioskapi.php?kiosk=${kioskToken}&usertoken=${userToken}`;
       
       addLog(`Requesting: ${url} through ${selectedProxy} proxy`);
       
-      // Use the fetchViaProxy function to make the request
+      // Use the fetchViaProxy function with proper arguments
       try {
-        const responseData = await fetchViaProxy(url, proxyConfig);
+        let responseData;
+        
+        try {
+          // First try with normal proxy
+          responseData = await fetchViaProxy(url, proxyConfig);
+          addLog(`Received response from ${selectedProxy} proxy`);
+        } catch (proxyError) {
+          // If that fails, try with the fallback method
+          addLog(`${selectedProxy} proxy failed: ${proxyError.message}`);
+          addLog('Attempting fallback method...');
+          
+          // Try the alternative approach with serverless function if available
+          if (typeof fetchViaProxyWithFallback === 'function') {
+            responseData = await fetchViaProxyWithFallback(url, proxyConfig);
+            addLog('Fallback method succeeded');
+          } else {
+            // If no fallback available, show mock data
+            throw proxyError;
+          }
+        }
         
         // Save the raw response for debugging
         setRawResponse(typeof responseData === 'string' ? responseData : JSON.stringify(responseData, null, 2));

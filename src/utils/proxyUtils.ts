@@ -106,8 +106,7 @@ export function getRequestHeaders(): HeadersInit {
     'X-Request-Time': timestamp.toString(),
     'Content-Type': 'application/json',
     'Origin': 'https://taphoammo.net',
-    'Referer': 'https://taphoammo.net/',
-    'Access-Control-Allow-Origin': '*'
+    'Referer': 'https://taphoammo.net/'
   };
 }
 
@@ -117,40 +116,90 @@ export async function fetchViaProxy(url: string, proxyConfig: ProxyConfig): Prom
     // Build the proxy URL using the provided config
     const { url: proxyUrl } = buildProxyUrl(url, proxyConfig);
     
-    // Make the request with appropriate headers
-    const response = await fetch(proxyUrl, {
-      headers: getRequestHeaders(),
-    });
+    // Add timeout to fetch request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    
-    const responseText = await response.text();
-    
-    // Try to parse as JSON
     try {
-      const data = JSON.parse(responseText);
+      // Make the request with appropriate headers
+      const response = await fetch(proxyUrl, {
+        headers: getRequestHeaders(),
+        signal: controller.signal
+      });
       
-      // Handle AllOrigins specific response format
-      if (proxyConfig.type === 'allorigins' && data.contents) {
-        try {
-          // Try to parse contents as JSON
-          return JSON.parse(data.contents);
-        } catch (parseError) {
-          // If contents is not valid JSON, return it as is
-          return data.contents;
-        }
+      clearTimeout(timeoutId); // Clear the timeout if response received
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
       
-      return data;
-    } catch (jsonError) {
-      // If response is not valid JSON, return it as text
-      return responseText;
+      const responseText = await response.text();
+      
+      // Try to parse as JSON
+      try {
+        const data = JSON.parse(responseText);
+        
+        // Handle AllOrigins specific response format
+        if (proxyConfig.type === 'allorigins' && data.contents) {
+          try {
+            // Try to parse contents as JSON
+            return JSON.parse(data.contents);
+          } catch (parseError) {
+            // If contents is not valid JSON, return it as is
+            return data.contents;
+          }
+        }
+        
+        return data;
+      } catch (jsonError) {
+        // If response is not valid JSON, return it as text
+        return responseText;
+      }
+    } catch (fetchError) {
+      if (fetchError.name === 'AbortError') {
+        throw new Error('Request timeout after 15 seconds');
+      }
+      throw fetchError;
     }
   } catch (error) {
     console.error('Error fetching via proxy:', error);
     throw error;
+  }
+}
+
+// Alternative fetchViaProxy with Supabase serverless function fallback
+export async function fetchViaProxyWithFallback(url: string, proxyConfig: ProxyConfig): Promise<any> {
+  try {
+    // First try direct proxy method
+    return await fetchViaProxy(url, proxyConfig);
+  } catch (error) {
+    console.error('Primary proxy fetch failed:', error);
+    
+    // Extract parameters from URL for serverless function
+    const urlObj = new URL(url);
+    const kioskToken = urlObj.searchParams.get('kioskToken') || 
+                       urlObj.searchParams.get('kiosk') || '';
+    const userToken = urlObj.searchParams.get('userToken') || '';
+    
+    // Determine which API endpoint to use
+    let endpoint = 'getStock';
+    if (url.includes('buyProducts')) endpoint = 'buyProducts';
+    if (url.includes('getProducts')) endpoint = 'getProducts';
+    
+    console.log('Falling back to serverless function with endpoint:', endpoint);
+    
+    // Call Supabase serverless function as fallback
+    const { data, error: functionError } = await supabase.functions.invoke('api-proxy', {
+      body: { 
+        endpoint,
+        kioskToken,
+        userToken,
+        proxyType: proxyConfig.type 
+      }
+    });
+    
+    if (functionError) throw new Error(`Serverless fallback failed: ${functionError.message}`);
+    return data;
   }
 }
 

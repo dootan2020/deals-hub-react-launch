@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -223,6 +222,54 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     });
     setFormDirty(false);
     toast.info('Form has been reset');
+  };
+
+  const handleApiTest = async (kioskToken: string) => {
+    if (!kioskToken) {
+      toast.error('Please enter a kiosk token');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      toast.info('Fetching product data...');
+
+      // Get the proxy configuration
+      const proxyConfig = await fetchProxySettings();
+      
+      // Use the improved fetchViaProxy function
+      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${userToken}`;
+      const data = await fetchViaProxy(apiUrl, proxyConfig);
+      
+      if (data?.success === "true") {
+        // Update form with the API data
+        form.setValue('title', data.name);
+        form.setValue('description', `${data.name}\n\n${data.description || ''}`.trim());
+        form.setValue('price', parseFloat(data.price));
+        form.setValue('stock', parseInt(data.stock || '0', 10));
+        form.setValue('inStock', parseInt(data.stock || '0', 10) > 0);
+        
+        // Generate slug if not already set
+        if (!form.getValues('slug')) {
+          const slug = data.name.toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^\w\-]+/g, '')
+            .replace(/\-\-+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+          form.setValue('slug', slug);
+        }
+        
+        toast.success('Product data fetched successfully!');
+      } else {
+        toast.error(`Failed to fetch product data: ${data?.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('API test error:', error);
+      toast.error(`Error fetching product data: ${(error as Error).message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

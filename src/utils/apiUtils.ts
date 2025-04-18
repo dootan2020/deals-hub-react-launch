@@ -38,6 +38,15 @@ export function extractFromHtml(html: string) {
       }
     }
     
+    // Try to extract price if available
+    const priceMatch = html.match(/(\d[\d\s,.]*)\s*₫|(\d[\d\s,.]*)\s*VND/i);
+    if (priceMatch) {
+      const priceStr = (priceMatch[1] || priceMatch[2])?.replace(/[^\d]/g, '');
+      if (priceStr) {
+        mockData.price = priceStr;
+      }
+    }
+    
     return mockData;
   } catch (error) {
     console.error("Error extracting data from HTML:", error);
@@ -57,7 +66,8 @@ export function isHtmlResponse(response: string): boolean {
   return response.includes('<!DOCTYPE') || 
          response.includes('<html') || 
          response.includes('<body') ||
-         response.includes('<head');
+         response.includes('<head') ||
+         response.includes('<meta');
 }
 
 // Normalize product information
@@ -72,11 +82,36 @@ export function normalizeProductInfo(data: any) {
     };
   }
   
+  // Handle arrays by picking the first item
+  if (Array.isArray(data)) {
+    data = data[0] || {};
+  }
+  
   return {
     success: data.success || 'true',
-    name: data.name || 'Gmail USA 2023-2024',
+    name: data.name || data.title || 'Gmail USA 2023-2024',
     price: data.price || '16000',
-    stock: data.stock || '4003',
+    stock: data.stock || data.stock_quantity || '4003',
     description: data.description || "Product description"
   };
+}
+
+// Fallback function using serverless API proxy
+export async function fetchProductInfoViaServerless(kioskToken: string, userToken: string) {
+  try {
+    const { data, error } = await supabase.functions.invoke('api-proxy', {
+      body: {
+        endpoint: 'getStock',
+        kioskToken,
+        userToken,
+        forceMock: false
+      }
+    });
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error in serverless function:', error);
+    throw error;
+  }
 }
