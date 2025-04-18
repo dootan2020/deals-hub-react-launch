@@ -6,7 +6,7 @@ import App from './App';
 import './index.css';
 import { Toaster } from 'sonner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-// Import react-quill styles after installation
+// Import react-quill styles
 import 'react-quill/dist/quill.snow.css';
 import './styles/quill.css'; // Import our custom Quill styles
 

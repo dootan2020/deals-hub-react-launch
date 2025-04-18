@@ -2,7 +2,7 @@
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { CategoryWithParent } from "@/types";
+import { CategoryWithParent } from "@/types/category.types";
 
 interface CategoryHeaderProps {
   category: CategoryWithParent;

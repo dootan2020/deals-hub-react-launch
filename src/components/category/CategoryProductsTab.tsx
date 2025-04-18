@@ -1,10 +1,11 @@
 
 import { useState } from 'react';
-import { Product, CategoryWithParent } from '@/types';
+import { Product } from '@/types';
+import { CategoryWithParent } from '@/types/category.types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { LayoutGrid, List, Filter } from 'lucide-react';
-import { EnhancedProductGrid } from '@/components/product/EnhancedProductGrid';
+import EnhancedProductGrid from '@/components/product/EnhancedProductGrid';
 
 interface CategoryProductsTabProps {
   category: CategoryWithParent;

@@ -4,11 +4,11 @@ import { useParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Layout from '@/components/layout/Layout';
 import { CategoryHeader } from '@/components/category/CategoryHeader';
-import { CategoryOverview } from '@/components/category/CategoryOverview';
+import CategoryOverview from '@/components/category/CategoryOverview';
 import { CategoryProductsTab } from '@/components/category/CategoryProductsTab';
 import { CategoryDetailsTab } from '@/components/category/CategoryDetailsTab';
-import { LoadingState } from '@/components/category/LoadingState';
-import { ErrorState } from '@/components/category/ErrorState';
+import LoadingState from '@/components/category/LoadingState';
+import ErrorState from '@/components/category/ErrorState';
 import { useCategory } from '@/hooks/useCategory';
 import { useCategoryProducts } from '@/hooks/useCategoryProducts';
 
@@ -18,17 +18,16 @@ const CategoryPage = () => {
   
   const {
     category,
-    isLoading: isCategoryLoading,
+    loading: isCategoryLoading,
     error: categoryError
-  } = useCategory(slug || '');
+  } = useCategory({ categorySlug: slug || '' });
   
   const {
     products,
-    isLoading: isProductsLoading,
-    error: productsError,
     pagination,
-    setPage
-  } = useCategoryProducts(slug || '');
+    handlePageChange,
+    loading: isProductsLoading
+  } = useCategoryProducts({ categoryId: category?.id });
 
   // Add console logging for debugging
   useEffect(() => {
@@ -42,7 +41,7 @@ const CategoryPage = () => {
   };
 
   const isLoading = isCategoryLoading || isProductsLoading;
-  const hasError = categoryError || productsError;
+  const hasError = categoryError || false; // There's no error property in useCategoryProducts
 
   // If a category slug was provided but it's not found, show error
   if (slug && !isLoading && !category) {
@@ -107,9 +106,9 @@ const CategoryPage = () => {
               category={category} 
               products={products}
               isLoading={isProductsLoading}
-              currentPage={pagination?.currentPage || 1}
-              totalPages={pagination?.totalPages || 1}
-              onPageChange={setPage}
+              currentPage={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
             />
           </TabsContent>
           

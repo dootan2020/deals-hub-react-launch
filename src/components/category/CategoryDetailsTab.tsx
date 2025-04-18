@@ -1,7 +1,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
-import { CategoryWithParent } from '@/types';
-import { Calendar, Globe, Tag, Layers, Users } from 'lucide-react';
+import { CategoryWithParent } from '@/types/category.types';
+import { Calendar, Globe, Tag, Layers } from 'lucide-react';
 
 interface CategoryDetailsTabProps {
   category: CategoryWithParent;
