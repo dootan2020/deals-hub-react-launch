@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 const registerSchema = z.object({
+  displayName: z.string().min(2, 'Tên hiển thị phải có ít nhất 2 ký tự'),
   email: z.string().email('Email không hợp lệ'),
   password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
 });
@@ -28,6 +29,7 @@ export default function RegisterPage() {
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
+      displayName: '',
       email: '',
       password: '',
     },
@@ -43,7 +45,9 @@ export default function RegisterPage() {
     setIsLoading(true);
     
     try {
-      await register(values.email, values.password);
+      await register(values.email, values.password, {
+        display_name: values.displayName
+      });
     } catch (error) {
       console.error('Registration error:', error);
     } finally {
@@ -58,13 +62,32 @@ export default function RegisterPage() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl">Tạo tài khoản</CardTitle>
             <CardDescription>
-              Nhập email và mật khẩu để tạo tài khoản mới
+              Nhập thông tin để tạo tài khoản mới
             </CardDescription>
           </CardHeader>
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="displayName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label htmlFor="displayName">Tên hiển thị</Label>
+                      <FormControl>
+                        <Input
+                          id="displayName"
+                          placeholder="Nhập tên hiển thị"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
                 <FormField
                   control={form.control}
                   name="email"

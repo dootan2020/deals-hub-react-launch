@@ -143,16 +143,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const register = async (email: string, password: string) => {
+  const register = async (email: string, password: string, metadata?: Record<string, any>) => {
     try {
-      // Using signUp with data option to populate user metadata
       const { error } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
           data: {
-            // Initialize any default user data here if needed
-            display_name: email.split('@')[0]
+            display_name: metadata?.display_name || email.split('@')[0],
+            ...metadata
           }
         }
       });

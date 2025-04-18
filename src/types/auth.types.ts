@@ -18,6 +18,6 @@ export type AuthContextType = {
   userBalance: number;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, metadata?: Record<string, any>) => Promise<void>;
   checkUserRole: (role: UserRole) => boolean;
 };
