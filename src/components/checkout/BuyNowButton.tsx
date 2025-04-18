@@ -35,12 +35,14 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
 
   const handleBuyNow = async () => {
     if (!kioskToken) {
-      toast.error('Không thể mua sản phẩm này');
+      console.error('Missing kioskToken', { kioskToken, productId });
+      toast.error('Không thể mua sản phẩm này: Thiếu thông tin sản phẩm (kioskToken)');
       return;
     }
 
     setIsLoading(true);
     try {
+      console.log('Placing order with:', { kioskToken, productId, quantity, promotionCode });
       const { data, error } = await supabase.functions.invoke('order-api', {
         body: {
           action: 'place-order',
@@ -51,13 +53,17 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
       
+      console.log('Order response:', data);
       if (data?.order_id) {
         if (onSuccess) onSuccess();
         navigate(`/order-success?orderId=${data.order_id}`);
       } else {
-        throw new Error(data?.message || 'Không thể tạo đơn hàng');
+        throw new Error(data?.message || data?.error || 'Không thể tạo đơn hàng');
       }
     } catch (error: any) {
       console.error('Error placing order:', error);
@@ -72,7 +78,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       variant={variant} 
       size={size}
       className={className}
-      disabled={!isInStock || isLoading}
+      disabled={!isInStock || isLoading || !kioskToken}
       onClick={handleBuyNow}
     >
       {isLoading ? (
@@ -83,7 +89,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       ) : (
         <>
           <ShoppingBag className="w-4 h-4 mr-2" />
-          {isInStock ? 'Mua Ngay' : 'Hết Hàng'}
+          {!kioskToken ? 'Không có sẵn' : isInStock ? 'Mua Ngay' : 'Hết Hàng'}
         </>
       )}
     </Button>
