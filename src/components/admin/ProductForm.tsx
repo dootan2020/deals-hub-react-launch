@@ -12,8 +12,7 @@ import { KioskTokenField } from './product-form/KioskTokenField';
 import { ProductFormFields } from './product-form/ProductFormFields';
 import { FormFooter } from './product-form/FormFooter';
 import { ApiProductTester } from '@/components/admin/product-manager/ApiProductTester';
-import { fetchProxySettings } from '@/utils/proxyUtils';
-import { fetchViaProxy } from '@/utils/proxyUtils';
+import { fetchProxySettings, fetchViaProxy } from '@/utils/proxyUtils';
 import { fetchActiveApiConfig } from '@/utils/apiUtils';
 import {
   AlertDialog,
@@ -228,7 +227,9 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     toast.info('Form has been reset');
   };
 
-  const handleApiTest = async (kioskToken: string) => {
+  const handleApiTest = async () => {
+    const kioskToken = form.getValues('kioskToken');
+    
     if (!kioskToken) {
       toast.error('Please enter a kiosk token');
       return;
@@ -247,22 +248,26 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       const data = await fetchViaProxy(apiUrl, proxyConfig);
       
       if (data?.success === "true") {
-        form.setValue('title', data.name);
-        form.setValue('description', `${data.name}\n\n${data.description || ''}`.trim());
+        console.log("API data retrieved successfully:", data);
+        form.setValue('title', data.name || '');
+        form.setValue('description', data.description || `${data.name} - Digital Product`);
         form.setValue('price', parseFloat(data.price) * 3);
         form.setValue('stock', parseInt(data.stock || '0', 10));
         form.setValue('inStock', parseInt(data.stock || '0', 10) > 0);
         
-        const slug = data.name.toLowerCase()
-          .replace(/\s+/g, '-')
-          .replace(/[^\w\-]+/g, '')
-          .replace(/\-\-+/g, '-')
-          .replace(/^-+/, '')
-          .replace(/-+$/, '');
-        form.setValue('slug', slug);
+        if (data.name) {
+          const slug = data.name.toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^\w\-]+/g, '')
+            .replace(/\-\-+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+          form.setValue('slug', slug);
+        }
         
         toast.success('Product data fetched successfully!');
       } else {
+        console.error("API error response:", data);
         toast.error(`Failed to fetch product data: ${data?.error || 'Unknown error'}`);
       }
     } catch (error) {
@@ -276,7 +281,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   const handleApiDataReceived = (data: ApiResponse) => {
     if (!data) return;
     
-    console.log("API data received:", data);
+    console.log("API data received through ApiProductTester:", data);
     
     const currentKioskToken = form.getValues('kioskToken');
     
@@ -314,6 +319,8 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       <ApiProductTester onApiDataReceived={handleApiDataReceived} />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <KioskTokenField onTestApi={handleApiTest} isLoading={isLoading} />
+          
           <ProductFormFields 
             categories={categories} 
             isEditMode={!!productId}
