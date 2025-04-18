@@ -114,68 +114,64 @@ export function ImageUploader({ existingImages = [] }: ImageUploaderProps) {
   return (
     <FormItem>
       <FormLabel>Product Images</FormLabel>
-      <div className="space-y-4">
-        {/* Dropzone */}
+      <FormControl>
         <div
           {...getRootProps()}
           className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-colors ${
             isDragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary/50'
           }`}
         >
-          <FormControl>
-            <input {...getInputProps()} />
-          </FormControl>
+          <input {...getInputProps()} />
           <Upload className="h-10 w-10 mx-auto mb-2 text-gray-400" />
           <p className="text-sm font-medium">
             {isDragActive
               ? 'Drop the files here...'
               : 'Drag & drop images here, or click to select files'
-          }
+            }
           </p>
           <p className="text-xs text-gray-500 mt-1">
             JPG, PNG, WebP • Max 2MB • Max 10 images
           </p>
         </div>
+      </FormControl>
 
-        {/* Preview thumbnails */}
-        {previewUrls.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {previewUrls.map((url, index) => (
-              <div 
-                key={index} 
-                className="relative group rounded-md overflow-hidden border border-gray-200"
-                style={{ aspectRatio: '1/1' }}
+      {previewUrls.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-4">
+          {previewUrls.map((url, index) => (
+            <div 
+              key={index} 
+              className="relative group rounded-md overflow-hidden border border-gray-200"
+              style={{ aspectRatio: '1/1' }}
+            >
+              <img 
+                src={url} 
+                alt={`Preview ${index}`} 
+                className="w-full h-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => removeFile(index)}
+                className="absolute top-1 right-1 bg-white/80 backdrop-blur-sm p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label="Remove image"
               >
-                <img 
-                  src={url} 
-                  alt={`Preview ${index}`} 
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeFile(index)}
-                  className="absolute top-1 right-1 bg-white/80 backdrop-blur-sm p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label="Remove image"
-                >
-                  <X className="h-4 w-4 text-gray-700" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+                <X className="h-4 w-4 text-gray-700" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
-        {/* Upload button */}
-        {files.length > 0 && (
-          <Button
-            type="button"
-            onClick={uploadFiles}
-            disabled={isUploading}
-            className="w-full"
-          >
-            {isUploading ? 'Uploading...' : `Upload ${files.length} image${files.length !== 1 ? 's' : ''}`}
-          </Button>
-        )}
-      </div>
+      {files.length > 0 && (
+        <Button
+          type="button"
+          onClick={uploadFiles}
+          disabled={isUploading}
+          className="w-full mt-4"
+        >
+          {isUploading ? 'Uploading...' : `Upload ${files.length} image${files.length !== 1 ? 's' : ''}`}
+        </Button>
+      )}
+      
       <FormDescription>
         Upload up to 10 product images. Images will be publicly visible.
       </FormDescription>
