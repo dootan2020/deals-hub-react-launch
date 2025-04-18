@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { ShoppingBag } from 'lucide-react';
 
-// Empty Buy Now button - placeholder after deletion
 interface BuyNowButtonProps {
   product?: any;
   kioskToken?: string;
@@ -20,25 +20,28 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   className, 
   variant = 'default',
   size = 'default',
-  isInStock,
+  isInStock = true,
   onSuccess,
   kioskToken,
   productId,
-  quantity,
+  quantity = 1,
   promotionCode
 }) => {
+  const handleBuyNow = () => {
+    console.log("Buy Now clicked with:", { kioskToken, productId, quantity, promotionCode });
+    if (onSuccess) onSuccess();
+  };
+
   return (
     <Button 
       variant={variant} 
       size={size}
       className={className}
-      disabled
-      onClick={() => {
-        console.log("Buy Now clicked with:", { kioskToken, productId, quantity, promotionCode });
-        if (onSuccess) onSuccess();
-      }}
+      disabled={!isInStock}
+      onClick={handleBuyNow}
     >
-      Buy Now (Disabled)
+      <ShoppingBag className="w-4 h-4 mr-2" />
+      {isInStock ? 'Buy Now' : 'Out of Stock'}
     </Button>
   );
 };
