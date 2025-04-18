@@ -1,5 +1,3 @@
 
-// Re-export all product service functions
-export * from './productService';
-export * from './productSyncService';
-export * from './mockProductService';
+// Product service index - all previous exports have been removed
+// This file is kept as a placeholder for future implementation
