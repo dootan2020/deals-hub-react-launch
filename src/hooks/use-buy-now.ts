@@ -38,12 +38,17 @@ export function useBuyNow({
   const location = useLocation();
 
   const handleBuyNow = () => {
+    console.log("BuyNow handler triggered");
+    
     if (!isAuthenticated) {
+      console.log("User not authenticated, redirecting to login");
+      toast.info("Please log in to continue with your purchase");
       navigate('/login', { state: { from: location.pathname } });
       return;
     }
     
     if (product) {
+      console.log("Product available, showing confirmation dialog");
       setShowConfirmation(true);
       return;
     }
@@ -52,6 +57,7 @@ export function useBuyNow({
   };
   
   const proceedWithOrder = async () => {
+    console.log("Proceeding with order");
     setLoading(true);
     setError(null);
     
@@ -64,6 +70,7 @@ export function useBuyNow({
         throw new Error('Quantity must be greater than 0');
       }
       
+      console.log("Placing order with:", { kioskToken, quantity, promotionCode });
       const orderResponse = await placeOrder({
         kioskToken,
         quantity,
@@ -94,6 +101,7 @@ export function useBuyNow({
         onSuccess();
       }
     } catch (err: any) {
+      console.error("Order error:", err);
       setError(err.message || 'An unknown error occurred');
       toast.error('Order failed: ' + (err.message || 'Unknown error'), {
         duration: 5000,
@@ -105,6 +113,7 @@ export function useBuyNow({
   };
   
   const handleConfirmPurchase = async () => {
+    console.log("Confirming purchase");
     if (!user || !product || !productId) {
       toast.error('Missing required information to complete purchase');
       return;
@@ -140,6 +149,7 @@ export function useBuyNow({
         onSuccess();
       }
     } catch (err: any) {
+      console.error("Purchase error:", err);
       toast.error(err.message || 'An unknown error occurred');
     }
   };

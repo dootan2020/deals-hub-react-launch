@@ -7,6 +7,7 @@ import { OrderError } from './OrderError';
 import { OrderProcessing } from './OrderProcessing';
 import { useBuyNow } from '@/hooks/use-buy-now';
 import { Product } from '@/types';
+import { toast } from 'sonner';
 
 interface BuyNowButtonProps {
   kioskToken: string;
@@ -54,13 +55,24 @@ export function BuyNowButton({
 
   const isDisabled = loading || orderProcessing || !isInStock || !kioskToken || kioskToken.trim() === '';
 
+  const onClickBuyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Show a toast notification for debugging
+    toast.info('Processing Buy Now request...');
+    
+    // Call the handler
+    handleBuyNow();
+  };
+
   return (
     <>
       <div className="w-full space-y-3">
         <Button 
           className={`w-full py-6 text-base font-medium bg-primary hover:bg-primary-dark transition-all ${className || ''}`}
           disabled={isDisabled}
-          onClick={handleBuyNow}
+          onClick={onClickBuyNow}
           type="button"
         >
           {loading ? (

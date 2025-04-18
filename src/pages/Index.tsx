@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import HeroSection from '@/components/home/HeroSection';
 import SearchSection from '@/components/home/SearchSection';
@@ -8,12 +8,10 @@ import FeaturesSection from '@/components/home/FeaturesSection';
 import ProductGrid from '@/components/product/ProductGrid';
 import TestimonialsSection from '@/components/home/TestimonialsSection';
 import NewsletterSection from '@/components/home/NewsletterSection';
-import { fetchProductsWithFilters } from '@/services/product';
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from 'sonner';
 
 const Index = () => {
   const [activeSort, setActiveSort] = useState('recommended');
-  const { toast } = useToast();
 
   return (
     <Layout>
