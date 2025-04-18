@@ -1,9 +1,8 @@
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -49,8 +48,7 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
   // Rich text editor modules configuration
   const modules = {
     toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
+      ['bold', 'italic', 'underline'],
       [{ 'list': 'ordered'}, { 'list': 'bullet' }],
       ['link'],
       ['clean']
@@ -58,8 +56,7 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
   };
 
   const formats = [
-    'header',
-    'bold', 'italic', 'underline', 'strike',
+    'bold', 'italic', 'underline',
     'list', 'bullet',
     'link'
   ];
@@ -70,7 +67,7 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
         name="title"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Product Title</FormLabel>
+            <FormLabel>Product Title <span className="text-red-500">*</span></FormLabel>
             <FormControl>
               <Input {...field} placeholder="Enter product title" />
             </FormControl>
@@ -83,7 +80,7 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
         name="description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Description</FormLabel>
+            <FormLabel>Description <span className="text-red-500">*</span></FormLabel>
             <FormControl>
               {editorLoaded ? (
                 <div className="rich-text-editor">
@@ -97,27 +94,52 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
                   />
                 </div>
               ) : (
-                <Textarea 
-                  {...field} 
-                  placeholder="Loading editor..." 
-                  className="min-h-32"
-                />
+                <div className="h-[200px] bg-gray-50 animate-pulse rounded-md" />
               )}
             </FormControl>
+            <FormDescription>
+              Format your description using the toolbar above. Support for bold, italic, lists, and links.
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
       />
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <FormField
           name="price"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Price ($)</FormLabel>
+              <FormLabel>Price (VND) <span className="text-red-500">*</span></FormLabel>
               <FormControl>
-                <Input {...field} type="number" step="0.01" min="0" placeholder="0.00" />
+                <Input type="number" min="0" step="1" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          name="originalPrice"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Original Price</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  min="0"
+                  step="1"
+                  placeholder="Original price (for discounts)" 
+                  value={field.value || ''}
+                  onChange={(e) => {
+                    const value = e.target.value ? parseFloat(e.target.value) : undefined;
+                    field.onChange(value);
+                  }}
+                />
+              </FormControl>
+              <FormDescription>
+                Leave empty if no discount
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -130,11 +152,11 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
               <FormLabel>Stock <span className="text-red-500">*</span></FormLabel>
               <FormControl>
                 <Input 
-                  {...field} 
-                  type="number" 
-                  min="0" 
+                  type="number"
+                  min="0"
                   step="1"
-                  placeholder="0"
+                  placeholder="Available quantity"
+                  {...field}
                   onChange={(e) => {
                     const value = parseInt(e.target.value) || 0;
                     field.onChange(value);
@@ -143,9 +165,9 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
                   }}
                 />
               </FormControl>
-              <FormMessage>
+              <FormDescription>
                 Available quantity
-              </FormMessage>
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -246,7 +268,7 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
           <FormItem>
             <FormLabel>Image URLs (one per line)</FormLabel>
             <FormControl>
-              <Textarea
+              <Input
                 {...field}
                 placeholder="https://example.com/image1.jpg
 https://example.com/image2.jpg"
