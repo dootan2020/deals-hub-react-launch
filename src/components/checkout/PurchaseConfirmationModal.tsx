@@ -56,6 +56,8 @@ export function PurchaseConfirmationModal({
   };
 
   // Force the modal to always render when isOpen is true
+  if (!isOpen) return null;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">

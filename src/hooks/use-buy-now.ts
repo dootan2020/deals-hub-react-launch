@@ -47,8 +47,10 @@ export function useBuyNow({
       return;
     }
     
-    if (product) {
-      console.log("Product available, showing confirmation dialog");
+    // Fix: Ensure product check works correctly
+    if (product && productId) {
+      console.log("Product available, showing confirmation dialog", product);
+      setError(null); // Clear any previous errors
       setShowConfirmation(true);
       return;
     }

@@ -59,9 +59,6 @@ export function BuyNowButton({
     e.preventDefault();
     e.stopPropagation();
     
-    // Remove this debug toast in production
-    // toast.info('Processing your request...');
-    
     // Call the handler
     handleBuyNow();
   };
@@ -119,7 +116,7 @@ export function BuyNowButton({
         )}
       </div>
       
-      {/* Make sure product is properly passed and modal opens when showConfirmation is true */}
+      {/* Make sure product and modal state are properly passed */}
       {product && (
         <PurchaseConfirmationModal
           isOpen={showConfirmation}
