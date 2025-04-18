@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -250,7 +249,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       if (data?.success === "true") {
         form.setValue('title', data.name);
         form.setValue('description', `${data.name}\n\n${data.description || ''}`.trim());
-        form.setValue('price', parseFloat(data.price));
+        form.setValue('price', parseFloat(data.price) * 3);
         form.setValue('stock', parseInt(data.stock || '0', 10));
         form.setValue('inStock', parseInt(data.stock || '0', 10) > 0);
         
@@ -276,14 +275,21 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
 
   const handleApiDataReceived = (data: ApiResponse) => {
     if (!data) return;
-
-    form.setValue('kioskToken', form.getValues('kioskToken'));
+    
+    console.log("API data received:", data);
+    
+    const currentKioskToken = form.getValues('kioskToken');
+    
     form.setValue('title', data.name || '');
+    form.setValue('kioskToken', currentKioskToken);
+    
     const originalPrice = parseFloat(data.price) || 0;
     form.setValue('price', originalPrice * 3);
-    form.setValue('stock', parseInt(data.stock) || 0);
-    form.setValue('inStock', parseInt(data.stock) > 0);
-
+    
+    const stockValue = parseInt(data.stock) || 0;
+    form.setValue('stock', stockValue);
+    form.setValue('inStock', stockValue > 0);
+    
     if (!form.getValues('slug') && data.name) {
       const slug = data.name.toLowerCase()
         .replace(/\s+/g, '-')
@@ -293,7 +299,13 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         .replace(/-+$/, '');
       form.setValue('slug', slug);
     }
-
+    
+    if (data.description) {
+      form.setValue('description', data.description);
+    } else if (data.name) {
+      form.setValue('description', `${data.name} - Digital Product`);
+    }
+    
     toast.success('Product data applied successfully');
   };
 
