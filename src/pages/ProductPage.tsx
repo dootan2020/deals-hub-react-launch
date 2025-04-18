@@ -273,13 +273,6 @@ const ProductPage = () => {
       setQuantity(newQuantity);
     }
   };
-  
-  const handleAddToCart = () => {
-    toast({
-      title: "Added to cart",
-      description: `${product?.title} (${quantity} items) has been added to your cart.`
-    });
-  };
 
   const getCanonicalUrl = () => {
     if (!product || !product.category) {
@@ -548,14 +541,14 @@ const ProductPage = () => {
                     </button>
                   </div>
                   
-                  <Button 
-                    onClick={handleAddToCart}
-                    className="flex-1 bg-[#1A936F] hover:bg-[#15734D] text-white"
-                    disabled={!product.inStock || product.stockQuantity <= 0}
-                  >
-                    <ShoppingCart className="h-5 w-5 mr-2" />
-                    Add to Cart
-                  </Button>
+                  <BuyNowButton
+                    kioskToken={product.kiosk_token || ''}
+                    productId={product.id}
+                    quantity={quantity}
+                    isInStock={product.inStock}
+                    className="flex-1 bg-primary hover:bg-primary-dark text-white"
+                    product={product}
+                  />
                   
                   <Button variant="outline" size="icon" className="border-[#E5E7EB] text-[#6B7280] hover:border-[#1A936F] hover:text-[#1A936F]">
                     <Heart className="h-5 w-5" />
