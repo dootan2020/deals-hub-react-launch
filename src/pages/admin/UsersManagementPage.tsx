@@ -26,7 +26,7 @@ export default function UsersManagementPage() {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('users_with_roles')
         .select('*');
 
@@ -51,7 +51,7 @@ export default function UsersManagementPage() {
 
   const assignRole = async (userId: string, role: UserRole) => {
     try {
-      const { error } = await supabase.rpc('assign_role', {
+      const { error } = await (supabase as any).rpc('assign_role', {
         user_id_param: userId,
         role_param: role
       });
@@ -67,7 +67,7 @@ export default function UsersManagementPage() {
 
   const removeRole = async (userId: string, role: UserRole) => {
     try {
-      const { error } = await supabase.rpc('remove_role', {
+      const { error } = await (supabase as any).rpc('remove_role', {
         user_id_param: userId,
         role_param: role
       });
