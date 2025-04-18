@@ -19,6 +19,7 @@ interface BuyNowButtonProps {
   promotionCode?: string;
   isInStock: boolean;
   onSuccess?: () => void;
+  className?: string; // Added className prop
 }
 
 export function BuyNowButton({ 
@@ -27,7 +28,8 @@ export function BuyNowButton({
   quantity, 
   promotionCode, 
   isInStock = true, 
-  onSuccess 
+  onSuccess,
+  className
 }: BuyNowButtonProps) {
   const [loading, setLoading] = useState(false);
   const [orderProcessing, setOrderProcessing] = useState(false);
@@ -131,7 +133,7 @@ export function BuyNowButton({
     <>
       <div className="w-full space-y-3">
         <Button 
-          className="w-full py-6 text-base font-medium bg-primary hover:bg-primary-dark transition-all"
+          className={`w-full py-6 text-base font-medium bg-primary hover:bg-primary-dark transition-all ${className || ''}`}
           disabled={isDisabled}
           onClick={handleBuyNow}
         >
