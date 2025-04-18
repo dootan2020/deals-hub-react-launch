@@ -12,6 +12,18 @@ import { Category } from '@/types';
 import { KioskTokenField } from './product-form/KioskTokenField';
 import { BasicProductInfo } from './product-form/BasicProductInfo';
 import { FormFooter } from './product-form/FormFooter';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from '@/components/ui/button';
+import { Loader2, RefreshCw } from 'lucide-react';
 
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
@@ -28,7 +40,7 @@ const productSchema = z.object({
   externalId: z.string().optional(),
   categoryId: z.string().min(1, 'Category is required'),
   images: z.string().optional(),
-  kioskToken: z.string().optional(),
+  kioskToken: z.string().min(1, 'Kiosk Token is required'),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -41,6 +53,8 @@ interface ProductFormProps {
 export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
   const navigate = useNavigate();
   const { createProduct, updateProduct } = useProductSync();
 
@@ -59,6 +73,14 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       kioskToken: '',
     }
   });
+
+  // Track form changes
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      setFormDirty(true);
+    });
+    return () => subscription.unsubscribe();
+  }, [form.watch]);
 
   useEffect(() => {
     fetchCategories();
@@ -106,6 +128,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
           images: data.images && data.images.length > 0 ? data.images.join('\n') : '',
           kioskToken: data.kiosk_token || '',
         });
+        setFormDirty(false);
       }
     } catch (error) {
       console.error('Error fetching product details:', error);
@@ -139,6 +162,8 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         toast.success('Product created successfully');
       }
 
+      setFormDirty(false);
+      
       if (onSuccess) {
         onSuccess();
       } else {
@@ -152,13 +177,73 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     }
   };
 
+  const handleResetForm = () => {
+    if (formDirty) {
+      setShowResetDialog(true);
+    } else {
+      resetForm();
+    }
+  };
+
+  const resetForm = () => {
+    form.reset({
+      title: '',
+      description: '',
+      price: '',
+      originalPrice: '',
+      inStock: true,
+      slug: '',
+      externalId: '',
+      categoryId: '',
+      images: '',
+      kioskToken: '',
+    });
+    setFormDirty(false);
+    toast.info('Form has been reset');
+  };
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <KioskTokenField />
-        <BasicProductInfo categories={categories} />
-        <FormFooter isLoading={isLoading} productId={productId} />
-      </form>
-    </Form>
+    <>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <KioskTokenField />
+          <BasicProductInfo categories={categories} />
+
+          <div className="flex justify-between">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleResetForm}
+              disabled={isLoading}
+              className="border-gray-300"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reset Form
+            </Button>
+            <FormFooter isLoading={isLoading} productId={productId} />
+          </div>
+        </form>
+      </Form>
+
+      <AlertDialog 
+        open={showResetDialog} 
+        onOpenChange={setShowResetDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset form?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear all form fields and unsaved changes. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={resetForm}>
+              Reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

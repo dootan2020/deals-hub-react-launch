@@ -13,6 +13,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Category } from '@/types';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import { useEffect, useState } from 'react';
 
 interface BasicProductInfoProps {
   categories: Category[];
@@ -20,6 +23,11 @@ interface BasicProductInfoProps {
 
 export function BasicProductInfo({ categories }: BasicProductInfoProps) {
   const form = useFormContext();
+  const [editorLoaded, setEditorLoaded] = useState(false);
+
+  useEffect(() => {
+    setEditorLoaded(true);
+  }, []);
 
   const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toLowerCase()
@@ -37,6 +45,24 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
     
     form.setValue('slug', slug);
   };
+
+  // Rich text editor modules configuration
+  const modules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['link'],
+      ['clean']
+    ],
+  };
+
+  const formats = [
+    'header',
+    'bold', 'italic', 'underline', 'strike',
+    'list', 'bullet',
+    'link'
+  ];
 
   return (
     <>
@@ -59,11 +85,24 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
           <FormItem>
             <FormLabel>Description</FormLabel>
             <FormControl>
-              <Textarea 
-                {...field} 
-                placeholder="Enter product description" 
-                className="min-h-32"
-              />
+              {editorLoaded ? (
+                <div className="rich-text-editor">
+                  <ReactQuill 
+                    theme="snow" 
+                    value={field.value} 
+                    onChange={field.onChange}
+                    modules={modules}
+                    formats={formats}
+                    className="min-h-[200px] mb-12"
+                  />
+                </div>
+              ) : (
+                <Textarea 
+                  {...field} 
+                  placeholder="Loading editor..." 
+                  className="min-h-32"
+                />
+              )}
             </FormControl>
             <FormMessage />
           </FormItem>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductListingTable } from '@/components/admin/product-listing/ProductListingTable';
@@ -29,7 +28,6 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Separator } from '@/components/ui/separator';
 import { Category } from '@/types';
 
-// Interfaces
 interface Product {
   id: string;
   title: string;
@@ -44,7 +42,6 @@ interface Product {
   created_at: string;
 }
 
-// API response type
 type ApiResponse = {
   success: string;
   name: string;
@@ -54,13 +51,11 @@ type ApiResponse = {
 };
 
 const ProductManagerPage = () => {
-  // State for product management
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
-  // API Tester State
   const [kioskToken, setKioskToken] = useState<string>('');
   const [userToken, setUserToken] = useState<string>('');
   const [selectedProxy, setSelectedProxy] = useState<ProxyType>('allorigins');
@@ -71,6 +66,7 @@ const ProductManagerPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isMockData, setIsMockData] = useState<boolean>(false);
   const [logs, setLogs] = useState<string[]>([]);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -79,7 +75,6 @@ const ProductManagerPage = () => {
     loadApiConfig();
   }, []);
 
-  // Fetch products
   const fetchProducts = async () => {
     setIsLoadingProducts(true);
     try {
@@ -98,7 +93,6 @@ const ProductManagerPage = () => {
     }
   };
 
-  // Fetch categories
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
@@ -114,7 +108,6 @@ const ProductManagerPage = () => {
     }
   };
 
-  // Load API config
   const loadApiConfig = async () => {
     try {
       const { data, error } = await supabase
@@ -132,26 +125,23 @@ const ProductManagerPage = () => {
     }
   };
 
-  // Function to add log entry
   const addLog = (message: string) => {
     const now = new Date();
     const timestamp = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}]`;
     setLogs(prev => [...prev, `${timestamp} ${message}`]);
   };
 
-  // Update form with API response data
   const updateFormWithApiData = (data: ApiResponse, formData: any) => {
     if (!data) return formData;
     
     const updatedData = { ...formData };
     
-    // Update form values
     updatedData.title = data.name || formData.title;
     updatedData.description = data.description || `${data.name} - Digital Product` || '';
     updatedData.price = parseFloat(data.price) || formData.price;
     updatedData.inStock = parseInt(data.stock || '0') > 0;
+    updatedData.stockQuantity = parseInt(data.stock || '0');
     
-    // Generate slug if not provided
     if (!formData.slug && data.name) {
       const slug = data.name.toLowerCase()
         .replace(/\s+/g, '-')
@@ -159,7 +149,6 @@ const ProductManagerPage = () => {
       updatedData.slug = slug;
     }
     
-    // Set the kiosk token
     updatedData.kioskToken = kioskToken;
     
     return updatedData;
@@ -222,7 +211,6 @@ const ProductManagerPage = () => {
         await handleServerlessFetch();
       }
       
-      // Update timestamp
       const now = new Date();
       setLastUpdated(
         `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`
@@ -235,7 +223,6 @@ const ProductManagerPage = () => {
     }
   };
 
-  // Function to use serverless function
   const handleServerlessFetch = async () => {
     if (!kioskToken || !userToken) {
       return;
@@ -244,7 +231,6 @@ const ProductManagerPage = () => {
     addLog('Falling back to serverless function...');
     
     try {
-      // URL to serverless function
       const serverlessUrl = `https://xcpwyvrlutlslgaueokd.supabase.co/functions/v1/api-proxy?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}&proxyType=${selectedProxy}`;
       addLog(`Calling serverless function: ${serverlessUrl.substring(0, 80)}...`);
       
@@ -270,12 +256,10 @@ const ProductManagerPage = () => {
     }
   };
 
-  // Clear logs function
   const clearLogs = () => {
     setLogs([]);
   };
-  
-  // Generate slug from title
+
   const generateSlug = (title: string) => {
     if (!title) return '';
     return title.toLowerCase()
@@ -283,10 +267,8 @@ const ProductManagerPage = () => {
       .replace(/[^a-z0-9-]/g, '');
   };
 
-  // Handle form submission
   const handleFormSubmit = async (data: ProductFormValues, productId?: string) => {
     try {
-      // Prepare data for submission
       const productData = {
         title: data.title,
         description: data.description,
@@ -303,7 +285,6 @@ const ProductManagerPage = () => {
       };
 
       if (productId) {
-        // Update existing product
         const { error } = await supabase
           .from('products')
           .update(productData)
@@ -311,7 +292,6 @@ const ProductManagerPage = () => {
           
         if (error) throw error;
       } else {
-        // Create new product
         const { error } = await supabase
           .from('products')
           .insert(productData);
@@ -319,20 +299,16 @@ const ProductManagerPage = () => {
         if (error) throw error;
       }
       
-      // Reset API response data
       setApiResponse(null);
       setRawResponse('');
       
-      // Refresh product list
       await fetchProducts();
-      
     } catch (error: any) {
       console.error('Error saving product:', error);
       throw error;
     }
   };
-  
-  // Handle product deletion
+
   const handleDeleteProduct = async (productId: string) => {
     try {
       const { error } = await supabase
@@ -342,20 +318,42 @@ const ProductManagerPage = () => {
         
       if (error) throw error;
       
-      // Refresh product list
       setProducts(products.filter(p => p.id !== productId));
-      
+      toast.success('Product deleted successfully');
     } catch (error: any) {
       console.error('Error deleting product:', error);
+      toast.error(`Failed to delete product: ${error.message}`);
       throw error;
     }
   };
-  
-  // Handle edit product
+
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
-    // Scroll to the form
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const resetForm = () => {
+    setSelectedProduct(null);
+    form.reset({
+      title: '',
+      description: '',
+      price: 0,
+      originalPrice: undefined,
+      inStock: true,
+      slug: '',
+      category_id: '',
+      images: '',
+      kioskToken: '',
+    });
+    toast.info('Form has been reset');
+  };
+
+  const handleResetForm = () => {
+    if (form.formState.isDirty) {
+      setShowResetConfirm(true);
+    } else {
+      resetForm();
+    }
   };
 
   return (
@@ -377,7 +375,6 @@ const ProductManagerPage = () => {
         {({ form, isSubmitting, isEditMode, resetForm, handleCancel, handleSubmit }) => (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* API Tester Section */}
               <div className="space-y-6">
                 <Card className="border border-gray-200">
                   <CardContent className="pt-6">
@@ -527,8 +524,14 @@ const ProductManagerPage = () => {
                             form.setValue('description', updatedFormData.description);
                             form.setValue('price', updatedFormData.price);
                             form.setValue('inStock', updatedFormData.inStock);
-                            form.setValue('slug', updatedFormData.slug);
+                            
+                            if (!form.getValues('slug') || updatedFormData.slug) {
+                              form.setValue('slug', updatedFormData.slug);
+                            }
+                            
                             form.setValue('kioskToken', updatedFormData.kioskToken);
+                            
+                            toast.success("API data applied to form");
                           }}
                           type="button"
                           className="w-full"
@@ -556,7 +559,6 @@ const ProductManagerPage = () => {
                 </Card>
               </div>
               
-              {/* Product Form Section */}
               <div className="space-y-6">
                 <Card>
                   <CardContent className="pt-6">
@@ -566,6 +568,24 @@ const ProductManagerPage = () => {
                     
                     <Form {...form}>
                       <form className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="kioskToken"
+                          rules={{ required: "Kiosk Token is required" }}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Kiosk Token <span className="text-red-500">*</span></FormLabel>
+                              <FormControl>
+                                <Input placeholder="Kiosk Token" {...field} />
+                              </FormControl>
+                              <FormDescription>
+                                Token for API synchronization (required)
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
                         <FormField
                           control={form.control}
                           name="title"
@@ -750,23 +770,6 @@ const ProductManagerPage = () => {
                             </FormItem>
                           )}
                         />
-                        
-                        <FormField
-                          control={form.control}
-                          name="kioskToken"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Kiosk Token</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Kiosk Token" {...field} />
-                              </FormControl>
-                              <FormDescription>
-                                Token for API synchronization
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
                       </form>
                     </Form>
                   </CardContent>
@@ -782,6 +785,16 @@ const ProductManagerPage = () => {
                       Cancel
                     </Button>
                   )}
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleResetForm}
+                    className="border-gray-300 text-gray-600"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reset Form
+                  </Button>
                   
                   <Button 
                     type="button" 
@@ -802,7 +815,6 @@ const ProductManagerPage = () => {
               </div>
             </div>
             
-            {/* Product Listing Section */}
             <div className="mt-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Products ({products.length})</h2>
@@ -831,6 +843,26 @@ const ProductManagerPage = () => {
           </div>
         )}
       </ProductFormManager>
+
+      <AlertDialog 
+        open={showResetConfirm} 
+        onOpenChange={setShowResetConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset form?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear all form fields and unsaved changes. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={resetForm}>
+              Reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };
