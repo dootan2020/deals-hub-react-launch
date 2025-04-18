@@ -16,11 +16,14 @@ const ProductsAdmin = () => {
     syncProduct
   } = useProductSync();
 
+  // Fixed: Added type safety by casting products to array
+  const productsList = Array.isArray(products) ? products : [];
+
   return (
     <AdminLayout title="Products">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Products ({products.length})</h1>
+          <h1 className="text-2xl font-bold">Products ({productsList.length})</h1>
           <p className="text-muted-foreground mt-1">
             Manage digital products and their availability
           </p>
@@ -84,7 +87,7 @@ const ProductsAdmin = () => {
               </tr>
             </thead>
             <tbody>
-              {products.map((product) => (
+              {productsList.map((product) => (
                 <tr key={product.id} className="border-b hover:bg-gray-50">
                   <td className="px-6 py-4 font-medium">{product.title}</td>
                   <td className="px-6 py-4">{Intl.NumberFormat('vi-VN').format(product.price)} VND</td>
@@ -122,7 +125,7 @@ const ProductsAdmin = () => {
                   </td>
                 </tr>
               ))}
-              {products.length === 0 && !isLoading && (
+              {productsList.length === 0 && !isLoading && (
                 <tr className="border-b">
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                     No products found. Click "New Product" to create one.

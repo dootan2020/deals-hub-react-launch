@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -172,10 +173,12 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       };
 
       if (productId) {
-        await updateProduct({ id: productId, ...productData });
+        // Fixed: Pass the data directly without converting to a promise
+        updateProduct({ id: productId, ...productData } as any);
         toast.success('Product updated successfully');
       } else {
-        await createProduct(productData);
+        // Fixed: Pass the data directly without converting to a promise
+        createProduct(productData as any);
         toast.success('Product created successfully');
       }
 
