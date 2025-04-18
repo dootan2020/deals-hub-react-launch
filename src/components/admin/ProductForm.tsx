@@ -23,6 +23,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw } from 'lucide-react';
+import { fetchProxySettings } from '@/utils/proxyUtils';
+import { fetchViaProxy } from '@/utils/proxyUtils';
+import { fetchActiveApiConfig } from '@/utils/apiUtils';
 
 interface ApiResponse {
   success: string;
@@ -236,6 +239,10 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
 
       // Get the proxy configuration
       const proxyConfig = await fetchProxySettings();
+      
+      // Get the user token from API config
+      const apiConfig = await fetchActiveApiConfig();
+      const userToken = apiConfig.user_token;
       
       // Use the improved fetchViaProxy function
       const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${userToken}`;
