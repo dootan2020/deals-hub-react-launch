@@ -4,71 +4,85 @@ import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import BuyNowButton from '@/components/checkout/BuyNowButton';
 import { formatPrice } from '@/utils/productUtils';
-import { ShoppingCart } from 'lucide-react';
+import { ProductBadge } from './ProductBadge';
+import { ProductStock } from './ProductStock';
+import { ArrowRight } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
   viewMode?: "grid" | "list";
 }
 
+const getBadgeType = (title: string): 'gmail' | 'facebook' | 'outlook' | 'default' => {
+  const lowercaseTitle = title.toLowerCase();
+  if (lowercaseTitle.includes('gmail')) return 'gmail';
+  if (lowercaseTitle.includes('facebook')) return 'facebook';
+  if (lowercaseTitle.includes('outlook')) return 'outlook';
+  return 'default';
+};
+
 const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
   const containerClasses = viewMode === "list" 
-    ? "flex gap-6 p-4" 
+    ? "flex gap-6 p-5" 
     : "flex flex-col h-full";
 
-  const imageClasses = viewMode === "list"
-    ? "w-48 h-48 flex-shrink-0"
-    : "w-full aspect-square";
-
   const contentClasses = viewMode === "list"
-    ? "flex-1 flex flex-col justify-between"
-    : "flex flex-col flex-1 p-4";
-
-  // For debugging - log the product data to see if kioskToken is present
-  console.log(`Product card for ${product.title}:`, {
-    id: product.id,
-    kioskToken: product.kiosk_token,
-    inStock: product.inStock
-  });
+    ? "flex-1"
+    : "";
 
   return (
-    <div className={`bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow ${containerClasses}`}>
-      <div className={imageClasses}>
-        <img
-          src={product.images[0] || '/placeholder.svg'}
-          alt={product.title}
-          className="w-full h-full object-cover rounded-t-lg"
-        />
-      </div>
-      
+    <div className={`
+      bg-white rounded-2xl border border-gray-100 p-5
+      transition duration-300 hover:shadow-xl
+      ${containerClasses}
+    `}>
       <div className={contentClasses}>
-        <div>
-          <h3 className="text-lg font-semibold mb-2 line-clamp-2">{product.title}</h3>
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-            {product.shortDescription || product.description}
-          </p>
+        {/* Header with Badge and Title */}
+        <div className="flex items-start gap-3 mb-3">
+          <ProductBadge type={getBadgeType(product.title)} />
+          <div className="flex-1">
+            <h3 className="font-semibold text-lg line-clamp-2 text-gray-900">
+              {product.title}
+            </h3>
+          </div>
         </div>
-        
-        <div className={`mt-auto ${viewMode === "list" ? "flex items-center justify-between" : "space-y-3"}`}>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold text-primary">{formatPrice(product.price)}</span>
-            {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-sm text-muted-foreground line-through">
-                {formatPrice(product.originalPrice)}
-              </span>
-            )}
-          </div>
+
+        {/* Description */}
+        <p className="text-sm text-gray-500 line-clamp-2 mb-4">
+          {product.shortDescription || product.description}
+        </p>
+
+        {/* Price and Stock */}
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-lg font-bold text-primary">
+            {formatPrice(product.price)}
+          </span>
+          <ProductStock stock={product.stockQuantity || 0} />
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 mt-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            asChild
+          >
+            <a href={`/product/${product.slug}`}>
+              <span>Xem chi tiết</span>
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </a>
+          </Button>
           
-          <div className={viewMode === "list" ? "flex gap-2" : "mt-3"}>
-            <BuyNowButton
-              productId={product.id}
-              kioskToken={product.kiosk_token}
-              variant="default"
-              size="sm"
-              className="w-full"
-              isInStock={product.inStock}
-            />
-          </div>
+          <BuyNowButton
+            productId={product.id}
+            kioskToken={product.kiosk_token}
+            variant="default"
+            size="sm"
+            className="flex-1 bg-gradient-to-r from-primary to-primary-dark"
+            isInStock={product.inStock}
+            product={product}
+          />
         </div>
       </div>
     </div>

@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -69,7 +68,6 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Updated badge colors for better contrast
 				badge: {
 					hot: '#EF4444', // Hot red
 					featured: '#1A936F', // Primary green
