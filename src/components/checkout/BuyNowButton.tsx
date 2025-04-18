@@ -14,6 +14,7 @@ import { OrderSuccessModal } from './OrderSuccessModal';
 
 interface BuyNowButtonProps {
   kioskToken: string;
+  productId?: string;
   quantity: number;
   promotionCode?: string;
   isInStock: boolean;
@@ -22,6 +23,7 @@ interface BuyNowButtonProps {
 
 export function BuyNowButton({ 
   kioskToken, 
+  productId,
   quantity, 
   promotionCode, 
   isInStock = true, 
@@ -40,8 +42,9 @@ export function BuyNowButton({
     setError(null);
     
     try {
-      if (!kioskToken) {
-        throw new Error('Product ID is missing');
+      // Validate both kioskToken and productId
+      if (!kioskToken || kioskToken.trim() === '') {
+        throw new Error('Product information is incomplete: missing kiosk token');
       }
       
       if (quantity <= 0) {
@@ -121,12 +124,15 @@ export function BuyNowButton({
     }
   };
   
+  // Disable button if the product is not ready for purchase
+  const isDisabled = loading || orderProcessing || !isInStock || !kioskToken || kioskToken.trim() === '';
+  
   return (
     <>
       <div className="w-full space-y-3">
         <Button 
           className="w-full py-6 text-base font-medium bg-primary hover:bg-primary-dark transition-all"
-          disabled={loading || orderProcessing || !isInStock}
+          disabled={isDisabled}
           onClick={handleBuyNow}
         >
           {loading ? (
