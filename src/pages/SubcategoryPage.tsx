@@ -8,15 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchProductsWithFilters } from '@/services/productService';
-
-// Define Product type
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  image?: string;
-  // Add other properties as needed
-}
+import { Product } from '@/types';
+import { CategoryWithParent } from '@/types/category.types';
+import { ensureProductsFields } from '@/utils/productUtils';
 
 const SubcategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -44,7 +38,9 @@ const SubcategoryPage = () => {
         
         // Check if result is the expected structure
         if (result && Array.isArray(result.products)) {
-          setProducts(result.products as Product[]);
+          // Make sure products conform to the Product interface
+          const validProducts = ensureProductsFields(result.products);
+          setProducts(validProducts);
           setTotalPages(result.totalPages || 1);
           
           if (result.products.length === 0 && currentPage > 1) {
@@ -79,13 +75,15 @@ const SubcategoryPage = () => {
     setViewMode(prev => prev === "grid" ? "list" : "grid");
   };
 
-  // Mock category data for CategoryHeader
-  const mockCategory = {
+  // Mock category data for CategoryHeader - now with all required properties
+  const mockCategory: CategoryWithParent = {
     id: slug || 'default-id',
     name: slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : 'Products',
     description: 'Browse our collection of products',
     slug: slug || 'default-slug',
     image: '',
+    count: 0,  // Added missing required property
+    parent_id: null,
     parent: null
   };
   
