@@ -23,6 +23,7 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
   });
   const [loading, setLoading] = useState(true);
   const [currentSort, setCurrentSort] = useState(sort);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const fetchProducts = async () => {
     try {
@@ -30,6 +31,11 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
       
       if (categoryId && !isProductsPage) {
         query = query.eq('category_id', categoryId);
+      }
+      
+      // If we're on the products page and a specific subcategory is selected
+      if (isProductsPage && selectedCategory) {
+        query = query.eq('category_id', selectedCategory);
       }
       
       const from = (pagination.page - 1) * pagination.pageSize;
@@ -133,7 +139,14 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
 
   useEffect(() => {
     fetchProducts();
-  }, [categoryId, pagination.page, isProductsPage, currentSort]);
+  }, [categoryId, pagination.page, isProductsPage, currentSort, selectedCategory]);
 
-  return { products, pagination, handlePageChange, handleSortChange, loading };
+  return { 
+    products, 
+    pagination, 
+    handlePageChange, 
+    handleSortChange, 
+    loading,
+    setSelectedCategory 
+  };
 };

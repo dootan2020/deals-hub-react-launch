@@ -14,8 +14,8 @@ const SubcategoryPills = ({ subcategories, onSubcategoryClick }: SubcategoryPill
 
   return (
     <div className="w-full mb-6">
-      <ScrollArea className="w-full" orientation="horizontal">
-        <div className="flex gap-3 pb-4 px-1">
+      <ScrollArea className="w-full">
+        <div className="flex gap-3 pb-4 px-1 overflow-x-auto">
           {subcategories.map((category) => (
             <Link
               key={category.id}
