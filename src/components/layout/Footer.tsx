@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
 
@@ -9,7 +8,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* Company Info */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Digital Deals Hub</h3>
+            <h3 className="text-lg font-semibold mb-4">AccZen.net</h3>
             <p className="text-text-light mb-4">
               Your trusted source for premium digital products and accounts at competitive prices.
             </p>
@@ -146,7 +145,7 @@ const Footer = () => {
 
         {/* Copyright */}
         <div className="text-center text-text-light text-sm mt-8">
-          &copy; {new Date().getFullYear()} Digital Deals Hub. All rights reserved.
+          &copy; {new Date().getFullYear()} AccZen.net. All rights reserved.
         </div>
       </div>
     </footer>

@@ -1,4 +1,3 @@
-
 import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -17,15 +16,14 @@ interface UserLayoutProps {
 }
 
 const UserLayout = ({ children, title }: UserLayoutProps) => {
-  const { user } = useAuth();
-
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
       <div className="w-64 bg-white shadow-md">
         <div className="p-4 border-b">
-          <Link to="/" className="text-2xl font-bold text-primary">
-            Digital Deals
+          <Link to="/" className="text-2xl font-bold">
+            <span className="text-[#9b87f5]">Acc</span>
+            <span className="text-[#7E69AB]">Zen.net</span>
           </Link>
         </div>
         <nav className="p-4">

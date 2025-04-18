@@ -22,8 +22,9 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
       {/* Sidebar */}
       <div className="w-64 bg-white shadow-md">
         <div className="p-4 border-b">
-          <Link to="/" className="text-2xl font-bold text-primary">
-            Digital Deals
+          <Link to="/" className="text-2xl font-bold">
+            <span className="text-[#9b87f5]">Acc</span>
+            <span className="text-[#7E69AB]">Zen.net</span>
           </Link>
         </div>
         <nav className="p-4">
