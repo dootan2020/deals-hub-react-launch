@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from './ProductCard';
@@ -48,7 +49,7 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
   paginationType = 'load-more',
   viewMode: externalViewMode,
   currentPage,
-  totalPages,
+  totalPages: externalTotalPages,
   onPageChange
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts || externalProducts || []);
@@ -140,11 +141,13 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
     setPage(nextPage);
   };
 
+  const calculatedTotalPages = Math.ceil(products.length / 12);
+
   const renderPagination = () => {
-    if (paginationType !== 'pagination' || (totalPages && totalPages <= 1)) return null;
+    if (paginationType !== 'pagination' || (externalTotalPages && externalTotalPages <= 1)) return null;
     
     const currentPageToUse = currentPage || page;
-    const totalPagesToUse = totalPages || Math.ceil(products.length / 12);
+    const totalPagesToUse = externalTotalPages || calculatedTotalPages;
     const handlePageChangeFunction = onPageChange || handlePageChange;
 
     const renderPageNumbers = () => {
@@ -239,7 +242,7 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
   };
 
   const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > Math.max(totalPages || 1, 1) || newPage === page) return;
+    if (newPage < 1 || newPage > Math.max(externalTotalPages || calculatedTotalPages || 1, 1) || newPage === page) return;
     
     setPage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -265,8 +268,6 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
   }, []);
 
   const showLoading = isLoading || externalLoading;
-
-  const calculatedTotalPages = Math.ceil(products.length / 12);
 
   const displayedProducts = limit && products.length > limit 
     ? products.slice(0, limit) 
