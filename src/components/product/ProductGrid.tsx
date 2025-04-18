@@ -36,15 +36,21 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       {title && <h2 className="text-2xl font-bold">{title}</h2>}
       {description && <p className="text-muted-foreground">{description}</p>}
       
-      <div className={gridClasses}>
-        {products.map((product) => (
-          <ProductCard 
-            key={product.id} 
-            product={product}
-            viewMode={viewMode}
-          />
-        ))}
-      </div>
+      {products.length > 0 ? (
+        <div className={gridClasses}>
+          {products.map((product) => (
+            <ProductCard 
+              key={product.id} 
+              product={product}
+              viewMode={viewMode}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-gray-500">No products found</p>
+        </div>
+      )}
       
       {showViewAll && viewAllLink && (
         <div className="flex justify-center mt-6">

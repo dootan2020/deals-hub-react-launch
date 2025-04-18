@@ -4,6 +4,7 @@ import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import BuyNowButton from '@/components/checkout/BuyNowButton';
 import { formatPrice } from '@/utils/productUtils';
+import { ShoppingCart } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -29,7 +30,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
         />
       </div>
       
-      <div className={`flex flex-col ${viewMode === "grid" ? "p-4" : "flex-1"}`}>
+      <div className={`flex flex-col ${viewMode === "grid" ? "p-4" : "flex-1 p-4"}`}>
         <h3 className="text-lg font-semibold mb-2 line-clamp-2">{product.title}</h3>
         
         <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.shortDescription}</p>
@@ -44,12 +45,15 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
             )}
           </div>
           
-          <BuyNowButton
-            productId={product.id}
-            variant="default"
-            className="w-full"
-            isInStock={product.inStock}
-          />
+          <div className={`flex gap-2 ${viewMode === "grid" ? "flex-col" : "mt-2"}`}>
+            <BuyNowButton
+              productId={product.id}
+              variant="default"
+              size="sm"
+              className="w-full"
+              isInStock={product.inStock}
+            />
+          </div>
         </div>
       </div>
     </div>

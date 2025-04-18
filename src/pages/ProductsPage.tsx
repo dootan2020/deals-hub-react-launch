@@ -142,10 +142,9 @@ const ProductsPage = () => {
             ) : (
               <ProductGrid 
                 products={products}
-                showSort={true}
-                activeSort={activeSort}
-                onSortChange={setActiveSort}
                 viewMode={viewMode}
+                title="Products"
+                description="Browse our collection of digital products"
               />
             )}
           </div>
