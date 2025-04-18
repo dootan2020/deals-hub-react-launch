@@ -7,16 +7,28 @@ import EnhancedProductGrid from '@/components/product/EnhancedProductGrid';
 
 interface CategoryProductsTabProps {
   products: Product[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+  };
+  onPageChange: (page: number) => void;
+  activeFilters: {
+    sort: string;
+  };
+  onSortChange: (sort: string) => void;
   totalProducts: number;
-  activeSort: string;
-  handleSortChange: (sort: string) => void;
+  loading: boolean;
 }
 
 const CategoryProductsTab: React.FC<CategoryProductsTabProps> = ({
   products,
+  pagination,
+  onPageChange,
+  activeFilters,
+  onSortChange,
   totalProducts,
-  activeSort,
-  handleSortChange
+  loading
 }) => {
   const [currentView, setCurrentView] = useState<'grid' | 'list'>('grid');
 
@@ -32,8 +44,8 @@ const CategoryProductsTab: React.FC<CategoryProductsTabProps> = ({
           onViewChange={handleViewChange}
         />
         <SimplifiedCategoryFilters 
-          onSortChange={handleSortChange}
-          activeSort={activeSort || 'recommended'}
+          onSortChange={onSortChange}
+          activeSort={activeFilters.sort || 'recommended'}
         />
       </div>
       
@@ -48,6 +60,12 @@ const CategoryProductsTab: React.FC<CategoryProductsTabProps> = ({
         showSort={false}
         paginationType="pagination"
         viewMode={currentView}
+        isLoading={loading}
+        pagination={{
+          currentPage: pagination.currentPage,
+          totalPages: pagination.totalPages,
+          onPageChange: onPageChange
+        }}
       />
     </>
   );

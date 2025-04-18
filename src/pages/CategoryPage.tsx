@@ -1,3 +1,4 @@
+
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useCategoryData } from '@/hooks/useCategoryData';
@@ -29,7 +30,13 @@ const CategoryPage = () => {
     featuredProducts
   } = useCategoryData({ categorySlug, parentCategorySlug });
   
-  console.log('CategoryPage useCategoryData result:', { category, loading, error, activeTab });
+  console.log('CategoryPage useCategoryData result:', { 
+    category, 
+    loading, 
+    error, 
+    activeTab,
+    productsCount: products?.length
+  });
   
   return (
     <Layout>
