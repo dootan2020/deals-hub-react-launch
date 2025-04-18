@@ -111,34 +111,43 @@ export function getRequestHeaders(): HeadersInit {
   };
 }
 
-// New function - Generic fetchViaProxy that can handle all types of CORS proxy requests
-export async function fetchViaProxy(url: string): Promise<any> {
+// Enhanced fetchViaProxy that can handle all types of CORS proxy requests
+export async function fetchViaProxy(url: string, proxyConfig: ProxyConfig): Promise<any> {
   try {
-    // Get the current proxy settings
-    const proxyConfig = await fetchProxySettings();
+    // Build the proxy URL using the provided config
     const { url: proxyUrl } = buildProxyUrl(url, proxyConfig);
     
+    // Make the request with appropriate headers
     const response = await fetch(proxyUrl, {
       headers: getRequestHeaders(),
     });
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! Status: ${response.status}`);
     }
     
-    const data = await response.json();
+    const responseText = await response.text();
     
-    // Handle AllOrigins specific response format
-    if (proxyConfig.type === 'allorigins' && data.contents) {
-      try {
-        return JSON.parse(data.contents);
-      } catch (parseError) {
-        console.error('Error parsing AllOrigins contents:', parseError);
-        return data.contents; // Return raw content if parsing fails
+    // Try to parse as JSON
+    try {
+      const data = JSON.parse(responseText);
+      
+      // Handle AllOrigins specific response format
+      if (proxyConfig.type === 'allorigins' && data.contents) {
+        try {
+          // Try to parse contents as JSON
+          return JSON.parse(data.contents);
+        } catch (parseError) {
+          // If contents is not valid JSON, return it as is
+          return data.contents;
+        }
       }
+      
+      return data;
+    } catch (jsonError) {
+      // If response is not valid JSON, return it as text
+      return responseText;
     }
-    
-    return data;
   } catch (error) {
     console.error('Error fetching via proxy:', error);
     throw error;

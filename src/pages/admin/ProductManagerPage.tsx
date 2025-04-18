@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2, RefreshCw, AlertCircle, Info, CheckCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { buildProxyUrl, ProxyType, ProxyConfig } from '@/utils/proxyUtils';
+import { buildProxyUrl, ProxyType, ProxyConfig, fetchViaProxy } from '@/utils/proxyUtils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
@@ -27,6 +27,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
 import { Category } from '@/types';
+import { isHtmlResponse, extractFromHtml, normalizeProductInfo } from '@/utils/apiUtils';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -312,36 +313,47 @@ const ProductManagerPage = () => {
 
       const url = `https://api.taphoammo.net/kioskapi.php?kiosk=${kioskToken}&usertoken=${userToken}`;
       const proxyConfig: ProxyConfig = { type: selectedProxy };
-      const { url: proxiedUrl } = buildProxyUrl(url, proxyConfig);
       
-      addLog(`Requesting: ${proxiedUrl}`);
+      addLog(`Requesting: ${url} through ${selectedProxy} proxy`);
       
-      const response = await fetch(proxiedUrl);
-      const responseText = await response.text();
-      setRawResponse(responseText);
-      
-      addLog(`Raw response received: ${responseText.substring(0, 50)}...`);
-      
+      // Use the fetchViaProxy function to make the request
       try {
-        const data = JSON.parse(responseText);
-        setApiResponse(data);
+        const responseData = await fetchViaProxy(url, proxyConfig);
+        
+        // Save the raw response for debugging
+        setRawResponse(typeof responseData === 'string' ? responseData : JSON.stringify(responseData, null, 2));
+        addLog(`Raw response received: ${JSON.stringify(responseData).substring(0, 50)}...`);
+        
+        // Handle HTML responses
+        if (typeof responseData === 'string' && isHtmlResponse(responseData)) {
+          addLog('Response is HTML, attempting to extract product information');
+          const extractedData = extractFromHtml(responseData);
+          setApiResponse(extractedData);
+          setIsMockData(true);
+        } else {
+          // Handle JSON responses
+          const normalizedData = normalizeProductInfo(responseData);
+          setApiResponse(normalizedData);
+          addLog('Successfully processed API response');
+        }
+        
         setLastUpdated(new Date().toLocaleString());
-        addLog('Successfully parsed JSON response');
-      } catch (parseError) {
-        setError('Failed to parse API response as JSON. The API returned HTML or invalid JSON. Try a different proxy or the serverless function.');
-        setIsMockData(true);
-        setApiResponse({
-          success: 'mock',
-          name: 'Sample Product (Mock)',
-          price: '150000',
-          stock: '10',
-          description: 'This is mock data because the API returned HTML or non-JSON response'
-        });
-        addLog('Failed to parse JSON. Using mock data instead.');
+      } catch (requestError) {
+        throw new Error(`API request failed: ${requestError.message}`);
       }
     } catch (err: any) {
       setError(`API request failed: ${err.message}`);
       addLog(`Error: ${err.message}`);
+      
+      // Show mock data when an error occurs
+      setIsMockData(true);
+      setApiResponse({
+        success: 'mock',
+        name: 'Sample Product (Mock)',
+        price: '150000',
+        stock: '10',
+        description: 'This is mock data because the API request failed'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -471,8 +483,9 @@ const ProductManagerPage = () => {
                           <SelectContent>
                             <SelectItem value="allorigins">AllOrigins</SelectItem>
                             <SelectItem value="corsproxy">CORS Proxy</SelectItem>
-                            <SelectItem value="corsanywhere">CORS Anywhere</SelectItem>
+                            <SelectItem value="cors-anywhere">CORS Anywhere</SelectItem>
                             <SelectItem value="direct">Direct API Call</SelectItem>
+                            <SelectItem value="yproxy">YProxy (AllOrigins Raw)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

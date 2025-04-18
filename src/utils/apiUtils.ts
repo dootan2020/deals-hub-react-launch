@@ -20,7 +20,7 @@ export async function fetchActiveApiConfig() {
 
 export function extractFromHtml(html: string) {
   try {
-    // Thử dùng giá trị mặc định từ yêu cầu API
+    // Try to extract data from HTML response
     const mockData = {
       success: "true",
       name: "Gmail USA 2023-2024",
@@ -29,7 +29,7 @@ export function extractFromHtml(html: string) {
       description: "Information extracted from HTML response"
     };
     
-    // Tìm tên sản phẩm nếu có
+    // Try to find product name in title
     const titleMatch = html.match(/<title>(.*?)<\/title>/i);
     if (titleMatch) {
       const title = titleMatch[1].replace(" - TapHoaMMO", "").trim();
@@ -41,7 +41,7 @@ export function extractFromHtml(html: string) {
     return mockData;
   } catch (error) {
     console.error("Error extracting data from HTML:", error);
-    // Trả về dữ liệu đúng nếu không thể extract
+    // Return fallback data if extraction fails
     return {
       success: "true",
       name: "Gmail USA 2023-2024",
@@ -52,7 +52,7 @@ export function extractFromHtml(html: string) {
   }
 }
 
-// Kiểm tra nếu phản hồi là HTML
+// Check if response is HTML
 export function isHtmlResponse(response: string): boolean {
   return response.includes('<!DOCTYPE') || 
          response.includes('<html') || 
@@ -60,7 +60,7 @@ export function isHtmlResponse(response: string): boolean {
          response.includes('<head');
 }
 
-// Chuẩn hóa thông tin sản phẩm
+// Normalize product information
 export function normalizeProductInfo(data: any) {
   if (!data) {
     return {
