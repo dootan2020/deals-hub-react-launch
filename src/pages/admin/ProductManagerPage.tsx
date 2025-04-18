@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2, RefreshCw, AlertCircle, Info, CheckCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { buildProxyUrl, ProxyType } from '@/utils/proxyUtils';
+import { buildProxyUrl, ProxyType, ProxyConfig } from '@/utils/proxyUtils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
@@ -311,7 +311,8 @@ const ProductManagerPage = () => {
       }
 
       const url = `https://api.taphoammo.net/kioskapi.php?kiosk=${kioskToken}&usertoken=${userToken}`;
-      const proxiedUrl = buildProxyUrl(url, selectedProxy);
+      const proxyConfig: ProxyConfig = { type: selectedProxy };
+      const { url: proxiedUrl } = buildProxyUrl(url, proxyConfig);
       
       addLog(`Requesting: ${proxiedUrl}`);
       
