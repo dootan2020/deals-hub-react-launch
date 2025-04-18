@@ -2,6 +2,36 @@
 import { Product } from '@/types';
 
 /**
+ * Filter products based on specified criteria
+ */
+export const applyFilters = (products: Product[], filters: any = {}): Product[] => {
+  let filteredProducts = [...products];
+  
+  // Filter by price range
+  if (filters.priceRange) {
+    const [min, max] = filters.priceRange;
+    if (min !== undefined) {
+      filteredProducts = filteredProducts.filter(p => p.price >= min);
+    }
+    if (max !== undefined) {
+      filteredProducts = filteredProducts.filter(p => p.price <= max);
+    }
+  }
+  
+  // Filter by rating
+  if (filters.rating !== undefined) {
+    filteredProducts = filteredProducts.filter(p => p.rating >= filters.rating);
+  }
+  
+  // Filter by availability (in stock)
+  if (filters.inStock === true) {
+    filteredProducts = filteredProducts.filter(p => p.inStock);
+  }
+  
+  return filteredProducts;
+};
+
+/**
  * Sort products based on specified sort criteria
  */
 export const sortProducts = (products: Product[], sortOption?: string): Product[] => {

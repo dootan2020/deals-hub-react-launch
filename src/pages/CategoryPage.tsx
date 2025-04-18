@@ -5,7 +5,7 @@ import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
 import CategoryFiltersSection from '@/components/category/CategoryFiltersSection';
 import MobileFilterToggle from '@/components/category/MobileFilterToggle';
-import CategoryHeader from '@/components/category/CategoryHeader';
+import { CategoryHeader } from '@/components/category/CategoryHeader';
 import CategoryBreadcrumbs from '@/components/category/CategoryBreadcrumbs';
 import { useCategoryData } from '@/hooks/useCategoryData';
 import LoadingState from '@/components/category/LoadingState';
