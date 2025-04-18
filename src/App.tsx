@@ -37,6 +37,9 @@ import ProductFormWithTester from './pages/admin/ProductFormWithTester';
 import ProxySettingsPage from './pages/admin/ProxySettingsPage';
 import UsersManagementPage from './pages/admin/UsersManagementPage';
 
+// User pages
+import DashboardPage from "./pages/user/DashboardPage";
+
 const App = () => {
   return (
     <React.StrictMode>
@@ -53,8 +56,7 @@ const App = () => {
               {/* Protected User Routes */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
-                  {/* Add your DashboardPage component here when created */}
-                  <div>Dashboard (Coming Soon)</div>
+                  <DashboardPage />
                 </ProtectedRoute>
               } />
               
