@@ -48,7 +48,8 @@ const productSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens.'),
   category_id: z.string().min(1, 'Category is required'),
   images: z.string().optional(),
-  kioskToken: z.string().optional()
+  kioskToken: z.string().optional(),
+  stock: z.number().int().min(0, 'Stock must be a non-negative integer')
 });
 
 interface Product {
@@ -63,6 +64,7 @@ interface Product {
   description: string;
   images?: string[];
   kiosk_token?: string | null;
+  stock: number;
 }
 
 type ApiResponse = {
@@ -91,6 +93,7 @@ const ProductManagerPage = () => {
   const [logs, setLogs] = useState<string[]>([]);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const navigate = useNavigate();
+  const [formDirty, setFormDirty] = useState(false);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -103,7 +106,8 @@ const ProductManagerPage = () => {
       slug: '',
       category_id: '',
       images: '',
-      kioskToken: ''
+      kioskToken: '',
+      stock: 0
     }
   });
 
@@ -175,10 +179,10 @@ const ProductManagerPage = () => {
     const updatedData = { ...formData };
     
     updatedData.title = data.name || formData.title;
-    updatedData.description = data.description || `${data.name} - Digital Product` || '';
+    updatedData.description = data.description || `${data.name} - Digital Product` || formData.description;
     updatedData.price = parseFloat(data.price) || formData.price;
     updatedData.inStock = parseInt(data.stock || '0') > 0;
-    updatedData.stockQuantity = parseInt(data.stock || '0');
+    updatedData.stock = parseInt(data.stock || '0');
     
     if (!formData.slug && data.name) {
       const slug = data.name.toLowerCase()
@@ -190,119 +194,6 @@ const ProductManagerPage = () => {
     updatedData.kioskToken = kioskToken;
     
     return updatedData;
-  };
-
-  const handleApiTest = async () => {
-    if (!kioskToken || !userToken) {
-      setError('Please enter both Kiosk Token and User Token');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    setApiResponse(null);
-    setRawResponse('');
-    setIsMockData(false);
-    setLogs([]);
-    
-    try {
-      addLog(`Testing with ${selectedProxy} proxy...`);
-      
-      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}`;
-      addLog(`API URL: ${apiUrl}`);
-      
-      const { url: proxyUrl } = buildProxyUrl(apiUrl, { type: selectedProxy });
-      addLog(`Proxy URL: ${proxyUrl}`);
-      
-      try {
-        const response = await fetch(proxyUrl);
-        addLog(`Response status: ${response.status}`);
-        addLog(`Content-Type: ${response.headers.get('content-type')}`);
-        
-        const responseText = await response.text();
-        addLog(`Received ${responseText.length} bytes of data`);
-        
-        try {
-          let parsedResponse = null;
-          
-          if (selectedProxy === 'allorigins' && responseText.includes('"contents"')) {
-            const allOriginsData = JSON.parse(responseText);
-            if (allOriginsData && allOriginsData.contents) {
-              parsedResponse = JSON.parse(allOriginsData.contents);
-            }
-          } else {
-            parsedResponse = JSON.parse(responseText);
-          }
-          
-          if (parsedResponse) {
-            addLog('Successfully retrieved and parsed data from API');
-            setApiResponse(parsedResponse);
-            setRawResponse(JSON.stringify(parsedResponse, null, 2));
-            toast.success('Product information retrieved successfully');
-          }
-        } catch (parseError) {
-          addLog(`Error parsing response: ${parseError}`);
-          await handleServerlessFetch();
-        }
-      } catch (fetchError) {
-        addLog(`Fetch error: ${fetchError}`);
-        await handleServerlessFetch();
-      }
-      
-      const now = new Date();
-      setLastUpdated(
-        `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')} ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`
-      );
-    } catch (error: any) {
-      console.error('API test error:', error);
-      setError(`Error: ${error.message || 'Unable to connect to API'}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleServerlessFetch = async () => {
-    if (!kioskToken || !userToken) {
-      return;
-    }
-    
-    addLog('Falling back to serverless function...');
-    
-    try {
-      const serverlessUrl = `https://xcpwyvrlutlslgaueokd.supabase.co/functions/v1/api-proxy?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}&proxyType=${selectedProxy}`;
-      addLog(`Calling serverless function: ${serverlessUrl.substring(0, 80)}...`);
-      
-      const response = await fetch(serverlessUrl);
-      addLog(`Serverless function returned status: ${response.status}`);
-      
-      if (!response.ok) {
-        throw new Error(`Serverless error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      addLog('Successfully retrieved data from serverless function');
-      
-      setApiResponse(data);
-      setRawResponse(JSON.stringify(data, null, 2));
-      setIsMockData(true);
-      
-      toast.success('Data successfully loaded from serverless function');
-    } catch (error: any) {
-      addLog(`Serverless error: ${error.message}`);
-      setError(`Error: ${error.message}`);
-      toast.error('Error connecting to serverless function');
-    }
-  };
-
-  const clearLogs = () => {
-    setLogs([]);
-  };
-
-  const generateSlug = (title: string) => {
-    if (!title) return '';
-    return title.toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '');
   };
 
   const handleFormSubmit = async (data: ProductFormValues, productId?: string) => {
@@ -320,6 +211,7 @@ const ProductManagerPage = () => {
         api_name: apiResponse?.name,
         api_price: apiResponse ? parseFloat(apiResponse.price) : null,
         api_stock: apiResponse ? parseInt(apiResponse.stock) : null,
+        stock: data.stock
       };
 
       if (productId) {
@@ -557,12 +449,14 @@ const ProductManagerPage = () => {
                               price: form.getValues('price'),
                               inStock: form.getValues('inStock'),
                               slug: form.getValues('slug'),
+                              stock: form.getValues('stock'),
                             });
                             
                             form.setValue('title', updatedFormData.title);
                             form.setValue('description', updatedFormData.description);
                             form.setValue('price', updatedFormData.price);
                             form.setValue('inStock', updatedFormData.inStock);
+                            form.setValue('stock', updatedFormData.stock);
                             
                             if (!form.getValues('slug') || updatedFormData.slug) {
                               form.setValue('slug', updatedFormData.slug);
@@ -806,6 +700,20 @@ const ProductManagerPage = () => {
                                   onCheckedChange={field.onChange}
                                 />
                               </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="stock"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Stock</FormLabel>
+                              <FormControl>
+                                <Input type="number" placeholder="Enter stock quantity" {...field} />
+                              </FormControl>
+                              <FormMessage />
                             </FormItem>
                           )}
                         />
