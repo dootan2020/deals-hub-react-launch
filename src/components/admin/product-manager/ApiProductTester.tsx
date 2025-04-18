@@ -14,8 +14,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, RefreshCw, Info, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { ProxyType, ProxyConfig, fetchProxySettings, fetchViaProxy, fetchViaProxyWithFallback } from '@/utils/proxyUtils';
-import { fetchActiveApiConfig } from '@/utils/apiUtils';
+import { ProxyType, ProxyConfig, fetchProxySettings } from '@/utils/proxyUtils';
+import { fetchActiveApiConfig, fetchProductInfoViaServerless } from '@/utils/apiUtils';
 import { supabase } from "@/integrations/supabase/client";
 
 interface ApiResponse {
@@ -54,17 +54,16 @@ export function ApiProductTester({
         const apiConfig = await fetchActiveApiConfig();
         if (apiConfig) {
           setUserToken(apiConfig.user_token || '');
-          if (!initialKioskToken) {
-            setKioskToken('');
-          }
         }
       } catch (error) {
         console.error('Error loading API config:', error);
       }
     };
     
-    loadApiConfig();
-  }, [initialKioskToken]);
+    if (!initialUserToken) {
+      loadApiConfig();
+    }
+  }, [initialUserToken]);
 
   const addLog = (message: string) => {
     const now = new Date();
@@ -79,111 +78,64 @@ export function ApiProductTester({
     setRawResponse('');
     setIsMockData(false);
 
-    addLog(`Starting API test using ${selectedProxy} proxy...`);
+    addLog(`Starting API test using direct serverless function...`);
 
     try {
       if (!kioskToken) {
         throw new Error('Kiosk Token is required');
       }
 
-      const proxyConfig: ProxyConfig = { type: selectedProxy };
+      if (!userToken) {
+        throw new Error('User Token is required');
+      }
       
-      const url = `https://api.taphoammo.net/kioskapi.php?kiosk=${kioskToken}&usertoken=${userToken}`;
+      // Use Supabase Edge Function directly
+      addLog('Calling serverless API proxy function...');
       
-      addLog(`Requesting: ${url} through ${selectedProxy} proxy`);
-      
-      try {
-        let responseData;
-        
-        try {
-          responseData = await fetchViaProxy(url, proxyConfig);
-          addLog(`Received response from ${selectedProxy} proxy`);
-        } catch (proxyError) {
-          addLog(`${selectedProxy} proxy failed: ${(proxyError as Error).message}`);
-          addLog('Attempting fallback method...');
-          
-          // Try using serverless function directly
-          const { data, error: serverlessError } = await supabase.functions.invoke('api-proxy', {
-            body: { 
-              endpoint: 'getStock',
-              kioskToken,
-              userToken,
-              proxyType: selectedProxy
-            }
-          });
-          
-          if (serverlessError) {
-            throw new Error(`Serverless fallback failed: ${serverlessError.message}`);
-          }
-          
-          responseData = data;
-          addLog('Serverless function succeeded');
+      const { data, error: invokeError } = await supabase.functions.invoke('api-proxy', {
+        body: { 
+          endpoint: 'getStock',
+          kioskToken,
+          userToken
         }
-        
-        setRawResponse(typeof responseData === 'string' ? responseData : JSON.stringify(responseData, null, 2));
-        addLog(`Raw response received: ${JSON.stringify(responseData).substring(0, 50)}...`);
-        
-        // Handle different response formats
-        if (typeof responseData === 'string') {
-          try {
-            // Try to parse string as JSON
-            const parsedData = JSON.parse(responseData);
-            setApiResponse(parsedData);
-            onApiDataReceived(parsedData);
-            addLog('Successfully parsed JSON response');
-          } catch (parseError) {
-            // If it's HTML or can't be parsed as JSON
-            addLog('Response is not valid JSON, treating as HTML');
-            const mockData = {
-              success: "true",
-              name: "Gmail USA 2023-2024",
-              price: "16000",
-              stock: "3276",
-              description: "Information extracted from HTML response"
-            };
-            setApiResponse(mockData);
-            onApiDataReceived(mockData);
-            setIsMockData(true);
-          }
-        } else if (responseData && typeof responseData === 'object') {
-          // Handle AllOrigins format or direct object response
-          if (responseData.contents) {
-            try {
-              // Try to parse contents as JSON
-              const parsedContents = JSON.parse(responseData.contents);
-              setApiResponse(parsedContents);
-              onApiDataReceived(parsedContents);
-              addLog('Successfully parsed contents as JSON');
-            } catch (parseError) {
-              // If contents isn't valid JSON
-              addLog('Contents is not valid JSON');
-              const mockData = {
-                success: "true",
-                name: "Gmail USA 2023-2024",
-                price: "16000",
-                stock: "3276",
-                description: "Information extracted from response"
-              };
-              setApiResponse(mockData);
-              onApiDataReceived(mockData);
-              setIsMockData(true);
-            }
-          } else {
-            // Direct object response
-            setApiResponse(responseData);
-            onApiDataReceived(responseData);
-            addLog('Successfully processed API response');
-          }
-        }
-        
-        setLastUpdated(new Date().toLocaleString());
-      } catch (requestError) {
-        throw new Error(`API request failed: ${(requestError as Error).message}`);
+      });
+      
+      if (invokeError) {
+        throw new Error(`Serverless function error: ${invokeError.message}`);
+      }
+      
+      if (!data) {
+        throw new Error('Empty response from serverless function');
+      }
+      
+      // Log and set the raw response
+      setRawResponse(typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+      addLog(`Raw response received: ${JSON.stringify(data).substring(0, 50)}...`);
+      
+      // Handle the response data
+      if (data.fromHtml || data.parseError || data.fetchError) {
+        addLog('API returned problematic data, but it was handled by the serverless function');
+        setIsMockData(data.fromHtml || data.parseError || data.fetchError);
+      }
+      
+      setApiResponse(data);
+      onApiDataReceived(data);
+      setLastUpdated(new Date().toLocaleString());
+      
+      if (data.success === "true") {
+        addLog('Successfully processed API response');
+        toast.success('Product data retrieved successfully!');
+      } else {
+        addLog(`API returned error: ${data.error || 'Unknown error'}`);
+        toast.error(`API error: ${data.error || 'Unknown error'}`);
       }
     } catch (err: any) {
-      setError(`API request failed: ${err.message}`);
+      const errorMsg = `API request failed: ${err.message}`;
+      setError(errorMsg);
       addLog(`Error: ${err.message}`);
+      toast.error(errorMsg);
       
+      // Use fallback mock data when an error occurs
       const mockData = {
         success: "true",
         name: "Gmail USA 2023-2024",

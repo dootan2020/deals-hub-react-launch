@@ -11,7 +11,6 @@ import { ProductForm } from '@/components/admin/product-manager/ProductForm';
 import { ProductListView } from '@/components/admin/product-manager/ProductListView';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Category } from '@/types';
-import { fetchProxySettings, fetchViaProxy } from '@/utils/proxyUtils';
 import { fetchActiveApiConfig } from '@/utils/apiUtils';
 import { InfoIcon } from 'lucide-react';
 
@@ -136,25 +135,30 @@ const ProductManagerPage = () => {
     try {
       toast.info('Fetching product data...');
 
-      // Get the proxy configuration
-      const proxyConfig = await fetchProxySettings();
-      
       // Get the user token from API config
       const apiConfig = await fetchActiveApiConfig();
       const userToken = apiConfig.user_token;
       
-      // Use the improved fetchViaProxy function
-      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${userToken}`;
-      const data = await fetchViaProxy(apiUrl, proxyConfig);
+      // Call the serverless function directly
+      const { data, error } = await supabase.functions.invoke('api-proxy', {
+        body: { 
+          endpoint: 'getStock',
+          kioskToken,
+          userToken
+        }
+      });
       
-      if (data?.success === "true") {
+      if (error) {
+        throw new Error(`Serverless function error: ${error.message}`);
+      }
+      
+      if (data) {
         // Update state with the API data
         setLastApiResponse(data);
-        
         toast.success('Product data fetched successfully!');
         return data;
       } else {
-        toast.error(`Failed to fetch product data: ${data?.error || 'Unknown error'}`);
+        toast.error('Failed to fetch product data: Empty response');
         return null;
       }
     } catch (error) {
@@ -173,46 +177,52 @@ const ProductManagerPage = () => {
     }
 
     try {
-      // Get the proxy configuration
-      const proxyConfig = await fetchProxySettings();
-      
       // Get the user token from API config
       const apiConfig = await fetchActiveApiConfig();
       const userToken = apiConfig.user_token;
       
-      // Use the improved fetchViaProxy function
-      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(product.kiosk_token)}&userToken=${userToken}`;
-      const data = await fetchViaProxy(apiUrl, proxyConfig);
+      // Call the serverless function directly
+      const { data, error } = await supabase.functions.invoke('api-proxy', {
+        body: { 
+          endpoint: 'getStock',
+          kioskToken: product.kiosk_token,
+          userToken
+        }
+      });
       
-      if (data?.success === "true") {
-        // Update product in database
-        const { error } = await supabase
-          .from('products')
-          .update({
-            api_name: data.name,
-            api_price: parseFloat(data.price),
-            api_stock: parseInt(data.stock || '0'),
-            stock: parseInt(data.stock || '0'),
-            last_synced_at: new Date().toISOString()
-          })
-          .eq('id', product.id);
-
-        if (error) throw error;
-        
-        // Log the sync
-        await supabase
-          .from('sync_logs')
-          .insert({
-            product_id: product.id,
-            action: 'product_sync',
-            status: 'success',
-            message: `Synced: ${data.name}, Price: ${data.price}, Stock: ${data.stock}`
-          });
-          
-        toast.success(`Product "${product.title}" synced successfully`);
-      } else {
-        throw new Error(data?.error || 'API returned error');
+      if (error) {
+        throw new Error(`Serverless function error: ${error.message}`);
       }
+      
+      if (!data || data.success !== "true") {
+        throw new Error(data?.error || 'API returned error or empty response');
+      }
+      
+      // Update product in database
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({
+          api_name: data.name,
+          api_price: parseFloat(data.price),
+          api_stock: parseInt(data.stock || '0'),
+          stock: parseInt(data.stock || '0'),
+          last_synced_at: new Date().toISOString()
+        })
+        .eq('id', product.id);
+
+      if (updateError) throw updateError;
+      
+      // Log the sync
+      await supabase
+        .from('sync_logs')
+        .insert({
+          product_id: product.id,
+          action: 'product_sync',
+          status: 'success',
+          message: `Synced: ${data.name}, Price: ${data.price}, Stock: ${data.stock}`
+        });
+        
+      toast.success(`Product "${product.title}" synced successfully`);
     } catch (error) {
       console.error('Sync error:', error);
       
@@ -250,43 +260,52 @@ const ProductManagerPage = () => {
       let successCount = 0;
       let errorCount = 0;
       
-      // Get configs
-      const proxyConfig = await fetchProxySettings();
+      // Get user token
       const apiConfig = await fetchActiveApiConfig();
       const userToken = apiConfig.user_token;
       
       // Process each product
       for (const product of productsWithTokens) {
         try {
-          const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(product.kiosk_token)}&userToken=${userToken}`;
-          const data = await fetchViaProxy(apiUrl, proxyConfig);
+          // Call the serverless function directly
+          const { data, error } = await supabase.functions.invoke('api-proxy', {
+            body: { 
+              endpoint: 'getStock',
+              kioskToken: product.kiosk_token,
+              userToken
+            }
+          });
           
-          if (data?.success === "true") {
-            // Update product
-            await supabase
-              .from('products')
-              .update({
-                api_name: data.name,
-                api_price: parseFloat(data.price),
-                api_stock: parseInt(data.stock || '0'),
-                stock: parseInt(data.stock || '0'),
-                last_synced_at: new Date().toISOString()
-              })
-              .eq('id', product.id);
-              
-            await supabase
-              .from('sync_logs')
-              .insert({
-                product_id: product.id,
-                action: 'bulk_sync',
-                status: 'success',
-                message: `Synced: ${data.name}, Price: ${data.price}, Stock: ${data.stock}`
-              });
-              
-            successCount++;
-          } else {
-            throw new Error(data?.error || 'API returned error');
+          if (error) {
+            throw new Error(`Serverless function error: ${error.message}`);
           }
+          
+          if (!data || data.success !== "true") {
+            throw new Error(data?.error || 'API returned error or empty response');
+          }
+          
+          // Update product
+          await supabase
+            .from('products')
+            .update({
+              api_name: data.name,
+              api_price: parseFloat(data.price),
+              api_stock: parseInt(data.stock || '0'),
+              stock: parseInt(data.stock || '0'),
+              last_synced_at: new Date().toISOString()
+            })
+            .eq('id', product.id);
+            
+          await supabase
+            .from('sync_logs')
+            .insert({
+              product_id: product.id,
+              action: 'bulk_sync',
+              status: 'success',
+              message: `Synced: ${data.name}, Price: ${data.price}, Stock: ${data.stock}`
+            });
+            
+          successCount++;
         } catch (error) {
           console.error(`Error syncing ${product.title}:`, error);
           
