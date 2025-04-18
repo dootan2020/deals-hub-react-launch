@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -41,6 +40,7 @@ const productSchema = z.object({
   categoryId: z.string().min(1, 'Category is required'),
   images: z.string().optional(),
   kioskToken: z.string().min(1, 'Kiosk Token is required'),
+  stock: z.number().int().min(0, 'Stock must be a positive number'),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -71,6 +71,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       categoryId: '',
       images: '',
       kioskToken: '',
+      stock: 0,
     }
   });
 
@@ -127,6 +128,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
           categoryId: data.category_id || '',
           images: data.images && data.images.length > 0 ? data.images.join('\n') : '',
           kioskToken: data.kiosk_token || '',
+          stock: data.stock || 0,
         });
         setFormDirty(false);
       }
@@ -136,6 +138,23 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const updateFormWithApiData = (data: ApiResponse, formData: any) => {
+    if (!data) return formData;
+    
+    const updatedData = { ...formData };
+    
+    updatedData.title = data.name || formData.title;
+    updatedData.description = data.description || `${data.name} - Digital Product` || '';
+    updatedData.price = parseFloat(data.price) || formData.price;
+    updatedData.inStock = parseInt(data.stock || '0') > 0;
+    
+    // Map API stock to form
+    updatedData.stock = parseInt(data.stock || '0');
+    updatedData.inStock = parseInt(data.stock || '0') > 0;
+    
+    return updatedData;
   };
 
   const onSubmit = async (formData: ProductFormValues) => {
@@ -152,6 +171,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         category_id: formData.categoryId,
         images: formData.images ? formData.images.split('\n').filter(url => url.trim() !== '') : [],
         kiosk_token: formData.kioskToken || null,
+        stock: formData.stock || 0,
       };
 
       if (productId) {
@@ -197,6 +217,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       categoryId: '',
       images: '',
       kioskToken: '',
+      stock: 0,
     });
     setFormDirty(false);
     toast.info('Form has been reset');

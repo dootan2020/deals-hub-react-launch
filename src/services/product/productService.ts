@@ -18,12 +18,10 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
       .from('products')
       .select('*, categories:category_id(*)');
     
-    // Apply base filters from the database side when possible
     if (filters?.categoryId) {
       query = query.eq('category_id', filters.categoryId);
     }
     
-    // Apply in_stock filter if specified
     if (filters?.inStock !== undefined) {
       query = query.eq('in_stock', filters.inStock);
     }
@@ -32,7 +30,6 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
       
     if (error) throw error;
     
-    // Transform database records to Product objects
     const products: Product[] = data.map(item => ({
       id: item.id,
       title: item.title,
@@ -58,18 +55,15 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
       return products;
     }
     
-    // Apply client-side filters
     const filteredProducts = applyFilters(products, {
       ...filters,
-      categoryId: undefined // Already applied on database side
+      categoryId: undefined
     });
     
-    // Apply sorting
     const sortedProducts = sortProducts(filteredProducts, filters.sort);
     
-    // Handle pagination if required
     if (filters.page !== undefined) {
-      const pageSize = 12; // Default page size
+      const pageSize = 12;
       const startIndex = (filters.page - 1) * pageSize;
       return sortedProducts.slice(startIndex, startIndex + pageSize);
     }
@@ -159,7 +153,10 @@ export async function createProduct(productData: any) {
   try {
     const { data, error } = await supabase
       .from('products')
-      .insert(productData)
+      .insert({
+        ...productData,
+        stock: productData.stock || 0,
+      })
       .select()
       .single();
     
@@ -191,7 +188,10 @@ export async function updateProduct({ id, ...product }: { id: string; [key: stri
     
     const { data, error } = await supabase
       .from('products')
-      .update(dbProduct)
+      .update({
+        ...dbProduct,
+        stock: dbProduct.stock || 0,
+      })
       .eq('id', id)
       .select()
       .single();

@@ -181,6 +181,7 @@ export type Database = {
           short_description: string | null
           slug: string
           specifications: Json | null
+          stock: number
           stock_quantity: number | null
           title: string
           updated_at: string | null
@@ -207,6 +208,7 @@ export type Database = {
           short_description?: string | null
           slug: string
           specifications?: Json | null
+          stock?: number
           stock_quantity?: number | null
           title: string
           updated_at?: string | null
@@ -233,6 +235,7 @@ export type Database = {
           short_description?: string | null
           slug?: string
           specifications?: Json | null
+          stock?: number
           stock_quantity?: number | null
           title?: string
           updated_at?: string | null

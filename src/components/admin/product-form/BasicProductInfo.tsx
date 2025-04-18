@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -124,13 +124,28 @@ export function BasicProductInfo({ categories }: BasicProductInfoProps) {
         />
 
         <FormField
-          name="originalPrice"
+          name="stock"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Original Price ($) (optional)</FormLabel>
+              <FormLabel>Stock <span className="text-red-500">*</span></FormLabel>
               <FormControl>
-                <Input {...field} type="number" step="0.01" min="0" placeholder="0.00" />
+                <Input 
+                  {...field} 
+                  type="number" 
+                  min="0" 
+                  step="1"
+                  placeholder="0"
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 0;
+                    field.onChange(value);
+                    // Update inStock based on stock value
+                    form.setValue('inStock', value > 0);
+                  }}
+                />
               </FormControl>
+              <FormMessage>
+                Available quantity
+              </FormMessage>
               <FormMessage />
             </FormItem>
           )}

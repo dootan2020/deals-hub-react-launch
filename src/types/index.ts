@@ -1,4 +1,3 @@
-
 import { TableHTMLAttributes } from 'react';
 
 export interface Product {
@@ -28,6 +27,7 @@ export interface Product {
   sales_count?: number;  // Added this line to match backend naming convention
   createdAt: string;
   kiosk_token?: string;
+  stock: number;
 }
 
 export interface Category {
