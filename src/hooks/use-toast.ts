@@ -37,7 +37,7 @@ toast.dismiss = sonnerToast.dismiss;
 toast.custom = sonnerToast.custom;
 toast.promise = sonnerToast.promise;
 
-// Create a hook for compatibility with shadcn/ui toast pattern
+// Create a hook that returns a collection of toasts
 export const useToast = () => {
   return {
     toast,
