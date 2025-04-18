@@ -1,74 +1,82 @@
 
-import React, { useState } from 'react';
-import { Product } from '@/types';
-import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
-import ViewToggle from '@/components/category/ViewToggle';
-import EnhancedProductGrid from '@/components/product/EnhancedProductGrid';
+import { useState } from 'react';
+import { Product, CategoryWithParent } from '@/types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { LayoutGrid, List, Filter } from 'lucide-react';
+import { EnhancedProductGrid } from '@/components/product/EnhancedProductGrid';
 
 interface CategoryProductsTabProps {
+  category: CategoryWithParent;
   products: Product[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-  };
+  isLoading: boolean;
+  currentPage: number;
+  totalPages: number;
   onPageChange: (page: number) => void;
-  activeFilters: {
-    sort: string;
-  };
-  onSortChange: (sort: string) => void;
-  totalProducts: number;
-  loading: boolean;
 }
 
-const CategoryProductsTab: React.FC<CategoryProductsTabProps> = ({
+export const CategoryProductsTab = ({
+  category,
   products,
-  pagination,
-  onPageChange,
-  activeFilters,
-  onSortChange,
-  totalProducts,
-  loading
-}) => {
-  const [currentView, setCurrentView] = useState<'grid' | 'list'>('grid');
+  isLoading,
+  currentPage,
+  totalPages,
+  onPageChange
+}: CategoryProductsTabProps) => {
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  const handleViewChange = (view: 'grid' | 'list') => {
-    setCurrentView(view);
+  const toggleMobileFilters = () => {
+    setShowMobileFilters(!showMobileFilters);
   };
 
   return (
-    <>
-      <div className="flex justify-between items-center mb-6">
-        <ViewToggle
-          currentView={currentView}
-          onViewChange={handleViewChange}
-        />
-        <SimplifiedCategoryFilters 
-          onSortChange={onSortChange}
-          activeSort={activeFilters.sort || 'recommended'}
-        />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Products</h2>
+        <div className="flex items-center space-x-2">
+          <div className="hidden md:flex items-center space-x-1 border rounded-md">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => setViewMode('grid')}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="md:hidden"
+            onClick={toggleMobileFilters}
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            Filters
+          </Button>
+        </div>
       </div>
-      
-      <div className="mb-4">
-        <p className="text-gray-600">
-          {totalProducts} products found
-        </p>
-      </div>
-      
-      <EnhancedProductGrid
+
+      <EnhancedProductGrid 
         products={products}
         showSort={false}
         paginationType="pagination"
-        viewMode={currentView}
-        isLoading={loading}
+        viewMode={viewMode}
+        isLoading={isLoading}
         pagination={{
-          currentPage: pagination.currentPage,
-          totalPages: pagination.totalPages,
-          onPageChange: onPageChange
+          currentPage,
+          totalPages,
+          onPageChange
         }}
       />
-    </>
+    </div>
   );
 };
-
-export default CategoryProductsTab;

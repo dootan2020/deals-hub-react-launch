@@ -1,88 +1,122 @@
 
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Layout from '@/components/layout/Layout';
-import { useCategoryData } from '@/hooks/useCategoryData';
-import ErrorState from '@/components/category/ErrorState';
-import LoadingState from '@/components/category/LoadingState';
-import CategoryHeader from '@/components/category/CategoryHeader';
-import CategoryOverview from '@/components/category/CategoryOverview';
-import CategoryProductsTab from '@/components/category/CategoryProductsTab';
-import CategoryDetailsTab from '@/components/category/CategoryDetailsTab';
+import { CategoryHeader } from '@/components/category/CategoryHeader';
+import { CategoryOverview } from '@/components/category/CategoryOverview';
+import { CategoryProductsTab } from '@/components/category/CategoryProductsTab';
+import { CategoryDetailsTab } from '@/components/category/CategoryDetailsTab';
+import { LoadingState } from '@/components/category/LoadingState';
+import { ErrorState } from '@/components/category/ErrorState';
+import { useCategory } from '@/hooks/useCategory';
+import { useCategoryProducts } from '@/hooks/useCategoryProducts';
 
 const CategoryPage = () => {
-  const { categorySlug, parentCategorySlug } = useParams();
-  console.log('CategoryPage params:', { categorySlug, parentCategorySlug });
+  const { slug } = useParams<{ slug: string }>();
+  const [activeTab, setActiveTab] = useState('overview');
   
   const {
     category,
+    isLoading: isCategoryLoading,
+    error: categoryError
+  } = useCategory(slug || '');
+  
+  const {
     products,
-    loading,
-    error,
+    isLoading: isProductsLoading,
+    error: productsError,
     pagination,
-    handlePageChange,
-    activeTab,
-    setActiveTab,
-    activeFilters,
-    totalProducts,
-    handleSortChange,
-    buildBreadcrumbs,
-    subcategories,
-    featuredProducts
-  } = useCategoryData({ categorySlug, parentCategorySlug });
-  
-  console.log('CategoryPage useCategoryData result:', { 
-    category, 
-    loading, 
-    error, 
-    activeTab,
-    productsCount: products?.length
-  });
-  
+    setPage
+  } = useCategoryProducts(slug || '');
+
+  // Add console logging for debugging
+  useEffect(() => {
+    console.log('Category data:', category);
+    console.log('Products data:', products);
+    console.log('Pagination:', pagination);
+  }, [category, products, pagination]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
+  const isLoading = isCategoryLoading || isProductsLoading;
+  const hasError = categoryError || productsError;
+
+  // If a category slug was provided but it's not found, show error
+  if (slug && !isLoading && !category) {
+    return (
+      <Layout>
+        <ErrorState 
+          title="Category Not Found" 
+          message="The category you're looking for doesn't exist or has been removed."
+        />
+      </Layout>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <LoadingState />
+      </Layout>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <Layout>
+        <ErrorState 
+          title="Something Went Wrong" 
+          message="We encountered an error while loading this category. Please try again later."
+        />
+      </Layout>
+    );
+  }
+
+  if (!category) {
+    return (
+      <Layout>
+        <ErrorState 
+          title="Category Not Available" 
+          message="Category information is not available at this time."
+        />
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
-      <div className="bg-section-primary py-16">
-        <div className="container-custom">
-          {loading ? (
-            <LoadingState />
-          ) : error ? (
-            <ErrorState error={error} />
-          ) : category ? (
-            <>
-              <CategoryHeader
-                category={category}
-                breadcrumbs={buildBreadcrumbs()}
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-              />
-              
-              <div className="bg-white p-8 rounded-lg border border-gray-100 shadow-sm mt-6">
-                {activeTab === 'overview' && (
-                  <CategoryOverview 
-                    categorySlug={category.slug}
-                    subcategories={subcategories}
-                    featuredProducts={featuredProducts}
-                  />
-                )}
-                {activeTab === 'products' && (
-                  <CategoryProductsTab
-                    products={products}
-                    pagination={pagination}
-                    onPageChange={handlePageChange}
-                    activeFilters={activeFilters}
-                    onSortChange={handleSortChange}
-                    totalProducts={totalProducts}
-                    loading={loading}
-                  />
-                )}
-                {activeTab === 'details' && (
-                  <CategoryDetailsTab category={category} />
-                )}
-              </div>
-            </>
-          ) : (
-            <ErrorState error="Category not found" />
-          )}
-        </div>
+      <div className="container py-8">
+        <CategoryHeader category={category} />
+        
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-6">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="details">Details</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview" className="mt-6">
+            <CategoryOverview category={category} products={products.slice(0, 8)} />
+          </TabsContent>
+          
+          <TabsContent value="products" className="mt-6">
+            <CategoryProductsTab 
+              category={category} 
+              products={products}
+              isLoading={isProductsLoading}
+              currentPage={pagination?.currentPage || 1}
+              totalPages={pagination?.totalPages || 1}
+              onPageChange={setPage}
+            />
+          </TabsContent>
+          
+          <TabsContent value="details" className="mt-6">
+            <CategoryDetailsTab category={category} />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
