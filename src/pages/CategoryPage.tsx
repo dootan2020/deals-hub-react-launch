@@ -1,122 +1,154 @@
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams } from 'react-router-dom';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Helmet } from 'react-helmet';
 import Layout from '@/components/layout/Layout';
-import { CategoryHeader } from '@/components/category/CategoryHeader';
-import CategoryOverview from '@/components/category/CategoryOverview';
-import { CategoryProductsTab } from '@/components/category/CategoryProductsTab';
-import { CategoryDetailsTab } from '@/components/category/CategoryDetailsTab';
+import { useCategoryData } from '@/hooks/useCategoryData';
+import CategoryHeader from '@/components/category/CategoryHeader';
+import CategoryFilters from '@/components/category/CategoryFilters';
 import LoadingState from '@/components/category/LoadingState';
 import ErrorState from '@/components/category/ErrorState';
-import { useCategory } from '@/hooks/useCategory';
-import { useCategoryProducts } from '@/hooks/useCategoryProducts';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import CategoryOverview from '@/components/category/CategoryOverview';
+import { CategoryProductsTab } from '@/components/category/CategoryProductsTab';
+import CategoryDetailsTab from '@/components/category/CategoryDetailsTab';
+import CategoryBreadcrumbs from '@/components/category/CategoryBreadcrumbs';
+import SubcategoriesGrid from '@/components/category/SubcategoriesGrid';
+import EmptyProductsState from '@/components/category/EmptyProductsState';
 
 const CategoryPage = () => {
-  const { slug } = useParams<{ slug: string }>();
-  const [activeTab, setActiveTab] = useState('overview');
+  const { categorySlug, parentCategorySlug } = useParams();
   
-  const {
-    category,
-    loading: isCategoryLoading,
-    error: categoryError
-  } = useCategory({ categorySlug: slug || '' });
+  const { 
+    category, 
+    products, 
+    loading, 
+    error, 
+    pagination, 
+    handlePageChange, 
+    activeTab, 
+    setActiveTab, 
+    subcategories,
+    buildBreadcrumbs,
+    isProductsPage
+  } = useCategoryData({ categorySlug, parentCategorySlug });
+
+  const breadcrumbs = buildBreadcrumbs();
+  const pageTitle = category ? category.name : isProductsPage ? 'All Products' : 'Category';
+  const pageDescription = category?.description || 'Browse our selection of digital products';
   
-  const {
-    products,
-    pagination,
-    handlePageChange,
-    loading: isProductsLoading
-  } = useCategoryProducts({ categoryId: category?.id });
-
-  // Add console logging for debugging
-  useEffect(() => {
-    console.log('Category data:', category);
-    console.log('Products data:', products);
-    console.log('Pagination:', pagination);
-  }, [category, products, pagination]);
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
-
-  const isLoading = isCategoryLoading || isProductsLoading;
-  const hasError = categoryError || false; // There's no error property in useCategoryProducts
-
-  // If a category slug was provided but it's not found, show error
-  if (slug && !isLoading && !category) {
-    return (
-      <Layout>
-        <ErrorState 
-          title="Category Not Found" 
-          message="The category you're looking for doesn't exist or has been removed."
-        />
-      </Layout>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <Layout>
-        <LoadingState />
-      </Layout>
-    );
-  }
-
-  if (hasError) {
-    return (
-      <Layout>
-        <ErrorState 
-          title="Something Went Wrong" 
-          message="We encountered an error while loading this category. Please try again later."
-        />
-      </Layout>
-    );
-  }
-
-  if (!category) {
-    return (
-      <Layout>
-        <ErrorState 
-          title="Category Not Available" 
-          message="Category information is not available at this time."
-        />
-      </Layout>
-    );
-  }
+  // Determine if this is the /products page (no category)
+  const showAllProducts = isProductsPage;
 
   return (
     <Layout>
-      <div className="container py-8">
-        <CategoryHeader category={category} />
-        
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-6">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="products">Products</TabsTrigger>
-            <TabsTrigger value="details">Details</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview" className="mt-6">
-            <CategoryOverview category={category} products={products.slice(0, 8)} />
-          </TabsContent>
-          
-          <TabsContent value="products" className="mt-6">
-            <CategoryProductsTab 
-              category={category} 
-              products={products}
-              isLoading={isProductsLoading}
-              currentPage={pagination.page}
-              totalPages={pagination.totalPages}
-              onPageChange={handlePageChange}
-            />
-          </TabsContent>
-          
-          <TabsContent value="details" className="mt-6">
-            <CategoryDetailsTab category={category} />
-          </TabsContent>
-        </Tabs>
+      <Helmet>
+        <title>{pageTitle} - Digital Deals Hub</title>
+        <meta name="description" content={pageDescription} />
+      </Helmet>
+
+      <div className="bg-white border-b">
+        <div className="container-custom py-3">
+          <CategoryBreadcrumbs breadcrumbs={breadcrumbs} showAllProducts={showAllProducts} />
+        </div>
       </div>
+
+      {loading ? (
+        <LoadingState />
+      ) : error ? (
+        <ErrorState message={error} />
+      ) : (
+        <div className="bg-section-primary min-h-screen">
+          <div className="container-custom py-10">
+            {showAllProducts ? (
+              // All Products View
+              <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+                <h1 className="text-3xl font-bold mb-2">All Products</h1>
+                <p className="text-gray-600 mb-6">
+                  Browse our complete collection of digital products
+                </p>
+                
+                <div className="flex flex-col lg:flex-row gap-6">
+                  <div className="w-full lg:w-1/4">
+                    <CategoryFilters />
+                  </div>
+                  
+                  <div className="w-full lg:w-3/4">
+                    {products.length > 0 ? (
+                      <CategoryProductsTab
+                        category={null}
+                        products={products}
+                        isLoading={loading}
+                        currentPage={pagination.page}
+                        totalPages={pagination.totalPages}
+                        onPageChange={handlePageChange}
+                      />
+                    ) : (
+                      <EmptyProductsState />
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // Specific Category View
+              category && (
+                <>
+                  <CategoryHeader 
+                    category={category} 
+                    productCount={pagination.totalItems} 
+                  />
+                  
+                  {subcategories && subcategories.length > 0 && (
+                    <div className="mt-10">
+                      <SubcategoriesGrid 
+                        categorySlug={category.slug} 
+                        subcategories={subcategories} 
+                      />
+                    </div>
+                  )}
+                  
+                  <Tabs 
+                    className="mt-10" 
+                    value={activeTab} 
+                    onValueChange={setActiveTab}
+                  >
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                      <TabsList className="mb-6 bg-gray-100">
+                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="products">Products</TabsTrigger>
+                        <TabsTrigger value="details">Details</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="overview">
+                        <CategoryOverview 
+                          category={category}
+                          productCount={pagination.totalItems}
+                          featuredProducts={products.slice(0, 4)}
+                        />
+                      </TabsContent>
+                      
+                      <TabsContent value="products">
+                        <CategoryProductsTab 
+                          category={category}
+                          products={products}
+                          isLoading={loading} 
+                          currentPage={pagination.page}
+                          totalPages={pagination.totalPages}
+                          onPageChange={handlePageChange}
+                        />
+                      </TabsContent>
+                      
+                      <TabsContent value="details">
+                        <CategoryDetailsTab category={category} />
+                      </TabsContent>
+                    </div>
+                  </Tabs>
+                </>
+              )
+            )}
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

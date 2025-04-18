@@ -8,7 +8,7 @@ import { LayoutGrid, List, Filter } from 'lucide-react';
 import EnhancedProductGrid from '@/components/product/EnhancedProductGrid';
 
 interface CategoryProductsTabProps {
-  category: CategoryWithParent;
+  category: CategoryWithParent | null;
   products: Product[];
   isLoading: boolean;
   currentPage: number;

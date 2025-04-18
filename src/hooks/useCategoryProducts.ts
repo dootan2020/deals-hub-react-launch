@@ -7,9 +7,10 @@ import { PaginationState } from '@/types/category.types';
 
 interface UseCategoryProductsProps {
   categoryId?: string;
+  isProductsPage?: boolean;
 }
 
-export const useCategoryProducts = ({ categoryId }: UseCategoryProductsProps) => {
+export const useCategoryProducts = ({ categoryId, isProductsPage = false }: UseCategoryProductsProps) => {
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [pagination, setPagination] = useState<PaginationState>({
@@ -21,49 +22,55 @@ export const useCategoryProducts = ({ categoryId }: UseCategoryProductsProps) =>
   const [loading, setLoading] = useState(true);
 
   const fetchProducts = async () => {
-    if (!categoryId) return;
-
     try {
-      const { data: directProducts, error, count } = await supabase
-        .from('products')
-        .select('*', { count: 'exact' })
-        .eq('category_id', categoryId)
-        .range(
-          (pagination.page - 1) * pagination.pageSize,
-          pagination.page * pagination.pageSize - 1
-        );
+      let query = supabase.from('products').select('*', { count: 'exact' });
+      
+      // Only filter by category if we have a category ID and we're not on the products page
+      if (categoryId && !isProductsPage) {
+        query = query.eq('category_id', categoryId);
+      }
+      
+      // Add pagination
+      const from = (pagination.page - 1) * pagination.pageSize;
+      const to = pagination.page * pagination.pageSize - 1;
+      
+      const { data: fetchedProducts, error, count } = await query
+        .range(from, to);
         
       if (error) throw error;
       
-      const { data: subcategories } = await supabase
-        .from('categories')
-        .select('id')
-        .eq('parent_id', categoryId);
-        
-      let allProducts = directProducts || [];
+      let allProducts = fetchedProducts || [];
       let totalCount = count || 0;
       
-      if (subcategories && subcategories.length > 0) {
-        const subcategoryIds = subcategories.map(sc => sc.id);
-        
-        const { count: subCount } = await supabase
-          .from('products')
-          .select('*', { count: 'exact' })
-          .in('category_id', subcategoryIds);
+      // If we're filtering by category, also get products from subcategories
+      if (categoryId && !isProductsPage) {
+        const { data: subcategories } = await supabase
+          .from('categories')
+          .select('id')
+          .eq('parent_id', categoryId);
           
-        totalCount += subCount || 0;
-        
-        const remainingItems = pagination.pageSize - allProducts.length;
-        
-        if (remainingItems > 0) {
-          const { data: subcategoryProducts } = await supabase
+        if (subcategories && subcategories.length > 0) {
+          const subcategoryIds = subcategories.map(sc => sc.id);
+          
+          const { count: subCount } = await supabase
             .from('products')
-            .select('*')
-            .in('category_id', subcategoryIds)
-            .range(0, remainingItems - 1);
+            .select('*', { count: 'exact' })
+            .in('category_id', subcategoryIds);
             
-          if (subcategoryProducts) {
-            allProducts = [...allProducts, ...subcategoryProducts];
+          totalCount += subCount || 0;
+          
+          const remainingItems = pagination.pageSize - allProducts.length;
+          
+          if (remainingItems > 0) {
+            const { data: subcategoryProducts } = await supabase
+              .from('products')
+              .select('*')
+              .in('category_id', subcategoryIds)
+              .range(0, remainingItems - 1);
+              
+            if (subcategoryProducts) {
+              allProducts = [...allProducts, ...subcategoryProducts];
+            }
           }
         }
       }
@@ -99,7 +106,9 @@ export const useCategoryProducts = ({ categoryId }: UseCategoryProductsProps) =>
       
       setProducts(mappedProducts);
     } catch (error) {
-      console.error('Error fetching products:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching products:', error);
+      }
       toast({
         title: "Error",
         description: "Failed to load products. Please try again.",
@@ -117,10 +126,8 @@ export const useCategoryProducts = ({ categoryId }: UseCategoryProductsProps) =>
   };
 
   useEffect(() => {
-    if (categoryId) {
-      fetchProducts();
-    }
-  }, [categoryId, pagination.page]);
+    fetchProducts();
+  }, [categoryId, pagination.page, isProductsPage]);
 
   return { products, pagination, handlePageChange, loading };
 };

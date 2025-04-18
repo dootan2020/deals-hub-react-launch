@@ -9,15 +9,14 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPa
   const [activeTab, setActiveTab] = useState('overview');
   const [activeFilters, setActiveFilters] = useState({ sort: 'recommended' });
 
-  // Add console logs to help debug the category loading issue
-  console.log('useCategoryData params:', { categorySlug, parentCategorySlug });
-
+  // Remove console.log
+  
   const { category, loading: categoryLoading, error } = useCategory({ 
     categorySlug, 
     parentCategorySlug 
   });
   
-  console.log('useCategory response:', { category, categoryLoading, error });
+  // Remove console.log
   
   const { 
     products, 
@@ -25,14 +24,14 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPa
     handlePageChange,
     loading: productsLoading 
   } = useCategoryProducts({
-    categoryId: category?.id
+    categoryId: category?.id,
+    isProductsPage: !categorySlug && !parentCategorySlug
   });
 
-  console.log('useCategoryProducts response:', { products: products?.length, loading: productsLoading });
+  // Remove console.log
 
   const { subcategories, featuredProducts } = useSubcategories(category?.id);
-  console.log('useSubcategories response:', { subcategories: subcategories?.length });
-
+  
   const loading = categoryLoading || productsLoading;
 
   const handleSortChange = (sort: string) => {
@@ -64,6 +63,7 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPa
     handleSortChange,
     buildBreadcrumbs,
     subcategories,
-    featuredProducts
+    featuredProducts,
+    isProductsPage: !categorySlug && !parentCategorySlug
   };
 };

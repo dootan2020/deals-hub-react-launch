@@ -1,52 +1,63 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CategoryWithParent } from '@/types/category.types';
 import { 
   Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
   BreadcrumbList, 
+  BreadcrumbItem,
+  BreadcrumbLink,
   BreadcrumbPage,
   BreadcrumbSeparator 
-} from '@/components/ui/breadcrumb';
+} from "@/components/ui/breadcrumb";
+import { Category } from '@/types';
 
 interface CategoryBreadcrumbsProps {
-  categories: CategoryWithParent[];
+  breadcrumbs: Category[];
+  showAllProducts?: boolean;
 }
 
-const CategoryBreadcrumbs: React.FC<CategoryBreadcrumbsProps> = ({ categories }) => {
+const CategoryBreadcrumbs: React.FC<CategoryBreadcrumbsProps> = ({ breadcrumbs, showAllProducts }) => {
   return (
-    <div className="bg-white border-b">
-      <div className="container-custom py-3">
-        <Breadcrumb>
-          <BreadcrumbList>
+    <Breadcrumb>
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink href="/">Home</BreadcrumbLink>
+        </BreadcrumbItem>
+        
+        <BreadcrumbSeparator />
+        
+        {showAllProducts ? (
+          <BreadcrumbItem>
+            <BreadcrumbPage>All Products</BreadcrumbPage>
+          </BreadcrumbItem>
+        ) : (
+          <>
             <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/">Home</Link>
-              </BreadcrumbLink>
+              <BreadcrumbLink href="/products">Products</BreadcrumbLink>
             </BreadcrumbItem>
-            
-            {categories.map((cat, index) => (
-              <React.Fragment key={cat.id}>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  {index === categories.length - 1 ? (
-                    <BreadcrumbPage>{cat.name}</BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink asChild>
-                      <Link to={cat.parent ? `/${cat.parent.slug}/${cat.slug}` : `/category/${cat.slug}`}>
-                        {cat.name}
-                      </Link>
-                    </BreadcrumbLink>
-                  )}
-                </BreadcrumbItem>
-              </React.Fragment>
-            ))}
-          </BreadcrumbList>
-        </Breadcrumb>
-      </div>
-    </div>
+        
+            {breadcrumbs.map((category, index) => {
+              const isLastItem = index === breadcrumbs.length - 1;
+              
+              return (
+                <React.Fragment key={category.id}>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    {isLastItem ? (
+                      <BreadcrumbPage>{category.name}</BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink href={`/category/${category.slug}`}>
+                        {category.name}
+                      </BreadcrumbLink>
+                    )}
+                  </BreadcrumbItem>
+                </React.Fragment>
+              );
+            })}
+          </>
+        )}
+      </BreadcrumbList>
+    </Breadcrumb>
   );
 };
 
