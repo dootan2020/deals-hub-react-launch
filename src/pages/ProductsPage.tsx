@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -7,6 +8,7 @@ import { ensureProductsFields } from '@/utils/productUtils';
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from 'lucide-react';
 import ProductSorter from '@/components/product/ProductSorter';
+import { sortProducts } from '@/utils/productFilters';
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -79,7 +81,10 @@ const ProductsPage = () => {
         ];
         
         const validProducts = ensureProductsFields(mockProducts);
-        setProducts(validProducts);
+        
+        // Sort products based on the selected option
+        const sortedProducts = sortProducts(validProducts, sortOption);
+        setProducts(sortedProducts);
         
         // Uncomment the following when you want to fetch real data
         /*
@@ -107,7 +112,7 @@ const ProductsPage = () => {
     };
     
     loadProducts();
-  }, [toast]);
+  }, [toast, sortOption]);
   
   const handleSortChange = (value: string) => {
     setSortOption(value);
@@ -116,30 +121,6 @@ const ProductsPage = () => {
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set('sort', value);
     setSearchParams(newSearchParams);
-    
-    // Sort products based on the selected option
-    const sortedProducts = [...products];
-    
-    switch (value) {
-      case 'price-high-low':
-        sortedProducts.sort((a, b) => b.price - a.price);
-        break;
-      case 'price-low-high':
-        sortedProducts.sort((a, b) => a.price - b.price);
-        break;
-      case 'newest':
-        sortedProducts.sort((a, b) => {
-          const dateA = new Date(a.createdAt).getTime();
-          const dateB = new Date(b.createdAt).getTime();
-          return dateB - dateA;
-        });
-        break;
-      default:
-        // Keep the default order
-        break;
-    }
-    
-    setProducts(sortedProducts);
   };
 
   return (
@@ -160,8 +141,6 @@ const ProductsPage = () => {
               <ProductGrid 
                 products={products}
                 viewMode={viewMode}
-                title="Products"
-                description="Browse our collection of digital products"
               />
             )}
           </div>

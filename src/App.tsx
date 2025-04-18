@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import CategoryPage from "./pages/CategoryPage";
 import ProductPage from "./pages/ProductPage";
+import ProductsPage from "./pages/ProductsPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
 import SupportPage from "./pages/SupportPage";
 import FaqsPage from "./pages/FaqsPage";
@@ -47,7 +48,7 @@ const App = () => {
               <Route path="/category/:parentCategorySlug/:categorySlug" element={<CategoryPage />} />
               <Route path="/product/:productSlug" element={<ProductPage />} />
               <Route path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />
-              <Route path="/products" element={<CategoryPage />} />
+              <Route path="/products" element={<ProductsPage />} />
               <Route path="/checkout/:slug" element={<CheckoutPage />} />
               
               {/* Static pages with SEO-friendly URLs */}
