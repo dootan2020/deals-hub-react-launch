@@ -26,7 +26,6 @@ export default function UsersManagementPage() {
     try {
       setLoading(true);
       
-      // Truy vấn view users_with_roles để lấy danh sách người dùng và vai trò
       const { data, error } = await supabase
         .from('users_with_roles')
         .select('*');

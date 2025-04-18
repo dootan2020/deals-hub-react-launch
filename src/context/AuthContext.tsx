@@ -1,10 +1,9 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthContextType, AuthUser, UserRole } from '@/types/auth.types';
 import { toast } from 'sonner';
-import './../../integrations/supabase/types-extension';
+import { Database } from '@/integrations/supabase/types-extension';
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -30,7 +29,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [userBalance, setUserBalance] = useState(0);
 
-  // Fetch user balance from profiles table
   const fetchUserBalance = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -52,10 +50,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Fetch user roles using custom RPC function
   const fetchUserRoles = async (userId: string) => {
     try {
-      // Use the RPC function to get user roles
       const { data, error } = await supabase
         .rpc('get_user_roles', { user_id_param: userId });
 
@@ -81,13 +77,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Helper function to check if user has a specific role
   const checkUserRole = (role: UserRole): boolean => {
     return userRoles.includes(role);
   };
 
   useEffect(() => {
-    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -96,10 +90,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const authUser = { ...session.user } as AuthUser;
           setUser(authUser);
           
-          // Fetch user roles
           fetchUserRoles(authUser.id);
           
-          // Fetch user balance
           fetchUserBalance(authUser.id);
         } else {
           setUser(null);
@@ -111,7 +103,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // Check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       
@@ -119,10 +110,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const authUser = { ...session.user } as AuthUser;
         setUser(authUser);
         
-        // Fetch user roles
         await fetchUserRoles(authUser.id);
         
-        // Fetch user balance
         await fetchUserBalance(authUser.id);
       }
       
