@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -205,8 +204,8 @@ const OrderSuccessPage = () => {
                           </ol>
                         </ScrollArea>
                         
-                        <Alert className="mt-4" variant="warning">
-                          <AlertCircle className="h-4 w-4" />
+                        <Alert className="mt-4" variant="default">
+                          <AlertCircle className="h-4 w-4 text-yellow-500" />
                           <AlertDescription>
                             Đơn hàng này sẽ được xóa sau 48 giờ. Vui lòng lưu lại thông tin sản phẩm trước khi đơn hàng hết hạn.
                           </AlertDescription>
