@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,7 +22,6 @@ import OrdersAdmin from "./pages/admin/OrdersAdmin";
 import ApiConfigAdmin from "./pages/admin/ApiConfigAdmin";
 import SyncLogsAdmin from "./pages/admin/SyncLogsAdmin";
 import ApiTesterPage from './pages/admin/ApiTesterPage';
-import ProductManagerPage from './pages/admin/ProductManagerPage';
 import ProductCreatePage from './pages/admin/ProductCreatePage';
 import ProductEditPage from './pages/admin/ProductEditPage';
 import ProductFormWithTester from './pages/admin/ProductFormWithTester';
@@ -69,7 +67,6 @@ const App = () => {
               <Route path="/admin/api-config" element={<ApiConfigAdmin />} />
               <Route path="/admin/sync-logs" element={<SyncLogsAdmin />} />
               <Route path="/admin/api-tester" element={<ApiTesterPage />} />
-              <Route path="/admin/product-manager" element={<ProductManagerPage />} />
               <Route path="/admin/products/create" element={<ProductCreatePage />} />
               <Route path="/admin/products/edit/:id" element={<ProductEditPage />} />
               <Route path="/admin/product-form-tester" element={<ProductFormWithTester />} />
