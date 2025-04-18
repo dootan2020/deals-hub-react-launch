@@ -1,66 +1,58 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
+import { AuthContextType, AuthUser } from '@/types/auth.types';
 import { toast } from 'sonner';
 
-interface AuthContextProps {
-  user: User | null;
-  session: Session | null;
-  loading: boolean;
-  userBalance: number;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  isAuthenticated: boolean;
-  updateUserBalance: (newBalance: number) => void;
-}
-
-const AuthContext = createContext<AuthContextProps>({
+const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   loading: true,
-  userBalance: 0,
+  isAuthenticated: false,
+  isAdmin: false,
   login: async () => {},
   logout: async () => {},
-  isAuthenticated: false,
-  updateUserBalance: () => {},
+  register: async () => {},
 });
 
-export const useAuth = () => useContext(AuthContext);
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userBalance, setUserBalance] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        // No console logs in production
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Auth state changed:', event);
-        }
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user balance when authenticated
-          setTimeout(() => {
-            fetchUserBalance(session.user.id);
-          }, 0);
+          // Check if user is admin
+          const { data: hasAdminRole } = await supabase.rpc('has_role', {
+            _user_id: session.user.id,
+            _role: 'admin'
+          });
+          setIsAdmin(hasAdminRole || false);
+        } else {
+          setIsAdmin(false);
         }
       }
     );
 
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Check for existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchUserBalance(session.user.id);
+        const { data: hasAdminRole } = await supabase.rpc('has_role', {
+          _user_id: session.user.id,
+          _role: 'admin'
+        });
+        setIsAdmin(hasAdminRole || false);
       }
       
       setLoading(false);
@@ -69,45 +61,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserBalance = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('balance')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error fetching user balance:', error);
-        }
-        return;
-      }
-
-      if (data) {
-        setUserBalance(data.balance || 0);
-      }
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error in fetchUserBalance:', error);
-      }
-    }
-  };
-
   const login = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      
-      toast.success('Đăng nhập thành công!');
-      // Navigation will be handled by the component that called this method
-      // No direct navigation here since we're outside the Router context
+      toast.success('Successfully logged in!');
     } catch (error: any) {
-      toast.error(`Đăng nhập thất bại: ${error.message}`);
+      toast.error(error.message || 'Error during login');
       throw error;
     }
   };
@@ -115,31 +75,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await supabase.auth.signOut();
-      toast.info('Đã đăng xuất');
-      // Navigation will be handled by the NavigateAfterAuth component
+      toast.success('Successfully logged out');
     } catch (error: any) {
-      toast.error(`Đăng xuất thất bại: ${error.message}`);
+      toast.error(error.message || 'Error during logout');
+      throw error;
     }
   };
 
-  const updateUserBalance = (newBalance: number) => {
-    setUserBalance(newBalance);
+  const register = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+      });
+      if (error) throw error;
+      toast.success('Registration successful! Please check your email to verify your account.');
+    } catch (error: any) {
+      toast.error(error.message || 'Error during registration');
+      throw error;
+    }
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        loading,
-        userBalance,
-        login,
-        logout,
-        isAuthenticated: !!user,
-        updateUserBalance,
-      }}
-    >
+    <AuthContext.Provider value={{
+      user,
+      session,
+      loading,
+      isAuthenticated: !!user,
+      isAdmin,
+      login,
+      logout,
+      register,
+    }}>
       {children}
     </AuthContext.Provider>
   );
 };
+
+export const useAuth = () => useContext(AuthContext);

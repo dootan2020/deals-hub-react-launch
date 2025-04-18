@@ -1,10 +1,15 @@
-
 import React from 'react';
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Routes, Route } from "react-router-dom";
 import { CategoriesProvider } from "@/context/CategoriesContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+
+// Auth Pages
+import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
+import UnauthorizedPage from "./pages/auth/UnauthorizedPage";
 
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -17,7 +22,6 @@ import FaqsPage from "./pages/FaqsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import DepositPage from "./pages/DepositPage";
 import CheckoutPage from "./pages/CheckoutPage";
-import LoginPage from "./pages/LoginPage";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -42,6 +46,73 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/unauthorized" element={<UnauthorizedPage />} />
+              
+              {/* Protected User Routes */}
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  {/* Add your DashboardPage component here when created */}
+                  <div>Dashboard (Coming Soon)</div>
+                </ProtectedRoute>
+              } />
+              
+              {/* Protected Admin Routes */}
+              <Route path="/admin" element={
+                <ProtectedRoute requireAdmin>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/categories" element={
+                <ProtectedRoute requireAdmin>
+                  <CategoryAdmin />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/orders" element={
+                <ProtectedRoute requireAdmin>
+                  <OrdersAdmin />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/api-config" element={
+                <ProtectedRoute requireAdmin>
+                  <ApiConfigAdmin />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/sync-logs" element={
+                <ProtectedRoute requireAdmin>
+                  <SyncLogsAdmin />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/api-tester" element={
+                <ProtectedRoute requireAdmin>
+                  <ApiTesterPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/product-manager" element={
+                <ProtectedRoute requireAdmin>
+                  <ProductManagerPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/products/create" element={
+                <ProtectedRoute requireAdmin>
+                  <ProductCreatePage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/products/edit/:id" element={
+                <ProtectedRoute requireAdmin>
+                  <ProductEditPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/product-form-tester" element={
+                <ProtectedRoute requireAdmin>
+                  <ProductFormWithTester />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/proxy-settings" element={
+                <ProtectedRoute requireAdmin>
+                  <ProxySettingsPage />
+                </ProtectedRoute>
+              } />
               
               {/* SEO-friendly category routes */}
               <Route path="/category/:categorySlug" element={<CategoryPage />} />
@@ -66,19 +137,6 @@ const App = () => {
               <Route path="/top-up" element={<DepositPage />} />
               
               <Route path="/order-success" element={<OrderSuccessPage />} />
-              
-              {/* Admin routes */}
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/categories" element={<CategoryAdmin />} />
-              <Route path="/admin/orders" element={<OrdersAdmin />} />
-              <Route path="/admin/api-config" element={<ApiConfigAdmin />} />
-              <Route path="/admin/sync-logs" element={<SyncLogsAdmin />} />
-              <Route path="/admin/api-tester" element={<ApiTesterPage />} />
-              <Route path="/admin/product-manager" element={<ProductManagerPage />} />
-              <Route path="/admin/products/create" element={<ProductCreatePage />} />
-              <Route path="/admin/products/edit/:id" element={<ProductEditPage />} />
-              <Route path="/admin/product-form-tester" element={<ProductFormWithTester />} />
-              <Route path="/admin/proxy-settings" element={<ProxySettingsPage />} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>

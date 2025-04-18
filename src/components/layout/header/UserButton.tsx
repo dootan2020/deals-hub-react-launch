@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -22,7 +21,7 @@ import {
 import { formatCurrency } from "@/lib/utils";
 
 export const UserButton = () => {
-  const { user, logout, isAuthenticated, userBalance } = useAuth();
+  const { user, logout, isAuthenticated, isAdmin, userBalance } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
