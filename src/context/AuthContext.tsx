@@ -145,10 +145,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const register = async (email: string, password: string) => {
     try {
+      // Using signUp with data option to populate user metadata
       const { error } = await supabase.auth.signUp({ 
         email, 
         password,
+        options: {
+          data: {
+            // Initialize any default user data here if needed
+            display_name: email.split('@')[0]
+          }
+        }
       });
+      
       if (error) throw error;
       toast.success('Đăng ký thành công! Vui lòng kiểm tra email của bạn để xác nhận tài khoản.');
     } catch (error: any) {
