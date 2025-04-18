@@ -5,6 +5,7 @@ import { ShoppingBag, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useOrderApi } from '@/hooks/use-order-api';
 
 interface BuyNowButtonProps {
   product?: any;
@@ -32,6 +33,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { createOrder } = useOrderApi();
   
   // Debug log when the component mounts to verify the kioskToken
   useEffect(() => {
@@ -46,40 +48,36 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   const hasValidKioskToken = typeof kioskToken === 'string' && kioskToken.trim() !== '';
 
   const handleBuyNow = async () => {
-    if (!hasValidKioskToken) {
-      console.error('Missing or invalid kioskToken', { 
+    if (!hasValidKioskToken || !productId) {
+      console.error('Missing or invalid kioskToken or productId', { 
         kioskToken, 
         type: typeof kioskToken,
         productId 
       });
-      toast.error('Không thể mua sản phẩm này: Thiếu thông tin sản phẩm (kioskToken)');
+      toast.error('Không thể mua sản phẩm này: Thiếu thông tin sản phẩm');
       return;
     }
 
     setIsLoading(true);
     try {
-      console.log('Placing order with:', { kioskToken, productId, quantity, promotionCode });
-      const { data, error } = await supabase.functions.invoke('order-api', {
-        body: {
-          action: 'place-order',
-          kioskToken,
-          productId,
-          quantity,
-          promotionCode
-        }
+      // Validate promotion code if it's an object (could happen from form errors)
+      const validPromotionCode = typeof promotionCode === 'string' ? promotionCode : undefined;
+      
+      console.log('Placing order with:', { kioskToken, productId, quantity, promotionCode: validPromotionCode });
+      
+      const result = await createOrder({
+        kioskToken,
+        productId,
+        quantity,
+        promotionCode: validPromotionCode
       });
 
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw error;
-      }
-      
-      console.log('Order response:', data);
-      if (data?.order_id) {
+      console.log('Order response:', result);
+      if (result.success && result.orderId) {
         if (onSuccess) onSuccess();
-        navigate(`/order-success?orderId=${data.order_id}`);
+        navigate(`/order-success?orderId=${result.orderId}`);
       } else {
-        throw new Error(data?.message || data?.error || 'Không thể tạo đơn hàng');
+        throw new Error(result.message || 'Không thể tạo đơn hàng');
       }
     } catch (error: any) {
       console.error('Error placing order:', error);

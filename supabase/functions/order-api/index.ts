@@ -1,23 +1,12 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { fetchViaProxyWithFallback } from "../_shared/proxyUtils.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-interface OrderResponse {
-  success: string;
-  order_id?: string;
-  description?: string;
-}
-
-interface ProductResponse {
-  success: string;
-  data?: { product: string }[];
-  description?: string;
-}
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
@@ -26,15 +15,12 @@ serve(async (req: Request) => {
   }
   
   try {
-    const url = new URL(req.url);
-    const action = url.searchParams.get('action');
-    
     // Create Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // Get active API configuration
+    // Get API configuration
     const { data: apiConfigs, error: configError } = await supabase
       .from('api_configs')
       .select('*')
@@ -42,332 +28,180 @@ serve(async (req: Request) => {
       .limit(1);
       
     if (configError || !apiConfigs || apiConfigs.length === 0) {
-      throw new Error('No active API configuration found');
+      return new Response(
+        JSON.stringify({ 
+          success: "false", 
+          description: 'Không thể kết nối với máy chủ API. Vui lòng thử lại sau.' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
     }
     
     const apiConfig = apiConfigs[0];
+    const userToken = apiConfig.user_token;
     
-    // Log the API request
-    console.log(`Order API request: ${action}, URL: ${url.toString()}`);
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+      console.log("Order API request:", body, "URL:", req.url);
+    } catch (e) {
+      return new Response(
+        JSON.stringify({ success: "false", description: 'Invalid JSON body' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
     
-    if (req.method === 'POST') {
-      if (action === 'place-order') {
-        const body = await req.json();
-        const { quantity, productId, promotionCode, kioskToken } = body;
+    const action = body?.action;
+    
+    // Process different actions
+    switch (action) {
+      case 'place-order': {
+        const { kioskToken, quantity, promotionCode } = body;
         
-        if (!quantity || (!productId && !kioskToken)) {
+        if (!kioskToken || !quantity) {
           return new Response(
-            JSON.stringify({ error: 'Quantity and either productId or kioskToken are required' }),
+            JSON.stringify({ success: "false", description: 'Missing required parameters' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
           );
         }
         
-        // Use directly provided kioskToken or get it from the product
-        let finalKioskToken = kioskToken;
-        
-        if (!finalKioskToken && productId) {
-          // Get product kiosk token
-          const { data: product, error: productError } = await supabase
-            .from('products')
-            .select('kiosk_token, price')
-            .eq('id', productId)
-            .limit(1);
-            
-          if (productError || !product || product.length === 0 || !product[0].kiosk_token) {
-            return new Response(
-              JSON.stringify({ error: 'Product not found or has no kiosk token' }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-            );
-          }
-          
-          finalKioskToken = product[0].kiosk_token;
-        }
-        
-        // Call the purchase API
-        let apiUrl = `https://taphoammo.net/api/buyProducts?kioskToken=${finalKioskToken}&userToken=${apiConfig.user_token}&quantity=${quantity}`;
-        
+        // Build the API URL
+        let apiUrl = `https://taphoammo.net/api/buyProducts?kioskToken=${kioskToken}&userToken=${userToken}&quantity=${quantity}`;
         if (promotionCode) {
           apiUrl += `&promotion=${promotionCode}`;
         }
         
-        console.log(`Calling purchase API: ${apiUrl}`);
-        
-        const options = {
-          method: 'GET',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'application/json',
-            'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
-            'Cache-Control': 'no-cache',
-            'Referer': 'https://taphoammo.net/',
-            'Origin': 'https://taphoammo.net',
-            'Pragma': 'no-cache',
-            'Connection': 'keep-alive',
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          redirect: 'follow'
-        };
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-        
         try {
-          const response = await fetch(apiUrl, {
-            ...options,
-            signal: controller.signal
-          });
-          
-          clearTimeout(timeoutId);
-          console.log(`API response status: ${response.status}`);
-          console.log(`API response headers:`, Object.fromEntries(response.headers.entries()));
-          
-          if (!response.ok) {
-            const statusCode = response.status;
-            let errorText = '';
-            
-            try {
-              errorText = await response.text();
-              console.error(`API error response: ${errorText.substring(0, 500)}`);
-            } catch (e) {
-              errorText = 'Unable to read error response';
-            }
-            
-            // Check if response is HTML
-            if (errorText.trim().startsWith('<!DOCTYPE') || errorText.includes('<html')) {
-              return new Response(
-                JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your API configuration and credentials.' }),
-                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-              );
-            }
-            
-            return new Response(
-              JSON.stringify({ error: `API error: Status ${statusCode}. ${errorText}` }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
-            );
-          }
-          
-          const responseText = await response.text();
-          console.log(`API response raw (first 500 chars): ${responseText.substring(0, 500)}`);
-          
-          if (!responseText.trim()) {
-            return new Response(
-              JSON.stringify({ error: 'API returned empty response' }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-            );
-          }
-          
-          // Check if response is HTML instead of JSON
-          if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
-            return new Response(
-              JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your API configuration and credentials.' }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-            );
-          }
-          
-          // Parse the response as JSON
-          let orderResponse: OrderResponse;
-          try {
-            orderResponse = JSON.parse(responseText);
-          } catch (parseError) {
-            console.error(`Error parsing JSON response: ${parseError}`);
-            return new Response(
-              JSON.stringify({ error: `Failed to parse API response: ${parseError}` }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-            );
-          }
-          
-          if (orderResponse.success !== 'true') {
-            return new Response(
-              JSON.stringify({ error: orderResponse.description || 'Failed to place order' }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-            );
-          }
-          
-          // Store order in database
-          const { data: order, error: orderError } = await supabase
-            .from('orders')
-            .insert({
-              external_order_id: orderResponse.order_id,
-              status: 'processing',
-              total_amount: quantity, // We need to improve this calculation
-              promotion_code: promotionCode || null
-            })
-            .select()
+          // Fetch proxy settings for the request
+          const { data: proxySettings } = await supabase
+            .from('proxy_settings')
+            .select('*')
+            .order('created_at', { ascending: false })
             .limit(1);
             
-          if (orderError || !order || order.length === 0) {
-            console.error('Failed to store order:', orderError);
-          } else {
-            // Store order item (if we have productId)
-            if (productId) {
-              await supabase
-                .from('order_items')
-                .insert({
-                  order_id: order[0].id,
-                  product_id: productId,
-                  quantity,
-                  price: 0, // We need to improve this
-                  external_product_id: finalKioskToken
-                });
-            }
-          }
+          const proxyConfig = {
+            type: proxySettings?.[0]?.proxy_type || 'allorigins',
+            url: proxySettings?.[0]?.custom_url || undefined
+          };
+          
+          console.log(`Calling purchase API: ${apiUrl} through proxy type: ${proxyConfig.type}`);
+          
+          const data = await fetchViaProxyWithFallback(apiUrl, proxyConfig);
+          console.log("API Response:", data);
           
           return new Response(
-            JSON.stringify(orderResponse),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify(data),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
           );
-        } catch (fetchError: any) {
-          clearTimeout(timeoutId);
-          
-          if (fetchError.name === 'AbortError') {
-            return new Response(
-              JSON.stringify({ error: 'API request timed out after 30 seconds' }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 504 }
-            );
-          }
-          
-          throw fetchError;
+        } catch (error) {
+          console.error("Error calling purchase API:", error);
+          return new Response(
+            JSON.stringify({ success: "false", description: `Lỗi gọi API: ${error.message}` }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+          );
         }
-      } else if (action === 'check-order') {
-        const body = await req.json();
+      }
+      
+      case 'check-order': {
         const { orderId } = body;
         
         if (!orderId) {
           return new Response(
-            JSON.stringify({ error: 'Order ID is required' }),
+            JSON.stringify({ success: "false", description: 'Missing order ID' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
           );
         }
         
-        // Call the get products API
-        const apiUrl = `https://taphoammo.net/api/getProducts?orderId=${orderId}&userToken=${apiConfig.user_token}`;
-        console.log(`Checking order status: ${apiUrl}`);
-        
-        const options = {
-          method: 'GET',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'application/json',
-            'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
-            'Cache-Control': 'no-cache',
-            'Referer': 'https://taphoammo.net/',
-            'Origin': 'https://taphoammo.net',
-            'Pragma': 'no-cache',
-            'Connection': 'keep-alive',
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          redirect: 'follow'
-        };
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        // Build the API URL
+        const apiUrl = `https://taphoammo.net/api/getProducts?orderId=${orderId}&userToken=${userToken}`;
         
         try {
-          const response = await fetch(apiUrl, { ...options, signal: controller.signal });
-          
-          clearTimeout(timeoutId);
-          console.log(`Order check API response status: ${response.status}`);
-          
-          if (!response.ok) {
-            const statusCode = response.status;
-            let errorText = '';
+          // Fetch proxy settings for the request
+          const { data: proxySettings } = await supabase
+            .from('proxy_settings')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1);
             
-            try {
-              errorText = await response.text();
-              console.error(`API error response for order check: ${errorText.substring(0, 500)}`);
-            } catch (e) {
-              errorText = 'Unable to read error response';
-            }
-            
-            // Check if response is HTML
-            if (errorText.trim().startsWith('<!DOCTYPE') || errorText.includes('<html')) {
-              return new Response(
-                JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your API configuration and credentials.' }),
-                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-              );
-            }
-            
-            return new Response(
-              JSON.stringify({ error: `API error: Status ${statusCode}. ${errorText}` }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
-            );
-          }
+          const proxyConfig = {
+            type: proxySettings?.[0]?.proxy_type || 'allorigins',
+            url: proxySettings?.[0]?.custom_url || undefined
+          };
           
-          const responseText = await response.text();
-          console.log(`Order check API response raw (first 500 chars): ${responseText.substring(0, 500)}`);
+          console.log(`Calling check order API: ${apiUrl} through proxy type: ${proxyConfig.type}`);
           
-          if (!responseText.trim()) {
-            return new Response(
-              JSON.stringify({ error: 'API returned empty response' }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-            );
-          }
-          
-          // Check if response is HTML instead of JSON
-          if (responseText.trim().startsWith('<!DOCTYPE') || responseText.includes('<html')) {
-            return new Response(
-              JSON.stringify({ error: 'API returned HTML instead of JSON. Please check your API configuration and credentials.' }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-            );
-          }
-          
-          // Parse the response as JSON
-          let productResponse: ProductResponse;
-          try {
-            productResponse = JSON.parse(responseText);
-          } catch (parseError) {
-            console.error(`Error parsing JSON response: ${parseError}`);
-            return new Response(
-              JSON.stringify({ error: `Failed to parse API response: ${parseError}` }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-            );
-          }
-          
-          // Update order status if successful
-          if (productResponse.success === 'true' && productResponse.data) {
-            // Get order from database
-            const { data: orders, error: orderError } = await supabase
-              .from('orders')
-              .select('id')
-              .eq('external_order_id', orderId)
-              .limit(1);
-              
-            if (!orderError && orders && orders.length > 0) {
-              await supabase
-                .from('orders')
-                .update({ status: 'completed' })
-                .eq('id', orders[0].id);
-            }
-          }
+          const data = await fetchViaProxyWithFallback(apiUrl, proxyConfig);
+          console.log("API Response:", data);
           
           return new Response(
-            JSON.stringify(productResponse),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify(data),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
           );
-        } catch (fetchError: any) {
-          clearTimeout(timeoutId);
-          
-          if (fetchError.name === 'AbortError') {
-            return new Response(
-              JSON.stringify({ error: 'API request timed out after 30 seconds' }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 504 }
-            );
-          }
-          
-          throw fetchError;
+        } catch (error) {
+          console.error("Error calling check order API:", error);
+          return new Response(
+            JSON.stringify({ success: "false", description: `Lỗi gọi API: ${error.message}` }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+          );
         }
       }
+      
+      case 'get-stock': {
+        const { kioskToken } = body;
+        
+        if (!kioskToken) {
+          return new Response(
+            JSON.stringify({ success: "false", description: 'Missing kiosk token' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+        
+        // Build the API URL
+        const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${kioskToken}&userToken=${userToken}`;
+        
+        try {
+          // Fetch proxy settings for the request
+          const { data: proxySettings } = await supabase
+            .from('proxy_settings')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1);
+            
+          const proxyConfig = {
+            type: proxySettings?.[0]?.proxy_type || 'allorigins',
+            url: proxySettings?.[0]?.custom_url || undefined
+          };
+          
+          console.log(`Calling get stock API: ${apiUrl} through proxy type: ${proxyConfig.type}`);
+          
+          const data = await fetchViaProxyWithFallback(apiUrl, proxyConfig);
+          console.log("API Response:", data);
+          
+          return new Response(
+            JSON.stringify(data),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+          );
+        } catch (error) {
+          console.error("Error calling get stock API:", error);
+          return new Response(
+            JSON.stringify({ success: "false", description: `Lỗi gọi API: ${error.message}` }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+          );
+        }
+      }
+      
+      default:
+        return new Response(
+          JSON.stringify({ success: "false", description: 'Invalid action' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
     }
-    
+  } catch (error) {
+    console.error("Unhandled error:", error);
     return new Response(
-      JSON.stringify({ error: 'Invalid request' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-    );
-  } catch (error: any) {
-    console.error('Error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ success: "false", description: `Lỗi hệ thống: ${error.message}` }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   }
 });
