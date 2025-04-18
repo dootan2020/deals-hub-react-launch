@@ -1,24 +1,18 @@
-import React from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
-import { Loader2 } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
+import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import CategoryBreadcrumbs from '@/components/category/CategoryBreadcrumbs';
+import { useCategoryData } from '@/hooks/useCategoryData';
+import ErrorState from '@/components/category/ErrorState';
+import LoadingState from '@/components/category/LoadingState';
 import CategoryHeader from '@/components/category/CategoryHeader';
 import CategoryOverview from '@/components/category/CategoryOverview';
 import CategoryProductsTab from '@/components/category/CategoryProductsTab';
-import LoadingState from '@/components/category/LoadingState';
-import ErrorState from '@/components/category/ErrorState';
-import { CategoryPageParams } from '@/types/category.types';
-import { useCategoryData } from '@/hooks/useCategoryData';
+import CategoryDetailsTab from '@/components/category/CategoryDetailsTab';
 
 const CategoryPage = () => {
-  const { categorySlug, parentCategorySlug } = useParams<CategoryPageParams>();
-  const { 
+  const { categorySlug, parentCategorySlug } = useParams();
+  console.log('CategoryPage params:', { categorySlug, parentCategorySlug });
+  
+  const {
     category,
     products,
     loading,
@@ -28,82 +22,60 @@ const CategoryPage = () => {
     activeTab,
     setActiveTab,
     activeFilters,
+    totalProducts,
     handleSortChange,
     buildBreadcrumbs,
     subcategories,
     featuredProducts
   } = useCategoryData({ categorySlug, parentCategorySlug });
-
-  if (loading) {
-    return (
-      <Layout>
-        <div className="container-custom py-16">
-          <LoadingState />
-        </div>
-      </Layout>
-    );
-  }
-
-  if (error || !category) {
-    return (
-      <Layout>
-        <div className="container-custom py-16">
-          <ErrorState error={error || 'Category not found'} />
-        </div>
-      </Layout>
-    );
-  }
-
+  
+  console.log('CategoryPage useCategoryData result:', { category, loading, error, activeTab });
+  
   return (
     <Layout>
-      <Helmet>
-        <title>{category.name} - Digital Deals Hub</title>
-        <meta 
-          name="description" 
-          content={category.description || `Explore the best digital ${category.name} products on Digital Deals Hub.`} 
-        />
-      </Helmet>
-
-      <CategoryBreadcrumbs categories={buildBreadcrumbs()} />
-      
-      <CategoryHeader 
-        name={category.name} 
-        description={category.description}
-      />
-      
-      <div className="container-custom py-12">
-        {subcategories.length > 0 ? (
-          <Tabs defaultValue={activeTab} className="mb-8" onValueChange={(value) => setActiveTab(value)}>
-            <TabsList className="mb-6 md:mb-8">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="products">All Products</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="overview">
-              <CategoryOverview 
-                categorySlug={category.slug}
-                subcategories={subcategories}
-                featuredProducts={featuredProducts}
+      <div className="bg-section-primary py-16">
+        <div className="container-custom">
+          {loading ? (
+            <LoadingState />
+          ) : error ? (
+            <ErrorState error={error} />
+          ) : category ? (
+            <>
+              <CategoryHeader
+                category={category}
+                breadcrumbs={buildBreadcrumbs()}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
               />
-            </TabsContent>
-            
-            <TabsContent value="products">
-              <CategoryProductsTab 
-                products={products}
-                totalProducts={pagination.totalItems}
-                activeSort={activeFilters.sort || 'recommended'}
-                handleSortChange={handleSortChange}
-              />
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <CategoryProductsTab 
-            products={products}
-            totalProducts={pagination.totalItems}
-            activeSort={activeFilters.sort || 'recommended'}
-            handleSortChange={handleSortChange}
-          />
-        )}
+              
+              <div className="bg-white p-8 rounded-lg border border-gray-100 shadow-sm mt-6">
+                {activeTab === 'overview' && (
+                  <CategoryOverview 
+                    categorySlug={category.slug}
+                    subcategories={subcategories}
+                    featuredProducts={featuredProducts}
+                  />
+                )}
+                {activeTab === 'products' && (
+                  <CategoryProductsTab
+                    products={products}
+                    pagination={pagination}
+                    onPageChange={handlePageChange}
+                    activeFilters={activeFilters}
+                    onSortChange={handleSortChange}
+                    totalProducts={totalProducts}
+                    loading={loading}
+                  />
+                )}
+                {activeTab === 'details' && (
+                  <CategoryDetailsTab category={category} />
+                )}
+              </div>
+            </>
+          ) : (
+            <ErrorState error="Category not found" />
+          )}
+        </div>
       </div>
     </Layout>
   );

@@ -24,22 +24,38 @@ export const useCategory = ({ categorySlug, parentCategorySlug }: UseCategoryPro
         setLoading(true);
         setError(null);
         
+        // For debugging
+        console.log('fetchCategory called with:', { categorySlug, parentCategorySlug });
+        
+        // Handle cases where we're on the /products route with no slug
+        if (!categorySlug && !parentCategorySlug) {
+          console.log('No category slug provided, likely on products page');
+          setLoading(false);
+          return;
+        }
+        
         if (parentCategorySlug && categorySlug) {
+          // Nested category case
           const parentCategory = await fetchCategoryBySlug(parentCategorySlug);
+          console.log('Parent category fetched:', parentCategory);
           
           if (!parentCategory) {
             setError('Parent category not found');
+            setLoading(false);
             return;
           }
           
           const childCategory = await fetchCategoryBySlug(categorySlug);
+          console.log('Child category fetched:', childCategory);
           
           if (!childCategory) {
             setError('Category not found');
+            setLoading(false);
             return;
           }
           
           if (childCategory.parent_id !== parentCategory.id) {
+            console.log('Child category does not belong to parent, redirecting');
             navigate(`/category/${categorySlug}`, { replace: true });
             return;
           }
@@ -49,10 +65,13 @@ export const useCategory = ({ categorySlug, parentCategorySlug }: UseCategoryPro
             parent: parentCategory
           });
         } else if (categorySlug) {
+          // Top level category case
           const fetchedCategory = await fetchCategoryBySlug(categorySlug);
+          console.log('Single category fetched:', fetchedCategory);
           
           if (!fetchedCategory) {
             setError('Category not found');
+            setLoading(false);
             return;
           }
           
@@ -62,6 +81,8 @@ export const useCategory = ({ categorySlug, parentCategorySlug }: UseCategoryPro
               .select('*')
               .eq('id', fetchedCategory.parent_id)
               .maybeSingle();
+              
+            console.log('Parent data fetched for single category:', parentData);
               
             if (parentData) {
               setCategory({
@@ -78,7 +99,7 @@ export const useCategory = ({ categorySlug, parentCategorySlug }: UseCategoryPro
         } else {
           setError('Category not specified');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching category:', err);
         setError('Failed to load category');
         toast({

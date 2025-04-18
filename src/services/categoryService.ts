@@ -8,12 +8,17 @@ interface CategoryWithParent extends Category {
 
 export const fetchAllCategories = async (): Promise<Category[]> => {
   try {
+    console.log('Fetching all categories');
     const { data, error } = await supabase
       .from('categories')
       .select('*')
       .order('name');
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error in fetchAllCategories:', error);
+      throw error;
+    }
+    console.log('Categories fetched:', data?.length);
     return data || [];
   } catch (error) {
     console.error('Error fetching categories:', error);
@@ -23,13 +28,18 @@ export const fetchAllCategories = async (): Promise<Category[]> => {
 
 export const fetchMainCategories = async (): Promise<Category[]> => {
   try {
+    console.log('Fetching main categories');
     const { data, error } = await supabase
       .from('categories')
       .select('*')
       .is('parent_id', null)
       .order('name');
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error in fetchMainCategories:', error);
+      throw error;
+    }
+    console.log('Main categories fetched:', data?.length);
     return data || [];
   } catch (error) {
     console.error('Error fetching main categories:', error);
@@ -38,14 +48,24 @@ export const fetchMainCategories = async (): Promise<Category[]> => {
 };
 
 export const fetchSubcategoriesByParentId = async (parentId: string): Promise<Category[]> => {
+  if (!parentId) {
+    console.log('No parentId provided to fetchSubcategoriesByParentId');
+    return [];
+  }
+
   try {
+    console.log(`Fetching subcategories for parent ${parentId}`);
     const { data, error } = await supabase
       .from('categories')
       .select('*')
       .eq('parent_id', parentId)
       .order('name');
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error in fetchSubcategoriesByParentId:', error);
+      throw error;
+    }
+    console.log(`Subcategories fetched for ${parentId}:`, data?.length);
     return data || [];
   } catch (error) {
     console.error(`Error fetching subcategories for parent ${parentId}:`, error);
@@ -54,14 +74,24 @@ export const fetchSubcategoriesByParentId = async (parentId: string): Promise<Ca
 };
 
 export const fetchCategoryBySlug = async (slug: string): Promise<Category | null> => {
+  if (!slug) {
+    console.log('No slug provided to fetchCategoryBySlug');
+    return null;
+  }
+
   try {
+    console.log(`Fetching category with slug ${slug}`);
     const { data, error } = await supabase
       .from('categories')
       .select('*')
       .eq('slug', slug)
       .maybeSingle();
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error in fetchCategoryBySlug:', error);
+      throw error;
+    }
+    console.log(`Category fetch result for ${slug}:`, data ? 'Found' : 'Not found');
     return data;
   } catch (error) {
     console.error(`Error fetching category with slug ${slug}:`, error);

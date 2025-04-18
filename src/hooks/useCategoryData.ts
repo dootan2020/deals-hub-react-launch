@@ -9,10 +9,15 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPa
   const [activeTab, setActiveTab] = useState('overview');
   const [activeFilters, setActiveFilters] = useState({ sort: 'recommended' });
 
+  // Add console logs to help debug the category loading issue
+  console.log('useCategoryData params:', { categorySlug, parentCategorySlug });
+
   const { category, loading: categoryLoading, error } = useCategory({ 
     categorySlug, 
     parentCategorySlug 
   });
+  
+  console.log('useCategory response:', { category, categoryLoading, error });
   
   const { 
     products, 
@@ -23,7 +28,10 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPa
     categoryId: category?.id
   });
 
+  console.log('useCategoryProducts response:', { products: products?.length, loading: productsLoading });
+
   const { subcategories, featuredProducts } = useSubcategories(category?.id);
+  console.log('useSubcategories response:', { subcategories: subcategories?.length });
 
   const loading = categoryLoading || productsLoading;
 
