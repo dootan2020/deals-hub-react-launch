@@ -38,18 +38,32 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 
+// Define product schema
+const productSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().min(1, 'Description is required'),
+  price: z.coerce.number().positive('Price must be positive'),
+  originalPrice: z.coerce.number().positive('Original price must be positive').optional(),
+  inStock: z.boolean().default(true),
+  slug: z.string().min(1, 'Slug is required')
+    .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens.'),
+  category_id: z.string().min(1, 'Category is required'),
+  images: z.string().optional(),
+  kioskToken: z.string().optional()
+});
+
 interface Product {
   id: string;
   title: string;
-  description: string;
   price: number;
   original_price?: number | null;
   in_stock: boolean;
   category_id?: string | null;
+  created_at: string;
+  slug: string;
+  description: string;
   images?: string[];
   kiosk_token?: string | null;
-  slug: string;
-  created_at: string;
 }
 
 type ApiResponse = {

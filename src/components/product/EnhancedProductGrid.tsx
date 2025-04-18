@@ -239,7 +239,7 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
   };
 
   const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > Math.max(totalPages, 1) || newPage === page) return;
+    if (newPage < 1 || newPage > Math.max(totalPages || 1, 1) || newPage === page) return;
     
     setPage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -266,7 +266,7 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
 
   const showLoading = isLoading || externalLoading;
 
-  const totalPages = Math.ceil(products.length / 12);
+  const calculatedTotalPages = Math.ceil(products.length / 12);
 
   const displayedProducts = limit && products.length > limit 
     ? products.slice(0, limit) 
