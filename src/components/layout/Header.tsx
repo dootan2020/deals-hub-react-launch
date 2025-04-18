@@ -4,13 +4,11 @@ import Logo from './header/Logo';
 import DesktopNavigation from './header/DesktopNavigation';
 import LanguageSelector from './header/LanguageSelector';
 import UserButton from './header/UserButton';
-import CartButton from './header/CartButton';
 import MobileMenuToggle from './header/MobileMenuToggle';
 import MobileNavigation from './header/MobileNavigation';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [cartItemsCount, setCartItemsCount] = useState(0);
   
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -33,9 +31,6 @@ const Header = () => {
 
             {/* User Icon */}
             <UserButton />
-
-            {/* Cart Icon */}
-            <CartButton cartItemsCount={cartItemsCount} />
 
             {/* Mobile Menu Toggle */}
             <MobileMenuToggle 
