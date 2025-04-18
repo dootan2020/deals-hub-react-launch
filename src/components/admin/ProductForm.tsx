@@ -11,7 +11,7 @@ import { Category } from '@/types';
 import { KioskTokenField } from './product-form/KioskTokenField';
 import { ProductFormFields } from './product-form/ProductFormFields';
 import { FormFooter } from './product-form/FormFooter';
-import { ApiProductTester } from '@/components/admin/product-manager/ApiProductTester';
+import { ApiProductTester, ApiResponse } from '@/components/admin/product-manager/ApiProductTester';
 import { fetchProxySettings } from '@/utils/proxyUtils';
 import { fetchViaProxy } from '@/utils/proxyUtils';
 import { fetchActiveApiConfig } from '@/utils/apiUtils';
@@ -278,40 +278,58 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     
     console.log("API data received:", data);
     
-    const currentKioskToken = form.getValues('kioskToken');
-    
-    form.setValue('title', data.name || '');
-    form.setValue('kioskToken', currentKioskToken);
-    
-    const originalPrice = parseFloat(data.price) || 0;
-    form.setValue('price', originalPrice * 3);
-    
-    const stockValue = parseInt(data.stock) || 0;
-    form.setValue('stock', stockValue);
-    form.setValue('inStock', stockValue > 0);
-    
-    if (!form.getValues('slug') && data.name) {
-      const slug = data.name.toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w\-]+/g, '')
-        .replace(/\-\-+/g, '-')
-        .replace(/^-+/, '')
-        .replace(/-+$/, '');
-      form.setValue('slug', slug);
+    try {
+      const currentKioskToken = form.getValues('kioskToken') || data.kioskToken;
+      
+      if (data.name) {
+        form.setValue('title', data.name, { shouldValidate: true });
+      }
+      
+      form.setValue('kioskToken', currentKioskToken, { shouldValidate: true });
+      
+      if (data.price) {
+        const originalPrice = parseFloat(data.price) || 0;
+        form.setValue('price', originalPrice * 3, { shouldValidate: true });
+        form.setValue('originalPrice', originalPrice, { shouldValidate: true });
+      }
+      
+      if (data.stock) {
+        const stockValue = parseInt(data.stock) || 0;
+        form.setValue('stock', stockValue, { shouldValidate: true });
+        form.setValue('inStock', stockValue > 0, { shouldValidate: true });
+      }
+      
+      if (data.name && !form.getValues('slug')) {
+        const slug = data.name.toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w\-]+/g, '')
+          .replace(/\-\-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
+        
+        form.setValue('slug', slug, { shouldValidate: true });
+      }
+      
+      if (data.description) {
+        form.setValue('description', data.description, { shouldValidate: true });
+      } else if (data.name) {
+        form.setValue('description', `${data.name} - Digital Product`, { shouldValidate: true });
+      }
+      
+      toast.success('Product data applied successfully');
+    } catch (error) {
+      console.error('Error applying API data:', error);
+      toast.error('Failed to apply API data to form');
     }
-    
-    if (data.description) {
-      form.setValue('description', data.description);
-    } else if (data.name) {
-      form.setValue('description', `${data.name} - Digital Product`);
-    }
-    
-    toast.success('Product data applied successfully');
   };
 
   return (
     <>
-      <ApiProductTester onApiDataReceived={handleApiDataReceived} />
+      <ApiProductTester 
+        onApiDataReceived={handleApiDataReceived} 
+        initialKioskToken={form.getValues('kioskToken')}
+      />
+      
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <ProductFormFields 

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,12 +18,13 @@ import { ProxyType, fetchProxySettings } from '@/utils/proxyUtils';
 import { fetchActiveApiConfig, fetchProductInfoViaServerless } from '@/utils/apiUtils';
 import { supabase } from "@/integrations/supabase/client";
 
-interface ApiResponse {
+export interface ApiResponse {
   success: string;
-  name: string;
-  price: string;
-  stock: string;
+  name?: string;
+  price?: string;
+  stock?: string;
   description?: string;
+  kioskToken?: string;
 }
 
 interface ApiProductTesterProps {
@@ -117,7 +119,13 @@ export function ApiProductTester({
         setIsMockData(data.fromHtml || data.parseError || data.fetchError);
       }
       
-      setApiResponse(data);
+      // Ensure the API response has the kioskToken property as well
+      const responseWithKioskToken = {
+        ...data,
+        kioskToken: kioskToken
+      };
+      
+      setApiResponse(responseWithKioskToken);
       setLastUpdated(new Date().toLocaleString());
       
       if (data.success === "true") {
@@ -139,13 +147,13 @@ export function ApiProductTester({
 
   const applyApiDataToForm = () => {
     if (apiResponse) {
-      onApiDataReceived({
-        success: apiResponse.success,
-        name: apiResponse.name,
-        price: apiResponse.price,
-        stock: apiResponse.stock,
-        description: apiResponse.description
-      });
+      // Make sure to include the kioskToken in the data sent to the form
+      const dataToSend = {
+        ...apiResponse,
+        kioskToken: kioskToken
+      };
+      
+      onApiDataReceived(dataToSend);
       toast.success('Data applied to form successfully');
     }
   };

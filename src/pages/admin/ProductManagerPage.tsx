@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ApiProductTester } from '@/components/admin/product-manager/ApiProductTester';
+import { ApiProductTester, ApiResponse } from '@/components/admin/product-manager/ApiProductTester';
 import { ProductForm } from '@/components/admin/product-manager/ProductForm';
 import { ProductListView } from '@/components/admin/product-manager/ProductListView';
 import { Alert, AlertDescription } from '@/components/ui/alert';

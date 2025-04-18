@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -37,8 +36,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ApiResponse } from '@/components/admin/product-manager/ApiProductTester';
 
-// Định nghĩa schema xác thực form
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
   description: z.string().min(10, 'Description must be at least 10 characters.'),
@@ -55,14 +54,6 @@ const productSchema = z.object({
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
-
-interface ApiResponse {
-  success: string;
-  name: string;
-  price: string;
-  stock: string;
-  description?: string;
-}
 
 interface ProductFormProps {
   onApiTest?: (kioskToken: string) => Promise<void>;
@@ -114,6 +105,24 @@ export function ProductForm({
     }
   }, [productId]);
 
+  useEffect(() => {
+    if (onApiDataReceived) {
+      const handleExternalApiData = (data: ApiResponse) => {
+        handleApiData(data);
+      };
+
+      const handleApiDataEvent = (event: CustomEvent<ApiResponse>) => {
+        handleExternalApiData(event.detail);
+      };
+
+      window.addEventListener('apiDataReceived' as any, handleApiDataEvent as any);
+
+      return () => {
+        window.removeEventListener('apiDataReceived' as any, handleApiDataEvent as any);
+      };
+    }
+  }, [onApiDataReceived]);
+
   const fetchProductDetails = async () => {
     if (!productId) return;
     
@@ -157,7 +166,6 @@ export function ProductForm({
       if (onSubmit) {
         await onSubmit(formData);
       } else {
-        // Mặc định xử lý nếu không có hàm onSubmit được truyền vào
         const productData = {
           title: formData.title,
           description: formData.description,
@@ -173,7 +181,6 @@ export function ProductForm({
         };
 
         if (productId) {
-          // Update
           const { error } = await supabase
             .from('products')
             .update(productData)
@@ -182,7 +189,6 @@ export function ProductForm({
           if (error) throw error;
           toast.success('Product updated successfully');
         } else {
-          // Create
           const { error } = await supabase
             .from('products')
             .insert(productData);
@@ -255,23 +261,80 @@ export function ProductForm({
     }
     
     if (onApiTest) {
-      await onApiTest(kioskToken);
+      try {
+        setIsLoading(true);
+        const response = await onApiTest(kioskToken);
+        setIsLoading(false);
+      } catch (error) {
+        setIsLoading(false);
+        console.error('API test error:', error);
+      }
     }
   };
 
-  // Cập nhật form với dữ liệu từ API
-  useEffect(() => {
-    if (onApiDataReceived) {
-      // Thực hiện cập nhật form khi nhận được dữ liệu API
+  const handleApiData = (data: ApiResponse) => {
+    if (!data) {
+      toast.error('No API data to apply');
+      return;
     }
-  }, [onApiDataReceived]);
+
+    try {
+      const currentKioskToken = form.getValues('kioskToken');
+      
+      if (data.name) {
+        form.setValue('title', data.name, { shouldValidate: true, shouldDirty: true });
+      }
+      
+      if (data.kioskToken) {
+        form.setValue('kioskToken', data.kioskToken, { shouldValidate: true, shouldDirty: true });
+      } else if (currentKioskToken) {
+        form.setValue('kioskToken', currentKioskToken, { shouldValidate: true, shouldDirty: true });
+      }
+      
+      if (data.price) {
+        const price = parseFloat(data.price) * 3;
+        form.setValue('price', price, { shouldValidate: true, shouldDirty: true });
+        
+        form.setValue('originalPrice', parseFloat(data.price), { shouldValidate: true, shouldDirty: true });
+      }
+      
+      if (data.stock) {
+        const stockValue = parseInt(data.stock) || 0;
+        form.setValue('stock', stockValue, { shouldValidate: true, shouldDirty: true });
+        
+        form.setValue('inStock', stockValue > 0, { shouldValidate: true, shouldDirty: true });
+      }
+      
+      if (data.name && !form.getValues('slug')) {
+        const slug = data.name.toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w\-]+/g, '')
+          .replace(/\-\-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
+          
+        form.setValue('slug', slug, { shouldValidate: true, shouldDirty: true });
+      }
+      
+      if (data.description) {
+        form.setValue('description', data.description, { shouldValidate: true, shouldDirty: true });
+      } else if (data.name) {
+        form.setValue('description', `${data.name} - Digital Product`, { shouldValidate: true, shouldDirty: true });
+      }
+      
+      setFormDirty(true);
+      toast.success('API data applied to form successfully');
+    } catch (error) {
+      console.error('Error applying API data to form:', error);
+      toast.error('Failed to apply API data to form');
+    }
+  };
 
   return (
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
           <div className="space-y-6">
-            {/* Kiosk Token */}
             <div className="space-y-4">
               <FormField
                 control={form.control}
@@ -304,7 +367,6 @@ export function ProductForm({
               />
             </div>
 
-            {/* Tiêu đề sản phẩm */}
             <FormField
               control={form.control}
               name="title"
@@ -319,7 +381,6 @@ export function ProductForm({
               )}
             />
 
-            {/* Mô tả */}
             <FormField
               control={form.control}
               name="description"
@@ -338,7 +399,6 @@ export function ProductForm({
               )}
             />
 
-            {/* URL Slug */}
             <FormField
               control={form.control}
               name="slug"
@@ -369,7 +429,6 @@ export function ProductForm({
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Giá */}
               <FormField
                 control={form.control}
                 name="price"
@@ -384,7 +443,6 @@ export function ProductForm({
                 )}
               />
 
-              {/* Giá gốc */}
               <FormField
                 control={form.control}
                 name="originalPrice"
@@ -413,7 +471,6 @@ export function ProductForm({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Danh mục */}
               <FormField
                 control={form.control}
                 name="categoryId"
@@ -445,7 +502,6 @@ export function ProductForm({
                 )}
               />
 
-              {/* Số lượng tồn kho */}
               <FormField
                 control={form.control}
                 name="stock"
@@ -468,7 +524,6 @@ export function ProductForm({
               />
             </div>
 
-            {/* Trạng thái tồn kho */}
             <FormField
               control={form.control}
               name="inStock"
@@ -492,7 +547,6 @@ export function ProductForm({
               )}
             />
 
-            {/* Hình ảnh */}
             <FormField
               control={form.control}
               name="images"
@@ -514,7 +568,6 @@ export function ProductForm({
               )}
             />
 
-            {/* External ID */}
             <FormField
               control={form.control}
               name="externalId"
@@ -557,7 +610,6 @@ export function ProductForm({
         </form>
       </Form>
 
-      {/* Reset Dialog */}
       <AlertDialog 
         open={showResetDialog} 
         onOpenChange={setShowResetDialog}
