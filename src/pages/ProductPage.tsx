@@ -244,6 +244,7 @@ const ProductPage = () => {
             id: item.id,
             title: item.title,
             description: item.description,
+            shortDescription: item.short_description || '',
             price: Number(item.price),
             originalPrice: item.original_price ? Number(item.original_price) : undefined,
             images: item.images || [],
@@ -776,4 +777,41 @@ const ProductPage = () => {
                                       className={`h-3 w-3 ${
                                         i < Math.floor(product.rating) 
                                           ? "text-yellow-400 fill-yellow-400" 
-                                          : "text
+                                          : "text-gray-200"
+                                      }`} 
+                                    />
+                                  ))}
+                                </div>
+                                <span className="text-xs text-gray-500 ml-1">
+                                  ({product.reviewCount})
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between mt-2">
+                                <div className="font-medium text-[#1A936F]">
+                                  {formatCurrency(product.price)}
+                                </div>
+                                {product.originalPrice && (
+                                  <span className="text-xs text-gray-500 line-through">
+                                    {formatCurrency(product.originalPrice)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="hidden md:flex" />
+              <CarouselNext className="hidden md:flex" />
+            </Carousel>
+          </div>
+        </section>
+      )}
+    </Layout>
+  );
+};
+
+export default ProductPage;

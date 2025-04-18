@@ -56,6 +56,7 @@ export const useSubcategories = (categoryId?: string) => {
             specifications: p.specifications as Record<string, string | number | boolean | object>,
             stock: p.stock || 0,
             kiosk_token: p.kiosk_token || '', // Added kiosk_token
+            salesCount: p.sales_count || 0,
             createdAt: p.created_at
           }));
           
