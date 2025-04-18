@@ -4,6 +4,7 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthContextType, AuthUser, UserRole } from '@/types/auth.types';
 import { toast } from 'sonner';
+import './../../integrations/supabase/types-extension';
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -51,10 +52,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Fetch user roles using custom RPC function to avoid TypeScript errors
+  // Fetch user roles using custom RPC function
   const fetchUserRoles = async (userId: string) => {
     try {
-      // We'll use a SQL query instead of directly accessing user_roles table
+      // Use the RPC function to get user roles
       const { data, error } = await supabase
         .rpc('get_user_roles', { user_id_param: userId });
 
@@ -92,7 +93,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         
         if (session?.user) {
-          const authUser = session.user as AuthUser;
+          const authUser = { ...session.user } as AuthUser;
           setUser(authUser);
           
           // Fetch user roles
@@ -115,7 +116,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       
       if (session?.user) {
-        const authUser = session.user as AuthUser;
+        const authUser = { ...session.user } as AuthUser;
         setUser(authUser);
         
         // Fetch user roles

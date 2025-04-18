@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,26 +16,17 @@ import {
 import { UserRole } from '@/types/auth.types';
 import { ChevronDown, ShieldAlert, Users2, Shield, User, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-
-type UserWithRoles = {
-  id: string;
-  email: string;
-  created_at: string;
-  last_sign_in_at: string | null;
-  display_name: string | null;
-  avatar_url: string | null;
-  roles: UserRole[];
-};
+import { UserWithRolesRow } from '@/integrations/supabase/types-extension';
 
 export default function UsersManagementPage() {
-  const [users, setUsers] = useState<UserWithRoles[]>([]);
+  const [users, setUsers] = useState<UserWithRolesRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       
-      // Sử dụng view chúng ta đã tạo trong migration SQL
+      // Truy vấn view users_with_roles để lấy danh sách người dùng và vai trò
       const { data, error } = await supabase
         .from('users_with_roles')
         .select('*');
@@ -47,7 +37,7 @@ export default function UsersManagementPage() {
         return;
       }
 
-      setUsers(data || []);
+      setUsers(data as UserWithRolesRow[] || []);
     } catch (error) {
       console.error('Error in fetchUsers:', error);
       toast.error('Có lỗi khi tải dữ liệu người dùng');
