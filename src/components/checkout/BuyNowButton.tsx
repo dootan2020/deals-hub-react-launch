@@ -119,6 +119,7 @@ export function BuyNowButton({
         )}
       </div>
       
+      {/* Make sure product is properly passed and modal opens when showConfirmation is true */}
       {product && (
         <PurchaseConfirmationModal
           isOpen={showConfirmation}
