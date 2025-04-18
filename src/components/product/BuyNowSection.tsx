@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 import { fetchProductStock } from '@/services/orderService';
 import { Product } from '@/types';
 import { toast } from 'sonner';
+import { BuyNowButton } from '@/components/checkout/BuyNowButton';
 
 interface BuyNowSectionProps {
   product: Product;
@@ -116,11 +117,14 @@ export function BuyNowSection({ product }: BuyNowSectionProps) {
           <ShoppingCart className="h-4 w-4 mr-2" /> Add to Cart
         </Button>
         
-        <Button asChild variant="outline" className="w-full border-primary text-primary hover:bg-primary/5">
-          <Link to={`/checkout/${product.slug}`}>
-            <ShoppingBag className="h-4 w-4 mr-2" /> Buy Now
-          </Link>
-        </Button>
+        <BuyNowButton
+          kioskToken={product.kiosk_token || ''}
+          productId={product.id}
+          quantity={quantity}
+          isInStock={product.inStock && (
+            stockInfo ? stockInfo.stock > 0 : true
+          )}
+        />
       </div>
     </div>
   );

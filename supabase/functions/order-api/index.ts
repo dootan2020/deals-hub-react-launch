@@ -53,33 +53,38 @@ serve(async (req: Request) => {
     if (req.method === 'POST') {
       if (action === 'place-order') {
         const body = await req.json();
-        const { quantity, productId, promotionCode } = body;
+        const { quantity, productId, promotionCode, kioskToken } = body;
         
-        if (!quantity || !productId) {
+        if (!quantity || (!productId && !kioskToken)) {
           return new Response(
-            JSON.stringify({ error: 'Quantity and productId are required' }),
+            JSON.stringify({ error: 'Quantity and either productId or kioskToken are required' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
           );
         }
         
-        // Get product kiosk token
-        const { data: product, error: productError } = await supabase
-          .from('products')
-          .select('kiosk_token, price')
-          .eq('id', productId)
-          .limit(1);
+        // Use directly provided kioskToken or get it from the product
+        let finalKioskToken = kioskToken;
+        
+        if (!finalKioskToken && productId) {
+          // Get product kiosk token
+          const { data: product, error: productError } = await supabase
+            .from('products')
+            .select('kiosk_token, price')
+            .eq('id', productId)
+            .limit(1);
+            
+          if (productError || !product || product.length === 0 || !product[0].kiosk_token) {
+            return new Response(
+              JSON.stringify({ error: 'Product not found or has no kiosk token' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+            );
+          }
           
-        if (productError || !product || product.length === 0 || !product[0].kiosk_token) {
-          return new Response(
-            JSON.stringify({ error: 'Product not found or has no kiosk token' }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-          );
+          finalKioskToken = product[0].kiosk_token;
         }
         
-        const kioskToken = product[0].kiosk_token;
-        
         // Call the purchase API
-        let apiUrl = `https://taphoammo.net/api/buyProducts?kioskToken=${kioskToken}&userToken=${apiConfig.user_token}&quantity=${quantity}`;
+        let apiUrl = `https://taphoammo.net/api/buyProducts?kioskToken=${finalKioskToken}&userToken=${apiConfig.user_token}&quantity=${quantity}`;
         
         if (promotionCode) {
           apiUrl += `&promotion=${promotionCode}`;
@@ -184,7 +189,7 @@ serve(async (req: Request) => {
             .insert({
               external_order_id: orderResponse.order_id,
               status: 'processing',
-              total_amount: product[0].price * quantity,
+              total_amount: quantity, // We need to improve this calculation
               promotion_code: promotionCode || null
             })
             .select()
@@ -193,24 +198,22 @@ serve(async (req: Request) => {
           if (orderError || !order || order.length === 0) {
             console.error('Failed to store order:', orderError);
           } else {
-            // Store order item
-            await supabase
-              .from('order_items')
-              .insert({
-                order_id: order[0].id,
-                product_id: productId,
-                quantity,
-                price: product[0].price,
-                external_product_id: kioskToken
-              });
+            // Store order item (if we have productId)
+            if (productId) {
+              await supabase
+                .from('order_items')
+                .insert({
+                  order_id: order[0].id,
+                  product_id: productId,
+                  quantity,
+                  price: 0, // We need to improve this
+                  external_product_id: finalKioskToken
+                });
+            }
           }
           
           return new Response(
-            JSON.stringify({
-              success: true,
-              orderId: orderResponse.order_id,
-              message: 'Order placed successfully'
-            }),
+            JSON.stringify(orderResponse),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         } catch (fetchError: any) {

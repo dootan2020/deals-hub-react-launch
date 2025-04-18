@@ -49,20 +49,25 @@ export async function fetchApiConfig() {
  */
 export async function placeOrder({ kioskToken, quantity, promotionCode }: PlaceOrderParams): Promise<OrderApiResponse> {
   try {
-    const apiConfig = await fetchApiConfig();
-    const proxyConfig = await fetchProxySettings();
+    // Option 1: Use the backend function to place the order securely
+    const { data, error } = await supabase.functions.invoke('order-api', {
+      body: { 
+        kioskToken, 
+        quantity, 
+        promotionCode,
+        action: 'place-order'
+      },
+      method: 'POST',
+    });
     
-    let url = `https://taphoammo.net/api/buyProducts?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(apiConfig.user_token)}&quantity=${quantity}`;
-    
-    if (promotionCode) {
-      url += `&promotion=${encodeURIComponent(promotionCode)}`;
+    if (error) {
+      console.error('Order API error:', error);
+      throw new Error(error.message || 'Failed to place order');
     }
     
-    const data = await fetchViaProxy(url, proxyConfig);
-    
-    if (data.success !== "true") {
-      console.error('Order API error:', data.description || 'Unknown error');
-      throw new Error(data.description || 'Failed to place order');
+    if (data.error) {
+      console.error('Order API returned error:', data.error);
+      throw new Error(data.error);
     }
     
     return data;
@@ -77,16 +82,28 @@ export async function placeOrder({ kioskToken, quantity, promotionCode }: PlaceO
  */
 export async function fetchOrderProducts(orderId: string): Promise<OrderApiResponse> {
   try {
-    const apiConfig = await fetchApiConfig();
-    const proxyConfig = await fetchProxySettings();
+    // Option 1: Use the backend function to check order securely
+    const { data, error } = await supabase.functions.invoke('order-api', {
+      body: { 
+        orderId,
+        action: 'check-order'
+      },
+      method: 'POST',
+    });
     
-    const url = `https://taphoammo.net/api/getProducts?orderId=${encodeURIComponent(orderId)}&userToken=${encodeURIComponent(apiConfig.user_token)}`;
+    if (error) {
+      console.error('Order API error:', error);
+      throw new Error(error.message || 'Failed to check order');
+    }
     
-    const data = await fetchViaProxy(url, proxyConfig);
+    if (data.error) {
+      console.error('Order API returned error:', data.error);
+      throw new Error(data.error);
+    }
     
     return data;
   } catch (error) {
-    console.error('Error fetching order products:', error);
+    console.error('Error checking order:', error);
     throw error;
   }
 }

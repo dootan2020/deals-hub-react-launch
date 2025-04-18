@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Product } from '@/types';
+import { Button } from '@/components/ui/button';
+import { ShoppingCart } from 'lucide-react';
 import { calculateDiscountPercentage } from '@/lib/utils';
-import { BuyNowButton } from '@/components/checkout/BuyNowButton';
 import ProductBadges from './card/ProductBadges';
 import ProductRating from './card/ProductRating';
 import ProductPrice from './card/ProductPrice';
@@ -70,12 +71,17 @@ const ProductCardList = ({ product }: ProductCardListProps) => {
             <ProductQuickViewDialog product={product} />
           </div>
           
-          <BuyNowButton
-            kioskToken={product.kiosk_token || ''}
-            productId={product.id}
-            quantity={1}
-            isInStock={product.inStock}
-          />
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="flex items-center">
+              <ShoppingCart className="h-4 w-4 mr-1" /> Add to Cart
+            </Button>
+            
+            <Button asChild size="sm" className="bg-primary hover:bg-primary-dark">
+              <Link to={`/checkout/${product.slug}`}>
+                Buy Now
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     </div>
