@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           react: ['react', 'react-dom'],
           router: ['react-router-dom'],
-          ui: ['@/components/ui']
+          ui: ['@/components/ui/button', '@/components/ui/toast'] // Specify individual UI components instead of the whole directory
         }
       }
     }
@@ -35,5 +35,7 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Add mainFields to help resolve packages correctly
+    mainFields: ['module', 'jsnext:main', 'jsnext', 'main']
   },
 }));
