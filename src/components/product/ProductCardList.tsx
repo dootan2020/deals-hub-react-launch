@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Product } from '@/types';
-import { Button } from '@/components/ui/button';
 import { calculateDiscountPercentage } from '@/lib/utils';
 import ProductBadges from './card/ProductBadges';
 import ProductRating from './card/ProductRating';
@@ -76,6 +75,7 @@ const ProductCardList = ({ product }: ProductCardListProps) => {
               quantity={1}
               isInStock={product.inStock}
               className="bg-primary hover:bg-primary-dark"
+              product={product}
             />
           </div>
         </div>

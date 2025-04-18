@@ -137,7 +137,7 @@ export function PurchaseConfirmationModal({
             ) : (
               <>
                 <CheckCircle className="w-4 h-4 mr-2" />
-                Xác nhận mua
+                Mua ngay
               </>
             )}
           </Button>
