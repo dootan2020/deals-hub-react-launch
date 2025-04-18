@@ -1,5 +1,4 @@
-
-import { Category, Product } from '@/types';
+import { Product } from '@/types';
 
 /**
  * Ensures a mock product has all required fields according to the Product interface
@@ -35,4 +34,16 @@ export const ensureProductFields = (product: Partial<Product>): Product => {
  */
 export const ensureProductsFields = (products: Partial<Product>[]): Product[] => {
   return products.map(ensureProductFields);
+};
+
+/**
+ * Formats a price from cents to a currency string
+ */
+export const formatPrice = (price: number): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(price / 100); // Assuming price is stored in cents
 };

@@ -1,4 +1,7 @@
+
 import { useState } from 'react';
+import { Product } from '@/types';
+import { ensureProductFields } from '@/utils/productUtils';
 import Layout from '@/components/layout/Layout';
 import HeroSection from '@/components/home/HeroSection';
 import SearchSection from '@/components/home/SearchSection';
@@ -10,13 +13,13 @@ import NewsletterSection from '@/components/home/NewsletterSection';
 
 const Index = () => {
   const [activeSort, setActiveSort] = useState('recommended');
-  const [products] = useState([
-    {
+  const [products] = useState<Product[]>([
+    ensureProductFields({
       id: "1",
       title: "Gmail Account",
       description: "Fresh Gmail account with full access",
       shortDescription: "Fresh Gmail account with full access",
-      price: 5.99,
+      price: 599, // Price in cents
       images: ["/placeholder.svg"],
       categoryId: "email",
       inStock: true,
@@ -24,12 +27,11 @@ const Index = () => {
       badges: ["New"],
       slug: "gmail-account",
       features: ["Instant delivery", "Full access"],
-      specifications: {},
+      rating: 4.5,
+      reviewCount: 10,
       salesCount: 0,
-      stock: 100,
       createdAt: new Date().toISOString()
-    },
-    // Add more sample products as needed
+    })
   ]);
 
   return (
@@ -63,3 +65,4 @@ const Index = () => {
 };
 
 export default Index;
+
