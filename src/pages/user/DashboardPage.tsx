@@ -26,41 +26,38 @@ const DashboardPage = () => {
       if (!user) return;
 
       try {
-        // Use explicit type casting to avoid type instantiation depth issues
-        const totalCountQuery = await supabase
+        // Modified approach to avoid excessive type instantiation
+        // Using explicit type assertions and avoiding chained generics
+        const { count: totalCount, error: totalError } = await supabase
           .from('orders')
-          .select('id', { count: 'exact' })
+          .select('id', { count: 'exact', head: false })
           .eq('user_id', user.id);
         
-        const processingCountQuery = await supabase
+        const { count: processingCount, error: processingError } = await supabase
           .from('orders')
-          .select('id', { count: 'exact' })
+          .select('id', { count: 'exact', head: false })
           .eq('user_id', user.id)
           .eq('status', 'processing');
         
-        const completedCountQuery = await supabase
+        const { count: completedCount, error: completedError } = await supabase
           .from('orders')
-          .select('id', { count: 'exact' })
+          .select('id', { count: 'exact', head: false })
           .eq('user_id', user.id)
           .eq('status', 'completed');
 
-        // Extract counts with type safety
-        const totalCount = totalCountQuery.count ?? 0;
-        const processingCount = processingCountQuery.count ?? 0;
-        const completedCount = completedCountQuery.count ?? 0;
-        
-        if (totalCountQuery.error || processingCountQuery.error || completedCountQuery.error) {
+        // Check for errors and log them
+        if (totalError || processingError || completedError) {
           console.error('Error fetching order statistics', { 
-            totalError: totalCountQuery.error,
-            processingError: processingCountQuery.error,
-            completedError: completedCountQuery.error
+            totalError,
+            processingError,
+            completedError
           });
         }
 
         setOrderStats({
-          totalOrders: totalCount,
-          processingOrders: processingCount,
-          completedOrders: completedCount
+          totalOrders: totalCount || 0,
+          processingOrders: processingCount || 0,
+          completedOrders: completedCount || 0
         });
       } catch (error) {
         console.error('Error fetching order stats:', error);
