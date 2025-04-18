@@ -64,6 +64,8 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
         }
       }
       
+      console.log('Fetched products data:', allProducts);
+      
       // Map and sort the products
       const mappedProducts: Product[] = allProducts.map(p => ({
         id: p.id,
@@ -84,8 +86,14 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
         specifications: p.specifications as Record<string, string | number | boolean | object> || {},
         salesCount: p.stock_quantity || 0,
         stock: p.stock || 0,
+        kiosk_token: p.kiosk_token || '',
         createdAt: p.created_at
       }));
+
+      console.log('Mapped products with kiosk_token:', mappedProducts.map(p => ({
+        title: p.title, 
+        kiosk_token: p.kiosk_token ? 'present' : 'missing'
+      })));
 
       const sortedProducts = sortProducts(mappedProducts, currentSort);
       
@@ -138,4 +146,3 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
     setSelectedCategory 
   };
 };
-

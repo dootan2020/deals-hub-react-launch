@@ -24,6 +24,13 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
     ? "flex-1 flex flex-col justify-between"
     : "flex flex-col flex-1 p-4";
 
+  // For debugging - log the product data to see if kioskToken is present
+  console.log(`Product card for ${product.title}:`, {
+    id: product.id,
+    kioskToken: product.kiosk_token,
+    inStock: product.inStock
+  });
+
   return (
     <div className={`bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow ${containerClasses}`}>
       <div className={imageClasses}>

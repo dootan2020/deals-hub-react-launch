@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,9 +32,20 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  
+  // Debug log when the component mounts to verify the kioskToken
+  useEffect(() => {
+    console.log(`BuyNowButton for product ${productId}:`, {
+      kioskToken: kioskToken || 'missing',
+      productId,
+      isInStock
+    });
+  }, [kioskToken, productId, isInStock]);
+
+  const hasValidKioskToken = kioskToken && kioskToken.trim() !== '';
 
   const handleBuyNow = async () => {
-    if (!kioskToken) {
+    if (!hasValidKioskToken) {
       console.error('Missing kioskToken', { kioskToken, productId });
       toast.error('Không thể mua sản phẩm này: Thiếu thông tin sản phẩm (kioskToken)');
       return;
@@ -78,7 +89,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       variant={variant} 
       size={size}
       className={className}
-      disabled={!isInStock || isLoading || !kioskToken}
+      disabled={!isInStock || isLoading || !hasValidKioskToken}
       onClick={handleBuyNow}
     >
       {isLoading ? (
@@ -89,7 +100,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       ) : (
         <>
           <ShoppingBag className="w-4 h-4 mr-2" />
-          {!kioskToken ? 'Không có sẵn' : isInStock ? 'Mua Ngay' : 'Hết Hàng'}
+          {!hasValidKioskToken ? 'Không có sẵn' : isInStock ? 'Mua Ngay' : 'Hết Hàng'}
         </>
       )}
     </Button>
