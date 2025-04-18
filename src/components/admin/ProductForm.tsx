@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -12,6 +13,9 @@ import { KioskTokenField } from './product-form/KioskTokenField';
 import { ProductFormFields } from './product-form/ProductFormFields';
 import { FormFooter } from './product-form/FormFooter';
 import { ApiProductTester } from '@/components/admin/product-manager/ApiProductTester';
+import { fetchProxySettings } from '@/utils/proxyUtils';
+import { fetchViaProxy } from '@/utils/proxyUtils';
+import { fetchActiveApiConfig } from '@/utils/apiUtils';
 import {
   AlertDialog,
   AlertDialogAction,
