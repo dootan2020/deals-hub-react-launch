@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -273,7 +272,7 @@ export function ProductListView({
                     <TableCell>{product.stock}</TableCell>
                     <TableCell className="text-center">
                       {product.in_stock ? (
-                        <Badge variant="success">In Stock</Badge>
+                        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900">In Stock</Badge>
                       ) : (
                         <Badge variant="destructive">Out of Stock</Badge>
                       )}

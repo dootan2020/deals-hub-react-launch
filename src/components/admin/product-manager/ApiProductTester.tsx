@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,7 +46,6 @@ export function ApiProductTester({
   const [isMockData, setIsMockData] = useState<boolean>(false);
   const [logs, setLogs] = useState<string[]>([]);
 
-  // Tự động tải token từ API config khi component được tải
   useEffect(() => {
     const loadApiConfig = async () => {
       try {
@@ -55,7 +53,7 @@ export function ApiProductTester({
         if (apiConfig) {
           setUserToken(apiConfig.user_token || '');
           if (!initialKioskToken) {
-            setKioskToken(apiConfig.kiosk_token || '');
+            setKioskToken('');
           }
         }
       } catch (error) {
@@ -86,10 +84,8 @@ export function ApiProductTester({
         throw new Error('Kiosk Token is required');
       }
 
-      // Tạo cấu hình proxy
       const proxyConfig: ProxyConfig = { type: selectedProxy };
       
-      // Tạo URL API
       const url = `https://api.taphoammo.net/kioskapi.php?kiosk=${kioskToken}&usertoken=${userToken}`;
       
       addLog(`Requesting: ${url} through ${selectedProxy} proxy`);
@@ -98,11 +94,9 @@ export function ApiProductTester({
         let responseData;
         
         try {
-          // Thử kết nối qua proxy thông thường
           responseData = await fetchViaProxy(url, proxyConfig);
           addLog(`Received response from ${selectedProxy} proxy`);
         } catch (proxyError) {
-          // Nếu thất bại, thử với phương thức dự phòng
           addLog(`${selectedProxy} proxy failed: ${(proxyError as Error).message}`);
           addLog('Attempting fallback method...');
           
@@ -110,11 +104,9 @@ export function ApiProductTester({
           addLog('Fallback method succeeded');
         }
         
-        // Lưu response thô để debug
         setRawResponse(typeof responseData === 'string' ? responseData : JSON.stringify(responseData, null, 2));
         addLog(`Raw response received: ${JSON.stringify(responseData).substring(0, 50)}...`);
         
-        // Xử lý phản hồi
         if (typeof responseData === 'string' && (responseData.includes('<!DOCTYPE') || responseData.includes('<html'))) {
           addLog('Response is HTML, attempting to extract product information');
           const mockData = {
@@ -128,7 +120,6 @@ export function ApiProductTester({
           onApiDataReceived(mockData);
           setIsMockData(true);
         } else {
-          // Xử lý phản hồi JSON
           setApiResponse(responseData);
           onApiDataReceived(responseData);
           addLog('Successfully processed API response');
@@ -142,7 +133,6 @@ export function ApiProductTester({
       setError(`API request failed: ${err.message}`);
       addLog(`Error: ${err.message}`);
       
-      // Hiển thị dữ liệu mẫu khi có lỗi
       const mockData = {
         success: 'mock',
         name: 'Sample Product (Mock)',
