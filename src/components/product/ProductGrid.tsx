@@ -1,8 +1,8 @@
 
 import React from 'react';
 
-interface ProductGridProps {
-  products: any[];
+export interface ProductGridProps {
+  products?: any[];
   showSort?: boolean;
   isLoading?: boolean;
   viewMode?: "grid" | "list";

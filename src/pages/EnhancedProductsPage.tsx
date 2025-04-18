@@ -37,8 +37,12 @@ const EnhancedProductsPage = () => {
     const getProducts = async () => {
       try {
         setLoading(true);
-        const fetchedProducts = await fetchProductsWithFilters(activeFilters);
-        setProducts(fetchedProducts);
+        const result = await fetchProductsWithFilters(activeFilters);
+        if (result && Array.isArray(result.products)) {
+          setProducts(result.products);
+        } else {
+          setProducts([]);
+        }
         setError(null);
       } catch (error) {
         console.error('Error fetching products:', error);
@@ -135,7 +139,6 @@ const EnhancedProductsPage = () => {
           products={products}
           isLoading={loading}
           showSort={false}
-          paginationType="pagination"
           viewMode={currentView}
         />
       </div>

@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-interface EnhancedProductGridProps {
+export interface EnhancedProductGridProps {
   products: any[];
   showSort?: boolean;
   isLoading?: boolean;
@@ -14,6 +14,10 @@ interface EnhancedProductGridProps {
   showViewAll?: boolean;
   viewAllLink?: string;
   viewAllLabel?: string;
+  paginationType?: string;
+  currentPage?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 }
 
 const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({ 
@@ -28,7 +32,11 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
   limit,
   showViewAll,
   viewAllLink,
-  viewAllLabel
+  viewAllLabel,
+  paginationType,
+  currentPage,
+  totalPages,
+  onPageChange
 }) => {
   return (
     <div className="space-y-4">
@@ -49,6 +57,23 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
           </p>
         </div>
       </div>
+      
+      {/* Add pagination UI based on paginationType */}
+      {paginationType === 'pagination' && totalPages && totalPages > 1 && (
+        <div className="flex justify-center mt-6">
+          <div className="flex space-x-2">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => onPageChange && onPageChange(i + 1)}
+                className={`px-3 py-1 rounded ${currentPage === i + 1 ? 'bg-primary text-white' : 'bg-gray-100'}`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       
       {showViewAll && viewAllLink && (
         <div className="flex justify-center mt-6">

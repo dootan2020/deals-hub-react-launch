@@ -69,7 +69,6 @@ export const CategoryProductsTab = ({
       <EnhancedProductGrid 
         products={products}
         showSort={false}
-        paginationType="pagination"
         viewMode={viewMode}
         isLoading={isLoading}
         currentPage={currentPage}

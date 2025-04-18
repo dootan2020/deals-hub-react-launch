@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import CategoryHeader from '@/components/category/CategoryHeader';
+import { CategoryHeader } from '@/components/category/CategoryHeader';
 import ProductGrid from '@/components/product/ProductGrid';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -78,6 +78,16 @@ const SubcategoryPage = () => {
   const toggleViewMode = () => {
     setViewMode(prev => prev === "grid" ? "list" : "grid");
   };
+
+  // Mock category data for CategoryHeader
+  const mockCategory = {
+    id: slug || 'default-id',
+    name: slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : 'Products',
+    description: 'Browse our collection of products',
+    slug: slug || 'default-slug',
+    image: '',
+    parent: null
+  };
   
   if (error) {
     return (
@@ -119,9 +129,8 @@ const SubcategoryPage = () => {
         ) : (
           <>
             <CategoryHeader
-              title={`${slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : 'Products'}`}
-              description="Browse our collection of products"
-              resultsCount={products.length}
+              category={mockCategory}
+              productCount={products.length}
             />
             
             <ProductGrid 

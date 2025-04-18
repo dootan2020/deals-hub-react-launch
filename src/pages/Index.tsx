@@ -21,6 +21,7 @@ const Index = () => {
         <div className="container-custom">
           <div className="bg-white p-8 rounded-lg border border-gray-100 shadow-sm">
             <ProductGrid 
+              products={[]}
               title="Featured Products" 
               description="Check out our most popular digital products available now."
               showSort={true}
