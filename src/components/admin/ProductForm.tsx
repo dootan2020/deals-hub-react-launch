@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -11,6 +12,7 @@ import { Category } from '@/types';
 import { KioskTokenField } from './product-form/KioskTokenField';
 import { ProductFormFields } from './product-form/ProductFormFields';
 import { FormFooter } from './product-form/FormFooter';
+import { ApiProductTester } from '@/components/admin/product-manager/ApiProductTester';
 import {
   AlertDialog,
   AlertDialogAction,
