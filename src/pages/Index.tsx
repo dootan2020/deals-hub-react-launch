@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import HeroSection from '@/components/home/HeroSection';
@@ -11,6 +10,27 @@ import NewsletterSection from '@/components/home/NewsletterSection';
 
 const Index = () => {
   const [activeSort, setActiveSort] = useState('recommended');
+  const [products] = useState([
+    {
+      id: "1",
+      title: "Gmail Account",
+      description: "Fresh Gmail account with full access",
+      shortDescription: "Fresh Gmail account with full access",
+      price: 5.99,
+      images: ["/placeholder.svg"],
+      categoryId: "email",
+      inStock: true,
+      stockQuantity: 100,
+      badges: ["New"],
+      slug: "gmail-account",
+      features: ["Instant delivery", "Full access"],
+      specifications: {},
+      salesCount: 0,
+      stock: 100,
+      createdAt: new Date().toISOString()
+    },
+    // Add more sample products as needed
+  ]);
 
   return (
     <Layout>
@@ -21,7 +41,7 @@ const Index = () => {
         <div className="container-custom">
           <div className="bg-white p-8 rounded-lg border border-gray-100 shadow-sm">
             <ProductGrid 
-              products={[]}
+              products={products}
               title="Featured Products" 
               description="Check out our most popular digital products available now."
               showSort={true}
