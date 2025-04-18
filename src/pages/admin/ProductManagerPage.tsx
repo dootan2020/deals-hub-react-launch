@@ -173,6 +173,15 @@ const ProductManagerPage = () => {
     setLogs(prev => [...prev, `${timestamp} ${message}`]);
   };
 
+  const generateSlug = (text: string): string => {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
   const updateFormWithApiData = (data: ApiResponse, formData: any) => {
     if (!data) return formData;
     
@@ -285,6 +294,107 @@ const ProductManagerPage = () => {
     } else {
       resetForm();
     }
+  };
+
+  const handleApiTest = async () => {
+    setIsLoading(true);
+    setError(null);
+    setApiResponse(null);
+    setRawResponse('');
+    setIsMockData(false);
+
+    addLog(`Starting API test using ${selectedProxy} proxy...`);
+
+    try {
+      if (!kioskToken) {
+        throw new Error('Kiosk Token is required');
+      }
+
+      const url = `https://api.taphoammo.net/kioskapi.php?kiosk=${kioskToken}&usertoken=${userToken}`;
+      const proxiedUrl = buildProxyUrl(url, selectedProxy);
+      
+      addLog(`Requesting: ${proxiedUrl}`);
+      
+      const response = await fetch(proxiedUrl);
+      const responseText = await response.text();
+      setRawResponse(responseText);
+      
+      addLog(`Raw response received: ${responseText.substring(0, 50)}...`);
+      
+      try {
+        const data = JSON.parse(responseText);
+        setApiResponse(data);
+        setLastUpdated(new Date().toLocaleString());
+        addLog('Successfully parsed JSON response');
+      } catch (parseError) {
+        setError('Failed to parse API response as JSON. The API returned HTML or invalid JSON. Try a different proxy or the serverless function.');
+        setIsMockData(true);
+        setApiResponse({
+          success: 'mock',
+          name: 'Sample Product (Mock)',
+          price: '150000',
+          stock: '10',
+          description: 'This is mock data because the API returned HTML or non-JSON response'
+        });
+        addLog('Failed to parse JSON. Using mock data instead.');
+      }
+    } catch (err: any) {
+      setError(`API request failed: ${err.message}`);
+      addLog(`Error: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleServerlessFetch = async () => {
+    setIsLoading(true);
+    setError(null);
+    setApiResponse(null);
+    setRawResponse('');
+    setIsMockData(false);
+
+    addLog('Starting serverless API request...');
+
+    try {
+      if (!kioskToken) {
+        throw new Error('Kiosk Token is required');
+      }
+
+      const response = await fetch('/api/product-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kioskToken, userToken })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Serverless function returned status ${response.status}`);
+      }
+
+      const data = await response.json();
+      setApiResponse(data);
+      setRawResponse(JSON.stringify(data, null, 2));
+      setLastUpdated(new Date().toLocaleString());
+      addLog('Successfully received and parsed serverless response');
+    } catch (err: any) {
+      setError(`Serverless request failed: ${err.message}`);
+      addLog(`Error: ${err.message}`);
+      
+      setIsMockData(true);
+      setApiResponse({
+        success: 'mock',
+        name: 'Sample Product (Mock)',
+        price: '150000',
+        stock: '10',
+        description: 'This is mock data shown because the serverless function failed'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const clearLogs = () => {
+    setLogs([]);
+    toast.info('Logs cleared');
   };
 
   return (
