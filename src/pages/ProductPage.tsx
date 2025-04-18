@@ -159,6 +159,7 @@ const ProductPage = () => {
             category: productCategory,
             salesCount: Number(0),
             sales_count: Number(0),
+            stock: productData.stock || 0,
             createdAt: productData.created_at || new Date().toISOString()
           };
           
@@ -193,6 +194,7 @@ const ProductPage = () => {
             specifications,
             salesCount: Number(0),
             sales_count: Number(0),
+            stock: productData.stock || 0,
             createdAt: productData.created_at || new Date().toISOString()
           };
           
@@ -253,6 +255,7 @@ const ProductPage = () => {
             specifications,
             salesCount: Number(0),
             sales_count: Number(0),
+            stock: item.stock || 0,
             createdAt: item.created_at || new Date().toISOString()
           };
         });
