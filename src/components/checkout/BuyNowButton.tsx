@@ -1,11 +1,10 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useOrderApi } from '@/hooks/use-order-api';
+import { PurchaseConfirmDialog } from './PurchaseConfirmDialog';
 
 interface BuyNowButtonProps {
   product?: any;
@@ -28,26 +27,16 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   onSuccess,
   kioskToken,
   productId,
-  quantity = 1,
-  promotionCode
+  product,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const navigate = useNavigate();
   const { createOrder } = useOrderApi();
   
-  // Debug log when the component mounts to verify the kioskToken
-  useEffect(() => {
-    console.log(`BuyNowButton for product ${productId}:`, {
-      kioskToken: typeof kioskToken === 'string' ? kioskToken.substring(0, 10) + '...' : 'invalid type: ' + typeof kioskToken,
-      productId,
-      isInStock
-    });
-  }, [kioskToken, productId, isInStock]);
-
-  // Make sure kioskToken is a string and not empty
   const hasValidKioskToken = typeof kioskToken === 'string' && kioskToken.trim() !== '';
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = async (quantity: number, promotionCode?: string) => {
     if (!hasValidKioskToken || !productId) {
       console.error('Missing or invalid kioskToken or productId', { 
         kioskToken, 
@@ -60,19 +49,13 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
 
     setIsLoading(true);
     try {
-      // Validate promotion code if it's an object (could happen from form errors)
-      const validPromotionCode = typeof promotionCode === 'string' ? promotionCode : undefined;
-      
-      console.log('Placing order with:', { kioskToken, productId, quantity, promotionCode: validPromotionCode });
-      
       const result = await createOrder({
         kioskToken,
         productId,
         quantity,
-        promotionCode: validPromotionCode
+        promotionCode
       });
 
-      console.log('Order response:', result);
       if (result.success && result.orderId) {
         if (onSuccess) onSuccess();
         navigate(`/order-success?orderId=${result.orderId}`);
@@ -84,29 +67,42 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       toast.error(error.message || 'Đã xảy ra lỗi khi đặt hàng');
     } finally {
       setIsLoading(false);
+      setShowConfirmDialog(false);
     }
   };
 
   return (
-    <Button 
-      variant={variant} 
-      size={size}
-      className={className}
-      disabled={!isInStock || isLoading || !hasValidKioskToken}
-      onClick={handleBuyNow}
-    >
-      {isLoading ? (
-        <>
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          Đang xử lý...
-        </>
-      ) : (
-        <>
-          <ShoppingBag className="w-4 h-4 mr-2" />
-          {!hasValidKioskToken ? 'Không có sẵn' : isInStock ? 'Mua Ngay' : 'Hết Hàng'}
-        </>
+    <>
+      <Button 
+        variant={variant} 
+        size={size}
+        className={className}
+        disabled={!isInStock || isLoading || !hasValidKioskToken}
+        onClick={() => setShowConfirmDialog(true)}
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Đang xử lý...
+          </>
+        ) : (
+          <>
+            <ShoppingBag className="w-4 h-4 mr-2" />
+            {!hasValidKioskToken ? 'Không có sẵn' : isInStock ? 'Mua Ngay' : 'Hết Hàng'}
+          </>
+        )}
+      </Button>
+
+      {product && (
+        <PurchaseConfirmDialog
+          open={showConfirmDialog}
+          onClose={() => setShowConfirmDialog(false)}
+          onConfirm={handleBuyNow}
+          product={product}
+          isProcessing={isLoading}
+        />
       )}
-    </Button>
+    </>
   );
 };
 
