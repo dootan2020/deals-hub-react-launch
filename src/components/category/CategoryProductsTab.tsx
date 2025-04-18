@@ -72,11 +72,9 @@ export const CategoryProductsTab = ({
         paginationType="pagination"
         viewMode={viewMode}
         isLoading={isLoading}
-        pagination={{
-          currentPage,
-          totalPages,
-          onPageChange
-        }}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
       />
     </div>
   );

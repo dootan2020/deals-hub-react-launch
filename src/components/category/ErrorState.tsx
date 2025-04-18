@@ -4,16 +4,18 @@ import { Link } from 'react-router-dom';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface ErrorStateProps {
-  error: string;
+  title?: string;
+  message?: string;
+  error?: string;
 }
 
-const ErrorState: React.FC<ErrorStateProps> = ({ error }) => {
+const ErrorState: React.FC<ErrorStateProps> = ({ title, message, error }) => {
   return (
     <div>
       <Alert variant="destructive" className="mb-6">
-        <AlertTitle>Error</AlertTitle>
+        <AlertTitle>{title || 'Error'}</AlertTitle>
         <AlertDescription>
-          {error || 'Category not found'}
+          {message || error || 'An error occurred'}
         </AlertDescription>
       </Alert>
       <div className="flex justify-center">

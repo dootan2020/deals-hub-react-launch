@@ -26,6 +26,9 @@ interface EnhancedProductGridProps {
   viewAllLabel?: string;
   paginationType?: 'infinite-scroll' | 'load-more' | 'pagination';
   viewMode?: 'grid' | 'list';
+  currentPage?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 }
 
 const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({ 
@@ -43,7 +46,10 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
   viewAllLink = '/products',
   viewAllLabel = 'View all products',
   paginationType = 'load-more',
-  viewMode: externalViewMode
+  viewMode: externalViewMode,
+  currentPage,
+  totalPages,
+  onPageChange
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts || externalProducts || []);
   const [isLoading, setIsLoading] = useState(!initialProducts && !externalProducts);
@@ -134,6 +140,104 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
     setPage(nextPage);
   };
 
+  const renderPagination = () => {
+    if (paginationType !== 'pagination' || (totalPages && totalPages <= 1)) return null;
+    
+    const currentPageToUse = currentPage || page;
+    const totalPagesToUse = totalPages || Math.ceil(products.length / 12);
+    const handlePageChangeFunction = onPageChange || handlePageChange;
+
+    const renderPageNumbers = () => {
+      const pages = [];
+      const maxVisiblePages = 5;
+      
+      pages.push(
+        <Button
+          key={1}
+          variant={currentPageToUse === 1 ? "default" : "outline"}
+          size="sm"
+          className={`px-3 py-1 ${currentPageToUse === 1 ? 'bg-primary text-white' : ''}`}
+          onClick={() => handlePageChangeFunction(1)}
+        >
+          1
+        </Button>
+      );
+
+      let startPage = Math.max(2, currentPageToUse - Math.floor(maxVisiblePages / 2));
+      let endPage = Math.min(totalPagesToUse - 1, startPage + maxVisiblePages - 3);
+      
+      if (startPage > 2) {
+        pages.push(<span key="ellipsis1" className="px-2">...</span>);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(
+          <Button
+            key={i}
+            variant={currentPageToUse === i ? "default" : "outline"}
+            size="sm"
+            className={`px-3 py-1 ${currentPageToUse === i ? 'bg-primary text-white' : ''}`}
+            onClick={() => handlePageChangeFunction(i)}
+          >
+            {i}
+          </Button>
+        );
+      }
+
+      if (endPage < totalPagesToUse - 1) {
+        pages.push(<span key="ellipsis2" className="px-2">...</span>);
+      }
+
+      if (totalPagesToUse > 1) {
+        pages.push(
+          <Button
+            key={totalPagesToUse}
+            variant={currentPageToUse === totalPagesToUse ? "default" : "outline"}
+            size="sm"
+            className={`px-3 py-1 ${currentPageToUse === totalPagesToUse ? 'bg-primary text-white' : ''}`}
+            onClick={() => handlePageChangeFunction(totalPagesToUse)}
+          >
+            {totalPagesToUse}
+          </Button>
+        );
+      }
+
+      return pages;
+    };
+
+    return (
+      <div className="flex justify-center mt-10">
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChangeFunction(currentPageToUse - 1)}
+            disabled={currentPageToUse === 1}
+            className="px-2"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <span className="sr-only">Previous Page</span>
+          </Button>
+          
+          <div className="flex items-center space-x-2">
+            {renderPageNumbers()}
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChangeFunction(currentPageToUse + 1)}
+            disabled={currentPageToUse === totalPagesToUse || totalPagesToUse === 0}
+            className="px-2"
+          >
+            <ChevronRight className="h-4 w-4" />
+            <span className="sr-only">Next Page</span>
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > Math.max(totalPages, 1) || newPage === page) return;
     
@@ -204,100 +308,6 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
         </div>
       );
     }
-  };
-
-  const renderPagination = () => {
-    if (paginationType !== 'pagination' || totalPages <= 1) return null;
-
-    const renderPageNumbers = () => {
-      const pages = [];
-      const maxVisiblePages = 5;
-      
-      pages.push(
-        <Button
-          key={1}
-          variant={page === 1 ? "default" : "outline"}
-          size="sm"
-          className={`px-3 py-1 ${page === 1 ? 'bg-primary text-white' : ''}`}
-          onClick={() => handlePageChange(1)}
-        >
-          1
-        </Button>
-      );
-
-      let startPage = Math.max(2, page - Math.floor(maxVisiblePages / 2));
-      let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 3);
-      
-      if (startPage > 2) {
-        pages.push(<span key="ellipsis1" className="px-2">...</span>);
-      }
-
-      for (let i = startPage; i <= endPage; i++) {
-        pages.push(
-          <Button
-            key={i}
-            variant={page === i ? "default" : "outline"}
-            size="sm"
-            className={`px-3 py-1 ${page === i ? 'bg-primary text-white' : ''}`}
-            onClick={() => handlePageChange(i)}
-          >
-            {i}
-          </Button>
-        );
-      }
-
-      if (endPage < totalPages - 1) {
-        pages.push(<span key="ellipsis2" className="px-2">...</span>);
-      }
-
-      if (totalPages > 1) {
-        pages.push(
-          <Button
-            key={totalPages}
-            variant={page === totalPages ? "default" : "outline"}
-            size="sm"
-            className={`px-3 py-1 ${page === totalPages ? 'bg-primary text-white' : ''}`}
-            onClick={() => handlePageChange(totalPages)}
-          >
-            {totalPages}
-          </Button>
-        );
-      }
-
-      return pages;
-    };
-
-    return (
-      <div className="flex justify-center mt-10">
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(page - 1)}
-            disabled={page === 1}
-            className="px-2"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <span className="sr-only">Previous Page</span>
-          </Button>
-          
-          <div className="flex items-center space-x-2">
-            {renderPageNumbers()}
-          </div>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(page + 1)}
-            disabled={page === totalPages || totalPages === 0}
-            className="px-2"
-          >
-            <ChevronRight className="h-4 w-4" />
-            <span className="sr-only">Next Page</span>
-          </Button>
-        </div>
-      </div>
-    );
   };
 
   return (

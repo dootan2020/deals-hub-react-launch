@@ -1,41 +1,41 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Category, Product } from '@/types';
+import { Product } from '@/types';
+import { CategoryWithParent } from '@/types/category.types';
 import EnhancedProductGrid from '@/components/product/EnhancedProductGrid';
 import SubcategoriesGrid from '@/components/category/SubcategoriesGrid';
+import { useSubcategories } from '@/hooks/useSubcategories';
 
 interface CategoryOverviewProps {
-  categorySlug: string;
-  subcategories: Category[];
-  featuredProducts: Product[];
+  category: CategoryWithParent;
+  products: Product[];
 }
 
 const CategoryOverview: React.FC<CategoryOverviewProps> = ({ 
-  categorySlug, 
-  subcategories, 
-  featuredProducts 
+  category, 
+  products 
 }) => {
+  // Get subcategories using the hook
+  const { subcategories, featuredProducts } = useSubcategories(category.id);
+  
   return (
     <>
       <SubcategoriesGrid 
-        categorySlug={categorySlug} 
+        categorySlug={category.slug} 
         subcategories={subcategories} 
       />
       
-      {featuredProducts.length > 0 && (
-        <div>
-          <h2 className="text-2xl font-bold mb-6">Featured Products</h2>
-          <EnhancedProductGrid
-            products={featuredProducts}
-            showSort={false}
-            limit={4}
-            showViewAll={true}
-            viewAllLink={`/category/${categorySlug}?tab=products`}
-            viewAllLabel="View all products"
-          />
-        </div>
-      )}
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-6">Featured Products</h2>
+        <EnhancedProductGrid
+          products={products.slice(0, 8)}
+          showSort={false}
+          limit={4}
+          showViewAll={true}
+          viewAllLink={`/category/${category.slug}?tab=products`}
+          viewAllLabel="View all products"
+        />
+      </div>
     </>
   );
 };

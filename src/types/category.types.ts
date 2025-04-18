@@ -1,7 +1,11 @@
+
 import { Category } from '@/types';
 
 export interface CategoryWithParent extends Category {
   parent?: CategoryWithParent;
+  created_at?: string;
+  icon?: string;
+  tags?: string[];
 }
 
 export interface CategoryPageParams extends Record<string, string> {

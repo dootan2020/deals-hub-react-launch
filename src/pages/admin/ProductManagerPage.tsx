@@ -79,6 +79,21 @@ const ProductManagerPage = () => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const navigate = useNavigate();
 
+  const form = useForm<ProductFormValues>({
+    resolver: zodResolver(productSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      price: 0,
+      originalPrice: undefined,
+      inStock: true,
+      slug: '',
+      category_id: '',
+      images: '',
+      kioskToken: ''
+    }
+  });
+
   useEffect(() => {
     fetchProducts();
     fetchCategories();
