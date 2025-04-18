@@ -26,34 +26,34 @@ const DashboardPage = () => {
       if (!user) return;
 
       try {
-        // Simplify the query approach to avoid deep type issues
-        const totalResult = await supabase
+        // Use explicit type casting to avoid type instantiation depth issues
+        const totalCountQuery = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact' })
           .eq('user_id', user.id);
         
-        const processingResult = await supabase
+        const processingCountQuery = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact' })
           .eq('user_id', user.id)
           .eq('status', 'processing');
         
-        const completedResult = await supabase
+        const completedCountQuery = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact' })
           .eq('user_id', user.id)
           .eq('status', 'completed');
 
-        // Get the counts and handle potential errors
-        const totalCount = totalResult.error ? 0 : (totalResult.count || 0);
-        const processingCount = processingResult.error ? 0 : (processingResult.count || 0);
-        const completedCount = completedResult.error ? 0 : (completedResult.count || 0);
+        // Extract counts with type safety
+        const totalCount = totalCountQuery.count ?? 0;
+        const processingCount = processingCountQuery.count ?? 0;
+        const completedCount = completedCountQuery.count ?? 0;
         
-        if (totalResult.error || processingResult.error || completedResult.error) {
+        if (totalCountQuery.error || processingCountQuery.error || completedCountQuery.error) {
           console.error('Error fetching order statistics', { 
-            totalError: totalResult.error,
-            processingError: processingResult.error,
-            completedError: completedResult.error
+            totalError: totalCountQuery.error,
+            processingError: processingCountQuery.error,
+            completedError: completedCountQuery.error
           });
         }
 
