@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Toaster as Sonner } from "sonner";
+import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CategoriesProvider } from "@/context/CategoriesContext";
@@ -35,7 +35,7 @@ const App = () => {
       <BrowserRouter>
         <CategoriesProvider>
           <TooltipProvider>
-            <Sonner />
+            <Toaster />
             <Routes>
               <Route path="/" element={<Index />} />
               

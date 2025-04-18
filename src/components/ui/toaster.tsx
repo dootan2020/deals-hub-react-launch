@@ -8,7 +8,7 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
-import { createElement } from "react"
+import { createElement, ReactNode } from "react"
 
 export function Toaster() {
   const { toasts } = useToast()
@@ -41,7 +41,7 @@ export function Toaster() {
                 <ToastDescription>{description}</ToastDescription>
               )}
             </div>
-            {action && <div className="action">{action}</div>}
+            {action && <div className="action">{action as ReactNode}</div>}
             <ToastClose />
           </Toast>
         )
