@@ -26,22 +26,25 @@ const DashboardPage = () => {
       if (!user) return;
 
       try {
-        const [totalResult, processingResult, completedResult] = await Promise.all([
-          supabase
-            .from('orders')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id),
-          supabase
-            .from('orders')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id)
-            .eq('status', 'processing'),
-          supabase
-            .from('orders')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id)
-            .eq('status', 'completed')
-        ]);
+        // Fetch total orders count
+        const totalResult = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+        
+        // Fetch processing orders count
+        const processingResult = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('status', 'processing');
+        
+        // Fetch completed orders count
+        const completedResult = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('status', 'completed');
 
         setOrderStats({
           totalOrders: totalResult.count || 0,
