@@ -1,8 +1,10 @@
 
 import { User, Session } from '@supabase/supabase-js';
 
+export type UserRole = 'admin' | 'staff' | 'user' | 'guest';
+
 export type AuthUser = User & {
-  role?: 'admin' | 'user';
+  role?: UserRole;
 };
 
 export type AuthContextType = {
@@ -11,8 +13,11 @@ export type AuthContextType = {
   loading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  userBalance: number; // Added the userBalance property
+  isStaff: boolean;
+  userRoles: UserRole[];
+  userBalance: number;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
+  checkUserRole: (role: UserRole) => boolean;
 };

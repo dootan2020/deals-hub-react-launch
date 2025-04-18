@@ -35,6 +35,7 @@ import ProductCreatePage from './pages/admin/ProductCreatePage';
 import ProductEditPage from './pages/admin/ProductEditPage';
 import ProductFormWithTester from './pages/admin/ProductFormWithTester';
 import ProxySettingsPage from './pages/admin/ProxySettingsPage';
+import UsersManagementPage from './pages/admin/UsersManagementPage';
 
 const App = () => {
   return (
@@ -59,58 +60,63 @@ const App = () => {
               
               {/* Protected Admin Routes */}
               <Route path="/admin" element={
-                <ProtectedRoute requireAdmin>
+                <ProtectedRoute requiredRoles={['admin']}>
                   <AdminDashboard />
                 </ProtectedRoute>
               } />
               <Route path="/admin/categories" element={
-                <ProtectedRoute requireAdmin>
+                <ProtectedRoute requiredRoles={['admin']}>
                   <CategoryAdmin />
                 </ProtectedRoute>
               } />
               <Route path="/admin/orders" element={
-                <ProtectedRoute requireAdmin>
+                <ProtectedRoute requiredRoles={['admin', 'staff']}>
                   <OrdersAdmin />
                 </ProtectedRoute>
               } />
               <Route path="/admin/api-config" element={
-                <ProtectedRoute requireAdmin>
+                <ProtectedRoute requiredRoles={['admin']}>
                   <ApiConfigAdmin />
                 </ProtectedRoute>
               } />
               <Route path="/admin/sync-logs" element={
-                <ProtectedRoute requireAdmin>
+                <ProtectedRoute requiredRoles={['admin']}>
                   <SyncLogsAdmin />
                 </ProtectedRoute>
               } />
               <Route path="/admin/api-tester" element={
-                <ProtectedRoute requireAdmin>
+                <ProtectedRoute requiredRoles={['admin']}>
                   <ApiTesterPage />
                 </ProtectedRoute>
               } />
               <Route path="/admin/product-manager" element={
-                <ProtectedRoute requireAdmin>
+                <ProtectedRoute requiredRoles={['admin']}>
                   <ProductManagerPage />
                 </ProtectedRoute>
               } />
               <Route path="/admin/products/create" element={
-                <ProtectedRoute requireAdmin>
+                <ProtectedRoute requiredRoles={['admin']}>
                   <ProductCreatePage />
                 </ProtectedRoute>
               } />
               <Route path="/admin/products/edit/:id" element={
-                <ProtectedRoute requireAdmin>
+                <ProtectedRoute requiredRoles={['admin']}>
                   <ProductEditPage />
                 </ProtectedRoute>
               } />
               <Route path="/admin/product-form-tester" element={
-                <ProtectedRoute requireAdmin>
+                <ProtectedRoute requiredRoles={['admin']}>
                   <ProductFormWithTester />
                 </ProtectedRoute>
               } />
               <Route path="/admin/proxy-settings" element={
-                <ProtectedRoute requireAdmin>
+                <ProtectedRoute requiredRoles={['admin']}>
                   <ProxySettingsPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/users" element={
+                <ProtectedRoute requiredRoles={['admin']}>
+                  <UsersManagementPage />
                 </ProtectedRoute>
               } />
               

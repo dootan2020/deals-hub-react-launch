@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { AuthContextType, AuthUser } from '@/types/auth.types';
+import { AuthContextType, AuthUser, UserRole } from '@/types/auth.types';
 import { toast } from 'sonner';
 
 const AuthContext = createContext<AuthContextType>({
@@ -11,10 +11,13 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isAuthenticated: false,
   isAdmin: false,
+  isStaff: false,
+  userRoles: [],
   userBalance: 0,
   login: async () => {},
   logout: async () => {},
   register: async () => {},
+  checkUserRole: () => false,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -22,6 +25,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
+  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [userBalance, setUserBalance] = useState(0);
 
   // Fetch user balance from profiles table
@@ -46,48 +51,60 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Check if user has admin role
-  const checkAdminRole = async (userId: string) => {
+  // Fetch user roles using custom RPC function to avoid TypeScript errors
+  const fetchUserRoles = async (userId: string) => {
     try {
-      // Using custom SQL function created in the migration
-      const { data: hasAdminRole, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .eq('role', 'admin')
-        .maybeSingle();
+      // We'll use a SQL query instead of directly accessing user_roles table
+      const { data, error } = await supabase
+        .rpc('get_user_roles', { user_id_param: userId });
 
       if (error) {
-        console.error('Error checking admin role:', error);
-        return false;
+        console.error('Error fetching user roles:', error);
+        setUserRoles([]);
+        setIsAdmin(false);
+        setIsStaff(false);
+        return;
       }
-      
-      return !!hasAdminRole;
+
+      if (data) {
+        const roles = data as UserRole[];
+        setUserRoles(roles);
+        setIsAdmin(roles.includes('admin'));
+        setIsStaff(roles.includes('staff'));
+      }
     } catch (error) {
-      console.error('Error in checkAdminRole:', error);
-      return false;
+      console.error('Error in fetchUserRoles:', error);
+      setUserRoles([]);
+      setIsAdmin(false);
+      setIsStaff(false);
     }
+  };
+
+  // Helper function to check if user has a specific role
+  const checkUserRole = (role: UserRole): boolean => {
+    return userRoles.includes(role);
   };
 
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         
         if (session?.user) {
           const authUser = session.user as AuthUser;
           setUser(authUser);
           
-          // Check if user is admin
-          const isUserAdmin = await checkAdminRole(authUser.id);
-          setIsAdmin(isUserAdmin);
+          // Fetch user roles
+          fetchUserRoles(authUser.id);
           
           // Fetch user balance
-          await fetchUserBalance(authUser.id);
+          fetchUserBalance(authUser.id);
         } else {
           setUser(null);
           setIsAdmin(false);
+          setIsStaff(false);
+          setUserRoles([]);
           setUserBalance(0);
         }
       }
@@ -101,9 +118,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const authUser = session.user as AuthUser;
         setUser(authUser);
         
-        // Check if user is admin
-        const isUserAdmin = await checkAdminRole(authUser.id);
-        setIsAdmin(isUserAdmin);
+        // Fetch user roles
+        await fetchUserRoles(authUser.id);
         
         // Fetch user balance
         await fetchUserBalance(authUser.id);
@@ -119,9 +135,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      toast.success('Successfully logged in!');
+      toast.success('Đăng nhập thành công!');
     } catch (error: any) {
-      toast.error(error.message || 'Error during login');
+      toast.error(error.message || 'Lỗi khi đăng nhập');
       throw error;
     }
   };
@@ -129,9 +145,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       await supabase.auth.signOut();
-      toast.success('Successfully logged out');
+      toast.success('Đăng xuất thành công');
     } catch (error: any) {
-      toast.error(error.message || 'Error during logout');
+      toast.error(error.message || 'Lỗi khi đăng xuất');
       throw error;
     }
   };
@@ -143,9 +159,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         password,
       });
       if (error) throw error;
-      toast.success('Registration successful! Please check your email to verify your account.');
+      toast.success('Đăng ký thành công! Vui lòng kiểm tra email của bạn để xác nhận tài khoản.');
     } catch (error: any) {
-      toast.error(error.message || 'Error during registration');
+      toast.error(error.message || 'Lỗi khi đăng ký');
       throw error;
     }
   };
@@ -157,10 +173,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       loading,
       isAuthenticated: !!user,
       isAdmin,
+      isStaff,
+      userRoles,
       userBalance,
       login,
       logout,
       register,
+      checkUserRole,
     }}>
       {children}
     </AuthContext.Provider>
