@@ -38,7 +38,8 @@ export * from "./sheet";
 export * from "./sidebar";
 export * from "./skeleton";
 export * from "./slider";
-export * from "./sonner";
+// Export sonner with renamed toast to avoid conflict
+export { Toaster, toast as sonnerToast } from "./sonner";
 export * from "./switch";
 export * from "./table";
 export * from "./tabs";
