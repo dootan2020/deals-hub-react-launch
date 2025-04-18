@@ -1,23 +1,25 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import Layout from '@/components/layout/Layout';
 import { useCategoryData } from '@/hooks/useCategoryData';
-import CategoryHeader from '@/components/category/CategoryHeader';
+import { CategoryHeader } from '@/components/category/CategoryHeader';
 import CategoryFilters from '@/components/category/CategoryFilters';
 import LoadingState from '@/components/category/LoadingState';
 import ErrorState from '@/components/category/ErrorState';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CategoryOverview from '@/components/category/CategoryOverview';
 import { CategoryProductsTab } from '@/components/category/CategoryProductsTab';
-import CategoryDetailsTab from '@/components/category/CategoryDetailsTab';
+import { CategoryDetailsTab } from '@/components/category/CategoryDetailsTab';
 import CategoryBreadcrumbs from '@/components/category/CategoryBreadcrumbs';
 import SubcategoriesGrid from '@/components/category/SubcategoriesGrid';
 import EmptyProductsState from '@/components/category/EmptyProductsState';
+import { FilterParams } from '@/types';
 
 const CategoryPage = () => {
   const { categorySlug, parentCategorySlug } = useParams();
+  const [activeFilters, setActiveFilters] = useState<FilterParams>({ sort: 'recommended' });
   
   const { 
     category, 
@@ -30,7 +32,8 @@ const CategoryPage = () => {
     setActiveTab, 
     subcategories,
     buildBreadcrumbs,
-    isProductsPage
+    isProductsPage,
+    handleSortChange
   } = useCategoryData({ categorySlug, parentCategorySlug });
 
   const breadcrumbs = buildBreadcrumbs();
@@ -39,6 +42,14 @@ const CategoryPage = () => {
   
   // Determine if this is the /products page (no category)
   const showAllProducts = isProductsPage;
+
+  const handleFilterChange = (filters: FilterParams) => {
+    setActiveFilters(filters);
+    // Apply other filter functionality as needed
+    if (filters.sort) {
+      handleSortChange(filters.sort);
+    }
+  };
 
   return (
     <Layout>
@@ -70,7 +81,10 @@ const CategoryPage = () => {
                 
                 <div className="flex flex-col lg:flex-row gap-6">
                   <div className="w-full lg:w-1/4">
-                    <CategoryFilters />
+                    <CategoryFilters 
+                      onFilterChange={handleFilterChange} 
+                      activeFilters={activeFilters} 
+                    />
                   </div>
                   
                   <div className="w-full lg:w-3/4">
@@ -95,7 +109,6 @@ const CategoryPage = () => {
                 <>
                   <CategoryHeader 
                     category={category} 
-                    productCount={pagination.totalItems} 
                   />
                   
                   {subcategories && subcategories.length > 0 && (
@@ -122,8 +135,7 @@ const CategoryPage = () => {
                       <TabsContent value="overview">
                         <CategoryOverview 
                           category={category}
-                          productCount={pagination.totalItems}
-                          featuredProducts={products.slice(0, 4)}
+                          products={products.slice(0, 4)}
                         />
                       </TabsContent>
                       

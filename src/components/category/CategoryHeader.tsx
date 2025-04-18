@@ -6,9 +6,10 @@ import { CategoryWithParent } from "@/types/category.types";
 
 interface CategoryHeaderProps {
   category: CategoryWithParent;
+  productCount?: number;
 }
 
-export const CategoryHeader = ({ category }: CategoryHeaderProps) => {
+export const CategoryHeader = ({ category, productCount }: CategoryHeaderProps) => {
   return (
     <div className="mb-6">
       <div className="flex items-center space-x-1 text-sm text-muted-foreground mb-2">
