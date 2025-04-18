@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,10 +22,11 @@ export default function LoginPage() {
   const from = location.state?.from || '/';
   
   // If already authenticated, redirect
-  if (isAuthenticated) {
-    navigate(from);
-    return null;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, from]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,13 +35,18 @@ export default function LoginPage() {
     
     try {
       await login(email, password);
-      // Redirect will happen in the auth context
+      // Navigate will be triggered by the useEffect when isAuthenticated changes
     } catch (err: any) {
       setError(err.message || 'Failed to login');
     } finally {
       setIsLoading(false);
     }
   };
+  
+  // If already authenticated, don't render the login form (prevents flash)
+  if (isAuthenticated) {
+    return null;
+  }
   
   return (
     <Layout>

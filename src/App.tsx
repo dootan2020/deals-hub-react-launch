@@ -2,7 +2,7 @@
 import React from 'react';
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { CategoriesProvider } from "@/context/CategoriesContext";
 import { AuthProvider } from "@/context/AuthContext";
 
@@ -34,58 +34,56 @@ import ProxySettingsPage from './pages/admin/ProxySettingsPage';
 const App = () => {
   return (
     <React.StrictMode>
-      <BrowserRouter>
-        <AuthProvider>
-          <CategoriesProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<LoginPage />} />
-                
-                {/* SEO-friendly category routes */}
-                <Route path="/category/:categorySlug" element={<CategoryPage />} />
-                <Route path="/category/:parentCategorySlug/:categorySlug" element={<CategoryPage />} />
-                <Route path="/product/:productSlug" element={<ProductPage />} />
-                <Route path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />
-                <Route path="/products" element={<CategoryPage />} />
-                <Route path="/checkout/:slug" element={<CheckoutPage />} />
-                
-                {/* Static pages with SEO-friendly URLs */}
-                <Route path="/page/support" element={<SupportPage />} />
-                <Route path="/support" element={<SupportPage />} />
-                
-                <Route path="/page/faqs" element={<FaqsPage />} />
-                <Route path="/faqs" element={<FaqsPage />} />
-                
-                <Route path="/page/knowledge" element={<KnowledgeBasePage />} />
-                <Route path="/knowledge" element={<KnowledgeBasePage />} />
-                
-                <Route path="/page/deposit" element={<DepositPage />} />
-                <Route path="/deposit" element={<DepositPage />} />
-                <Route path="/top-up" element={<DepositPage />} />
-                
-                <Route path="/order-success" element={<OrderSuccessPage />} />
-                
-                {/* Admin routes */}
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/admin/categories" element={<CategoryAdmin />} />
-                <Route path="/admin/orders" element={<OrdersAdmin />} />
-                <Route path="/admin/api-config" element={<ApiConfigAdmin />} />
-                <Route path="/admin/sync-logs" element={<SyncLogsAdmin />} />
-                <Route path="/admin/api-tester" element={<ApiTesterPage />} />
-                <Route path="/admin/product-manager" element={<ProductManagerPage />} />
-                <Route path="/admin/products/create" element={<ProductCreatePage />} />
-                <Route path="/admin/products/edit/:id" element={<ProductEditPage />} />
-                <Route path="/admin/product-form-tester" element={<ProductFormWithTester />} />
-                <Route path="/admin/proxy-settings" element={<ProxySettingsPage />} />
-                
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </TooltipProvider>
-          </CategoriesProvider>
-        </AuthProvider>
-      </BrowserRouter>
+      <AuthProvider>
+        <CategoriesProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<LoginPage />} />
+              
+              {/* SEO-friendly category routes */}
+              <Route path="/category/:categorySlug" element={<CategoryPage />} />
+              <Route path="/category/:parentCategorySlug/:categorySlug" element={<CategoryPage />} />
+              <Route path="/product/:productSlug" element={<ProductPage />} />
+              <Route path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />
+              <Route path="/products" element={<CategoryPage />} />
+              <Route path="/checkout/:slug" element={<CheckoutPage />} />
+              
+              {/* Static pages with SEO-friendly URLs */}
+              <Route path="/page/support" element={<SupportPage />} />
+              <Route path="/support" element={<SupportPage />} />
+              
+              <Route path="/page/faqs" element={<FaqsPage />} />
+              <Route path="/faqs" element={<FaqsPage />} />
+              
+              <Route path="/page/knowledge" element={<KnowledgeBasePage />} />
+              <Route path="/knowledge" element={<KnowledgeBasePage />} />
+              
+              <Route path="/page/deposit" element={<DepositPage />} />
+              <Route path="/deposit" element={<DepositPage />} />
+              <Route path="/top-up" element={<DepositPage />} />
+              
+              <Route path="/order-success" element={<OrderSuccessPage />} />
+              
+              {/* Admin routes */}
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/categories" element={<CategoryAdmin />} />
+              <Route path="/admin/orders" element={<OrdersAdmin />} />
+              <Route path="/admin/api-config" element={<ApiConfigAdmin />} />
+              <Route path="/admin/sync-logs" element={<SyncLogsAdmin />} />
+              <Route path="/admin/api-tester" element={<ApiTesterPage />} />
+              <Route path="/admin/product-manager" element={<ProductManagerPage />} />
+              <Route path="/admin/products/create" element={<ProductCreatePage />} />
+              <Route path="/admin/products/edit/:id" element={<ProductEditPage />} />
+              <Route path="/admin/product-form-tester" element={<ProductFormWithTester />} />
+              <Route path="/admin/proxy-settings" element={<ProxySettingsPage />} />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </TooltipProvider>
+        </CategoriesProvider>
+      </AuthProvider>
     </React.StrictMode>
   );
 };

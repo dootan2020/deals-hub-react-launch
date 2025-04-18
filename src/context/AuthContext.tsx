@@ -1,7 +1,7 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 interface AuthContextProps {
@@ -33,13 +33,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userBalance, setUserBalance] = useState(0);
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('Auth state changed:', event);
+        // No console logs in production
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Auth state changed:', event);
+        }
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -76,7 +78,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('Error fetching user balance:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error fetching user balance:', error);
+        }
         return;
       }
 
@@ -84,7 +88,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUserBalance(data.balance || 0);
       }
     } catch (error) {
-      console.error('Error in fetchUserBalance:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error in fetchUserBalance:', error);
+      }
     }
   };
 
@@ -98,7 +104,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
       
       toast.success('Đăng nhập thành công!');
-      navigate('/');
+      // Navigation will be handled by the component that called this method
+      // No direct navigation here since we're outside the Router context
     } catch (error: any) {
       toast.error(`Đăng nhập thất bại: ${error.message}`);
       throw error;
@@ -109,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await supabase.auth.signOut();
       toast.info('Đã đăng xuất');
-      navigate('/login');
+      // Navigation will be handled by the NavigateAfterAuth component
     } catch (error: any) {
       toast.error(`Đăng xuất thất bại: ${error.message}`);
     }

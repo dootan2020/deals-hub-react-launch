@@ -10,7 +10,7 @@ import {
   Settings,
   ChevronDown,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,12 @@ import { formatCurrency } from "@/lib/utils";
 
 export const UserButton = () => {
   const { user, logout, isAuthenticated, userBalance } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   if (!isAuthenticated) {
     return (
@@ -74,7 +80,7 @@ export const UserButton = () => {
           </DropdownMenuItem>
         </Link>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout}>
+        <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Đăng xuất</span>
         </DropdownMenuItem>

@@ -8,35 +8,26 @@ import { useSubcategories } from './useSubcategories';
 export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPageParams) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [activeFilters, setActiveFilters] = useState({ sort: 'recommended' });
-
-  // Remove console.log
   
   const { category, loading: categoryLoading, error } = useCategory({ 
     categorySlug, 
     parentCategorySlug 
   });
   
-  // Remove console.log
-  
   const { 
     products, 
     pagination,
     handlePageChange,
-    loading: productsLoading 
+    loading: productsLoading,
+    handleSortChange, 
   } = useCategoryProducts({
     categoryId: category?.id,
     isProductsPage: !categorySlug && !parentCategorySlug
   });
 
-  // Remove console.log
-
   const { subcategories, featuredProducts } = useSubcategories(category?.id);
   
   const loading = categoryLoading || productsLoading;
-
-  const handleSortChange = (sort: string) => {
-    setActiveFilters(prev => ({ ...prev, sort }));
-  };
 
   const buildBreadcrumbs = () => {
     const result = [];
