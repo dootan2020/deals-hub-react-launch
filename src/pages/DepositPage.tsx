@@ -1,7 +1,7 @@
 
 import Layout from '@/components/layout/Layout';
 import { Helmet } from 'react-helmet';
-import { CreditCard, ShieldCheck, Wallet, RefreshCw, ArrowRight } from 'lucide-react';
+import { Wallet, RefreshCw, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from '@/components/ui/sonner';
 
@@ -12,7 +12,6 @@ const DepositPage = () => {
   const predefinedAmounts = [50, 100, 200, 500];
   
   const paymentMethods = [
-    { id: 'credit-card', name: 'Credit/Debit Card', icon: CreditCard },
     { id: 'paypal', name: 'PayPal', icon: Wallet },
     { id: 'crypto', name: 'Cryptocurrency', icon: RefreshCw },
   ];
@@ -122,14 +121,6 @@ const DepositPage = () => {
               </div>
               
               <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100">
-                <div className="flex items-start mb-3">
-                  <ShieldCheck className="h-5 w-5 text-green-500 mt-1 mr-2" />
-                  <div>
-                    <h3 className="font-semibold">Secure Payments</h3>
-                    <p className="text-sm text-text-light">All transactions are encrypted and secure.</p>
-                  </div>
-                </div>
-                
                 <div className="flex items-start">
                   <RefreshCw className="h-5 w-5 text-green-500 mt-1 mr-2" />
                   <div>
