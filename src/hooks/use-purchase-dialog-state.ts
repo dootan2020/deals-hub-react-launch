@@ -11,12 +11,15 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number) => {
   const [liveBalance, setLiveBalance] = useState(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   
-  // Fetch live balance directly from Supabase when dialog opens
+  // Fetch live balance directly from Supabase when dialog opens or user changes
   useEffect(() => {
     const fetchLiveBalance = async () => {
+      // Only proceed if dialog is open and we have a user
       if (!open || !user?.id) return;
       
+      console.log('Fetching live balance for user:', user.id);
       setIsLoadingBalance(true);
+      
       try {
         const { data, error } = await supabase
           .from('profiles')
@@ -30,8 +33,13 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number) => {
           return;
         }
         
-        if (data) {
+        // Explicitly check that we have valid balance data
+        if (data && typeof data.balance === 'number') {
+          console.log('Received balance data:', data.balance);
           setLiveBalance(data.balance);
+        } else {
+          console.warn('No valid balance data received, defaulting to 0');
+          setLiveBalance(0);
         }
       } catch (err) {
         console.error('Error in fetchLiveBalance:', err);
@@ -42,7 +50,7 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number) => {
     };
 
     fetchLiveBalance();
-  }, [open, user?.id]);
+  }, [open, user]); // Added user as dependency to ensure refetch when user changes
 
   // Reset form state when dialog opens
   useEffect(() => {
