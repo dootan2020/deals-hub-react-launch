@@ -18,7 +18,7 @@ export const ProductStock: React.FC<ProductStockProps> = ({ stock, soldCount, cl
   if (!stock && stock !== 0) return null;
 
   return (
-    <div className={cn("mt-1 flex items-center justify-between", className)}>
+    <div className={cn("flex items-center gap-4", className)}>
       <span 
         className={cn(
           "badge-stock inline-block rounded-full px-3 py-0.5 text-xs font-medium",
