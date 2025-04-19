@@ -20,7 +20,6 @@ import ChangePasswordForm from '@/components/account/ChangePasswordForm';
 const MyAccountPage = () => {
   const { user, refreshUserBalance, userBalance } = useAuth();
   const navigate = useNavigate();
-  const toast = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [totalDeposited, setTotalDeposited] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
@@ -74,7 +73,7 @@ const MyAccountPage = () => {
     };
 
     fetchUserStats();
-  }, [user, navigate, toast, refreshUserBalance]);
+  }, [user, navigate, refreshUserBalance]);
 
   if (!user) return null;
 

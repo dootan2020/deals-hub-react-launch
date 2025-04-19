@@ -45,7 +45,7 @@ const OrderHistoryTab = ({ userId }: OrderHistoryTabProps) => {
         if (error) throw error;
         
         // Enhance orders with product information if needed
-        let enhancedOrders = [...(data as Order[])];
+        const enhancedOrders: Order[] = data || [];
 
         // For each order, get the first product name
         for (let i = 0; i < enhancedOrders.length; i++) {
