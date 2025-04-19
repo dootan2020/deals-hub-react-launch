@@ -14,25 +14,19 @@ import { formatCurrency } from '@/lib/utils';
 import { PayPalDetails } from '@/components/payment/PayPalDetails';
 import { PayPalCheckoutButton } from '@/components/payment/PayPalCheckoutButton';
 
-const PAYPAL_CLIENT_ID = "AX0u8TI_V2I9WkqaEuRYIL9a5XPqMXyamnzBtGQ-mf81ZxoAlVhb0ISwoJMHSmbr3F32EOv40ZnQVS_v";
-
-// These functions are now moved to a utility file
-import { calculateFee, calculateNetAmount } from '@/utils/paymentUtils';
-
 const PayPalDepositPage = () => {
   const [amount, setAmount] = useState<string>('');
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
-  const [depositId, setDepositId] = useState<string | null>(null);
   const { user, userBalance } = useAuth();
   const navigate = useNavigate();
 
   const predefinedAmounts = [10, 25, 50, 100];
 
-  const isValidAmount = () => {
-    const numAmount = parseFloat(amount);
-    return !isNaN(numAmount) && numAmount >= 1;
-  };
+  // Parse amount as number for calculations
+  const numAmount = parseFloat(amount);
+  
+  // Check if amount is valid (is a number and >= 1)
+  const isValidAmount = !isNaN(numAmount) && numAmount >= 1;
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -121,14 +115,14 @@ const PayPalDepositPage = () => {
                         className="pl-8"
                       />
                     </div>
-                    {amount && parseFloat(amount) < 1 && !isNaN(parseFloat(amount)) && (
+                    {amount && !isValidAmount && (
                       <p className="text-red-500 text-sm mt-1">Số tiền tối thiểu là $1.00</p>
                     )}
                   </div>
                   
-                  {isValidAmount() && (
+                  {isValidAmount && (
                     <>
-                      <PayPalDetails amount={parseFloat(amount)} />
+                      <PayPalDetails amount={numAmount} />
                       
                       <div className="flex p-3 bg-blue-50 border border-blue-200 rounded-md">
                         <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
@@ -138,15 +132,13 @@ const PayPalDepositPage = () => {
                       </div>
                       
                       <PayPalCheckoutButton 
-                        amount={parseFloat(amount)} 
+                        amount={numAmount} 
                         onSuccess={handlePaymentSuccess}
-                        disabled={isProcessing}
                       />
                       
                       <div className="mt-4 text-center">
                         <Button 
                           className="w-full"
-                          disabled={isProcessing}
                           onClick={() => navigate('/deposit')}
                           variant="outline"
                         >

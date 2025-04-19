@@ -455,6 +455,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_role: {
+        Args: {
+          user_id_param: string
+          role_param: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: undefined
+      }
+      get_user_roles: {
+        Args: { user_id_param: string }
+        Returns: Database["public"]["Enums"]["app_role"][]
+      }
       insert_category: {
         Args: {
           name_param: string
@@ -462,6 +473,13 @@ export type Database = {
           slug_param: string
           image_param: string
           parent_id_param: string
+        }
+        Returns: undefined
+      }
+      remove_role: {
+        Args: {
+          user_id_param: string
+          role_param: Database["public"]["Enums"]["app_role"]
         }
         Returns: undefined
       }

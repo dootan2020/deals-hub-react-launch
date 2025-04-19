@@ -48,6 +48,8 @@ async function processDeposit(
   status: 'completed' | 'pending' | 'failed' | 'refunded' = 'completed'
 ): Promise<boolean> {
   try {
+    console.log(`Processing deposit with transaction ID: ${transactionId}, status: ${status}`);
+    
     // Find the deposit record
     const { data: deposit, error: fetchError } = await supabase
       .from('deposits')
@@ -55,18 +57,37 @@ async function processDeposit(
       .eq('transaction_id', transactionId)
       .single();
     
-    if (fetchError || !deposit) {
-      console.error("Deposit record not found:", transactionId, fetchError);
+    if (fetchError) {
+      console.error("Deposit record not found by transaction_id:", transactionId);
+      
+      // Try to find by custom_id if passed in purchase_units
+      const { data: depositByCustomId, error: customIdError } = await supabase
+        .from('deposits')
+        .select('id, user_id, amount, net_amount, status')
+        .eq('id', amount) // Using amount as custom_id if passed
+        .single();
+        
+      if (customIdError || !depositByCustomId) {
+        console.error("Deposit record not found by custom_id either:", amount);
+        return false;
+      }
+      
+      // Use the deposit found by custom_id
+      deposit = depositByCustomId;
+    }
+    
+    if (!deposit) {
+      console.error("No deposit record found for transaction:", transactionId);
       return false;
     }
     
-    // Kiểm tra trạng thái hiện tại của giao dịch
+    // Check if the deposit is already in the requested status
     if (deposit.status === status) {
       console.log(`Deposit already in ${status} status:`, transactionId);
       return true;
     }
     
-    // Cập nhật trạng thái giao dịch
+    // Update the deposit status
     const { error: updateError } = await supabase
       .from('deposits')
       .update({ 
@@ -81,7 +102,7 @@ async function processDeposit(
       return false;
     }
     
-    // Chỉ cập nhật số dư khi giao dịch thành công
+    // Only update the user balance when transaction is completed
     if (status === 'completed') {
       const { error: balanceError } = await supabase.rpc(
         'update_user_balance',
@@ -149,21 +170,24 @@ Deno.serve(async (req) => {
     const transactionId = payload.resource.id;
     const payerEmail = payload.resource.payer?.email_address;
     const payerId = payload.resource.payer?.payer_id;
+    
+    // Try to get the custom_id which we set to the deposit id
+    const customId = payload.resource.purchase_units?.[0]?.custom_id;
     const amount = payload.resource.purchase_units?.[0]?.amount?.value;
 
-    // Xử lý từng loại sự kiện
+    // Process different event types
     let success = false;
     if (successEvents.includes(payload.event_type)) {
-      success = await processDeposit(transactionId, payerEmail, payerId, amount, 'completed');
+      success = await processDeposit(transactionId, payerEmail, payerId, customId, 'completed');
     } else if (pendingEvents.includes(payload.event_type)) {
-      success = await processDeposit(transactionId, payerEmail, payerId, amount, 'pending');
+      success = await processDeposit(transactionId, payerEmail, payerId, customId, 'pending');
     } else if (failedEvents.includes(payload.event_type)) {
-      success = await processDeposit(transactionId, payerEmail, payerId, amount, 'failed');
+      success = await processDeposit(transactionId, payerEmail, payerId, customId, 'failed');
     } else if (refundEvents.includes(payload.event_type)) {
-      success = await processDeposit(transactionId, payerEmail, payerId, amount, 'refunded');
+      success = await processDeposit(transactionId, payerEmail, payerId, customId, 'refunded');
     }
     
-    // Trả về kết quả
+    // Return result
     if (success) {
       return new Response(
         JSON.stringify({ success: true }),
@@ -178,7 +202,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("Error processing webhook:", error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error', message: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
