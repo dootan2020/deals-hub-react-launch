@@ -1,25 +1,19 @@
 
+import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import UserLayout from '@/components/layout/UserLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Wallet, ShoppingCart, Clock, History, RefreshCw } from 'lucide-react';
 import { useOrderStats } from '@/hooks/useOrderStats';
-import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useState } from 'react';
 import { processSpecificTransaction, checkDepositStatus } from '@/utils/paymentUtils';
+import BalanceCard from '@/components/dashboard/BalanceCard';
+import OrderStatsCard from '@/components/dashboard/OrderStatsCard';
+import CompletedOrdersCard from '@/components/dashboard/CompletedOrdersCard';
+import DepositHistoryCard from '@/components/dashboard/DepositHistoryCard';
 
 const DashboardPage = () => {
   const { user, userBalance, refreshUserBalance, userRoles } = useAuth();
   const { stats, isLoading } = useOrderStats(user?.id);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const formatCurrency = (amount: number) => 
-    new Intl.NumberFormat('vi-VN', { 
-      style: 'currency', 
-      currency: 'VND' 
-    }).format(amount);
 
   const handleRefreshBalance = async () => {
     try {
@@ -34,7 +28,6 @@ const DashboardPage = () => {
     }
   };
 
-  // Function to manually process a specific transaction
   const handleProcessTransaction = async (transactionId: string) => {
     try {
       setIsRefreshing(true);
@@ -56,7 +49,6 @@ const DashboardPage = () => {
     }
   };
 
-  // Function to check PayPal order status by ID
   const handleCheckOrder = async (orderId: string) => {
     try {
       setIsRefreshing(true);
@@ -92,121 +84,28 @@ const DashboardPage = () => {
   return (
     <UserLayout title="Bảng điều khiển">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Balance Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Số dư tài khoản</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isLoading ? '...' : formatCurrency(userBalance)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Số dư hiện tại của bạn
-            </p>
-          </CardContent>
-          <CardFooter className="pt-0 flex flex-col gap-2">
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link to="/deposit">
-                <Wallet className="mr-2 h-4 w-4" />
-                Nạp tiền
-              </Link>
-            </Button>
-            <Button
-              variant="ghost" 
-              size="sm" 
-              className="w-full"
-              onClick={handleRefreshBalance}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Đang cập nhật...' : 'Cập nhật số dư'}
-            </Button>
-          </CardFooter>
-        </Card>
+        <BalanceCard 
+          userBalance={userBalance}
+          isRefreshing={isRefreshing}
+          onRefreshBalance={handleRefreshBalance}
+        />
 
-        {/* Processing Orders Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Đơn hàng đang xử lý</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isLoading ? '...' : stats.processing}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Trên tổng số {stats.total} đơn hàng
-            </p>
-          </CardContent>
-        </Card>
+        <OrderStatsCard 
+          processing={isLoading ? 0 : stats.processing}
+          total={isLoading ? 0 : stats.total}
+        />
 
-        {/* Completed Orders Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Đơn hàng đã hoàn thành</CardTitle>
-            <Clock className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isLoading ? '...' : stats.completed}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Đơn hàng thành công
-            </p>
-          </CardContent>
-        </Card>
+        <CompletedOrdersCard 
+          completed={isLoading ? 0 : stats.completed}
+        />
 
-        {/* Deposit History Card */}
-        <Card className="lg:col-span-3">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Lịch sử nạp tiền</CardTitle>
-            <History className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Xem lịch sử các giao dịch nạp tiền của bạn
-            </p>
-          </CardContent>
-          <CardFooter className="flex flex-wrap gap-2">
-            <Button asChild className="mr-2">
-              <Link to="/deposit-history">
-                Xem lịch sử nạp tiền
-              </Link>
-            </Button>
-            
-            {/* Process transaction buttons for users and admins */}
-            <Button 
-              variant="outline" 
-              onClick={() => handleCheckOrder('9HB88101NP1033700')}
-              disabled={isRefreshing}
-              title="Kiểm tra và xử lý đơn hàng 9HB88101NP1033700"
-            >
-              {isRefreshing ? 'Đang xử lý...' : 'Xử lý đơn #9HB88101NP1033700'}
-            </Button>
-            
-            {/* Hidden button for admin/support to process specific transactions */}
-            {(user && (userRoles.includes('admin') || userRoles.includes('staff'))) && (
-              <>
-                <Button 
-                  variant="outline" 
-                  onClick={() => handleProcessTransaction('4EY84172EU8800452')}
-                  disabled={isRefreshing}
-                >
-                  {isRefreshing ? 'Đang xử lý...' : 'Xử lý giao dịch #4EY84172EU8800452'}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => handleProcessTransaction('9HB88101NP1033700')}
-                  disabled={isRefreshing}
-                >
-                  {isRefreshing ? 'Đang xử lý...' : 'Xử lý giao dịch #9HB88101NP1033700'}
-                </Button>
-              </>
-            )}
-          </CardFooter>
-        </Card>
+        <DepositHistoryCard 
+          isAdmin={userRoles.includes('admin')}
+          isStaff={userRoles.includes('staff')}
+          isRefreshing={isRefreshing}
+          onProcessTransaction={handleProcessTransaction}
+          onCheckOrder={handleCheckOrder}
+        />
       </div>
     </UserLayout>
   );
