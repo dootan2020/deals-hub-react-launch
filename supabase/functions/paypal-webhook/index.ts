@@ -26,6 +26,11 @@ interface WebhookPayload {
       email_address?: string;
       payer_id?: string;
     };
+    refund?: {
+      amount?: {
+        value: string;
+      };
+    };
   };
   summary?: string;
 }
@@ -39,7 +44,8 @@ async function processDeposit(
   transactionId: string, 
   payerEmail?: string, 
   payerId?: string,
-  amount?: string
+  amount?: string,
+  status: 'completed' | 'pending' | 'failed' | 'refunded' = 'completed'
 ): Promise<boolean> {
   try {
     // Find the deposit record
@@ -54,17 +60,17 @@ async function processDeposit(
       return false;
     }
     
-    // Check if already processed
-    if (deposit.status === 'completed') {
-      console.log("Deposit already processed:", transactionId);
+    // Kiểm tra trạng thái hiện tại của giao dịch
+    if (deposit.status === status) {
+      console.log(`Deposit already in ${status} status:`, transactionId);
       return true;
     }
     
-    // Update deposit record
+    // Cập nhật trạng thái giao dịch
     const { error: updateError } = await supabase
       .from('deposits')
       .update({ 
-        status: 'completed', 
+        status: status, 
         payer_email: payerEmail,
         payer_id: payerId
       })
@@ -75,21 +81,23 @@ async function processDeposit(
       return false;
     }
     
-    // Update user balance
-    const { error: balanceError } = await supabase.rpc(
-      'update_user_balance',
-      {
-        user_id_param: deposit.user_id,
-        amount_param: deposit.net_amount
+    // Chỉ cập nhật số dư khi giao dịch thành công
+    if (status === 'completed') {
+      const { error: balanceError } = await supabase.rpc(
+        'update_user_balance',
+        {
+          user_id_param: deposit.user_id,
+          amount_param: deposit.net_amount
+        }
+      );
+      
+      if (balanceError) {
+        console.error("Error updating user balance:", balanceError);
+        return false;
       }
-    );
-    
-    if (balanceError) {
-      console.error("Error updating user balance:", balanceError);
-      return false;
     }
     
-    console.log(`Successfully processed payment ${transactionId} for user ${deposit.user_id}`);
+    console.log(`Successfully processed ${status} payment ${transactionId} for user ${deposit.user_id}`);
     return true;
   } catch (error) {
     console.error("Error in processDeposit:", error);
@@ -117,41 +125,56 @@ Deno.serve(async (req) => {
     
     console.log("Received PayPal webhook:", JSON.stringify(payload));
 
-    // Process payment completion events
-    if (
-      payload.event_type === 'PAYMENT.CAPTURE.COMPLETED' || 
-      payload.event_type === 'CHECKOUT.ORDER.APPROVED'
-    ) {
-      const transactionId = payload.resource.id;
-      const payerEmail = payload.resource.payer?.email_address;
-      const payerId = payload.resource.payer?.payer_id;
-      const amount = payload.resource.purchase_units?.[0]?.amount?.value;
-      
-      const success = await processDeposit(
-        transactionId,
-        payerEmail,
-        payerId,
-        amount
-      );
-      
-      if (success) {
-        return new Response(
-          JSON.stringify({ success: true }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      } else {
-        return new Response(
-          JSON.stringify({ error: 'Failed to process payment' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    const successEvents = [
+      'PAYMENT.CAPTURE.COMPLETED', 
+      'PAYMENT.SALE.COMPLETED',
+      'CHECKOUT.ORDER.COMPLETED'
+    ];
+
+    const pendingEvents = [
+      'PAYMENT.CAPTURE.PENDING',
+      'PAYMENT.SALE.PENDING'
+    ];
+
+    const failedEvents = [
+      'PAYMENT.CAPTURE.DENIED',
+      'PAYMENT.SALE.DENIED'
+    ];
+
+    const refundEvents = [
+      'PAYMENT.CAPTURE.REFUNDED',
+      'PAYMENT.SALE.REFUNDED'
+    ];
+
+    const transactionId = payload.resource.id;
+    const payerEmail = payload.resource.payer?.email_address;
+    const payerId = payload.resource.payer?.payer_id;
+    const amount = payload.resource.purchase_units?.[0]?.amount?.value;
+
+    // Xử lý từng loại sự kiện
+    let success = false;
+    if (successEvents.includes(payload.event_type)) {
+      success = await processDeposit(transactionId, payerEmail, payerId, amount, 'completed');
+    } else if (pendingEvents.includes(payload.event_type)) {
+      success = await processDeposit(transactionId, payerEmail, payerId, amount, 'pending');
+    } else if (failedEvents.includes(payload.event_type)) {
+      success = await processDeposit(transactionId, payerEmail, payerId, amount, 'failed');
+    } else if (refundEvents.includes(payload.event_type)) {
+      success = await processDeposit(transactionId, payerEmail, payerId, amount, 'refunded');
     }
     
-    // For other event types, just acknowledge receipt
-    return new Response(
-      JSON.stringify({ received: true }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    // Trả về kết quả
+    if (success) {
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      return new Response(
+        JSON.stringify({ error: 'Failed to process payment' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
   } catch (error) {
     console.error("Error processing webhook:", error);
     return new Response(
