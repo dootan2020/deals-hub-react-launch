@@ -1,32 +1,68 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 export const useAuthActions = () => {
   const login = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
+      
       if (error) throw error;
-      toast.success('Đăng nhập thành công!');
+      
+      toast({
+        title: "Đăng nhập thành công",
+        description: "Chào mừng bạn quay trở lại!",
+        variant: "default",
+      });
+      
+      return data;
     } catch (error: any) {
-      toast.error(error.message || 'Lỗi khi đăng nhập');
+      let message = 'Lỗi khi đăng nhập';
+      
+      // Handle specific error cases
+      if (error.message.includes('Invalid login credentials')) {
+        message = 'Email hoặc mật khẩu không đúng';
+      } else if (error.message.includes('Email not confirmed')) {
+        message = 'Vui lòng xác nhận email trước khi đăng nhập';
+      }
+      
+      toast({
+        title: "Đăng nhập thất bại",
+        description: message,
+        variant: "destructive",
+      });
+      
       throw error;
     }
   };
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
-      toast.success('Đăng xuất thành công');
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: "Đăng xuất thành công",
+        description: "Hẹn gặp lại bạn!",
+        variant: "default",
+      });
     } catch (error: any) {
-      toast.error(error.message || 'Lỗi khi đăng xuất');
+      toast({
+        title: "Đăng xuất thất bại",
+        description: error.message || 'Lỗi khi đăng xuất',
+        variant: "destructive",
+      });
+      
       throw error;
     }
   };
 
   const register = async (email: string, password: string, metadata?: Record<string, any>) => {
     try {
-      const { error } = await supabase.auth.signUp({ 
+      const { data, error } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
@@ -38,9 +74,29 @@ export const useAuthActions = () => {
       });
       
       if (error) throw error;
-      toast.success('Đăng ký thành công! Vui lòng kiểm tra email của bạn để xác nhận tài khoản.');
+      
+      toast({
+        title: "Đăng ký thành công",
+        description: "Vui lòng kiểm tra email của bạn để xác nhận tài khoản.",
+        variant: "default",
+      });
+      
+      return data;
     } catch (error: any) {
-      toast.error(error.message || 'Lỗi khi đăng ký');
+      let message = 'Lỗi khi đăng ký';
+      
+      if (error.message.includes('already registered')) {
+        message = 'Email này đã được đăng ký';
+      } else if (error.message.includes('password')) {
+        message = 'Mật khẩu phải có ít nhất 6 ký tự';
+      }
+      
+      toast({
+        title: "Đăng ký thất bại",
+        description: message,
+        variant: "destructive",
+      });
+      
       throw error;
     }
   };

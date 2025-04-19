@@ -17,8 +17,9 @@ export interface AuthContextType {
   userRoles: UserRole[];
   userBalance: number;
   refreshUserBalance: () => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  refreshUserProfile: () => Promise<void>;
+  login: (email: string, password: string) => Promise<any>;
   logout: () => Promise<void>;
-  register: (email: string, password: string, metadata?: Record<string, any>) => Promise<void>;
+  register: (email: string, password: string, metadata?: Record<string, any>) => Promise<any>;
   checkUserRole: (role: UserRole) => boolean;
 }

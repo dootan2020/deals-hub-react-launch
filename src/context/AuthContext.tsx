@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useCallback } from 'react';
 import { useAuthState } from '@/hooks/use-auth-state';
 import { useAuthActions } from '@/hooks/use-auth-actions';
 import { useBalanceListener } from '@/hooks/use-balance-listener';
@@ -15,6 +15,7 @@ const AuthContext = createContext<AuthContextType>({
   userRoles: [],
   userBalance: 0,
   refreshUserBalance: async () => {},
+  refreshUserProfile: async () => {},
   login: async () => {},
   logout: async () => {},
   register: async () => {},
@@ -31,38 +32,56 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     userRoles,
     userBalance,
     setUserBalance,
-    fetchUserBalance
+    fetchUserBalance,
+    refreshUserData
   } = useAuthState();
 
   const { login, logout, register } = useAuthActions();
 
-  useBalanceListener(user?.id, (newBalance) => setUserBalance(newBalance));
+  // Set up real-time balance updates
+  useBalanceListener(user?.id, (newBalance) => {
+    if (typeof newBalance === 'number') {
+      setUserBalance(newBalance);
+    }
+  });
 
-  const refreshUserBalance = async () => {
+  // Function to refresh user balance
+  const refreshUserBalance = useCallback(async () => {
     if (!user?.id) return;
     await fetchUserBalance(user.id);
-  };
+  }, [user?.id, fetchUserBalance]);
 
-  const checkUserRole = (role: typeof userRoles[number]): boolean => {
+  // Function to refresh the entire user profile
+  const refreshUserProfile = useCallback(async () => {
+    if (!user?.id) return;
+    await refreshUserData();
+  }, [user?.id, refreshUserData]);
+
+  // Helper function to check if user has a specific role
+  const checkUserRole = useCallback((role: typeof userRoles[number]): boolean => {
     return userRoles.includes(role);
+  }, [userRoles]);
+
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue: AuthContextType = {
+    user,
+    session,
+    loading,
+    isAuthenticated: !!user,
+    isAdmin,
+    isStaff,
+    userRoles,
+    userBalance,
+    refreshUserBalance,
+    refreshUserProfile,
+    login,
+    logout,
+    register,
+    checkUserRole,
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      loading,
-      isAuthenticated: !!user,
-      isAdmin,
-      isStaff,
-      userRoles,
-      userBalance,
-      refreshUserBalance,
-      login,
-      logout,
-      register,
-      checkUserRole,
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

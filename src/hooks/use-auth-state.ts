@@ -1,8 +1,8 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser, UserRole } from '@/types/auth.types';
-import type { Session } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 
 export const useAuthState = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -13,45 +13,8 @@ export const useAuthState = () => {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [userBalance, setUserBalance] = useState(0);
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        
-        if (session?.user) {
-          const authUser = { ...session.user } as AuthUser;
-          setUser(authUser);
-          
-          fetchUserRoles(authUser.id);
-          fetchUserBalance(authUser.id);
-        } else {
-          setUser(null);
-          setIsAdmin(false);
-          setIsStaff(false);
-          setUserRoles([]);
-          setUserBalance(0);
-        }
-      }
-    );
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      
-      if (session?.user) {
-        const authUser = { ...session.user } as AuthUser;
-        setUser(authUser);
-        
-        await fetchUserRoles(authUser.id);
-        await fetchUserBalance(authUser.id);
-      }
-      
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchUserRoles = async (userId: string) => {
+  // Function to fetch user roles
+  const fetchUserRoles = useCallback(async (userId: string) => {
     try {
       const { data, error } = await (supabase as any)
         .rpc('get_user_roles', { user_id_param: userId });
@@ -76,9 +39,10 @@ export const useAuthState = () => {
       setIsAdmin(false);
       setIsStaff(false);
     }
-  };
+  }, []);
 
-  const fetchUserBalance = async (userId: string) => {
+  // Function to fetch user balance
+  const fetchUserBalance = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -97,7 +61,62 @@ export const useAuthState = () => {
     } catch (error) {
       console.error('Error in fetchUserBalance:', error);
     }
-  };
+  }, []);
+
+  // Function to handle auth state changes
+  const handleAuthStateChange = useCallback((event: string, currentSession: Session | null) => {
+    console.log('Auth state changed:', event, currentSession?.user?.id);
+    
+    setSession(currentSession);
+    
+    if (currentSession?.user) {
+      const authUser = { ...currentSession.user } as AuthUser;
+      setUser(authUser);
+      
+      // Use setTimeout to avoid potential Supabase auth deadlocks
+      setTimeout(() => {
+        fetchUserRoles(authUser.id);
+        fetchUserBalance(authUser.id);
+      }, 0);
+    } else {
+      setUser(null);
+      setIsAdmin(false);
+      setIsStaff(false);
+      setUserRoles([]);
+      setUserBalance(0);
+    }
+  }, [fetchUserRoles, fetchUserBalance]);
+
+  useEffect(() => {
+    // First set up the auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      handleAuthStateChange('INITIAL_SESSION', currentSession);
+      setLoading(false);
+    }).catch(error => {
+      console.error('Error getting session:', error);
+      setLoading(false);
+    });
+
+    // Clean up the subscription
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [handleAuthStateChange]);
+
+  // Function to manually refresh user profile data
+  const refreshUserData = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      await fetchUserRoles(user.id);
+      await fetchUserBalance(user.id);
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+    }
+  }, [user, fetchUserRoles, fetchUserBalance]);
 
   return {
     user,
@@ -109,6 +128,7 @@ export const useAuthState = () => {
     userBalance,
     setUserBalance,
     fetchUserBalance,
-    fetchUserRoles
+    fetchUserRoles,
+    refreshUserData
   };
 };
