@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,25 +28,42 @@ export const PurchaseConfirmDialog = ({
   const [quantity, setQuantity] = useState(1);
   const [promotionCode, setPromotionCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [localBalance, setLocalBalance] = useState(0);
   
   const totalPrice = quantity * product.price;
-  const canAfford = userBalance >= totalPrice;
+  const canAfford = localBalance >= totalPrice;
   const maxQuantity = product.stockQuantity || 0;
   
-  useEffect(() => {
+  // Refresh balance when dialog opens and update local state
+  const fetchAndUpdateBalance = useCallback(async () => {
     if (open) {
       console.log('Dialog opened, refreshing user balance');
-      refreshUserBalance().then(() => {
-        console.log('User balance refreshed:', userBalance);
-      });
+      try {
+        await refreshUserBalance();
+        setLocalBalance(userBalance);
+        console.log('User balance refreshed and set locally:', userBalance);
+      } catch (error) {
+        console.error('Error refreshing balance:', error);
+      }
+    }
+  }, [open, refreshUserBalance, userBalance]);
+
+  // Initial fetch when dialog opens
+  useEffect(() => {
+    fetchAndUpdateBalance();
+    
+    if (open) {
       setQuantity(1);
       setPromotionCode('');
       setError(null);
     }
-  }, [open, refreshUserBalance]);
+  }, [open, fetchAndUpdateBalance]);
   
+  // Update local balance whenever userBalance changes
   useEffect(() => {
-    console.log('Current user balance:', userBalance);
+    setLocalBalance(userBalance);
+    console.log('userBalance updated in context:', userBalance);
+    console.log('localBalance updated:', userBalance);
   }, [userBalance]);
   
   const handleQuantityChange = (amount: number) => {
@@ -91,7 +109,7 @@ export const PurchaseConfirmDialog = ({
           <div className="flex justify-between text-sm pt-2">
             <span className="text-gray-600">Số dư hiện tại:</span>
             <span className={`font-medium ${canAfford ? 'text-green-600' : 'text-red-600'}`}>
-              {formatPrice(userBalance)}
+              {formatPrice(localBalance)}
             </span>
           </div>
 
