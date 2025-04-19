@@ -32,9 +32,9 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
 
   return (
     <div className={`
-      bg-white rounded-xl border border-gray-200 p-5
+      bg-white rounded-xl border border-primary/20 p-5
       shadow-sm transition-all duration-300 ease-in-out 
-      hover:shadow-md hover:border-gray-300
+      hover:shadow-md hover:border-primary/40
       ${containerClasses}
     `}>
       <div className={contentClasses}>
@@ -42,7 +42,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
           <div className="flex items-start gap-3">
             <ProductBadge type={getBadgeType(product.title)} />
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-base text-[#1E1E1E] line-clamp-2">
+              <h3 className="font-semibold text-[#1E1E1E] line-clamp-2">
                 {product.title}
               </h3>
               <p className="text-sm text-[#4B5563] line-clamp-2 mt-1">
@@ -62,7 +62,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 min-w-[100px] text-sm font-normal"
+              className="flex-1 min-w-[100px] text-sm font-normal border-primary/20 hover:border-primary/40"
               asChild
             >
               <a href={`/product/${product.slug}`}>
