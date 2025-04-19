@@ -9,6 +9,7 @@ import { ProductInfo } from './dialog-sections/ProductInfo';
 import { QuantitySelector } from './dialog-sections/QuantitySelector';
 import { PromotionInput } from './dialog-sections/PromotionInput';
 import { usePurchaseDialogState } from '@/hooks/use-purchase-dialog-state';
+import { useAuth } from '@/context/AuthContext';
 import { Product } from '@/types';
 
 interface PurchaseConfirmDialogProps {
@@ -26,6 +27,7 @@ export const PurchaseConfirmDialog = ({
   product,
   isProcessing = false
 }: PurchaseConfirmDialogProps) => {
+  const { user } = useAuth();
   const maxQuantity = product.stockQuantity || 0;
   
   const {
@@ -35,11 +37,11 @@ export const PurchaseConfirmDialog = ({
     setPromotionCode,
     error,
     setError,
-    liveBalance,
+    balance,
     totalPrice,
     canAfford,
     isLoadingBalance
-  } = usePurchaseDialogState(open, product.price);
+  } = usePurchaseDialogState(open, product.price, user?.id);
   
   const handleConfirm = () => {
     if (!canAfford) {
@@ -71,7 +73,7 @@ export const PurchaseConfirmDialog = ({
               </span>
             ) : (
               <span className={`font-medium ${canAfford ? 'text-green-600' : 'text-red-600'}`}>
-                {formatPrice(liveBalance)}
+                {formatPrice(balance)}
               </span>
             )}
           </div>

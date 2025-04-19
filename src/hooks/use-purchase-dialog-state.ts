@@ -1,59 +1,52 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-export const usePurchaseDialogState = (open: boolean, productPrice: number) => {
-  const { user } = useAuth();
+export const usePurchaseDialogState = (open: boolean, productPrice: number, userId?: string) => {
   const [quantity, setQuantity] = useState(1);
   const [promotionCode, setPromotionCode] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [liveBalance, setLiveBalance] = useState(0);
+  const [balance, setBalance] = useState(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
-  
-  // Fetch live balance directly from Supabase when dialog opens or user changes
+
+  // Fetch balance directly from Supabase when dialog opens
   useEffect(() => {
-    const fetchLiveBalance = async () => {
-      // Only proceed if dialog is open and we have a user
-      if (!open || !user?.id) return;
-      
-      console.log('Fetching live balance for user:', user.id);
+    const fetchBalance = async () => {
+      if (!open || !userId) return;
+
       setIsLoadingBalance(true);
-      setError(null); // Clear any previous errors when starting a new fetch
-      
+      setError(null);
+
       try {
-        // Always fetch the most recent balance directly from the database
         const { data, error } = await supabase
           .from('profiles')
           .select('balance')
-          .eq('id', user.id)
+          .eq('id', userId)
           .maybeSingle();
-          
+
         if (error) {
           console.error('Error fetching balance:', error);
           setError('Không thể tải số dư. Vui lòng thử lại.');
           return;
         }
-        
-        // Explicitly check that we have valid balance data
+
+        // Only update balance if we have valid data
         if (data && typeof data.balance === 'number') {
-          console.log('Received balance data:', data.balance);
-          setLiveBalance(data.balance);
+          setBalance(data.balance);
         } else {
-          console.warn('No valid balance data received, defaulting to 0');
-          setLiveBalance(0);
+          setBalance(0);
+          console.warn('No valid balance data received');
         }
       } catch (err) {
-        console.error('Error in fetchLiveBalance:', err);
+        console.error('Error in fetchBalance:', err);
         setError('Không thể tải số dư. Vui lòng thử lại.');
       } finally {
         setIsLoadingBalance(false);
       }
     };
 
-    // Call the function immediately when dialog opens or user changes
-    fetchLiveBalance();
-  }, [open, user]); // Added user as dependency to ensure refetch when user changes
+    fetchBalance();
+  }, [open, userId]);
 
   // Reset form state when dialog opens
   useEffect(() => {
@@ -65,7 +58,7 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number) => {
   }, [open]);
 
   const totalPrice = quantity * productPrice;
-  const canAfford = liveBalance >= totalPrice;
+  const canAfford = balance >= totalPrice;
 
   return {
     quantity,
@@ -74,7 +67,7 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number) => {
     setPromotionCode,
     error,
     setError,
-    liveBalance,
+    balance,
     totalPrice,
     canAfford,
     isLoadingBalance
