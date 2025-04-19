@@ -44,36 +44,41 @@ async function processDeposit(
   transactionId: string, 
   payerEmail?: string, 
   payerId?: string,
-  amount?: string,
+  customId?: string,
   status: 'completed' | 'pending' | 'failed' | 'refunded' = 'completed'
 ): Promise<boolean> {
   try {
-    console.log(`Processing deposit with transaction ID: ${transactionId}, status: ${status}`);
+    console.log(`Processing deposit with transaction ID: ${transactionId}, custom ID: ${customId}, status: ${status}`);
     
-    // Find the deposit record
-    const { data: deposit, error: fetchError } = await supabase
+    // Find the deposit record by transaction_id
+    let { data: deposit, error: fetchError } = await supabase
       .from('deposits')
       .select('id, user_id, amount, net_amount, status')
       .eq('transaction_id', transactionId)
       .single();
     
-    if (fetchError) {
-      console.error("Deposit record not found by transaction_id:", transactionId);
+    if (fetchError || !deposit) {
+      console.log("Deposit record not found by transaction_id, trying to find by custom_id");
       
-      // Try to find by custom_id if passed in purchase_units
-      const { data: depositByCustomId, error: customIdError } = await supabase
-        .from('deposits')
-        .select('id, user_id, amount, net_amount, status')
-        .eq('id', amount) // Using amount as custom_id if passed
-        .single();
+      // Try to find by custom_id if passed
+      if (customId) {
+        const { data: depositByCustomId, error: customIdError } = await supabase
+          .from('deposits')
+          .select('id, user_id, amount, net_amount, status')
+          .eq('id', customId)
+          .single();
         
-      if (customIdError || !depositByCustomId) {
-        console.error("Deposit record not found by custom_id either:", amount);
+        if (customIdError || !depositByCustomId) {
+          console.error("Deposit record not found by custom_id either:", customId);
+          return false;
+        }
+        
+        // Use the deposit found by custom_id
+        deposit = depositByCustomId;
+      } else {
+        console.error("No custom_id available to find deposit");
         return false;
       }
-      
-      // Use the deposit found by custom_id
-      deposit = depositByCustomId;
     }
     
     if (!deposit) {
@@ -87,14 +92,23 @@ async function processDeposit(
       return true;
     }
     
-    // Update the deposit status
+    // Update the deposit status and transaction_id if not already set
+    const updateData: Record<string, any> = { 
+      status,
+      payer_email: payerEmail,
+      payer_id: payerId
+    };
+    
+    // Set the transaction_id if it's not already set
+    if (!deposit.transaction_id) {
+      updateData.transaction_id = transactionId;
+    }
+    
+    console.log(`Updating deposit ${deposit.id} with data:`, updateData);
+    
     const { error: updateError } = await supabase
       .from('deposits')
-      .update({ 
-        status: status, 
-        payer_email: payerEmail,
-        payer_id: payerId
-      })
+      .update(updateData)
       .eq('id', deposit.id);
     
     if (updateError) {
@@ -104,6 +118,7 @@ async function processDeposit(
     
     // Only update the user balance when transaction is completed
     if (status === 'completed') {
+      console.log(`Updating user balance for user ${deposit.user_id} with amount ${deposit.net_amount}`);
       const { error: balanceError } = await supabase.rpc(
         'update_user_balance',
         {
@@ -142,9 +157,17 @@ Deno.serve(async (req) => {
     }
 
     // Parse webhook payload
-    const payload: WebhookPayload = await req.json();
-    
-    console.log("Received PayPal webhook:", JSON.stringify(payload));
+    let payload;
+    try {
+      payload = await req.json() as WebhookPayload;
+      console.log("Received PayPal webhook:", JSON.stringify(payload));
+    } catch (error) {
+      console.error("Error parsing webhook payload:", error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON payload' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const successEvents = [
       'PAYMENT.CAPTURE.COMPLETED', 
@@ -159,7 +182,9 @@ Deno.serve(async (req) => {
 
     const failedEvents = [
       'PAYMENT.CAPTURE.DENIED',
-      'PAYMENT.SALE.DENIED'
+      'PAYMENT.SALE.DENIED',
+      'PAYMENT.CAPTURE.DECLINED',
+      'PAYMENT.SALE.DECLINED'
     ];
 
     const refundEvents = [
@@ -173,7 +198,6 @@ Deno.serve(async (req) => {
     
     // Try to get the custom_id which we set to the deposit id
     const customId = payload.resource.purchase_units?.[0]?.custom_id;
-    const amount = payload.resource.purchase_units?.[0]?.amount?.value;
 
     // Process different event types
     let success = false;
@@ -185,17 +209,23 @@ Deno.serve(async (req) => {
       success = await processDeposit(transactionId, payerEmail, payerId, customId, 'failed');
     } else if (refundEvents.includes(payload.event_type)) {
       success = await processDeposit(transactionId, payerEmail, payerId, customId, 'refunded');
+    } else {
+      console.log(`Unhandled event type: ${payload.event_type}`);
+      return new Response(
+        JSON.stringify({ warning: 'Unhandled event type', event: payload.event_type }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     
     // Return result
     if (success) {
       return new Response(
-        JSON.stringify({ success: true }),
+        JSON.stringify({ success: true, message: `Successfully processed ${payload.event_type}` }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else {
       return new Response(
-        JSON.stringify({ error: 'Failed to process payment' }),
+        JSON.stringify({ error: 'Failed to process payment', event_type: payload.event_type }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

@@ -43,6 +43,7 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
         
         if (data?.value) {
           setPaypalClientId(data.value);
+          console.log("PayPal Client ID retrieved successfully");
         } else {
           console.error('PayPal Client ID not found');
         }
@@ -118,6 +119,7 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
               createOrder={async (data, actions) => {
                 try {
                   setIsProcessing(true);
+                  console.log("Creating deposit record for user:", user?.id);
                   
                   // First create a deposit record
                   const newDepositId = await createDepositRecord(user?.id!, amount);
@@ -128,6 +130,7 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
                     throw new Error("Failed to create deposit record");
                   }
                   
+                  console.log("Deposit record created with ID:", newDepositId);
                   setDepositId(newDepositId);
                   
                   // Create PayPal order
@@ -156,10 +159,13 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
               }}
               onApprove={(data, actions) => {
                 toast.loading("Đang xử lý giao dịch...");
+                console.log("PayPal order approved:", data.orderID);
                 
                 return actions.order!.capture().then(async (details) => {
                   try {
                     const transactionId = data.orderID;
+                    console.log("PayPal transaction captured:", transactionId);
+                    console.log("Transaction details:", details);
                     
                     if (!depositId) {
                       toast.error("Không tìm thấy thông tin giao dịch");
@@ -167,6 +173,7 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
                       return;
                     }
                     
+                    console.log("Updating deposit record with transaction ID:", transactionId);
                     const updated = await updateDepositWithTransaction(depositId, transactionId);
                     
                     if (updated) {

@@ -33,12 +33,20 @@ export const calculateNetAmount = (amount: number): number => {
  */
 export const createDepositRecord = async (userId: string, grossAmount: number): Promise<string | null> => {
   try {
+    console.log(`Creating deposit record for user: ${userId}, amount: $${grossAmount}`);
+    
     if (isNaN(grossAmount) || grossAmount < 1) {
       console.error("Invalid deposit amount", grossAmount);
       return null;
     }
     
+    if (!userId) {
+      console.error("Missing user ID for deposit");
+      return null;
+    }
+    
     const netAmount = calculateNetAmount(grossAmount);
+    console.log(`Calculated net amount: $${netAmount} (after fee)`);
     
     const { data, error } = await supabase
       .from('deposits')
@@ -57,9 +65,10 @@ export const createDepositRecord = async (userId: string, grossAmount: number): 
       return null;
     }
     
+    console.log("Deposit record created successfully with ID:", data.id);
     return data.id;
   } catch (error) {
-    console.error("Error in createDepositRecord:", error);
+    console.error("Exception in createDepositRecord:", error);
     return null;
   }
 };
@@ -75,6 +84,13 @@ export const updateDepositWithTransaction = async (
   transactionId: string
 ): Promise<boolean> => {
   try {
+    console.log(`Updating deposit ${depositId} with transaction ID: ${transactionId}`);
+    
+    if (!depositId || !transactionId) {
+      console.error("Missing required parameters", { depositId, transactionId });
+      return false;
+    }
+    
     const { error } = await supabase
       .from('deposits')
       .update({
@@ -87,9 +103,10 @@ export const updateDepositWithTransaction = async (
       return false;
     }
     
+    console.log("Deposit record updated successfully");
     return true;
   } catch (error) {
-    console.error("Error in updateDepositWithTransaction:", error);
+    console.error("Exception in updateDepositWithTransaction:", error);
     return false;
   }
 };
