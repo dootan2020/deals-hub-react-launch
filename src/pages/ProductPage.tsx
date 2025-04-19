@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -9,6 +8,7 @@ import { ProductDescription } from '@/components/product/ProductDescription';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { useProduct } from '@/hooks/useProduct';
+import { ProductTrustBadges } from '@/components/product/ProductTrustBadges';
 
 const ProductPage = () => {
   const { productSlug } = useParams();
@@ -57,10 +57,22 @@ const ProductPage = () => {
             category={product.categories}
           />
 
-          <div className="max-w-6xl mx-auto">
-            <ProductPurchaseSection product={product} />
-            <div className="mt-8">
-              <ProductDescription description={product.description} />
+          {/* Two column layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 mt-6">
+            {/* Left column - Purchase section */}
+            <div className="lg:col-span-7">
+              <ProductPurchaseSection product={product} />
+            </div>
+            
+            {/* Right column - Trust badges and description */}
+            <div className="lg:col-span-5">
+              <div className="bg-card rounded-lg p-6 shadow-sm">
+                <ProductTrustBadges />
+              </div>
+              
+              <div className="mt-8">
+                <ProductDescription description={product.description} />
+              </div>
             </div>
           </div>
         </div>
