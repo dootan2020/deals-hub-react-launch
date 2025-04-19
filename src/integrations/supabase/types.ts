@@ -340,6 +340,36 @@ export type Database = {
         }
         Relationships: []
       }
+      registration_attempts: {
+        Row: {
+          attempt_count: number | null
+          created_at: string | null
+          email: string
+          first_attempt_at: string | null
+          id: string
+          last_attempt_at: string | null
+          locked_until: string | null
+        }
+        Insert: {
+          attempt_count?: number | null
+          created_at?: string | null
+          email: string
+          first_attempt_at?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          locked_until?: string | null
+        }
+        Update: {
+          attempt_count?: number | null
+          created_at?: string | null
+          email?: string
+          first_attempt_at?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          locked_until?: string | null
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           created_at: string | null
@@ -485,6 +515,22 @@ export type Database = {
           role_param: Database["public"]["Enums"]["app_role"]
         }
         Returns: undefined
+      }
+      check_email_status: {
+        Args: { email_param: string }
+        Returns: {
+          email_exists: boolean
+          status: string
+          last_verification_sent: string
+        }[]
+      }
+      check_registration_rate_limit: {
+        Args: { email_param: string }
+        Returns: {
+          is_limited: boolean
+          remaining_attempts: number
+          unlock_time: string
+        }[]
       }
       get_user_roles: {
         Args: { user_id_param: string }

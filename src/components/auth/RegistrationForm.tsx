@@ -1,4 +1,3 @@
-
 import { Form, FormField, FormItem, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -6,9 +5,12 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
-import { Loader2, User, Lock, Mail } from 'lucide-react';
+import { Loader2, User, Lock, Mail, AlertCircle } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';
+import { useEmailValidation } from '@/hooks/auth/use-email-validation';
 import type { RegisterFormValues } from '@/validations/registerSchema';
+import { useState } from 'react';
+import debounce from 'lodash/debounce';
 
 interface RegistrationFormProps {
   form: UseFormReturn<RegisterFormValues>;
@@ -23,6 +25,39 @@ export const RegistrationForm = ({
   isLoading,
   serverError
 }: RegistrationFormProps) => {
+  const { checkEmail } = useEmailValidation();
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
+  const debouncedEmailCheck = debounce(async (email: string) => {
+    if (!email) return;
+    
+    setIsCheckingEmail(true);
+    try {
+      const result = await checkEmail(email);
+      
+      if (result.isRateLimited) {
+        const unlockTime = result.unlockTime ? new Date(result.unlockTime).toLocaleTimeString() : '';
+        setEmailError(`Too many attempts. Please try again after ${unlockTime}`);
+        return;
+      }
+
+      if (result.emailExists) {
+        if (result.status === 'active') {
+          setEmailError('Email đã được đăng ký – hãy đăng nhập hoặc reset mật khẩu');
+        } else {
+          setEmailError('Email đã được đăng ký nhưng chưa xác thực. Vui lòng kiểm tra email của bạn hoặc yêu cầu gửi lại.');
+        }
+      } else {
+        setEmailError(null);
+      }
+    } catch (error) {
+      console.error('Error checking email:', error);
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  }, 500);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="space-y-4">
@@ -71,9 +106,19 @@ export const RegistrationForm = ({
                     className="pl-10"
                     {...field}
                     disabled={isLoading}
+                    onBlur={(e) => {
+                      field.onBlur();
+                      debouncedEmailCheck(e.target.value);
+                    }}
                   />
                 </FormControl>
               </div>
+              {emailError && (
+                <div className="flex items-center gap-2 text-sm text-destructive mt-1">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{emailError}</span>
+                </div>
+              )}
               <FormMessage />
             </FormItem>
           )}
@@ -161,7 +206,7 @@ export const RegistrationForm = ({
         <Button 
           type="submit" 
           className="w-full bg-primary hover:bg-primary-dark"
-          disabled={isLoading}
+          disabled={isLoading || isCheckingEmail || !!emailError}
         >
           {isLoading ? (
             <>
