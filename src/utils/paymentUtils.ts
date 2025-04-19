@@ -134,7 +134,7 @@ export const updateDepositWithTransaction = async (
 
 /**
  * Force process a specific PayPal transaction to update user balance
- * @param transactionId The PayPal transaction ID to process
+ * @param transactionId The PayPal transaction ID or order ID to process
  * @returns Whether the update was successful and any error message
  */
 export const processSpecificTransaction = async (
@@ -147,13 +147,28 @@ export const processSpecificTransaction = async (
       return { success: false, error: "Transaction ID is required" };
     }
     
+    // Try first with transaction_id parameter
     const { data, error } = await supabase.functions.invoke('paypal-webhook', {
       body: { transaction_id: transactionId }
     });
-    
+
     if (error) {
       console.error("Error processing transaction:", error);
-      return { success: false, error: error.message };
+      // If there was an error with the transaction_id, try with order_id
+      const { data: orderData, error: orderError } = await supabase.functions.invoke('paypal-webhook', {
+        body: { order_id: transactionId }
+      });
+      
+      if (orderError) {
+        console.error("Error processing order:", orderError);
+        return { success: false, error: `Failed to process: ${error.message}, ${orderError.message}` };
+      }
+      
+      console.log("Order processing result:", orderData);
+      return { 
+        success: orderData?.success || false, 
+        error: orderData?.error || orderData?.message
+      };
     }
     
     console.log("Transaction processing result:", data);
@@ -166,6 +181,62 @@ export const processSpecificTransaction = async (
     return { 
       success: false, 
       error: error instanceof Error ? error.message : "Unknown error processing transaction" 
+    };
+  }
+};
+
+/**
+ * Check deposit status by transaction ID or order ID
+ * @param id The transaction ID or order ID to check
+ * @returns The deposit status and information
+ */
+export const checkDepositStatus = async (
+  id: string
+): Promise<{ success: boolean, status?: string, deposit?: any, error?: string }> => {
+  try {
+    console.log(`Checking deposit status for ID: ${id}`);
+    
+    if (!id) {
+      return { success: false, error: "ID is required" };
+    }
+    
+    // Try to find by transaction_id
+    let { data: deposit, error } = await supabase
+      .from('deposits')
+      .select('*')
+      .eq('transaction_id', id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error checking deposit by transaction_id:", error);
+      return { success: false, error: error.message };
+    }
+    
+    // If not found by transaction_id, check the custom_id which might contain the order_id
+    if (!deposit) {
+      // Use supabase to get transaction by order_id from webhook logs or custom_id field
+      // This implementation depends on your database schema
+      console.log("Not found by transaction_id, you may need to check by order_id");
+      
+      // For this implementation, we'll trigger processing it in case it wasn't processed yet
+      const result = await processSpecificTransaction(id);
+      return {
+        success: result.success,
+        status: "processed",
+        error: result.error
+      };
+    }
+    
+    return { 
+      success: true, 
+      status: deposit.status,
+      deposit
+    };
+  } catch (error) {
+    console.error("Exception in checkDepositStatus:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error checking deposit" 
     };
   }
 };

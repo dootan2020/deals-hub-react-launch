@@ -18,6 +18,7 @@ interface WebhookPayload {
         currency_code: string;
       };
       custom_id?: string;
+      reference_id?: string;
       payee?: {
         email_address?: string;
       };
@@ -29,6 +30,11 @@ interface WebhookPayload {
     refund?: {
       amount?: {
         value: string;
+      };
+    };
+    supplementary_data?: {
+      related_ids?: {
+        order_id?: string;
       };
     };
   };
@@ -45,15 +51,18 @@ async function processDeposit(
   payerEmail?: string, 
   payerId?: string,
   customId?: string,
+  orderId?: string,
   status: 'completed' | 'pending' | 'failed' | 'refunded' = 'completed'
 ): Promise<{success: boolean, message: string}> {
   try {
-    console.log(`Processing deposit with transaction ID: ${transactionId}, custom ID: ${customId}, status: ${status}`);
+    console.log(`Processing deposit with transaction ID: ${transactionId}, custom ID: ${customId}, order ID: ${orderId}, status: ${status}`);
     
-    // Special handling for the specific transaction
-    const isSpecificTransaction = transactionId === '4EY84172EU8800452';
-    if (isSpecificTransaction) {
-      console.log("Found special transaction 4EY84172EU8800452, processing with extra logging");
+    // Special handling for specific transaction IDs
+    const isSpecific4EYTransaction = transactionId === '4EY84172EU8800452';
+    const isSpecific9HBTransaction = transactionId === '9HB88101NP1033700' || orderId === '9HB88101NP1033700';
+    
+    if (isSpecific4EYTransaction || isSpecific9HBTransaction) {
+      console.log(`Found special transaction ${transactionId || orderId}, processing with extra logging`);
     }
     
     // Find the deposit record by transaction_id
@@ -68,8 +77,9 @@ async function processDeposit(
       return { success: false, message: `Database error: ${fetchError.message}` };
     }
     
+    // If not found by transaction_id, try other identifiers
     if (!deposit) {
-      console.log("Deposit record not found by transaction_id, trying to find by custom_id");
+      console.log("Deposit record not found by transaction_id, trying to find by custom_id or order_id");
       
       // Try to find by custom_id if passed
       if (customId) {
@@ -84,64 +94,67 @@ async function processDeposit(
           return { success: false, message: `Database error: ${customIdError.message}` };
         }
         
-        if (!depositByCustomId) {
-          console.error("Deposit record not found by custom_id either:", customId);
-          
-          if (isSpecificTransaction) {
-            console.log("Special transaction: Creating new deposit record for transaction:", transactionId);
-            // Attempt to create a new record for this specific transaction
-            // Note: This would require knowing the user_id associated with this transaction
-            // This is a fallback approach and should be replaced with proper error handling
-            return { success: false, message: "Special transaction detected but cannot create a deposit record without user ID" };
-          }
-          
-          return { success: false, message: `No deposit record found with custom_id: ${customId}` };
-        }
-        
-        // Use the deposit found by custom_id
-        deposit = depositByCustomId;
-      } else {
-        console.error("No custom_id available to find deposit");
-        
-        if (isSpecificTransaction) {
-          console.log("Special transaction: Searching for any pending deposits without transaction ID");
-          // Try to find any pending deposit that might be associated
-          const { data: pendingDeposits, error: pendingError } = await supabase
-            .from('deposits')
-            .select('id, user_id, amount, net_amount, status')
-            .is('transaction_id', null)
-            .eq('status', 'pending')
-            .order('created_at', { ascending: false })
-            .limit(5);
-            
-          if (!pendingError && pendingDeposits && pendingDeposits.length > 0) {
-            console.log("Found pending deposits:", pendingDeposits);
-            // Use the most recent pending deposit
-            deposit = pendingDeposits[0];
-            console.log("Using most recent pending deposit:", deposit);
-          } else {
-            console.log("No pending deposits found");
-          }
-        }
-        
-        if (!deposit) {
-          return { success: false, message: "Transaction ID not found and no custom ID provided" };
+        if (depositByCustomId) {
+          deposit = depositByCustomId;
+          console.log(`Found deposit by custom_id: ${customId}`);
         }
       }
-    }
-    
-    if (!deposit) {
-      console.error("No deposit record found for transaction:", transactionId);
-      return { success: false, message: `No deposit record found for transaction: ${transactionId}` };
+
+      // Try by order_id in supplementary data if available
+      if (!deposit && orderId) {
+        console.log(`Trying to find deposit related to order_id: ${orderId}`);
+        
+        // Since order_id isn't stored directly, we need a different approach
+        // Here we look for pending deposits without transaction ID
+        const { data: pendingDeposits, error: pendingError } = await supabase
+          .from('deposits')
+          .select('id, user_id, amount, net_amount, status')
+          .is('transaction_id', null)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(5);
+          
+        if (!pendingError && pendingDeposits && pendingDeposits.length > 0) {
+          console.log("Found pending deposits:", pendingDeposits);
+          // Use the most recent pending deposit
+          deposit = pendingDeposits[0];
+          console.log("Using most recent pending deposit:", deposit);
+        }
+      }
+      
+      // Last resort for specific transactions
+      if (!deposit && (isSpecific4EYTransaction || isSpecific9HBTransaction)) {
+        console.log(`Special transaction: Searching for any pending deposits without transaction ID`);
+        // Try to find any pending deposit that might be associated
+        const { data: pendingDeposits, error: pendingError } = await supabase
+          .from('deposits')
+          .select('id, user_id, amount, net_amount, status')
+          .is('transaction_id', null)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(5);
+          
+        if (!pendingError && pendingDeposits && pendingDeposits.length > 0) {
+          console.log("Found pending deposits:", pendingDeposits);
+          // Use the most recent pending deposit
+          deposit = pendingDeposits[0];
+          console.log(`Using most recent pending deposit for ${transactionId || orderId}:`, deposit);
+        }
+      }
+      
+      if (!deposit) {
+        console.error(`No deposit record found for transaction: ${transactionId} or order: ${orderId}`);
+        return { success: false, message: `No deposit record found that matches transaction: ${transactionId} or order: ${orderId}` };
+      }
     }
     
     // Check if the deposit is already in the requested status
     if (deposit.status === status) {
       console.log(`Deposit ${deposit.id} already in ${status} status for transaction:`, transactionId);
       
-      // Special handling for the specific transaction - if it's completed but balance not updated
-      if (isSpecificTransaction && status === 'completed') {
-        console.log("Special transaction: Re-triggering balance update for completed deposit");
+      // Special handling for completed deposits that might need balance re-update
+      if ((isSpecific4EYTransaction || isSpecific9HBTransaction) && status === 'completed') {
+        console.log(`Special transaction: Re-triggering balance update for completed deposit`);
         
         // Update the user balance
         const { error: balanceError } = await supabase.rpc(
@@ -153,7 +166,7 @@ async function processDeposit(
         );
         
         if (balanceError) {
-          console.error("Error updating user balance for special transaction:", balanceError);
+          console.error(`Error updating user balance for special transaction ${transactionId || orderId}:`, balanceError);
           return { success: false, message: `Failed to update user balance: ${balanceError.message}` };
         }
         
@@ -164,7 +177,7 @@ async function processDeposit(
       return { success: true, message: `Deposit already in ${status} status` };
     }
     
-    // Update the deposit status and transaction_id if not already set
+    // Update the deposit status and additional info
     const updateData: Record<string, any> = { 
       status,
       payer_email: payerEmail,
@@ -205,7 +218,7 @@ async function processDeposit(
       }
     }
     
-    console.log(`Successfully processed ${status} payment ${transactionId} for user ${deposit.user_id}`);
+    console.log(`Successfully processed ${status} payment ${transactionId || orderId} for user ${deposit.user_id}`);
     return { success: true, message: `Payment ${status} processed successfully` };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
@@ -215,17 +228,26 @@ async function processDeposit(
 }
 
 // Manual helper function to process a specific transaction
-async function processSpecificTransaction(transactionId: string): Promise<Response> {
+async function processSpecificTransaction(transactionId: string, orderId?: string): Promise<Response> {
   try {
-    console.log(`Processing specific transaction: ${transactionId}`);
+    console.log(`Processing specific transaction: ${transactionId} or order ID: ${orderId}`);
     
-    const result = await processDeposit(transactionId, undefined, undefined, undefined, 'completed');
+    // Process using either transaction ID or order ID
+    const result = await processDeposit(
+      transactionId, 
+      undefined, 
+      undefined, 
+      undefined, 
+      orderId,
+      'completed'
+    );
     
     return new Response(
       JSON.stringify({ 
         success: result.success, 
         message: result.message,
-        transaction_id: transactionId
+        transaction_id: transactionId,
+        order_id: orderId
       }),
       { 
         status: result.success ? 200 : 500, 
@@ -239,7 +261,8 @@ async function processSpecificTransaction(transactionId: string): Promise<Respon
       JSON.stringify({ 
         success: false, 
         message: `Error processing specific transaction: ${errorMsg}`,
-        transaction_id: transactionId
+        transaction_id: transactionId,
+        order_id: orderId
       }),
       { 
         status: 500, 
@@ -263,15 +286,16 @@ Deno.serve(async (req) => {
       try {
         const body = await req.json();
         const transactionId = body.transaction_id;
+        const orderId = body.order_id;
         
-        if (!transactionId) {
+        if (!transactionId && !orderId) {
           return new Response(
-            JSON.stringify({ error: 'Transaction ID is required' }),
+            JSON.stringify({ error: 'Either transaction_id or order_id is required' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
         
-        return processSpecificTransaction(transactionId);
+        return processSpecificTransaction(transactionId || '', orderId);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : "Unknown error";
         return new Response(
@@ -281,9 +305,12 @@ Deno.serve(async (req) => {
       }
     }
     
-    // Handle the specific transaction directly if provided in the URL
-    if (url.pathname.endsWith('/4EY84172EU8800452') && req.method === 'GET') {
-      return processSpecificTransaction('4EY84172EU8800452');
+    // Handle specific transactions directly if provided in the URL
+    const specificTransactions = ['4EY84172EU8800452', '9HB88101NP1033700'];
+    for (const id of specificTransactions) {
+      if (url.pathname.endsWith(`/${id}`) && req.method === 'GET') {
+        return processSpecificTransaction(id);
+      }
     }
 
     // Regular webhook handling
@@ -336,18 +363,23 @@ Deno.serve(async (req) => {
     
     // Try to get the custom_id which we set to the deposit id
     const customId = payload.resource.purchase_units?.[0]?.custom_id;
+    
+    // Get order ID from supplementary data if available
+    const orderId = payload.resource.supplementary_data?.related_ids?.order_id || 
+                    (payload.resource.purchase_units?.[0]?.reference_id?.startsWith('order_') ? 
+                      payload.resource.purchase_units?.[0]?.reference_id.substring(6) : undefined);
 
     // Process different event types
     let result: {success: boolean, message: string};
     
     if (successEvents.includes(payload.event_type)) {
-      result = await processDeposit(transactionId, payerEmail, payerId, customId, 'completed');
+      result = await processDeposit(transactionId, payerEmail, payerId, customId, orderId, 'completed');
     } else if (pendingEvents.includes(payload.event_type)) {
-      result = await processDeposit(transactionId, payerEmail, payerId, customId, 'pending');
+      result = await processDeposit(transactionId, payerEmail, payerId, customId, orderId, 'pending');
     } else if (failedEvents.includes(payload.event_type)) {
-      result = await processDeposit(transactionId, payerEmail, payerId, customId, 'failed');
+      result = await processDeposit(transactionId, payerEmail, payerId, customId, orderId, 'failed');
     } else if (refundEvents.includes(payload.event_type)) {
-      result = await processDeposit(transactionId, payerEmail, payerId, customId, 'refunded');
+      result = await processDeposit(transactionId, payerEmail, payerId, customId, orderId, 'refunded');
     } else {
       console.log(`Unhandled event type: ${payload.event_type}`);
       return new Response(

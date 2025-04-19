@@ -8,7 +8,7 @@ import { useOrderStats } from '@/hooks/useOrderStats';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useState } from 'react';
-import { processSpecificTransaction } from '@/utils/paymentUtils';
+import { processSpecificTransaction, checkDepositStatus } from '@/utils/paymentUtils';
 
 const DashboardPage = () => {
   const { user, userBalance, refreshUserBalance, userRoles } = useAuth();
@@ -47,6 +47,39 @@ const DashboardPage = () => {
         await refreshUserBalance();
       } else {
         toast.error(`Lỗi: ${result.error || 'Không thể xử lý giao dịch'}`);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Lỗi không xác định';
+      toast.error(`Lỗi: ${errorMessage}`);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Function to check PayPal order status by ID
+  const handleCheckOrder = async (orderId: string) => {
+    try {
+      setIsRefreshing(true);
+      toast.info(`Đang kiểm tra trạng thái đơn hàng ${orderId}...`);
+      
+      const result = await checkDepositStatus(orderId);
+      
+      if (result.success) {
+        if (result.deposit) {
+          toast.success(`Đơn nạp tiền có trạng thái: ${result.deposit.status}`);
+          
+          if (result.deposit.status === 'completed') {
+            toast.info('Giao dịch đã hoàn thành. Đang cập nhật số dư...');
+            await refreshUserBalance();
+          } else if (result.deposit.status === 'pending') {
+            toast.info('Giao dịch đang xử lý. Vui lòng thử lại sau.');
+          }
+        } else {
+          toast.info('Đã kích hoạt xử lý giao dịch.');
+          await refreshUserBalance();
+        }
+      } else {
+        toast.error(`Lỗi khi kiểm tra: ${result.error || 'Không tìm thấy đơn hàng'}`);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Lỗi không xác định';
@@ -142,15 +175,35 @@ const DashboardPage = () => {
                 Xem lịch sử nạp tiền
               </Link>
             </Button>
-            {/* Hidden button for admin/support to process the specific transaction */}
+            
+            {/* Process transaction buttons for users and admins */}
+            <Button 
+              variant="outline" 
+              onClick={() => handleCheckOrder('9HB88101NP1033700')}
+              disabled={isRefreshing}
+              title="Kiểm tra và xử lý đơn hàng 9HB88101NP1033700"
+            >
+              {isRefreshing ? 'Đang xử lý...' : 'Xử lý đơn #9HB88101NP1033700'}
+            </Button>
+            
+            {/* Hidden button for admin/support to process specific transactions */}
             {(user && (userRoles.includes('admin') || userRoles.includes('staff'))) && (
-              <Button 
-                variant="outline" 
-                onClick={() => handleProcessTransaction('4EY84172EU8800452')}
-                disabled={isRefreshing}
-              >
-                {isRefreshing ? 'Đang xử lý...' : 'Xử lý giao dịch #4EY84172EU8800452'}
-              </Button>
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleProcessTransaction('4EY84172EU8800452')}
+                  disabled={isRefreshing}
+                >
+                  {isRefreshing ? 'Đang xử lý...' : 'Xử lý giao dịch #4EY84172EU8800452'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleProcessTransaction('9HB88101NP1033700')}
+                  disabled={isRefreshing}
+                >
+                  {isRefreshing ? 'Đang xử lý...' : 'Xử lý giao dịch #9HB88101NP1033700'}
+                </Button>
+              </>
             )}
           </CardFooter>
         </Card>
