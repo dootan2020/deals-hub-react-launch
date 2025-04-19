@@ -16,7 +16,7 @@ import { Product } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { Loader2, CreditCard, AlertTriangle, Plus, Minus, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuthContext } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
 interface PurchaseConfirmDialogProps {
@@ -32,7 +32,7 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
   product,
   onConfirm
 }) => {
-  const { user } = useAuthContext();
+  const { user } = useAuth();
   
   // State
   const [quantity, setQuantity] = useState(1);
@@ -54,10 +54,7 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
       
       setIsLoadingBalance(true);
       try {
-        // First, refresh the session to ensure we have the latest data
-        await supabase.auth.refreshSession();
-        
-        // Then fetch the latest balance from profiles table
+        // Fetch balance directly from Supabase
         const { data, error } = await supabase
           .from('profiles')
           .select('balance')
@@ -65,19 +62,19 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
           .maybeSingle();
 
         if (error) {
-          throw error;
+          console.error('Error fetching user balance:', error);
+          setUserBalance(0);
+          return;
         }
 
         if (data && typeof data.balance === 'number') {
           setUserBalance(data.balance);
-          console.log('Fetched user balance:', data.balance);
         } else {
-          console.warn('No balance data found for user');
+          console.warn('No balance data found');
           setUserBalance(0);
         }
       } catch (error) {
-        console.error('Error fetching user balance:', error);
-        toast.error('Không thể tải số dư tài khoản');
+        console.error('Exception in fetchUserBalance:', error);
         setUserBalance(0);
       } finally {
         setIsLoadingBalance(false);
