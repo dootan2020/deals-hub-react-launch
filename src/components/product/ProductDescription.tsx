@@ -5,7 +5,7 @@ interface ProductDescriptionProps {
 
 export const ProductDescription = ({ description }: ProductDescriptionProps) => {
   return (
-    <div className="bg-card rounded-lg p-6 shadow-sm">
+    <div className="bg-card rounded-lg p-6 shadow-sm w-full">
       <h2 className="text-xl font-semibold mb-4">Description</h2>
       <div 
         className="prose max-w-none text-muted-foreground"

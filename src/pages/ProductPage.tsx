@@ -57,23 +57,24 @@ const ProductPage = () => {
             category={product.categories}
           />
 
-          {/* Two column layout */}
+          {/* Two column layout for purchase section and trust badges */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 mt-6">
             {/* Left column - Purchase section */}
             <div className="lg:col-span-7">
               <ProductPurchaseSection product={product} />
             </div>
             
-            {/* Right column - Trust badges and description */}
+            {/* Right column - Trust badges */}
             <div className="lg:col-span-5">
               <div className="bg-card rounded-lg p-6 shadow-sm">
                 <ProductTrustBadges />
               </div>
-              
-              <div className="mt-8">
-                <ProductDescription description={product.description} />
-              </div>
             </div>
+          </div>
+
+          {/* Full width description section */}
+          <div className="mt-8 w-full">
+            <ProductDescription description={product.description} />
           </div>
         </div>
       </div>
