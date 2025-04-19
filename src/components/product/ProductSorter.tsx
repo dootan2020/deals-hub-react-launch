@@ -24,11 +24,6 @@ const ProductSorter: React.FC<ProductSorterProps> = ({ currentSort, onSortChange
           <SelectValue placeholder="Sort by" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="recommended">
-            <div className="flex items-center gap-2">
-              Recommended
-            </div>
-          </SelectItem>
           <SelectItem value="price-high">
             <div className="flex items-center gap-2">
               <ArrowDownAZ className="h-4 w-4" />
