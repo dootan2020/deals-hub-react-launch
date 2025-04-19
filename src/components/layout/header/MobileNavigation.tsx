@@ -55,29 +55,13 @@ const MobileNavigation = ({
           <div className="py-4 border-t border-gray-200">
             <h3 className="text-sm font-semibold mb-3">Nạp tiền</h3>
             <div className="space-y-3">
-              <Link 
-                to="/deposit/binance" 
+              <Link
+                to="/deposit"
                 className="flex items-center text-text-light hover:text-primary transition-colors"
                 onClick={toggleMenu}
               >
                 <WalletIcon className="h-4 w-4 mr-3" />
-                Ngân hàng (Binance)
-              </Link>
-              <Link 
-                to="/deposit/usdt" 
-                className="flex items-center text-text-light hover:text-primary transition-colors"
-                onClick={toggleMenu}
-              >
-                <Bitcoin className="h-4 w-4 mr-3" />
-                Crypto (USDT)
-              </Link>
-              <Link 
-                to="/deposit/paypal" 
-                className="flex items-center text-text-light hover:text-primary transition-colors"
-                onClick={toggleMenu}
-              >
-                <CreditCard className="h-4 w-4 mr-3" />
-                PayPal
+                Nạp tiền
               </Link>
             </div>
           </div>
