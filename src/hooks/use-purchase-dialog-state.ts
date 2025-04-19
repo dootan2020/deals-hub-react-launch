@@ -9,6 +9,15 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number, user
   const [balance, setBalance] = useState(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
+  // Reset form state when dialog opens
+  useEffect(() => {
+    if (open) {
+      setQuantity(1);
+      setPromotionCode('');
+      setError(null);
+    }
+  }, [open]);
+
   // Fetch balance directly from Supabase when dialog opens
   useEffect(() => {
     const fetchBalance = async () => {
@@ -18,16 +27,24 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number, user
       setError(null);
 
       try {
+        console.log('Fetching balance for user:', userId);
+        
+        // Ensure we have the latest session before making the request
+        await supabase.auth.getSession();
+        
         const { data, error } = await supabase
           .from('profiles')
           .select('balance')
           .eq('id', userId)
           .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         // Only update balance if we have valid data
         if (data && typeof data.balance === 'number') {
+          console.log('Balance fetched successfully:', data.balance);
           setBalance(data.balance);
         } else {
           console.warn('No valid balance data received');
@@ -47,15 +64,6 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number, user
       fetchBalance();
     }
   }, [open, userId]);
-
-  // Reset form state when dialog opens
-  useEffect(() => {
-    if (open) {
-      setQuantity(1);
-      setPromotionCode('');
-      setError(null);
-    }
-  }, [open]);
 
   const totalPrice = quantity * productPrice;
   const canAfford = balance >= totalPrice;

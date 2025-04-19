@@ -136,7 +136,7 @@ export const PurchaseConfirmDialog = ({
               size="lg"
               className="flex-1 sm:w-auto bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary transition-all duration-300 py-2 px-8"
               onClick={handleConfirm}
-              disabled={!canAfford || isProcessing}
+              disabled={!canAfford || isProcessing || isLoadingBalance}
             >
               {isProcessing ? (
                 <>
