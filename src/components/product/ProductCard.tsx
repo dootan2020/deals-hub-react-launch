@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import BuyNowButton from '@/components/checkout/BuyNowButton';
 import { ProductLogo } from './ProductLogo';
 import { ArrowRight, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatVND, formatUSD, convertVNDtoUSD } from '@/utils/currency';
+import { formatUSD, convertVNDtoUSD } from '@/utils/currency';
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
 import {
   Tooltip,
@@ -30,7 +31,7 @@ const getLogoType = (title: string): 'gmail' | 'facebook' | 'outlook' | 'default
 
 const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
   const { data: currencySettings } = useCurrencySettings();
-  const rate = currencySettings?.vnd_per_usd ?? 25000;
+  const rate = currencySettings?.vnd_per_usd ?? 24000;
   
   const priceUSD = convertVNDtoUSD(product.price, rate);
   const originalPriceUSD = product.originalPrice 
@@ -92,9 +93,6 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
           <div className="flex flex-col">
             <span className="text-lg font-semibold text-primary">
               {formatUSD(priceUSD)}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              ≈ {formatVND(product.price)}
             </span>
           </div>
           <ProductStock stock={stock} />

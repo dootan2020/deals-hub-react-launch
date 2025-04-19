@@ -1,17 +1,26 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
 
 const SiteSettingsPage = () => {
-  const [rate, setRate] = useState<string>('25000');
+  const [rate, setRate] = useState<string>('24000');
   const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
+  const { data: currencySettings, isLoading: isLoadingSettings } = useCurrencySettings();
+
+  // Load current settings on component mount
+  useEffect(() => {
+    if (currencySettings && !isLoadingSettings) {
+      setRate(currencySettings.vnd_per_usd.toString());
+    }
+  }, [currencySettings, isLoadingSettings]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +56,13 @@ const SiteSettingsPage = () => {
   return (
     <AdminLayout title="Cài đặt hệ thống">
       <Card>
-        <CardContent className="pt-6">
+        <CardHeader>
+          <CardTitle>Cài đặt tiền tệ</CardTitle>
+          <CardDescription>
+            Điều chỉnh tỉ giá quy đổi từ VND sang USD cho hệ thống
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
             <div className="space-y-2">
               <label className="text-sm font-medium">
@@ -60,10 +75,10 @@ const SiteSettingsPage = () => {
                 placeholder="Nhập tỉ giá VND/USD"
               />
               <p className="text-sm text-muted-foreground">
-                1 USD = ? VND (Ví dụ: 25000)
+                1 USD = ? VND (Ví dụ: 24000)
               </p>
             </div>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || isLoadingSettings}>
               {isLoading ? 'Đang cập nhật...' : 'Cập nhật tỉ giá'}
             </Button>
           </form>

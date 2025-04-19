@@ -18,16 +18,16 @@ export const useCurrencySettings = () => {
         
       if (error) {
         console.error('Error fetching currency settings:', error);
-        return { vnd_per_usd: 25000 }; // Fallback rate
+        return { vnd_per_usd: 24000 }; // Fallback rate
       }
       
       // Safely cast the JSON data to our expected type
       const settings = data?.value as Record<string, any>;
       return { 
-        vnd_per_usd: settings?.vnd_per_usd || 25000 
+        vnd_per_usd: settings?.vnd_per_usd || 24000 
       };
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes (previously cacheTime)
+    staleTime: 30 * 60 * 1000, // Cache for 30 minutes
+    gcTime: 35 * 60 * 1000, // Keep in cache for 35 minutes
   });
 };

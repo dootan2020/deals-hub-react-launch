@@ -13,11 +13,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Product } from '@/types';
-import { formatCurrency } from '@/lib/utils';
+import { formatUSD, convertVNDtoUSD } from '@/utils/currency';
 import { Loader2, CreditCard, AlertTriangle, Plus, Minus, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
 
 interface PurchaseConfirmDialogProps {
   open: boolean;
@@ -33,6 +34,8 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
   onConfirm
 }) => {
   const { user } = useAuth();
+  const { data: currencySettings } = useCurrencySettings();
+  const rate = currencySettings?.vnd_per_usd ?? 24000;
   
   // State
   const [quantity, setQuantity] = useState(1);
@@ -41,11 +44,14 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calculate total price
-  const totalPrice = product ? product.price * quantity : 0;
+  // Calculate product price in USD
+  const productPriceUSD = product ? convertVNDtoUSD(product.price, rate) : 0;
+  
+  // Calculate total price in USD
+  const totalPriceUSD = productPriceUSD * quantity;
   
   // Check if user has enough balance
-  const hasEnoughBalance = userBalance !== null && userBalance >= totalPrice;
+  const hasEnoughBalance = userBalance !== null && userBalance >= totalPriceUSD;
 
   // Fetch user balance directly from Supabase when dialog opens
   useEffect(() => {
@@ -142,7 +148,7 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
             <h3 className="font-medium text-lg">{product.title}</h3>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Đơn giá:</span>
-              <span className="font-medium text-primary">{formatCurrency(product.price)}</span>
+              <span className="font-medium text-primary">{formatUSD(productPriceUSD)}</span>
             </div>
           </div>
           
@@ -207,12 +213,12 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
                   <span className="text-sm">Đang tải...</span>
                 </div>
               ) : (
-                <span className="font-medium">{formatCurrency(userBalance || 0)}</span>
+                <span className="font-medium">{formatUSD(userBalance || 0)}</span>
               )}
             </div>
             <div className="flex flex-col items-end">
               <span className="text-sm text-muted-foreground">Tổng tiền:</span>
-              <span className="font-medium text-primary">{formatCurrency(totalPrice)}</span>
+              <span className="font-medium text-primary">{formatUSD(totalPriceUSD)}</span>
             </div>
           </div>
           

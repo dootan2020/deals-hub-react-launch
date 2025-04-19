@@ -3,18 +3,21 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+interface OrderData {
+  kioskToken: string;
+  productId: string;
+  quantity: number;
+  promotionCode?: string;
+  priceUSD?: number; // Optional price in USD
+}
+
 export const useOrderApi = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [orderStatus, setOrderStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [orderError, setOrderError] = useState<string | null>(null);
   const [orderResult, setOrderResult] = useState<any>(null);
 
-  const createOrder = async (orderData: {
-    kioskToken: string;
-    productId: string;
-    quantity: number;
-    promotionCode?: string;
-  }) => {
+  const createOrder = async (orderData: OrderData) => {
     setIsLoading(true);
     setOrderStatus('loading');
     setOrderError(null);
@@ -23,7 +26,7 @@ export const useOrderApi = () => {
       console.log('Creating order with data:', orderData);
       
       // Prepare the payload for the API call
-      const payload = {
+      const payload: Record<string, any> = {
         action: 'place-order',
         kioskToken: orderData.kioskToken,
         productId: orderData.productId,
@@ -33,6 +36,11 @@ export const useOrderApi = () => {
       // Add promotion code if provided
       if (orderData.promotionCode) {
         payload['promotionCode'] = orderData.promotionCode;
+      }
+      
+      // Add USD price if provided
+      if (orderData.priceUSD) {
+        payload['priceUSD'] = orderData.priceUSD;
       }
       
       const { data, error } = await supabase.functions.invoke('order-api', {

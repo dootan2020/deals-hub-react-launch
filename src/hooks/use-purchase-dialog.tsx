@@ -4,12 +4,15 @@ import { Product } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useOrderApi } from '@/hooks/use-order-api';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { convertVNDtoUSD } from '@/utils/currency';
 
 export const usePurchaseDialog = () => {
   const [open, setOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
   const navigate = useNavigate();
   const { createOrder } = useOrderApi();
+  const { data: currencySettings } = useCurrencySettings();
   
   // Open dialog with product
   const openDialog = useCallback((product: Product) => {
@@ -30,11 +33,18 @@ export const usePurchaseDialog = () => {
     }
     
     try {
+      // Get the exchange rate
+      const rate = currencySettings?.vnd_per_usd ?? 24000;
+      
+      // Calculate the USD price
+      const priceUSD = convertVNDtoUSD(selectedProduct.price, rate);
+      
       const result = await createOrder({
         kioskToken: selectedProduct.kiosk_token || '',
         productId: selectedProduct.id,
         quantity,
-        promotionCode
+        promotionCode,
+        priceUSD // Add the USD price to the order data
       });
       
       if (result.success && result.orderId) {
@@ -48,7 +58,7 @@ export const usePurchaseDialog = () => {
       console.error('Error during purchase:', error);
       toast.error(error.message || 'Đã xảy ra lỗi khi đặt hàng');
     }
-  }, [selectedProduct, createOrder, closeDialog, navigate]);
+  }, [selectedProduct, createOrder, closeDialog, navigate, currencySettings]);
   
   return {
     open,

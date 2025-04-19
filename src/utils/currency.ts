@@ -6,7 +6,8 @@ export const formatVND = (amount: number): string => {
 };
 
 export const convertVNDtoUSD = (vnd: number, rate: number): number => {
-  return Number((vnd / rate).toFixed(2));
+  // Ensure the minimum value is $0.01 and round to 2 decimal places
+  return Math.max(0.01, Number((vnd / rate).toFixed(2)));
 };
 
 export const formatUSD = (amount: number): string => {
