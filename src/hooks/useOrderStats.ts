@@ -8,10 +8,6 @@ interface OrderStats {
   completed: number;
 }
 
-interface CountQueryResult {
-  count: number | null;
-}
-
 export const useOrderStats = (userId: string | undefined) => {
   const [stats, setStats] = useState<OrderStats>({
     total: 0,
@@ -29,33 +25,28 @@ export const useOrderStats = (userId: string | undefined) => {
 
     const fetchStats = async () => {
       try {
-        // Explicitly type the query results to prevent deep type inference
-        const totalResult = await supabase
+        // Use any to avoid type inference issues with Supabase
+        const totalResult: { count: number | null } = await supabase
           .from('orders')
-          .select('id', { count: 'exact', head: true })
+          .select('*', { count: 'exact', head: true })
           .eq('user_id', userId);
         
-        const processingResult = await supabase
+        const processingResult: { count: number | null } = await supabase
           .from('orders')
-          .select('id', { count: 'exact', head: true })
+          .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
           .eq('status', 'processing');
         
-        const completedResult = await supabase
+        const completedResult: { count: number | null } = await supabase
           .from('orders')
-          .select('id', { count: 'exact', head: true })
+          .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
           .eq('status', 'completed');
 
-        // Extract counts with explicit typing
-        const totalCount: number = totalResult.count || 0;
-        const processingCount: number = processingResult.count || 0;
-        const completedCount: number = completedResult.count || 0;
-
         setStats({
-          total: totalCount,
-          processing: processingCount,
-          completed: completedCount
+          total: totalResult.count || 0,
+          processing: processingResult.count || 0,
+          completed: completedResult.count || 0
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch order stats');
