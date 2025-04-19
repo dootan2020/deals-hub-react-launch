@@ -1,4 +1,3 @@
-
 import { Category } from '@/types';
 
 export interface CategoryWithParent extends Category {
@@ -31,4 +30,19 @@ export interface SubcategoryDisplay {
   description: string;
   image?: string;
   count: number;
+}
+
+export interface SubcategoryItem {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface CategoryWithSubs {
+  id: string;
+  name: string;
+  description: string;
+  slug: string;
+  topSubcategories: SubcategoryItem[];
+  totalSubcategories: number;
 }
