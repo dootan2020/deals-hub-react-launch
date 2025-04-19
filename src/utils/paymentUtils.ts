@@ -29,20 +29,23 @@ export const calculateNetAmount = (amount: number): number => {
  * Create a deposit record in the database
  * @param userId The user ID
  * @param grossAmount The gross amount
- * @returns The ID of the created deposit record
+ * @returns The ID of the created deposit record and success status
  */
-export const createDepositRecord = async (userId: string, grossAmount: number): Promise<string | null> => {
+export const createDepositRecord = async (
+  userId: string, 
+  grossAmount: number
+): Promise<{ id: string | null, success: boolean, error?: string }> => {
   try {
     console.log(`Creating deposit record for user: ${userId}, amount: $${grossAmount}`);
     
     if (isNaN(grossAmount) || grossAmount < 1) {
       console.error("Invalid deposit amount", grossAmount);
-      return null;
+      return { id: null, success: false, error: "Invalid deposit amount" };
     }
     
     if (!userId) {
       console.error("Missing user ID for deposit");
-      return null;
+      return { id: null, success: false, error: "Missing user ID" };
     }
     
     const netAmount = calculateNetAmount(grossAmount);
@@ -58,18 +61,22 @@ export const createDepositRecord = async (userId: string, grossAmount: number): 
         status: 'pending'
       })
       .select('id')
-      .single() as any;
+      .single();
 
     if (error) {
       console.error("Error creating deposit record:", error);
-      return null;
+      return { id: null, success: false, error: error.message };
     }
     
     console.log("Deposit record created successfully with ID:", data.id);
-    return data.id;
+    return { id: data.id, success: true };
   } catch (error) {
     console.error("Exception in createDepositRecord:", error);
-    return null;
+    return { 
+      id: null, 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error creating deposit" 
+    };
   }
 };
 
@@ -77,18 +84,18 @@ export const createDepositRecord = async (userId: string, grossAmount: number): 
  * Update a deposit record with a transaction ID
  * @param depositId The deposit ID
  * @param transactionId The transaction ID
- * @returns Whether the update was successful
+ * @returns Whether the update was successful and any error message
  */
 export const updateDepositWithTransaction = async (
   depositId: string, 
   transactionId: string
-): Promise<boolean> => {
+): Promise<{ success: boolean, error?: string }> => {
   try {
     console.log(`Updating deposit ${depositId} with transaction ID: ${transactionId}`);
     
     if (!depositId || !transactionId) {
       console.error("Missing required parameters", { depositId, transactionId });
-      return false;
+      return { success: false, error: "Missing deposit ID or transaction ID" };
     }
     
     const { error } = await supabase
@@ -100,13 +107,16 @@ export const updateDepositWithTransaction = async (
 
     if (error) {
       console.error("Error updating deposit record:", error);
-      return false;
+      return { success: false, error: error.message };
     }
     
     console.log("Deposit record updated successfully");
-    return true;
+    return { success: true };
   } catch (error) {
     console.error("Exception in updateDepositWithTransaction:", error);
-    return false;
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error updating deposit" 
+    };
   }
 };

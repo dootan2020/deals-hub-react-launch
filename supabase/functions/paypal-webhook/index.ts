@@ -46,7 +46,7 @@ async function processDeposit(
   payerId?: string,
   customId?: string,
   status: 'completed' | 'pending' | 'failed' | 'refunded' = 'completed'
-): Promise<boolean> {
+): Promise<{success: boolean, message: string}> {
   try {
     console.log(`Processing deposit with transaction ID: ${transactionId}, custom ID: ${customId}, status: ${status}`);
     
@@ -55,9 +55,14 @@ async function processDeposit(
       .from('deposits')
       .select('id, user_id, amount, net_amount, status')
       .eq('transaction_id', transactionId)
-      .single();
+      .maybeSingle();
     
-    if (fetchError || !deposit) {
+    if (fetchError) {
+      console.error("Error fetching deposit by transaction_id:", fetchError);
+      return { success: false, message: `Database error: ${fetchError.message}` };
+    }
+    
+    if (!deposit) {
       console.log("Deposit record not found by transaction_id, trying to find by custom_id");
       
       // Try to find by custom_id if passed
@@ -66,30 +71,35 @@ async function processDeposit(
           .from('deposits')
           .select('id, user_id, amount, net_amount, status')
           .eq('id', customId)
-          .single();
+          .maybeSingle();
         
-        if (customIdError || !depositByCustomId) {
+        if (customIdError) {
+          console.error("Error fetching deposit by custom_id:", customIdError);
+          return { success: false, message: `Database error: ${customIdError.message}` };
+        }
+        
+        if (!depositByCustomId) {
           console.error("Deposit record not found by custom_id either:", customId);
-          return false;
+          return { success: false, message: `No deposit record found with custom_id: ${customId}` };
         }
         
         // Use the deposit found by custom_id
         deposit = depositByCustomId;
       } else {
         console.error("No custom_id available to find deposit");
-        return false;
+        return { success: false, message: "Transaction ID not found and no custom ID provided" };
       }
     }
     
     if (!deposit) {
       console.error("No deposit record found for transaction:", transactionId);
-      return false;
+      return { success: false, message: `No deposit record found for transaction: ${transactionId}` };
     }
     
     // Check if the deposit is already in the requested status
     if (deposit.status === status) {
       console.log(`Deposit already in ${status} status:`, transactionId);
-      return true;
+      return { success: true, message: `Deposit already in ${status} status` };
     }
     
     // Update the deposit status and transaction_id if not already set
@@ -113,7 +123,7 @@ async function processDeposit(
     
     if (updateError) {
       console.error("Error updating deposit:", updateError);
-      return false;
+      return { success: false, message: `Failed to update deposit: ${updateError.message}` };
     }
     
     // Only update the user balance when transaction is completed
@@ -129,15 +139,16 @@ async function processDeposit(
       
       if (balanceError) {
         console.error("Error updating user balance:", balanceError);
-        return false;
+        return { success: false, message: `Failed to update user balance: ${balanceError.message}` };
       }
     }
     
     console.log(`Successfully processed ${status} payment ${transactionId} for user ${deposit.user_id}`);
-    return true;
+    return { success: true, message: `Payment ${status} processed successfully` };
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
     console.error("Error in processDeposit:", error);
-    return false;
+    return { success: false, message: `Exception processing deposit: ${errorMsg}` };
   }
 }
 
@@ -164,7 +175,7 @@ Deno.serve(async (req) => {
     } catch (error) {
       console.error("Error parsing webhook payload:", error);
       return new Response(
-        JSON.stringify({ error: 'Invalid JSON payload' }),
+        JSON.stringify({ error: 'Invalid JSON payload', details: error instanceof Error ? error.message : "Unknown error" }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -200,15 +211,16 @@ Deno.serve(async (req) => {
     const customId = payload.resource.purchase_units?.[0]?.custom_id;
 
     // Process different event types
-    let success = false;
+    let result: {success: boolean, message: string};
+    
     if (successEvents.includes(payload.event_type)) {
-      success = await processDeposit(transactionId, payerEmail, payerId, customId, 'completed');
+      result = await processDeposit(transactionId, payerEmail, payerId, customId, 'completed');
     } else if (pendingEvents.includes(payload.event_type)) {
-      success = await processDeposit(transactionId, payerEmail, payerId, customId, 'pending');
+      result = await processDeposit(transactionId, payerEmail, payerId, customId, 'pending');
     } else if (failedEvents.includes(payload.event_type)) {
-      success = await processDeposit(transactionId, payerEmail, payerId, customId, 'failed');
+      result = await processDeposit(transactionId, payerEmail, payerId, customId, 'failed');
     } else if (refundEvents.includes(payload.event_type)) {
-      success = await processDeposit(transactionId, payerEmail, payerId, customId, 'refunded');
+      result = await processDeposit(transactionId, payerEmail, payerId, customId, 'refunded');
     } else {
       console.log(`Unhandled event type: ${payload.event_type}`);
       return new Response(
@@ -218,21 +230,22 @@ Deno.serve(async (req) => {
     }
     
     // Return result
-    if (success) {
+    if (result.success) {
       return new Response(
-        JSON.stringify({ success: true, message: `Successfully processed ${payload.event_type}` }),
+        JSON.stringify({ success: true, message: result.message }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else {
       return new Response(
-        JSON.stringify({ error: 'Failed to process payment', event_type: payload.event_type }),
+        JSON.stringify({ error: result.message, event_type: payload.event_type }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
     console.error("Error processing webhook:", error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error', message: error.message }),
+      JSON.stringify({ error: 'Internal server error', message: errorMsg }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
