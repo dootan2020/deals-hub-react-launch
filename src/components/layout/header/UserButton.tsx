@@ -10,6 +10,7 @@ import {
   Settings,
   ChevronDown,
   Lock,
+  RefreshCw,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -21,14 +22,34 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatCurrency } from "@/lib/utils";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export const UserButton = () => {
-  const { user, logout, isAuthenticated, isAdmin, userBalance } = useAuth();
+  const { user, logout, isAuthenticated, isAdmin, userBalance, refreshUserBalance, isLoadingBalance } = useAuth();
   const navigate = useNavigate();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+  
+  const handleRefreshBalance = async (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      await refreshUserBalance();
+      toast.success("Số dư đã được cập nhật");
+    } catch (error) {
+      toast.error("Không thể cập nhật số dư");
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   if (!isAuthenticated) {
@@ -55,11 +76,21 @@ export const UserButton = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Account</DropdownMenuLabel>
-        <DropdownMenuItem className="flex justify-between">
+        <DropdownMenuItem className="flex justify-between" onClick={(e) => e.preventDefault()}>
           <span>Balance:</span>
-          <span className="font-medium text-primary">
-            {formatCurrency(userBalance)}
-          </span>
+          <div className="flex items-center">
+            <span className="font-medium text-primary mr-2">
+              {isLoadingBalance ? "Đang tải..." : formatCurrency(userBalance)}
+            </span>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-4 w-4 p-0" 
+              onClick={handleRefreshBalance}
+            >
+              <RefreshCw className={`h-3 w-3 text-gray-500 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <Link to="/account">

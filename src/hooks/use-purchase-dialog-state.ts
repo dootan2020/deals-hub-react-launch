@@ -28,18 +28,18 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number, user
       setError(null);
 
       try {
-        console.log('Fetching balance for user:', userId);
+        console.log('Fetching balance for user in dialog:', userId);
         
         // Force refresh the session before fetching balance
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          console.error('Session refresh error:', sessionError);
+          console.error('Session refresh error in dialog:', sessionError);
           throw new Error('Không thể làm mới phiên đăng nhập');
         }
         
         if (!sessionData.session) {
-          console.error('No active session found');
+          console.error('No active session found in dialog');
           throw new Error('Phiên đăng nhập không hợp lệ');
         }
 
@@ -52,22 +52,21 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number, user
           .single();
 
         if (error) {
-          console.error('Balance fetch error:', error);
+          console.error('Balance fetch error in dialog:', error);
           throw error;
         }
 
         // Validate and update balance
         if (data && typeof data.balance === 'number') {
-          console.log('Balance fetched successfully:', data.balance);
+          console.log('Balance fetched successfully in dialog:', data.balance);
           setBalance(data.balance);
         } else {
-          console.warn('No valid balance data received');
+          console.warn('No valid balance data received in dialog');
           setBalance(0);
-          // Optional: Show a toast notification for debugging
           toast.error('Không thể tải số dư. Đang hiển thị số dư mặc định.');
         }
       } catch (err) {
-        console.error('Error fetching balance:', err);
+        console.error('Error fetching balance in dialog:', err);
         setError('Không thể tải số dư. Vui lòng thử lại.');
         setBalance(0);
       } finally {

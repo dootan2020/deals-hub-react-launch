@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { Wallet, ShoppingBag, Clock, User, Lock, Loader2 } from "lucide-react";
+import { Wallet, ShoppingBag, Clock, User, Lock, Loader2, RefreshCw } from "lucide-react";
 import Layout from '@/components/layout/Layout';
 import OrderHistoryTab from '@/components/account/OrderHistoryTab';
 import DepositHistoryTab from '@/components/account/DepositHistoryTab';
@@ -18,9 +18,10 @@ import AccountProfile from '@/components/account/AccountProfile';
 import ChangePasswordForm from '@/components/account/ChangePasswordForm';
 
 const MyAccountPage = () => {
-  const { user, refreshUserBalance, userBalance } = useAuth();
+  const { user, refreshUserBalance, userBalance, isLoadingBalance } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   const [totalDeposited, setTotalDeposited] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
   const [lastLoginAt, setLastLoginAt] = useState<Date | null>(null);
@@ -74,12 +75,37 @@ const MyAccountPage = () => {
     fetchUserStats();
   }, [user, navigate, refreshUserBalance]);
 
+  const handleRefreshBalance = async () => {
+    if (!user || isRefreshingBalance) return;
+    
+    setIsRefreshingBalance(true);
+    try {
+      await refreshUserBalance();
+      toast.success("Số dư đã được cập nhật");
+    } catch (error) {
+      toast.error("Không thể cập nhật số dư");
+    } finally {
+      setIsRefreshingBalance(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
     <Layout>
       <div className="container mx-auto py-10 px-4">
-        <h1 className="text-3xl font-bold mb-6">My Account</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">My Account</h1>
+          <Button 
+            variant="outline" 
+            onClick={handleRefreshBalance}
+            disabled={isRefreshingBalance || isLoadingBalance} 
+            className="flex items-center"
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshingBalance || isLoadingBalance ? 'animate-spin' : ''}`} />
+            Cập nhật số dư
+          </Button>
+        </div>
         
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
@@ -93,6 +119,7 @@ const MyAccountPage = () => {
               totalDeposited={totalDeposited}
               totalOrders={totalOrders}
               lastLoginAt={lastLoginAt}
+              isLoadingBalance={isLoadingBalance}
             />
 
             <Tabs defaultValue="profile" className="mt-8">

@@ -33,7 +33,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     userBalance,
     setUserBalance,
     fetchUserBalance,
-    refreshUserData
+    refreshUserData,
+    isLoadingBalance
   } = useAuthState();
 
   const { login, logout, register } = useAuthActions();
@@ -41,6 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Set up real-time balance updates
   useBalanceListener(user?.id, (newBalance) => {
     if (typeof newBalance === 'number') {
+      console.log('Balance updated via listener:', newBalance);
       setUserBalance(newBalance);
     }
   });
@@ -48,12 +50,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Function to refresh user balance
   const refreshUserBalance = useCallback(async () => {
     if (!user?.id) return;
+    console.log('Manually refreshing user balance for ID:', user.id);
     await fetchUserBalance(user.id);
-  }, [user?.id, fetchUserBalance]);
+    return userBalance; // Return current balance after refresh
+  }, [user?.id, fetchUserBalance, userBalance]);
 
   // Function to refresh the entire user profile
   const refreshUserProfile = useCallback(async () => {
     if (!user?.id) return;
+    console.log('Refreshing full user profile for ID:', user.id);
     await refreshUserData();
   }, [user?.id, refreshUserData]);
 
@@ -72,6 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isStaff,
     userRoles,
     userBalance,
+    isLoadingBalance,
     refreshUserBalance,
     refreshUserProfile,
     login,

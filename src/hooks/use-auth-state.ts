@@ -12,6 +12,7 @@ export const useAuthState = () => {
   const [isStaff, setIsStaff] = useState(false);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [userBalance, setUserBalance] = useState(0);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
   // Function to fetch user roles
   const fetchUserRoles = useCallback(async (userId: string) => {
@@ -43,23 +44,47 @@ export const useAuthState = () => {
 
   // Function to fetch user balance
   const fetchUserBalance = useCallback(async (userId: string) => {
+    if (!userId) return;
+    
     try {
+      setIsLoadingBalance(true);
+      console.log('Fetching balance for user in useAuthState:', userId);
+
+      // Force refresh the session before fetching balance
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session refresh error in useAuthState:', sessionError);
+        return;
+      }
+      
+      if (!sessionData.session) {
+        console.error('No active session found in useAuthState');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('profiles')
         .select('balance')
         .eq('id', userId)
+        .abortSignal(AbortSignal.timeout(5000)) // 5s timeout
         .single();
 
       if (error) {
-        console.error('Error fetching user balance:', error);
+        console.error('Error fetching user balance in useAuthState:', error);
         return;
       }
 
-      if (data) {
-        setUserBalance(data.balance || 0);
+      if (data && typeof data.balance === 'number') {
+        console.log('Balance fetched successfully in useAuthState:', data.balance);
+        setUserBalance(data.balance);
+      } else {
+        console.warn('No valid balance data received in useAuthState');
       }
     } catch (error) {
-      console.error('Error in fetchUserBalance:', error);
+      console.error('Exception in fetchUserBalance useAuthState:', error);
+    } finally {
+      setIsLoadingBalance(false);
     }
   }, []);
 
@@ -73,11 +98,9 @@ export const useAuthState = () => {
       const authUser = { ...currentSession.user } as AuthUser;
       setUser(authUser);
       
-      // Use setTimeout to avoid potential Supabase auth deadlocks
-      setTimeout(() => {
-        fetchUserRoles(authUser.id);
-        fetchUserBalance(authUser.id);
-      }, 0);
+      // Fetch user data immediately after setting user
+      fetchUserRoles(authUser.id);
+      fetchUserBalance(authUser.id);
     } else {
       setUser(null);
       setIsAdmin(false);
@@ -88,20 +111,42 @@ export const useAuthState = () => {
   }, [fetchUserRoles, fetchUserBalance]);
 
   useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    
     // First set up the auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
-
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      handleAuthStateChange('INITIAL_SESSION', currentSession);
-      setLoading(false);
-    }).catch(error => {
-      console.error('Error getting session:', error);
-      setLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      if (isMounted) {
+        handleAuthStateChange(event, currentSession);
+      }
     });
 
-    // Clean up the subscription
+    // Then check for existing session only once on mount
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (isMounted) {
+          // Only call if component is mounted
+          if (currentSession) {
+            handleAuthStateChange('INITIAL_SESSION', currentSession);
+          } else {
+            console.log('No existing session found');
+            setLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error getting session:', error);
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initializeAuth();
+
+    // Clean up function
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, [handleAuthStateChange]);
@@ -129,6 +174,7 @@ export const useAuthState = () => {
     setUserBalance,
     fetchUserBalance,
     fetchUserRoles,
-    refreshUserData
+    refreshUserData,
+    isLoadingBalance
   };
 };

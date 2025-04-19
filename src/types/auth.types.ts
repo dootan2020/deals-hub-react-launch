@@ -16,6 +16,7 @@ export interface AuthContextType {
   isStaff: boolean;
   userRoles: UserRole[];
   userBalance: number;
+  isLoadingBalance?: boolean;
   refreshUserBalance: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   login: (email: string, password: string) => Promise<any>;
