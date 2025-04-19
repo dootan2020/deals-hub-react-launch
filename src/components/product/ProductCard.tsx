@@ -2,10 +2,11 @@ import React from 'react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import BuyNowButton from '@/components/checkout/BuyNowButton';
-import { formatPrice } from '@/utils/productUtils';
 import { ProductLogo } from './ProductLogo';
 import { ArrowRight, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatVND, formatUSD, convertVNDtoUSD } from '@/utils/currency';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
 import {
   Tooltip,
   TooltipContent,
@@ -28,6 +29,14 @@ const getLogoType = (title: string): 'gmail' | 'facebook' | 'outlook' | 'default
 };
 
 const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
+  const { data: currencySettings } = useCurrencySettings();
+  const rate = currencySettings?.vnd_per_usd ?? 25000;
+  
+  const priceUSD = convertVNDtoUSD(product.price, rate);
+  const originalPriceUSD = product.originalPrice 
+    ? convertVNDtoUSD(product.originalPrice, rate)
+    : undefined;
+
   const containerClasses = viewMode === "list" 
     ? "flex gap-6" 
     : "flex flex-col";
@@ -80,9 +89,14 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
 
         {/* Price + Stock */}
         <div className="flex items-center justify-between mt-auto">
-          <span className="text-lg font-semibold text-primary">
-            {formatPrice(product.price)}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-lg font-semibold text-primary">
+              {formatUSD(priceUSD)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              ≈ {formatVND(product.price)}
+            </span>
+          </div>
           <ProductStock stock={stock} />
         </div>
 

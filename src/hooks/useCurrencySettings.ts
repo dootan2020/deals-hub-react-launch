@@ -1,0 +1,29 @@
+
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+
+interface CurrencySettings {
+  vnd_per_usd: number;
+}
+
+export const useCurrencySettings = () => {
+  return useQuery({
+    queryKey: ['site-settings', 'usd-rate'],
+    queryFn: async (): Promise<CurrencySettings> => {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'usd_rate')
+        .single();
+        
+      if (error) {
+        console.error('Error fetching currency settings:', error);
+        return { vnd_per_usd: 25000 }; // Fallback rate
+      }
+      
+      return data?.value as CurrencySettings || { vnd_per_usd: 25000 };
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+  });
+};
