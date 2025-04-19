@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -35,9 +34,10 @@ export const PurchaseConfirmDialog = ({
     setPromotionCode,
     error,
     setError,
-    localBalance,
+    liveBalance,
     totalPrice,
-    canAfford
+    canAfford,
+    isLoadingBalance
   } = usePurchaseDialogState(open, product.price);
   
   const handleConfirm = () => {
@@ -63,9 +63,16 @@ export const PurchaseConfirmDialog = ({
 
           <div className="flex justify-between text-sm pt-2">
             <span className="text-gray-600">Số dư hiện tại:</span>
-            <span className={`font-medium ${canAfford ? 'text-green-600' : 'text-red-600'}`}>
-              {formatPrice(localBalance)}
-            </span>
+            {isLoadingBalance ? (
+              <span className="flex items-center text-gray-500">
+                <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                Đang tải...
+              </span>
+            ) : (
+              <span className={`font-medium ${canAfford ? 'text-green-600' : 'text-red-600'}`}>
+                {formatPrice(liveBalance)}
+              </span>
+            )}
           </div>
 
           <QuantitySelector
@@ -86,7 +93,7 @@ export const PurchaseConfirmDialog = ({
             </span>
           </div>
 
-          {!canAfford && (
+          {!canAfford && !isLoadingBalance && (
             <Alert variant="destructive" className="bg-red-50 border border-red-100 text-left">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription className="text-red-800">

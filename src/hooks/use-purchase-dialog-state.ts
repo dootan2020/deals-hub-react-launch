@@ -1,42 +1,60 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export const usePurchaseDialogState = (open: boolean, productPrice: number) => {
-  const { userBalance, refreshUserBalance } = useAuth();
+  const { user } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [promotionCode, setPromotionCode] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [localBalance, setLocalBalance] = useState(userBalance); // Initialize with current balance
+  const [liveBalance, setLiveBalance] = useState(0);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   
-  // Update localBalance whenever userBalance changes from context
+  // Fetch live balance directly from Supabase when dialog opens
   useEffect(() => {
-    console.log('userBalance from context updated: ', userBalance);
-    setLocalBalance(userBalance);
-  }, [userBalance]);
-  
-  // Refresh balance when dialog opens but don't update localBalance here
-  // Let the above useEffect handle it when userBalance is actually updated
+    const fetchLiveBalance = async () => {
+      if (!open || !user?.id) return;
+      
+      setIsLoadingBalance(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('balance')
+          .eq('id', user.id)
+          .maybeSingle();
+          
+        if (error) {
+          console.error('Error fetching balance:', error);
+          setError('Không thể tải số dư. Vui lòng thử lại.');
+          return;
+        }
+        
+        if (data) {
+          setLiveBalance(data.balance);
+        }
+      } catch (err) {
+        console.error('Error in fetchLiveBalance:', err);
+        setError('Không thể tải số dư. Vui lòng thử lại.');
+      } finally {
+        setIsLoadingBalance(false);
+      }
+    };
+
+    fetchLiveBalance();
+  }, [open, user?.id]);
+
+  // Reset form state when dialog opens
   useEffect(() => {
     if (open) {
-      console.log('Dialog opened, refreshing user balance');
-      refreshUserBalance()
-        .then(() => {
-          console.log('User balance refresh completed');
-        })
-        .catch(error => {
-          console.error('Error refreshing balance:', error);
-        });
-      
-      // Reset form state
       setQuantity(1);
       setPromotionCode('');
       setError(null);
     }
-  }, [open, refreshUserBalance]);
+  }, [open]);
 
   const totalPrice = quantity * productPrice;
-  const canAfford = localBalance >= totalPrice;
+  const canAfford = liveBalance >= totalPrice;
 
   return {
     quantity,
@@ -45,8 +63,9 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number) => {
     setPromotionCode,
     error,
     setError,
-    localBalance,
+    liveBalance,
     totalPrice,
-    canAfford
+    canAfford,
+    isLoadingBalance
   };
 };
