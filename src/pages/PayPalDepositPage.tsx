@@ -13,52 +13,93 @@ import { Button } from '@/components/ui/button';
 import { Wallet, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
-const PAYPAL_CLIENT_ID = "AX0u8TI_V2I9WkqaEuRYIL9a5XPqMXyamnzBtGQ-mf81ZxoAlVhb0ISwoJMHSmbr3F32EOv40ZnQVS_v"; // Replace with your actual client ID
+// Replace with your actual PayPal Client ID
+const PAYPAL_CLIENT_ID = "AX0u8TI_V2I9WkqaEuRYIL9a5XPqMXyamnzBtGQ-mf81ZxoAlVhb0ISwoJMHSmbr3F32EOv40ZnQVS_v";
+
+// PayPal calculates approximately 3.9% + $0.30 per transaction for most international payments
+// Simplified calculation for demonstration purposes
+const calculateFee = (amount: number): number => {
+  const feePercentage = 0.039; // 3.9%
+  const fixedFee = 0.30; // 30 cents
+  return amount * feePercentage + fixedFee;
+};
+
+// Calculate net amount after fees
+const calculateNetAmount = (amount: number): number => {
+  return amount - calculateFee(amount);
+};
 
 const PayPalDepositPage = () => {
   const [amount, setAmount] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [depositId, setDepositId] = useState<string | null>(null);
   const { user, userBalance } = useAuth();
   const navigate = useNavigate();
 
   // Predefined amounts for quick selection
   const predefinedAmounts = [10, 25, 50, 100];
 
-  // Validate amount is a positive number
+  // Validate amount is a positive number and at least $1
   const isValidAmount = () => {
     const numAmount = parseFloat(amount);
-    return numAmount && numAmount > 0;
+    return numAmount && numAmount >= 1;
   };
 
-  const handleCreateTransaction = async (paypalOrderId: string, paypalAmount: string) => {
+  // Create a deposit record in the database
+  const createDepositRecord = async (grossAmount: number): Promise<string | null> => {
     try {
       if (!user) {
         toast.error("Bạn cần đăng nhập để nạp tiền");
-        return false;
+        return null;
       }
       
-      const { error } = await supabase
-        .from('transactions')
+      const netAmount = calculateNetAmount(grossAmount);
+      
+      const { data, error } = await supabase
+        .from('deposits')
         .insert({
           user_id: user.id,
-          amount: parseFloat(paypalAmount),
-          status: 'completed',
-          type: 'deposit',
-          payment_method: 'paypal',
-          transaction_id: paypalOrderId
-        });
+          amount: grossAmount,
+          net_amount: netAmount,
+          status: 'pending',
+          payment_method: 'paypal'
+        })
+        .select('id')
+        .single();
 
       if (error) {
-        console.error("Error creating transaction:", error);
+        console.error("Error creating deposit record:", error);
         toast.error("Không thể tạo giao dịch. Vui lòng thử lại sau.");
+        return null;
+      }
+      
+      return data.id;
+    } catch (error) {
+      console.error("Error in createDepositRecord:", error);
+      toast.error("Đã xảy ra lỗi khi xử lý giao dịch");
+      return null;
+    }
+  };
+
+  // Update deposit record with transaction info from PayPal
+  const updateDepositWithTransaction = async (depositId: string, transactionId: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('deposits')
+        .update({
+          transaction_id: transactionId
+        })
+        .eq('id', depositId);
+
+      if (error) {
+        console.error("Error updating deposit record:", error);
         return false;
       }
       
       return true;
     } catch (error) {
-      console.error("Error in handleCreateTransaction:", error);
-      toast.error("Đã xảy ra lỗi khi xử lý giao dịch");
+      console.error("Error in updateDepositWithTransaction:", error);
       return false;
     }
   };
@@ -88,11 +129,12 @@ const PayPalDepositPage = () => {
                 </div>
                 <CardTitle className="text-center text-2xl">Nạp tiền thành công!</CardTitle>
                 <CardDescription className="text-center">
-                  Tài khoản của bạn đã được cộng tiền thành công.
+                  Giao dịch của bạn đang được xử lý. Số dư sẽ được cập nhật trong vài giây.
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center text-lg pt-4">
                 <p>Số dư hiện tại: <span className="font-bold">{formatCurrency(userBalance)}</span></p>
+                <p className="mt-2 text-sm text-gray-600">Mã giao dịch đã được ghi nhận. Chúng tôi sẽ xác nhận và cập nhật số dư cho bạn ngay sau khi nhận được thông báo từ PayPal.</p>
               </CardContent>
               <CardFooter className="flex justify-center gap-4 pt-4">
                 <Button onClick={() => navigate('/deposit')}>Quay lại Nạp tiền</Button>
@@ -148,7 +190,31 @@ const PayPalDepositPage = () => {
                         className="pl-8"
                       />
                     </div>
+                    {amount && parseFloat(amount) < 1 && (
+                      <p className="text-red-500 text-sm mt-1">Số tiền tối thiểu là $1.00</p>
+                    )}
                   </div>
+                  
+                  {/* Fee information */}
+                  {isValidAmount() && (
+                    <div className="bg-gray-50 p-4 rounded-md">
+                      <h3 className="text-sm font-medium mb-2">Chi tiết thanh toán</h3>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Số tiền nạp:</span>
+                          <span>${parseFloat(amount).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-500">
+                          <span>Phí PayPal:</span>
+                          <span>-${calculateFee(parseFloat(amount)).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between font-medium pt-2 border-t border-gray-200 mt-2">
+                          <span>Số tiền thực nhận:</span>
+                          <span>${calculateNetAmount(parseFloat(amount)).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Info box */}
                   <div className="flex p-3 bg-blue-50 border border-blue-200 rounded-md">
@@ -169,7 +235,18 @@ const PayPalDepositPage = () => {
                         <PayPalButtons 
                           disabled={isProcessing}
                           forceReRender={[amount]}
-                          createOrder={(data, actions) => {
+                          createOrder={async (data, actions) => {
+                            // Create a deposit record first
+                            const newDepositId = await createDepositRecord(parseFloat(amount));
+                            
+                            if (!newDepositId) {
+                              toast.error("Không thể tạo giao dịch. Vui lòng thử lại.");
+                              throw new Error("Failed to create deposit record");
+                            }
+                            
+                            setDepositId(newDepositId);
+                            
+                            // Now create the PayPal order
                             return actions.order.create({
                               intent: "CAPTURE",
                               purchase_units: [
@@ -177,34 +254,50 @@ const PayPalDepositPage = () => {
                                   amount: {
                                     currency_code: "USD",
                                     value: amount
-                                  }
+                                  },
+                                  description: "Nạp tiền vào tài khoản Digital Deals Hub",
+                                  custom_id: newDepositId
                                 }
-                              ]
+                              ],
+                              application_context: {
+                                shipping_preference: "NO_SHIPPING"
+                              }
                             });
                           }}
                           onApprove={(data, actions) => {
                             setIsProcessing(true);
+                            toast.loading("Đang xử lý giao dịch...");
+                            
                             return actions.order!.capture().then(async (details) => {
-                              const name = details.payer.name?.given_name;
                               const transactionId = data.orderID;
                               
-                              toast.loading("Đang xác nhận thanh toán...");
+                              if (!depositId) {
+                                toast.error("Không tìm thấy thông tin giao dịch");
+                                setIsProcessing(false);
+                                return;
+                              }
                               
-                              // Create transaction record in database
-                              const success = await handleCreateTransaction(transactionId, amount);
+                              // Update deposit record with PayPal transaction ID
+                              const updated = await updateDepositWithTransaction(depositId, transactionId);
                               
-                              if (success) {
-                                toast.success(`Cảm ơn ${name}! Thanh toán của bạn đã thành công.`);
+                              if (updated) {
+                                toast.success("Thanh toán thành công! Số dư của bạn sẽ được cập nhật trong vài giây.");
                                 setIsSuccess(true);
                               } else {
-                                toast.error("Không thể xác nhận thanh toán. Vui lòng liên hệ hỗ trợ.");
+                                toast.error("Thanh toán thành công nhưng không thể cập nhật thông tin giao dịch.");
+                                setIsSuccess(true); // Still show success since payment went through
                               }
+                              
                               setIsProcessing(false);
                             });
                           }}
+                          onCancel={() => {
+                            toast.info("Bạn đã hủy quá trình thanh toán.");
+                            setIsProcessing(false);
+                          }}
                           onError={(err) => {
                             console.error("PayPal error:", err);
-                            toast.error("Có lỗi xảy ra. Vui lòng thử lại sau.");
+                            toast.error("Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại sau.");
                             setIsProcessing(false);
                           }}
                         />

@@ -12,11 +12,22 @@ interface WebhookPayload {
   resource: {
     id: string;
     status: string;
-    amount: {
-      value: string;
+    purchase_units?: Array<{
+      amount: {
+        value: string;
+        currency_code: string;
+      };
+      custom_id?: string;
+      payee?: {
+        email_address?: string;
+      };
+    }>;
+    payer?: {
+      email_address?: string;
+      payer_id?: string;
     };
-    custom_id?: string;
   };
+  summary?: string;
 }
 
 // Create Supabase client
@@ -24,22 +35,63 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function updateUserBalance(userId: string, amount: number): Promise<boolean> {
+async function processSuccessfulPayment(
+  transactionId: string, 
+  payerEmail?: string, 
+  payerId?: string
+): Promise<boolean> {
   try {
-    // Start a transaction to update the user's balance
-    const { data, error } = await supabase.rpc('update_user_balance', {
-      user_id_param: userId,
-      amount_param: amount
-    });
+    // Find the deposit record
+    const { data: deposit, error: fetchError } = await supabase
+      .from('deposits')
+      .select('id, user_id, amount, net_amount, status')
+      .eq('transaction_id', transactionId)
+      .single();
     
-    if (error) {
-      console.error("Error updating user balance:", error);
+    if (fetchError || !deposit) {
+      console.error("Deposit record not found:", transactionId);
       return false;
     }
     
+    // Check if already processed
+    if (deposit.status === 'completed') {
+      console.log("Deposit already processed:", transactionId);
+      return true;
+    }
+    
+    // Update deposit record
+    const { error: updateError } = await supabase
+      .from('deposits')
+      .update({ 
+        status: 'completed', 
+        payer_email: payerEmail,
+        payer_id: payerId
+      })
+      .eq('id', deposit.id);
+    
+    if (updateError) {
+      console.error("Error updating deposit:", updateError);
+      return false;
+    }
+    
+    // Update user balance
+    const { data: updateResult, error: balanceError } = await supabase.rpc(
+      'update_user_balance',
+      {
+        user_id_param: deposit.user_id,
+        amount_param: deposit.net_amount
+      }
+    );
+    
+    if (balanceError) {
+      console.error("Error updating user balance:", balanceError);
+      return false;
+    }
+    
+    console.log(`Successfully processed payment ${transactionId} for user ${deposit.user_id}`);
     return true;
   } catch (error) {
-    console.error("Error in updateUserBalance:", error);
+    console.error("Error in processSuccessfulPayment:", error);
     return false;
   }
 }
@@ -70,62 +122,26 @@ Deno.serve(async (req) => {
       payload.event_type === 'CHECKOUT.ORDER.APPROVED'
     ) {
       const transactionId = payload.resource.id;
+      const payerEmail = payload.resource.payer?.email_address;
+      const payerId = payload.resource.payer?.payer_id;
       
-      // Find the transaction in our database
-      const { data: transaction, error: transactionError } = await supabase
-        .from('transactions')
-        .select('user_id, amount, status')
-        .eq('transaction_id', transactionId)
-        .single();
+      const success = await processSuccessfulPayment(
+        transactionId,
+        payerEmail,
+        payerId
+      );
       
-      if (transactionError || !transaction) {
-        console.error("Transaction not found:", transactionId);
+      if (success) {
         return new Response(
-          JSON.stringify({ error: 'Transaction not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      // Verify the transaction hasn't been processed already
-      if (transaction.status === 'completed') {
-        console.log("Transaction already processed:", transactionId);
-        return new Response(
-          JSON.stringify({ message: 'Transaction already processed' }),
+          JSON.stringify({ success: true }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
-      }
-      
-      // Update transaction status to completed
-      const { error: updateError } = await supabase
-        .from('transactions')
-        .update({ status: 'completed' })
-        .eq('transaction_id', transactionId);
-      
-      if (updateError) {
-        console.error("Error updating transaction status:", updateError);
+      } else {
         return new Response(
-          JSON.stringify({ error: 'Error updating transaction' }),
+          JSON.stringify({ error: 'Failed to process payment' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
-      // Update user balance
-      const success = await updateUserBalance(transaction.user_id, transaction.amount);
-      
-      if (!success) {
-        console.error("Failed to update user balance for transaction:", transactionId);
-        return new Response(
-          JSON.stringify({ error: 'Failed to update user balance' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      console.log(`Successfully processed payment: ${transactionId} for user: ${transaction.user_id}`);
-      
-      return new Response(
-        JSON.stringify({ success: true }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
     
     // For other event types, just acknowledge receipt

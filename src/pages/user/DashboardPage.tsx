@@ -1,9 +1,11 @@
 
 import { useAuth } from '@/context/AuthContext';
 import UserLayout from '@/components/layout/UserLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Wallet, ShoppingCart, Clock } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Wallet, ShoppingCart, Clock, History } from 'lucide-react';
 import { useOrderStats } from '@/hooks/useOrderStats';
+import { Link } from 'react-router-dom';
 
 const DashboardPage = () => {
   const { user, userBalance } = useAuth();
@@ -32,6 +34,14 @@ const DashboardPage = () => {
               Số dư hiện tại của bạn
             </p>
           </CardContent>
+          <CardFooter className="pt-0">
+            <Button asChild variant="outline" size="sm" className="w-full">
+              <Link to="/deposit">
+                <Wallet className="mr-2 h-4 w-4" />
+                Nạp tiền
+              </Link>
+            </Button>
+          </CardFooter>
         </Card>
 
         {/* Processing Orders Card */}
@@ -64,6 +74,26 @@ const DashboardPage = () => {
               Đơn hàng thành công
             </p>
           </CardContent>
+        </Card>
+
+        {/* Deposit History Card */}
+        <Card className="lg:col-span-3">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Lịch sử nạp tiền</CardTitle>
+            <History className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Xem lịch sử các giao dịch nạp tiền của bạn
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Button asChild>
+              <Link to="/deposit-history">
+                Xem lịch sử nạp tiền
+              </Link>
+            </Button>
+          </CardFooter>
         </Card>
       </div>
     </UserLayout>

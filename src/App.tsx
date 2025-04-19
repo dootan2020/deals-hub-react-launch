@@ -23,6 +23,7 @@ import FaqsPage from "./pages/FaqsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import DepositPage from "./pages/DepositPage";
 import PayPalDepositPage from "./pages/PayPalDepositPage";
+import DepositHistoryPage from "./pages/DepositHistoryPage";
 import CheckoutPage from "./pages/CheckoutPage";
 
 // Admin pages
@@ -59,6 +60,12 @@ const App = () => {
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/deposit-history" element={
+                <ProtectedRoute>
+                  <DepositHistoryPage />
                 </ProtectedRoute>
               } />
               
