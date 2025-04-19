@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Filter, X } from 'lucide-react';
@@ -8,7 +7,7 @@ import PriceRangeFilter from './PriceRangeFilter';
 import StockFilter from './StockFilter';
 import CategoryFiltersSection from './CategoryFiltersSection';
 import { Category } from '@/types';
-import { ProductSorter } from '@/components/product/ProductSorter';
+import ProductSorter from '@/components/product/ProductSorter';
 
 interface SubcategoryFiltersProps {
   subcategories: Category[];

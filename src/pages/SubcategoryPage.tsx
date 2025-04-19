@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -12,6 +11,8 @@ import { CategoryWithParent } from '@/types/category.types';
 import { ensureProductsFields } from '@/utils/productUtils';
 import { SubcategoryHeader } from '@/components/category/SubcategoryHeader';
 import SubcategoryFilters from '@/components/category/SubcategoryFilters';
+import PriceRangeFilter from '@/components/category/PriceRangeFilter';
+import StockFilter from '@/components/category/StockFilter';
 import { FAQ } from '@/components/category/FAQ';
 import { SupportSection } from '@/components/category/SupportSection';
 
@@ -27,7 +28,6 @@ const SubcategoryPage = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [stockFilter, setStockFilter] = useState("all");
   
-  // Mock subcategories for this example
   const mockSubcategories = [
     { id: "1", name: "Gmail", description: "", slug: "gmail", image: "", count: 5, parent_id: null },
     { id: "2", name: "Hotmail", description: "", slug: "hotmail", image: "", count: 3, parent_id: null },
@@ -36,7 +36,6 @@ const SubcategoryPage = () => {
   
   const [activeSubcategories, setActiveSubcategories] = useState<string[]>([]);
   
-  // Fetch products for the subcategory
   useEffect(() => {
     const loadProducts = async () => {
       if (!slug) return;
@@ -55,18 +54,15 @@ const SubcategoryPage = () => {
           inStock: stockFilter === "in-stock" ? true : undefined
         });
         
-        // Check if result is the expected structure
         if (result && Array.isArray(result.products)) {
-          // Make sure products conform to the Product interface
           const validProducts = ensureProductsFields(result.products);
           setProducts(validProducts);
           setTotalPages(result.totalPages || 1);
           
           if (result.products.length === 0 && currentPage > 1) {
-            setCurrentPage(1); // Reset to first page if current page has no results
+            setCurrentPage(1);
           }
         } else {
-          // Handle empty or invalid response
           setProducts([]);
           setTotalPages(1);
           console.warn("Unexpected response format:", result);
@@ -83,13 +79,11 @@ const SubcategoryPage = () => {
     loadProducts();
   }, [slug, currentPage, sortOption, priceRange, stockFilter, activeSubcategories]);
   
-  // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo(0, 0);
   };
   
-  // Toggle subcategory filter
   const handleSubcategoryToggle = (id: string) => {
     setActiveSubcategories(prev => 
       prev.includes(id) 
@@ -98,25 +92,21 @@ const SubcategoryPage = () => {
     );
   };
   
-  // Handle sort change
   const handleSortChange = (sortValue: string) => {
     setSortOption(sortValue);
-    setCurrentPage(1); // Reset to first page on sort change
+    setCurrentPage(1);
   };
   
-  // Handle price range change
   const handlePriceChange = (min: number, max: number) => {
     setPriceRange([min, max]);
-    setCurrentPage(1); // Reset to first page on price change
+    setCurrentPage(1);
   };
   
-  // Handle stock filter change
   const handleStockFilterChange = (value: string) => {
     setStockFilter(value);
-    setCurrentPage(1); // Reset to first page on stock filter change
+    setCurrentPage(1);
   };
 
-  // Mock category data for CategoryHeader
   const mockCategory: CategoryWithParent = {
     id: slug || 'default-id',
     name: slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : 'Products',
@@ -180,7 +170,6 @@ const SubcategoryPage = () => {
             />
             
             <div className="lg:flex gap-8">
-              {/* Filters - Desktop */}
               <div className="hidden lg:block w-64 flex-shrink-0">
                 <div className="bg-card rounded-lg p-6 shadow-sm sticky top-24">
                   <h3 className="font-semibold text-lg mb-4">Filters</h3>
@@ -223,7 +212,6 @@ const SubcategoryPage = () => {
                 </div>
               </div>
               
-              {/* Main content */}
               <div className="flex-grow">
                 <SubcategoryFilters
                   subcategories={mockSubcategories}
@@ -272,10 +260,8 @@ const SubcategoryPage = () => {
               </div>
             </div>
             
-            {/* FAQ Section */}
             <FAQ />
             
-            {/* Support Section - show only if there are products */}
             {products.length > 0 && <SupportSection />}
           </>
         )}
