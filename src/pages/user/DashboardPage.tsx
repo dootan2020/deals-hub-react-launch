@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { processSpecificTransaction } from '@/utils/paymentUtils';
 
 const DashboardPage = () => {
-  const { user, userBalance, refreshUserBalance } = useAuth();
+  const { user, userBalance, refreshUserBalance, userRoles } = useAuth();
   const { stats, isLoading } = useOrderStats(user?.id);
   const [isRefreshing, setIsRefreshing] = useState(false);
 

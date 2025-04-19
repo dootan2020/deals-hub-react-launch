@@ -1,11 +1,29 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { AuthContextType, AuthUser, UserRole } from '@/types/auth.types';
+import { AuthUser, UserRole } from '@/types/auth.types';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types-extension';
 
-const AuthContext = createContext<AuthContextType>({
+// Define the context type here
+interface AuthContextProps {
+  user: AuthUser | null;
+  session: Session | null;
+  loading: boolean;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+  isStaff: boolean;
+  userRoles: UserRole[];
+  userBalance: number;
+  refreshUserBalance: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  register: (email: string, password: string, metadata?: Record<string, any>) => Promise<void>;
+  checkUserRole: (role: UserRole) => boolean;
+}
+
+const AuthContext = createContext<AuthContextProps>({
   user: null,
   session: null,
   loading: true,
@@ -215,21 +233,5 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// Update the context type
-export type AuthContextType = {
-  user: AuthUser | null;
-  session: Session | null;
-  loading: boolean;
-  isAuthenticated: boolean;
-  isAdmin: boolean;
-  isStaff: boolean;
-  userRoles: UserRole[];
-  userBalance: number;
-  refreshUserBalance: () => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  register: (email: string, password: string, metadata?: Record<string, any>) => Promise<void>;
-  checkUserRole: (role: UserRole) => boolean;
-};
-
+// Export the useAuth hook without redefining AuthContextType
 export const useAuth = () => useContext(AuthContext);

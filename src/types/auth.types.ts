@@ -7,7 +7,7 @@ export type AuthUser = User & {
   role?: UserRole;
 };
 
-export type AuthContextType = {
+export interface AuthContextType {
   user: AuthUser | null;
   session: Session | null;
   loading: boolean;
@@ -21,4 +21,4 @@ export type AuthContextType = {
   logout: () => Promise<void>;
   register: (email: string, password: string, metadata?: Record<string, any>) => Promise<void>;
   checkUserRole: (role: UserRole) => boolean;
-};
+}
