@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Globe, X, ChevronUp, Loader2 } from 'lucide-react';
+import { ChevronDown, Globe, X, ChevronUp, Loader2, WalletIcon, Bitcoin, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCategoriesContext } from '@/context/CategoriesContext';
 import { Category } from '@/types';
@@ -52,6 +51,37 @@ const MobileNavigation = ({
         </div>
         
         <nav className="flex flex-col space-y-4">
+          {/* Deposit Options for Mobile */}
+          <div className="py-4 border-t border-gray-200">
+            <h3 className="text-sm font-semibold mb-3">Nạp tiền</h3>
+            <div className="space-y-3">
+              <Link 
+                to="/deposit/binance" 
+                className="flex items-center text-text-light hover:text-primary transition-colors"
+                onClick={toggleMenu}
+              >
+                <WalletIcon className="h-4 w-4 mr-3" />
+                Ngân hàng (Binance)
+              </Link>
+              <Link 
+                to="/deposit/usdt" 
+                className="flex items-center text-text-light hover:text-primary transition-colors"
+                onClick={toggleMenu}
+              >
+                <Bitcoin className="h-4 w-4 mr-3" />
+                Crypto (USDT)
+              </Link>
+              <Link 
+                to="/deposit/paypal" 
+                className="flex items-center text-text-light hover:text-primary transition-colors"
+                onClick={toggleMenu}
+              >
+                <CreditCard className="h-4 w-4 mr-3" />
+                PayPal
+              </Link>
+            </div>
+          </div>
+
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />

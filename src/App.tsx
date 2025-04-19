@@ -144,6 +144,10 @@ const App = () => {
               <Route path="/deposit" element={<DepositPage />} />
               <Route path="/top-up" element={<DepositPage />} />
               
+              <Route path="/deposit/binance" element={<DepositPage method="binance" />} />
+              <Route path="/deposit/usdt" element={<DepositPage method="usdt" />} />
+              <Route path="/deposit/paypal" element={<DepositPage method="paypal" />} />
+              
               <Route path="/order-success" element={<OrderSuccessPage />} />
               
               <Route path="*" element={<NotFound />} />
