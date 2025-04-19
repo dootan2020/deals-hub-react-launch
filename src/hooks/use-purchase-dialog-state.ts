@@ -24,28 +24,28 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number, user
           .eq('id', userId)
           .maybeSingle();
 
-        if (error) {
-          console.error('Error fetching balance:', error);
-          setError('Không thể tải số dư. Vui lòng thử lại.');
-          return;
-        }
+        if (error) throw error;
 
         // Only update balance if we have valid data
         if (data && typeof data.balance === 'number') {
           setBalance(data.balance);
         } else {
-          setBalance(0);
           console.warn('No valid balance data received');
+          setBalance(0);
         }
       } catch (err) {
-        console.error('Error in fetchBalance:', err);
+        console.error('Error fetching balance:', err);
         setError('Không thể tải số dư. Vui lòng thử lại.');
+        setBalance(0);
       } finally {
         setIsLoadingBalance(false);
       }
     };
 
-    fetchBalance();
+    // Fetch balance whenever dialog opens
+    if (open) {
+      fetchBalance();
+    }
   }, [open, userId]);
 
   // Reset form state when dialog opens
