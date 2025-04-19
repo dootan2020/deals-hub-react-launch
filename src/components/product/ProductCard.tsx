@@ -13,6 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { ProductStock } from './ProductStock';
 
 interface ProductCardProps {
   product: Product;
@@ -35,6 +36,12 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
   const contentClasses = viewMode === "list"
     ? "flex-1"
     : "";
+
+  // Make sure stock value is properly set
+  const stock = product.stockQuantity || product.stock || 0;
+  
+  // Ensure we have a valid kiosk_token
+  const hasKioskToken = Boolean(product.kiosk_token);
 
   return (
     <div className={cn(
@@ -77,9 +84,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
           <span className="text-lg font-semibold text-primary">
             {formatPrice(product.price)}
           </span>
-          <span className="text-sm text-gray-500">
-            Còn {product.stockQuantity || 0} sản phẩm
-          </span>
+          <ProductStock stock={stock} />
         </div>
 
         {/* Action Buttons */}
@@ -102,7 +107,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
             variant="default"
             size="sm"
             className="flex-1 min-w-[100px] bg-gradient-to-r from-primary to-primary-dark text-sm"
-            isInStock={product.inStock}
+            isInStock={product.inStock !== false} // Default to true if undefined
             product={product}
           >
             <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />

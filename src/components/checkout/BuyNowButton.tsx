@@ -18,7 +18,7 @@ interface BuyNowButtonProps {
   isInStock?: boolean;
   promotionCode?: string;
   onSuccess?: () => void;
-  children?: React.ReactNode; // Added children prop
+  children?: React.ReactNode;
 }
 
 export const BuyNowButton: React.FC<BuyNowButtonProps> = ({ 
@@ -30,14 +30,15 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   kioskToken,
   productId,
   product,
-  children, // Added children prop
+  children,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const navigate = useNavigate();
   const { createOrder } = useOrderApi();
   
-  const hasValidKioskToken = typeof kioskToken === 'string' && kioskToken.trim() !== '';
+  // More lenient check for kioskToken
+  const hasValidKioskToken = Boolean(kioskToken);
 
   const handleBuyNow = async (quantity: number, promotionCode?: string) => {
     if (!hasValidKioskToken || !productId) {
@@ -80,7 +81,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
         variant={variant} 
         size={size}
         className={className}
-        disabled={!isInStock || isLoading || !hasValidKioskToken}
+        disabled={!isInStock || isLoading}
         onClick={() => setShowConfirmDialog(true)}
       >
         {isLoading ? (
@@ -93,7 +94,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
             {children || (
               <>
                 <ShoppingBag className="w-4 h-4 mr-2" />
-                {!hasValidKioskToken ? 'Không có sẵn' : isInStock ? 'Mua Ngay' : 'Hết Hàng'}
+                {!isInStock ? 'Hết Hàng' : 'Mua Ngay'}
               </>
             )}
           </>
