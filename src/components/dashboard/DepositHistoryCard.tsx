@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { History } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
@@ -20,7 +19,7 @@ const DepositHistoryCard = ({
   onCheckOrder,
 }: DepositHistoryCardProps) => {
   return (
-    <Card className="lg:col-span-3">
+    <Card className="lg:col-span-3 transition-all duration-300 ease-in-out hover:shadow-md hover:bg-gray-50/50 hover:border-gray-200">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Lịch sử nạp tiền</CardTitle>
         <History className="h-4 w-4 text-muted-foreground" />

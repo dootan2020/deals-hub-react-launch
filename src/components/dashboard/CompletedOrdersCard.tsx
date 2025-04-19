@@ -1,4 +1,3 @@
-
 import { Clock } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
@@ -8,7 +7,7 @@ interface CompletedOrdersCardProps {
 
 const CompletedOrdersCard = ({ completed }: CompletedOrdersCardProps) => {
   return (
-    <Card>
+    <Card className="transition-all duration-300 ease-in-out hover:shadow-md hover:bg-gray-50/50 hover:border-gray-200">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium">Đơn hàng đã hoàn thành</CardTitle>
         <Clock className="h-4 w-4 text-green-500" />

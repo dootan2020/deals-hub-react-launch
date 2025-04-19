@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { StarIcon } from 'lucide-react';
@@ -50,7 +49,7 @@ const TestimonialsSection = () => {
           {testimonials.map((testimonial, index) => (
             <div
               key={index}
-              className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm transition-all duration-300 hover:shadow-md"
+              className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm transition-all duration-300 ease-in-out hover:shadow-md hover:bg-gray-50/50 hover:border-gray-200"
             >
               <div className="flex items-center mb-4">
                 <Avatar className="h-12 w-12 border-2 border-primary/20">
