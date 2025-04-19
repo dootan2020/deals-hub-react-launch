@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export const usePurchaseDialogState = (open: boolean, productPrice: number, userId?: string) => {
   const [quantity, setQuantity] = useState(1);
@@ -29,26 +30,41 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number, user
       try {
         console.log('Fetching balance for user:', userId);
         
-        // Ensure we have the latest session before making the request
-        await supabase.auth.getSession();
+        // Force refresh the session before fetching balance
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
+        if (sessionError) {
+          console.error('Session refresh error:', sessionError);
+          throw new Error('Không thể làm mới phiên đăng nhập');
+        }
+        
+        if (!sessionData.session) {
+          console.error('No active session found');
+          throw new Error('Phiên đăng nhập không hợp lệ');
+        }
+
+        // Clear any cached data with forceful refetch
         const { data, error } = await supabase
           .from('profiles')
           .select('balance')
           .eq('id', userId)
-          .maybeSingle();
+          .abortSignal(AbortSignal.timeout(10000)) // 10s timeout
+          .single();
 
         if (error) {
+          console.error('Balance fetch error:', error);
           throw error;
         }
 
-        // Only update balance if we have valid data
+        // Validate and update balance
         if (data && typeof data.balance === 'number') {
           console.log('Balance fetched successfully:', data.balance);
           setBalance(data.balance);
         } else {
           console.warn('No valid balance data received');
           setBalance(0);
+          // Optional: Show a toast notification for debugging
+          toast.error('Không thể tải số dư. Đang hiển thị số dư mặc định.');
         }
       } catch (err) {
         console.error('Error fetching balance:', err);
