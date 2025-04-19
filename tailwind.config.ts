@@ -128,6 +128,10 @@ export default {
 					'50%': {
 						transform: 'translateY(-5px)'
 					}
+				},
+				'hover-card': {
+					'0%': { transform: 'translateY(0) scale(1)' },
+					'100%': { transform: 'translateY(-4px) scale(1.01)' },
 				}
 			},
 			animation: {
@@ -135,7 +139,8 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.3s ease-out',
 				'scale-in': 'scale-in 0.2s ease-out',
-				'hover-bounce': 'hover-bounce 1s ease-in-out infinite'
+				'hover-bounce': 'hover-bounce 1s ease-in-out infinite',
+				'hover-card': 'hover-card 0.3s ease-out'
 			},
 			boxShadow: {
 				'card': '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)',
