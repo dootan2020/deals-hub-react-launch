@@ -3,9 +3,9 @@ import { User, Session } from '@supabase/supabase-js';
 
 export type UserRole = 'admin' | 'staff' | 'user' | 'guest';
 
-export type AuthUser = User & {
+export interface AuthUser extends User {
   role?: UserRole;
-};
+}
 
 export interface AuthContextType {
   user: AuthUser | null;
@@ -17,7 +17,7 @@ export interface AuthContextType {
   userRoles: UserRole[];
   userBalance: number;
   isLoadingBalance?: boolean;
-  refreshUserBalance: () => Promise<void>;
+  refreshUserBalance: () => Promise<number | void>;
   refreshUserProfile: () => Promise<void>;
   login: (email: string, password: string) => Promise<any>;
   logout: () => Promise<void>;

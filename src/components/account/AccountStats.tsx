@@ -2,16 +2,17 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from '@/lib/utils';
-import { Wallet, ShoppingBag, Clock, User } from "lucide-react";
+import { Wallet, ShoppingBag, Clock, User, Loader2 } from "lucide-react";
 
 interface AccountStatsProps {
   balance: number;
   totalDeposited: number;
   totalOrders: number;
   lastLoginAt: Date | null;
+  isLoadingBalance?: boolean;
 }
 
-const AccountStats = ({ balance, totalDeposited, totalOrders, lastLoginAt }: AccountStatsProps) => {
+const AccountStats = ({ balance, totalDeposited, totalOrders, lastLoginAt, isLoadingBalance }: AccountStatsProps) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <Card>
@@ -21,7 +22,14 @@ const AccountStats = ({ balance, totalDeposited, totalOrders, lastLoginAt }: Acc
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Current Balance</p>
-            <h3 className="text-2xl font-bold">{formatCurrency(balance)}</h3>
+            {isLoadingBalance ? (
+              <div className="flex items-center">
+                <Loader2 className="h-4 w-4 mr-2 animate-spin text-primary" />
+                <span className="text-2xl font-bold">Loading...</span>
+              </div>
+            ) : (
+              <h3 className="text-2xl font-bold">{formatCurrency(balance)}</h3>
+            )}
           </div>
         </CardContent>
       </Card>
