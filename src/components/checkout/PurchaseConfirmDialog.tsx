@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Loader2, Heart, Minus, Plus } from 'lucide-react';
-import { formatPrice } from '@/utils/productUtils'; // Changed import source
+import { formatPrice } from '@/utils/productUtils';
 import { useAuth } from '@/context/AuthContext';
 import { Product } from '@/types';
 
@@ -23,7 +24,7 @@ export const PurchaseConfirmDialog = ({
   product,
   isProcessing = false
 }: PurchaseConfirmDialogProps) => {
-  const { userBalance } = useAuth();
+  const { userBalance, refreshUserBalance } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [promotionCode, setPromotionCode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -32,13 +33,15 @@ export const PurchaseConfirmDialog = ({
   const canAfford = userBalance >= totalPrice;
   const maxQuantity = product.stockQuantity || 0;
   
+  // Refresh user balance when the dialog opens
   useEffect(() => {
     if (open) {
+      refreshUserBalance();
       setQuantity(1);
       setPromotionCode('');
       setError(null);
     }
-  }, [open]);
+  }, [open, refreshUserBalance]);
   
   const handleQuantityChange = (amount: number) => {
     const newQuantity = quantity + amount;
@@ -59,7 +62,7 @@ export const PurchaseConfirmDialog = ({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Xác nhận mua hàng</DialogTitle>
+          <DialogTitle className="text-left text-xl">Xác nhận mua hàng</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -77,7 +80,7 @@ export const PurchaseConfirmDialog = ({
           </div>
 
           {/* Balance Info */}
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between text-sm border-t pt-2">
             <span>Số dư hiện tại:</span>
             <span className={`font-medium ${canAfford ? 'text-green-600' : 'text-red-600'}`}>
               {formatPrice(userBalance)}
@@ -126,12 +129,21 @@ export const PurchaseConfirmDialog = ({
           </div>
 
           {/* Total Price */}
-          <div className="flex justify-between items-center font-bold text-lg">
+          <div className="flex justify-between items-center font-bold text-lg border-t border-b py-2">
             <span>Tổng thanh toán:</span>
-            <span>{formatPrice(totalPrice)}</span>
+            <span className={!canAfford ? 'text-red-600' : 'text-primary'}>{formatPrice(totalPrice)}</span>
           </div>
 
-          {error && (
+          {!canAfford && (
+            <Alert variant="destructive" className="bg-red-50 border-red-100">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Số dư của bạn không đủ để thanh toán. Vui lòng nạp thêm tiền vào tài khoản.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {error && error !== 'Số dư không đủ để thực hiện giao dịch này' && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
@@ -139,11 +151,11 @@ export const PurchaseConfirmDialog = ({
           )}
         </div>
 
-        <DialogFooter className="sm:justify-between">
+        <DialogFooter className="sm:justify-between mt-4">
           <Button
             variant="outline"
             size="lg"
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50"
             onClick={onClose}
           >
             Hủy
@@ -152,7 +164,7 @@ export const PurchaseConfirmDialog = ({
             <Button
               variant="outline"
               size="icon"
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto border-gray-300"
               onClick={() => {}}
             >
               <Heart className="h-4 w-4" />
@@ -160,7 +172,7 @@ export const PurchaseConfirmDialog = ({
             <Button
               variant="default"
               size="lg"
-              className="w-full sm:w-auto bg-gradient-to-r from-green-600 to-green-500"
+              className="w-full sm:w-auto bg-gradient-to-r from-green-600 to-green-500 py-2 px-6"
               onClick={handleConfirm}
               disabled={!canAfford || isProcessing}
             >
