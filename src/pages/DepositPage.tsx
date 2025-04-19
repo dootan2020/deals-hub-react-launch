@@ -2,18 +2,31 @@
 import Layout from '@/components/layout/Layout';
 import { Helmet } from 'react-helmet';
 import { Wallet, RefreshCw, ArrowRight } from 'lucide-react';
-import { useState } from 'react';
-import { toast } from '@/components/ui/sonner';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
-const DepositPage = () => {
+// Define the props interface for the component
+interface DepositPageProps {
+  method?: 'binance' | 'usdt' | 'paypal';
+}
+
+const DepositPage = ({ method }: DepositPageProps) => {
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
+
+  // Set the initial payment method based on the route param if provided
+  useEffect(() => {
+    if (method) {
+      setPaymentMethod(method);
+    }
+  }, [method]);
 
   const predefinedAmounts = [50, 100, 200, 500];
   
   const paymentMethods = [
-    { id: 'paypal', name: 'PayPal', icon: Wallet },
-    { id: 'crypto', name: 'Cryptocurrency', icon: RefreshCw },
+    { id: 'binance', name: 'Ngân hàng (Binance)', icon: Wallet },
+    { id: 'usdt', name: 'Cryptocurrency (USDT)', icon: RefreshCw },
+    { id: 'paypal', name: 'PayPal', icon: Wallet }
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
