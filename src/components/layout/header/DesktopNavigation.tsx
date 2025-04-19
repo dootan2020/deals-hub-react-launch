@@ -1,137 +1,85 @@
 
-import { NavLink } from 'react-router-dom';
-import {
+import { Link } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+import { 
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
-  NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import { Mail, Box, ShoppingBag, User } from 'lucide-react';
-import * as SimpleIcons from 'simple-icons';
-
-// Create icon components from simple-icons SVG paths
-const SimpleIcon = ({ icon, className = "" }: { icon: { path: string, title: string }, className?: string }) => (
-  <svg 
-    role="img" 
-    viewBox="0 0 24 24" 
-    className={className}
-    fill="currentColor"
-  >
-    <path d={icon.path} />
-  </svg>
-);
+  NavigationMenuTrigger
+} from '@/components/ui/navigation-menu';
+import { useCategoriesContext } from '@/context/CategoriesContext';
+import { Category } from '@/types';
 
 const DesktopNavigation = () => {
+  const { mainCategories, getSubcategoriesByParentId, isLoading } = useCategoriesContext();
+  
+  if (isLoading) {
+    return (
+      <div className="hidden md:flex items-center">
+        <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
+        <span className="text-sm">Loading menu...</span>
+      </div>
+    );
+  }
+
+  // Generate category menu URLs
+  const getCategoryUrl = (category: Category) => {
+    return `/category/${category.slug}`;
+  };
+
   return (
-    <nav className="hidden lg:flex items-center space-x-6">
+    <div className="hidden md:block">
       <NavigationMenu>
         <NavigationMenuList>
+          {/* Map through main categories from the database */}
+          {mainCategories.map((category) => {
+            const subcategories = getSubcategoriesByParentId(category.id);
+            
+            return (
+              <NavigationMenuItem key={category.id}>
+                <NavigationMenuTrigger className="bg-transparent hover:text-primary focus:bg-transparent data-[state=open]:bg-transparent data-[state=open]:text-primary">
+                  {category.name}
+                </NavigationMenuTrigger>
+                <NavigationMenuContent className="mt-0">
+                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                    {subcategories.length > 0 ? (
+                      subcategories.map((subcategory) => (
+                        <li key={subcategory.id}>
+                          <Link
+                            to={getCategoryUrl(subcategory)}
+                            className="block select-none space-y-1 rounded-md p-3 text-sm font-medium leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          >
+                            {subcategory.name}
+                          </Link>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="p-3 text-sm text-muted-foreground">
+                        No subcategories found
+                      </li>
+                    )}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            );
+          })}
+          
+          {/* Static menu items that don't change */}
           <NavigationMenuItem>
-            <NavigationMenuTrigger>Accounts</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <div className="grid gap-2 p-4 w-[320px]">
-                <NavigationMenuLink asChild>
-                  <NavLink to="/categories/telegram-accounts" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <SimpleIcon icon={SimpleIcons.siTelegram} className="w-4 h-4 text-[#26A5E4]" />
-                    <span>Telegram Accounts</span>
-                  </NavLink>
-                </NavigationMenuLink>
-                <NavigationMenuLink asChild>
-                  <NavLink to="/categories/discord-accounts" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <SimpleIcon icon={SimpleIcons.siDiscord} className="w-4 h-4 text-[#5865F2]" />
-                    <span>Discord Accounts</span>
-                  </NavLink>
-                </NavigationMenuLink>
-                <NavigationMenuLink asChild>
-                  <NavLink to="/categories/tiktok-accounts" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <SimpleIcon icon={SimpleIcons.siTiktok} className="w-4 h-4" />
-                    <span>TikTok Accounts</span>
-                  </NavLink>
-                </NavigationMenuLink>
-                <NavigationMenuLink asChild>
-                  <NavLink to="/categories/instagram-accounts" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <SimpleIcon icon={SimpleIcons.siInstagram} className="w-4 h-4 text-[#E4405F]" />
-                    <span>Instagram Accounts</span>
-                  </NavLink>
-                </NavigationMenuLink>
-                <NavigationMenuLink asChild>
-                  <NavLink to="/categories/other-accounts" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <User className="w-4 h-4" />
-                    <span>Other Accounts</span>
-                  </NavLink>
-                </NavigationMenuLink>
-              </div>
-            </NavigationMenuContent>
+            <Link to="/support" className="text-text hover:text-primary transition-colors duration-200 px-3 py-2 text-sm font-medium">
+              Support
+            </Link>
           </NavigationMenuItem>
-
+          
           <NavigationMenuItem>
-            <NavigationMenuTrigger>Emails</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <div className="grid gap-2 p-4 w-[320px]">
-                <NavigationMenuLink asChild>
-                  <NavLink to="/categories/gmail" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <SimpleIcon icon={SimpleIcons.siGmail} className="w-4 h-4 text-[#EA4335]" />
-                    <span>Gmail Accounts</span>
-                  </NavLink>
-                </NavigationMenuLink>
-                <NavigationMenuLink asChild>
-                  <NavLink to="/categories/outlook" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <SimpleIcon icon={SimpleIcons.siMicrosoftoutlook} className="w-4 h-4 text-[#0078D4]" />
-                    <span>Outlook Accounts</span>
-                  </NavLink>
-                </NavigationMenuLink>
-                <NavigationMenuLink asChild>
-                  <NavLink to="/categories/yahoo" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <SimpleIcon icon={SimpleIcons.siYmail} className="w-4 h-4 text-[#6001D2]" />
-                    <span>Yahoo Accounts</span>
-                  </NavLink>
-                </NavigationMenuLink>
-                <NavigationMenuLink asChild>
-                  <NavLink to="/categories/other-emails" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <Mail className="w-4 h-4" />
-                    <span>Other Email Accounts</span>
-                  </NavLink>
-                </NavigationMenuLink>
-              </div>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Software & Keys</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <div className="grid gap-2 p-4 w-[320px]">
-                <NavigationMenuLink asChild>
-                  <NavLink to="/categories/windows" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <SimpleIcon icon={SimpleIcons.siWindows} className="w-4 h-4 text-[#0078D4]" />
-                    <span>Windows Keys</span>
-                  </NavLink>
-                </NavigationMenuLink>
-                <NavigationMenuLink asChild>
-                  <NavLink to="/categories/office" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <SimpleIcon icon={SimpleIcons.siMicrosoftoffice365} className="w-4 h-4 text-[#D83B01]" />
-                    <span>Office Keys</span>
-                  </NavLink>
-                </NavigationMenuLink>
-                <NavigationMenuLink asChild>
-                  <NavLink to="/categories/antivirus" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <SimpleIcon icon={SimpleIcons.siAvast} className="w-4 h-4 text-[#FF7800]" />
-                    <span>Antivirus Keys</span>
-                  </NavLink>
-                </NavigationMenuLink>
-                <NavigationMenuLink asChild>
-                  <NavLink to="/categories/other-software" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <Box className="w-4 h-4" />
-                    <span>Other Software</span>
-                  </NavLink>
-                </NavigationMenuLink>
-              </div>
-            </NavigationMenuContent>
+            <Link to="/faqs" className="text-text hover:text-primary transition-colors duration-200 px-3 py-2 text-sm font-medium">
+              FAQs
+            </Link>
           </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>
-    </nav>
+    </div>
   );
 };
 
