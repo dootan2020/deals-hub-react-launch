@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import { useAuth } from '@/context/AuthContext';
@@ -26,10 +25,8 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { user } = useAuth();
   
-  // Check if the amount is valid before showing the PayPal button
   const isValidAmount = !isNaN(amount) && amount >= 1;
   
-  // Fetch PayPal client ID from environment
   useEffect(() => {
     const fetchPayPalClientId = async () => {
       try {
@@ -60,7 +57,6 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
   }, []);
   
   useEffect(() => {
-    // Reset state when amount changes
     if (!isValidAmount) {
       setIsShowPayPal(false);
     }
@@ -70,7 +66,7 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
     setErrorMessage(null);
     
     if (!user) {
-      toast.error("Bạn cần đăng nhập để nạp tiền");
+      toast.error("Vui lòng đăng nhập để nạp tiền");
       return;
     }
 
@@ -82,7 +78,6 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
     setIsShowPayPal(true);
   };
 
-  // If PayPal Client ID is not available yet, show a loading state
   if (isShowPayPal && !paypalClientId) {
     return (
       <div className="flex items-center justify-center py-6 border border-gray-200 rounded-md p-4 bg-white">
@@ -92,7 +87,6 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
     );
   }
   
-  // Show error message if there's any
   if (errorMessage) {
     return (
       <div className="flex flex-col items-center justify-center py-6 border border-red-200 rounded-md p-4 bg-red-50">
@@ -112,21 +106,19 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
       {!isShowPayPal ? (
         <Button 
           onClick={handlePayPalClick} 
-          disabled={disabled || !isValidAmount}
+          disabled={disabled || !isValidAmount || !user}
           className="w-full flex items-center justify-center py-6"
           size="lg"
         >
           <DollarSign className="mr-2" />
-          Thanh toán bằng PayPal
+          {!user ? 'Vui lòng đăng nhập để nạp tiền' : 'Thanh toán bằng PayPal'}
         </Button>
       ) : (
         <div className="border border-gray-200 rounded-md p-4 bg-white">
           <PayPalScriptProvider options={{ 
             clientId: paypalClientId,
             currency: "USD",
-            intent: "capture",
-            components: "buttons",
-            'enable-funding': "paylater,venmo,card"
+            intent: "capture"
           }}>
             <PayPalButtons 
               style={{
@@ -135,53 +127,43 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
                 shape: 'rect',
                 label: 'pay'
               }}
-              disabled={disabled || isProcessing}
+              disabled={disabled || isProcessing || !user}
               forceReRender={[amount.toString()]}
               createOrder={async (data, actions) => {
                 try {
                   setIsProcessing(true);
-                  console.log("Creating deposit record for user:", user?.id);
                   
                   if (!user?.id) {
-                    toast.error("Không xác định được người dùng. Vui lòng đăng nhập lại.");
-                    setIsProcessing(false);
-                    throw new Error("User ID not found");
+                    throw new Error("Vui lòng đăng nhập để tiếp tục");
                   }
                   
-                  // First create a deposit record
                   const result = await createDepositRecord(user.id, amount);
                   
                   if (!result.success || !result.id) {
-                    toast.error(result.error || "Không thể tạo giao dịch. Vui lòng thử lại.");
-                    setIsProcessing(false);
-                    throw new Error(result.error || "Failed to create deposit record");
+                    throw new Error(result.error || "Không thể tạo giao dịch");
                   }
                   
-                  console.log("Deposit record created with ID:", result.id);
                   setDepositId(result.id);
                   
-                  // Create PayPal order
                   return actions.order.create({
                     intent: "CAPTURE",
-                    purchase_units: [
-                      {
-                        amount: {
-                          currency_code: "USD",
-                          value: amount.toString()
-                        },
-                        description: "Nạp tiền vào tài khoản Digital Deals Hub",
-                        custom_id: result.id
-                      }
-                    ],
+                    purchase_units: [{
+                      amount: {
+                        currency_code: "USD",
+                        value: amount.toString()
+                      },
+                      description: "Nạp tiền vào tài khoản Digital Deals Hub",
+                      custom_id: result.id
+                    }],
                     application_context: {
                       shipping_preference: "NO_SHIPPING"
                     }
                   });
                 } catch (error) {
-                  console.error("Error creating PayPal order:", error);
-                  const errorMsg = error instanceof Error ? error.message : "Unknown error";
-                  toast.error(`Không thể tạo đơn hàng PayPal: ${errorMsg}`);
+                  const errorMsg = error instanceof Error ? error.message : "Lỗi không xác định";
+                  toast.error(errorMsg);
                   setIsProcessing(false);
+                  setIsShowPayPal(false);
                   throw error;
                 }
               }}
@@ -219,7 +201,6 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
                       } else {
                         toast.dismiss(toastId);
                         toast.error(`Thanh toán thành công nhưng không thể cập nhật thông tin giao dịch: ${updateResult.error || "Unknown error"}`);
-                        // Still call onSuccess since payment was successful
                         onSuccess();
                       }
                     } catch (error) {
@@ -229,7 +210,6 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
                       const errorMsg = error instanceof Error ? error.message : "Unknown error";
                       toast.error(`Có lỗi xảy ra khi xử lý giao dịch: ${errorMsg}`);
                       
-                      // Even with error, still call onSuccess if we have details
                       if (details && details.id) {
                         onSuccess();
                       }

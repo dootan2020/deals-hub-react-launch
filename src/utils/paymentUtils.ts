@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -51,7 +50,7 @@ export const createDepositRecord = async (
     const netAmount = calculateNetAmount(grossAmount);
     console.log(`Calculated net amount: $${netAmount} (after fee)`);
     
-    const { data, error } = await supabase
+    const { data, error: insertError } = await supabase
       .from('deposits')
       .insert({
         user_id: userId,
@@ -63,13 +62,24 @@ export const createDepositRecord = async (
       .select('id')
       .single();
 
-    if (error) {
-      console.error("Error creating deposit record:", error);
-      return { id: null, success: false, error: error.message };
+    if (insertError) {
+      console.error("Error creating deposit record:", insertError);
+      
+      // More descriptive error message for RLS violations
+      if (insertError.message?.includes('row-level security')) {
+        return { 
+          id: null, 
+          success: false, 
+          error: "Authorization error: Please ensure you're logged in" 
+        };
+      }
+      
+      return { id: null, success: false, error: insertError.message };
     }
     
     console.log("Deposit record created successfully with ID:", data.id);
     return { id: data.id, success: true };
+    
   } catch (error) {
     console.error("Exception in createDepositRecord:", error);
     return { 
