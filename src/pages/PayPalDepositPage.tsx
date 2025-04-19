@@ -162,7 +162,7 @@ const PayPalDepositPage = () => {
                   {isValidAmount() && (
                     <div className="mt-4 pt-4 border-t">
                       <PayPalScriptProvider options={{ 
-                        "client-id": PAYPAL_CLIENT_ID,
+                        clientId: PAYPAL_CLIENT_ID,
                         currency: "USD",
                         intent: "capture"
                       }}>
@@ -174,6 +174,7 @@ const PayPalDepositPage = () => {
                               purchase_units: [
                                 {
                                   amount: {
+                                    currency_code: "USD",
                                     value: amount
                                   }
                                 }
