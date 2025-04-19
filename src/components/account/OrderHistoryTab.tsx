@@ -1,110 +1,17 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { supabase } from '@/integrations/supabase/client';
-import { formatCurrency } from '@/lib/utils';
 import { ShoppingBag, Loader2, AlertCircle } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-
-// Define clear interfaces for data types
-interface OrderItem {
-  product_id: string;
-}
-
-interface Product {
-  title: string;
-}
-
-interface Order {
-  id: string;
-  created_at: string;
-  status: string;
-  total_amount: number;
-  product_title?: string;
-}
+import { formatCurrency } from '@/lib/utils';
+import { useOrderHistory } from '@/hooks/useOrderHistory';
 
 interface OrderHistoryTabProps {
   userId: string;
 }
 
 const OrderHistoryTab = ({ userId }: OrderHistoryTabProps) => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const fetchOrderData = async () => {
-      setIsLoading(true);
-      try {
-        await fetchAndEnhanceOrders();
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load order history';
-        console.error("Error fetching orders:", err);
-        setError(errorMessage);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchOrderData();
-  }, [userId]);
-
-  // Separated function to fetch and enhance orders
-  const fetchAndEnhanceOrders = async () => {
-    // Fetch basic order information
-    const { data: orderData, error: orderError } = await supabase
-      .from('orders')
-      .select('id, created_at, status, total_amount')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (orderError) {
-      throw new Error(orderError.message);
-    }
-
-    // Create a new array of orders, ensuring it's not undefined
-    const fetchedOrders: Order[] = orderData || [];
-    
-    // Enhanced orders with product information
-    const enhancedOrders = await enhanceOrdersWithProducts(fetchedOrders);
-    
-    setOrders(enhancedOrders);
-  };
-
-  // Function to add product information to orders
-  const enhanceOrdersWithProducts = async (fetchedOrders: Order[]): Promise<Order[]> => {
-    const result: Order[] = [];
-    
-    for (const order of fetchedOrders) {
-      // Make a copy of the order to modify
-      const enhancedOrder = { ...order };
-      
-      // Fetch the first product for this order
-      const { data: orderItemData, error: itemError } = await supabase
-        .from('order_items')
-        .select('product_id')
-        .eq('order_id', order.id)
-        .limit(1)
-        .single();
-      
-      if (!itemError && orderItemData) {
-        // Get product title
-        const { data: productData, error: productError } = await supabase
-          .from('products')
-          .select('title')
-          .eq('id', orderItemData.product_id)
-          .single();
-          
-        if (!productError && productData) {
-          enhancedOrder.product_title = productData.title;
-        }
-      }
-      
-      result.push(enhancedOrder);
-    }
-    
-    return result;
-  };
+  const { orders, isLoading, error } = useOrderHistory(userId);
 
   const renderOrderStatus = (status: string) => {
     switch (status.toLowerCase()) {
