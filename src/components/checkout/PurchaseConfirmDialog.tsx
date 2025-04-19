@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -34,37 +33,32 @@ export const PurchaseConfirmDialog = ({
   const canAfford = localBalance >= totalPrice;
   const maxQuantity = product.stockQuantity || 0;
   
-  // Refresh balance when dialog opens and update local state
-  const fetchAndUpdateBalance = useCallback(async () => {
+  // First, set up an effect to update localBalance whenever userBalance changes
+  useEffect(() => {
+    setLocalBalance(userBalance);
+    console.log('userBalance from context updated localBalance:', userBalance);
+  }, [userBalance]);
+  
+  // Separate effect to trigger the refresh when dialog opens
+  useEffect(() => {
     if (open) {
       console.log('Dialog opened, refreshing user balance');
-      try {
-        await refreshUserBalance();
-        setLocalBalance(userBalance);
-        console.log('User balance refreshed and set locally:', userBalance);
-      } catch (error) {
-        console.error('Error refreshing balance:', error);
-      }
-    }
-  }, [open, refreshUserBalance, userBalance]);
-
-  // Initial fetch when dialog opens
-  useEffect(() => {
-    fetchAndUpdateBalance();
-    
-    if (open) {
+      // Just trigger the refresh - don't try to update localBalance here
+      // The first useEffect will handle that once userBalance is updated
+      refreshUserBalance()
+        .then(() => {
+          console.log('User balance refresh completed');
+        })
+        .catch(error => {
+          console.error('Error refreshing balance:', error);
+        });
+        
+      // Reset form state
       setQuantity(1);
       setPromotionCode('');
       setError(null);
     }
-  }, [open, fetchAndUpdateBalance]);
-  
-  // Update local balance whenever userBalance changes
-  useEffect(() => {
-    setLocalBalance(userBalance);
-    console.log('userBalance updated in context:', userBalance);
-    console.log('localBalance updated:', userBalance);
-  }, [userBalance]);
+  }, [open, refreshUserBalance]);
   
   const handleQuantityChange = (amount: number) => {
     const newQuantity = quantity + amount;
