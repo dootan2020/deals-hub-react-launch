@@ -7,7 +7,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDownAZ, ArrowUpZA, Clock } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpZA, Clock, TrendingUp } from 'lucide-react';
+import { SortOption } from '@/utils/productFilters';
 
 interface ProductSorterProps {
   currentSort: string;
@@ -44,6 +45,12 @@ const ProductSorter: React.FC<ProductSorterProps> = ({ currentSort, onSortChange
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               Newest
+            </div>
+          </SelectItem>
+          <SelectItem value="popular">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Popular
             </div>
           </SelectItem>
         </SelectContent>

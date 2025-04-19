@@ -9,6 +9,7 @@ import StockFilter from './StockFilter';
 import CategoryFiltersSection from './CategoryFiltersSection';
 import { Category } from '@/types';
 import ProductSorter from '@/components/product/ProductSorter';
+import { SortOption } from '@/utils/productFilters';
 
 interface SubcategoryFiltersProps {
   subcategories: Category[];

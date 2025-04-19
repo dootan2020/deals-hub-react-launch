@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -16,6 +15,7 @@ import PriceRangeFilter from '@/components/category/PriceRangeFilter';
 import StockFilter from '@/components/category/StockFilter';
 import { FAQ } from '@/components/category/FAQ';
 import { SupportSection } from '@/components/category/SupportSection';
+import { SortOption } from '@/utils/productFilters';
 
 const SubcategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -25,7 +25,7 @@ const SubcategoryPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortOption, setSortOption] = useState<"recommended" | "price-high-low" | "price-low-high" | "newest">("recommended");
+  const [sortOption, setSortOption] = useState<SortOption>("recommended");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [stockFilter, setStockFilter] = useState("all");
   
@@ -94,7 +94,7 @@ const SubcategoryPage = () => {
   };
   
   const handleSortChange = (sortValue: string) => {
-    setSortOption(sortValue as "recommended" | "price-high-low" | "price-low-high" | "newest");
+    setSortOption(sortValue as SortOption);
     setCurrentPage(1);
   };
   
