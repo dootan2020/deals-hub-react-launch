@@ -43,13 +43,12 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number, user
           throw new Error('Phiên đăng nhập không hợp lệ');
         }
 
-        // Clear any cached data with forceful refetch
+        // Get fresh balance data directly from database
         const { data, error } = await supabase
           .from('profiles')
           .select('balance')
           .eq('id', userId)
-          .abortSignal(AbortSignal.timeout(10000)) // 10s timeout
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Balance fetch error in dialog:', error);

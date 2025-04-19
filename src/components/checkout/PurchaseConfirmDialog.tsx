@@ -27,15 +27,8 @@ export const PurchaseConfirmDialog = ({
   product,
   isProcessing = false
 }: PurchaseConfirmDialogProps) => {
-  const { user, userBalance, refreshUserBalance } = useAuth();
+  const { user } = useAuth();
   const maxQuantity = product.stockQuantity || 0;
-  
-  // Refresh user balance when dialog opens
-  React.useEffect(() => {
-    if (open && user) {
-      refreshUserBalance();
-    }
-  }, [open, user, refreshUserBalance]);
   
   const {
     quantity,
@@ -51,19 +44,12 @@ export const PurchaseConfirmDialog = ({
   } = usePurchaseDialogState(open, product.price, user?.id);
   
   const handleConfirm = () => {
-    // Fetch the latest balance before confirming
-    refreshUserBalance().then(() => {
-      if (userBalance < totalPrice) {
-        setError('Số dư không đủ để thực hiện giao dịch này');
-        return;
-      }
-      onConfirm(quantity, promotionCode || undefined);
-    });
+    if (!canAfford) {
+      setError('Số dư không đủ để thực hiện giao dịch này');
+      return;
+    }
+    onConfirm(quantity, promotionCode || undefined);
   };
-
-  // Use the latest balance from context for display
-  const displayBalance = isLoadingBalance ? balance : userBalance;
-  const displayCanAfford = displayBalance >= totalPrice;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -86,8 +72,8 @@ export const PurchaseConfirmDialog = ({
                 Đang tải...
               </span>
             ) : (
-              <span className={`font-medium ${displayCanAfford ? 'text-green-600' : 'text-red-600'}`}>
-                {formatPrice(displayBalance)}
+              <span className={`font-medium ${canAfford ? 'text-green-600' : 'text-red-600'}`}>
+                {formatPrice(balance)}
               </span>
             )}
           </div>
@@ -105,12 +91,12 @@ export const PurchaseConfirmDialog = ({
 
           <div className="flex justify-between items-center font-bold text-lg border-t border-b py-3 mt-4">
             <span className="text-gray-700">Tổng thanh toán:</span>
-            <span className={!displayCanAfford ? 'text-red-600' : 'text-primary'}>
+            <span className={!canAfford ? 'text-red-600' : 'text-primary'}>
               {formatPrice(totalPrice)}
             </span>
           </div>
 
-          {!displayCanAfford && !isLoadingBalance && (
+          {!canAfford && !isLoadingBalance && (
             <Alert variant="destructive" className="bg-red-50 border border-red-100 text-left">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription className="text-red-800">
@@ -150,7 +136,7 @@ export const PurchaseConfirmDialog = ({
               size="lg"
               className="flex-1 sm:w-auto bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary transition-all duration-300 py-2 px-8"
               onClick={handleConfirm}
-              disabled={!displayCanAfford || isProcessing || isLoadingBalance}
+              disabled={!canAfford || isProcessing || isLoadingBalance}
             >
               {isProcessing ? (
                 <>
