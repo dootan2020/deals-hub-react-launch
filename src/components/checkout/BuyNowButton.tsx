@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, Loader2 } from 'lucide-react';
@@ -9,10 +10,12 @@ interface BuyNowButtonProps {
   product?: any;
   kioskToken?: string;
   productId?: string;
+  quantity?: number;  // Added back the quantity prop
   className?: string;
   variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link' | 'destructive';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   isInStock?: boolean;
+  promotionCode?: string;  // Added back the promotionCode prop
   onSuccess?: () => void;
   children?: React.ReactNode;
 }
@@ -26,6 +29,8 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   kioskToken,
   productId,
   product,
+  quantity = 1,  // Default to 1 if not provided
+  promotionCode,
   children,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +40,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   // More lenient check for kioskToken
   const hasValidKioskToken = Boolean(kioskToken);
 
-  const handleBuyNow = async (quantity: number, promotionCode?: string) => {
+  const handleBuyNow = async (quantity: number = 1, promotionCode?: string) => {
     if (!hasValidKioskToken || !productId) {
       console.error('Missing or invalid kioskToken or productId', { 
         kioskToken, 
