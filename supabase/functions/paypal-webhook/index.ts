@@ -35,10 +35,11 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function processSuccessfulPayment(
+async function processDeposit(
   transactionId: string, 
   payerEmail?: string, 
-  payerId?: string
+  payerId?: string,
+  amount?: string
 ): Promise<boolean> {
   try {
     // Find the deposit record
@@ -49,7 +50,7 @@ async function processSuccessfulPayment(
       .single();
     
     if (fetchError || !deposit) {
-      console.error("Deposit record not found:", transactionId);
+      console.error("Deposit record not found:", transactionId, fetchError);
       return false;
     }
     
@@ -75,7 +76,7 @@ async function processSuccessfulPayment(
     }
     
     // Update user balance
-    const { data: updateResult, error: balanceError } = await supabase.rpc(
+    const { error: balanceError } = await supabase.rpc(
       'update_user_balance',
       {
         user_id_param: deposit.user_id,
@@ -91,7 +92,7 @@ async function processSuccessfulPayment(
     console.log(`Successfully processed payment ${transactionId} for user ${deposit.user_id}`);
     return true;
   } catch (error) {
-    console.error("Error in processSuccessfulPayment:", error);
+    console.error("Error in processDeposit:", error);
     return false;
   }
 }
@@ -124,11 +125,13 @@ Deno.serve(async (req) => {
       const transactionId = payload.resource.id;
       const payerEmail = payload.resource.payer?.email_address;
       const payerId = payload.resource.payer?.payer_id;
+      const amount = payload.resource.purchase_units?.[0]?.amount?.value;
       
-      const success = await processSuccessfulPayment(
+      const success = await processDeposit(
         transactionId,
         payerEmail,
-        payerId
+        payerId,
+        amount
       );
       
       if (success) {
