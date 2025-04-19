@@ -1,62 +1,25 @@
-
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
-import { Star, ShoppingCart, ArrowLeft, Heart, Share2, Shield, Box, RefreshCw, Loader2 } from 'lucide-react';
-import { formatCurrency, calculateDiscountPercentage } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import ProductGrid from '@/components/product/ProductGrid';
-import { Product, Category } from '@/types';
+import { Product } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Helmet } from 'react-helmet';
-import { BuyNowButton } from '@/components/checkout/BuyNowButton';
-import { ProductStock } from '@/components/product/ProductStock'; // Add this import
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator
-} from '@/components/ui/breadcrumb';
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent
-} from '@/components/ui/tabs';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselPrevious,
-  CarouselNext
-} from '@/components/ui/carousel';
-import { formatUSD } from '@/utils/currency';
+import { ProductHeader } from '@/components/product/ProductHeader';
+import { ProductPurchaseSection } from '@/components/product/ProductPurchaseSection';
+import { ProductDescription } from '@/components/product/ProductDescription';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 interface ProductPageParams extends Record<string, string> {
   productSlug?: string;
-  categorySlug?: string;
-  parentCategorySlug?: string;
-}
-
-interface CategoryWithParent extends Category {
-  parent?: CategoryWithParent | null;
-}
-
-interface ProductWithCategory extends Product {
-  category?: CategoryWithParent | null;
 }
 
 const ProductPage = () => {
   const { productSlug } = useParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [product, setProduct] = useState<ProductWithCategory | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  const [product, setProduct] = useState<Product | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -89,7 +52,7 @@ const ProductPage = () => {
           });
         }
         
-        const mappedProduct: ProductWithCategory = {
+        const mappedProduct: Product = {
           id: productData.id,
           title: productData.title,
           description: productData.description,
@@ -159,13 +122,6 @@ const ProductPage = () => {
     );
   }
 
-  const handleQuantityChange = (amount: number) => {
-    const newQuantity = quantity + amount;
-    if (newQuantity >= 1) {
-      setQuantity(newQuantity);
-    }
-  };
-
   return (
     <Layout>
       <Helmet>
@@ -175,111 +131,15 @@ const ProductPage = () => {
       
       <div className="bg-background min-h-screen">
         <div className="container-custom py-8 lg:py-12">
-          {/* Breadcrumbs */}
-          <Breadcrumb className="mb-8">
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link to="/">Home</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              
-              {product.category && (
-                <>
-                  {product.category.parent && (
-                    <>
-                      <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                          <Link to={`/category/${product.category.parent.slug}`}>
-                            {product.category.parent.name}
-                          </Link>
-                        </BreadcrumbLink>
-                      </BreadcrumbItem>
-                      <BreadcrumbSeparator />
-                    </>
-                  )}
-                  
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link to={`/category/${product.category.slug}`}>
-                        {product.category.name}
-                      </Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
-                </>
-              )}
-              
-              <BreadcrumbItem>
-                <BreadcrumbPage>{product.title}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <ProductHeader 
+            title={product.title}
+            category={product.categories}
+          />
 
           <div className="max-w-4xl mx-auto">
-            {/* Product Title */}
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-              {product.title}
-            </h1>
-
-            {/* Stock and Price Information */}
-            <div className="bg-card rounded-lg p-6 shadow-sm mb-8">
-              <div className="flex flex-col gap-4">
-                {/* Stock Badges */}
-                <ProductStock 
-                  stock={product.stockQuantity || product.stock || 0}
-                  soldCount={product.salesCount || 0}
-                />
-                
-                {/* Price */}
-                <div className="text-2xl md:text-3xl font-bold text-primary">
-                  ${(product.price / 24000).toFixed(2)}
-                </div>
-
-                {/* Purchase Actions */}
-                <div className="flex items-center gap-4 mt-2">
-                  <div className="flex items-center border border-input rounded-md w-36">
-                    <button 
-                      className="px-4 py-2 text-muted-foreground hover:text-primary"
-                      onClick={() => handleQuantityChange(-1)}
-                      disabled={quantity <= 1}
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      value={quantity}
-                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-full text-center border-0 focus:ring-0"
-                      min="1"
-                    />
-                    <button 
-                      className="px-4 py-2 text-muted-foreground hover:text-primary"
-                      onClick={() => handleQuantityChange(1)}
-                    >
-                      +
-                    </button>
-                  </div>
-                  
-                  <BuyNowButton
-                    kioskToken={product.kiosk_token}
-                    productId={product.id}
-                    quantity={quantity}
-                    isInStock={product.inStock}
-                    className="flex-1"
-                    product={product}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Product Description */}
-            <div className="bg-card rounded-lg p-6 shadow-sm">
-              <h2 className="text-xl font-semibold mb-4">Description</h2>
-              <div className="prose max-w-none text-muted-foreground"
-                dangerouslySetInnerHTML={{ __html: product.description }}
-              />
+            <ProductPurchaseSection product={product} />
+            <div className="mt-8">
+              <ProductDescription description={product.description} />
             </div>
           </div>
         </div>
