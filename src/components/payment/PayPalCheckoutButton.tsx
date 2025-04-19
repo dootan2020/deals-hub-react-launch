@@ -6,9 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { DollarSign, Loader2 } from 'lucide-react';
 import { createDepositRecord, updateDepositWithTransaction } from '@/utils/paymentUtils';
-
-// Get the PayPal Client ID - this should be provided from your PayPal Developer Dashboard
-const PAYPAL_CLIENT_ID = "AX0u8TI_V2I9WkqaEuRYIL9a5XPqMXyamnzBtGQ-mf81ZxoAlVhb0ISwoJMHSmbr3F32EOv40ZnQVS_v";
+import { supabase } from '@/integrations/supabase/client';
 
 interface PayPalCheckoutButtonProps {
   amount: number;
@@ -24,10 +22,37 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
   const [isShowPayPal, setIsShowPayPal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [depositId, setDepositId] = useState<string | null>(null);
+  const [paypalClientId, setPaypalClientId] = useState<string>("");
   const { user } = useAuth();
   
   // Check if the amount is valid before showing the PayPal button
   const isValidAmount = !isNaN(amount) && amount >= 1;
+  
+  // Fetch PayPal client ID from environment
+  useEffect(() => {
+    const fetchPayPalClientId = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-config', {
+          body: { key: 'PAYPAL_CLIENT_ID' }
+        });
+        
+        if (error) {
+          console.error('Error fetching PayPal Client ID:', error);
+          return;
+        }
+        
+        if (data?.value) {
+          setPaypalClientId(data.value);
+        } else {
+          console.error('PayPal Client ID not found');
+        }
+      } catch (error) {
+        console.error('Failed to fetch PayPal Client ID:', error);
+      }
+    };
+    
+    fetchPayPalClientId();
+  }, []);
   
   useEffect(() => {
     // Reset state when amount changes
@@ -50,6 +75,16 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
     setIsShowPayPal(true);
   };
 
+  // If PayPal Client ID is not available yet, show a loading state
+  if (isShowPayPal && !paypalClientId) {
+    return (
+      <div className="flex items-center justify-center py-6 border border-gray-200 rounded-md p-4 bg-white">
+        <Loader2 className="animate-spin h-6 w-6 mr-2" />
+        <span>Đang kết nối với PayPal...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {!isShowPayPal ? (
@@ -65,7 +100,7 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
       ) : (
         <div className="border border-gray-200 rounded-md p-4 bg-white">
           <PayPalScriptProvider options={{ 
-            clientId: PAYPAL_CLIENT_ID,
+            clientId: paypalClientId,
             currency: "USD",
             intent: "capture",
             components: "buttons",
