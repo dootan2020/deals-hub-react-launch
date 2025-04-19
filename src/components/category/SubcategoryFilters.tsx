@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Filter, X } from 'lucide-react';
@@ -119,7 +120,7 @@ const SubcategoryFilters = ({
       </div>
       
       <ProductSorter 
-        activeSort={activeSort}
+        currentSort={activeSort}
         onSortChange={onSortChange}
       />
     </div>
