@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -13,18 +12,14 @@ import { Button } from '@/components/ui/button';
 import { Wallet, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
-// Replace with your actual PayPal Client ID
 const PAYPAL_CLIENT_ID = "AX0u8TI_V2I9WkqaEuRYIL9a5XPqMXyamnzBtGQ-mf81ZxoAlVhb0ISwoJMHSmbr3F32EOv40ZnQVS_v";
 
-// PayPal calculates approximately 3.9% + $0.30 per transaction for most international payments
-// Simplified calculation for demonstration purposes
 const calculateFee = (amount: number): number => {
-  const feePercentage = 0.039; // 3.9%
-  const fixedFee = 0.30; // 30 cents
+  const feePercentage = 0.039;
+  const fixedFee = 0.30;
   return amount * feePercentage + fixedFee;
 };
 
-// Calculate net amount after fees
 const calculateNetAmount = (amount: number): number => {
   return amount - calculateFee(amount);
 };
@@ -37,16 +32,13 @@ const PayPalDepositPage = () => {
   const { user, userBalance } = useAuth();
   const navigate = useNavigate();
 
-  // Predefined amounts for quick selection
   const predefinedAmounts = [10, 25, 50, 100];
 
-  // Validate amount is a positive number and at least $1
   const isValidAmount = () => {
     const numAmount = parseFloat(amount);
     return numAmount && numAmount >= 1;
   };
 
-  // Create a deposit record in the database
   const createDepositRecord = async (grossAmount: number): Promise<string | null> => {
     try {
       if (!user) {
@@ -62,9 +54,9 @@ const PayPalDepositPage = () => {
           user_id: user.id,
           amount: grossAmount,
           net_amount: netAmount,
-          status: 'pending',
-          payment_method: 'paypal'
-        })
+          payment_method: 'paypal',
+          status: 'pending'
+        } as any)
         .select('id')
         .single();
 
@@ -82,14 +74,13 @@ const PayPalDepositPage = () => {
     }
   };
 
-  // Update deposit record with transaction info from PayPal
   const updateDepositWithTransaction = async (depositId: string, transactionId: string): Promise<boolean> => {
     try {
       const { error } = await supabase
         .from('deposits')
         .update({
           transaction_id: transactionId
-        })
+        } as any)
         .eq('id', depositId);
 
       if (error) {
@@ -106,7 +97,6 @@ const PayPalDepositPage = () => {
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Only allow numbers and decimal point
     if (/^\d*\.?\d*$/.test(value)) {
       setAmount(value);
     }
@@ -157,7 +147,6 @@ const PayPalDepositPage = () => {
                 </CardHeader>
                 
                 <CardContent className="space-y-6">
-                  {/* Predefined amounts */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {predefinedAmounts.map(amt => (
                       <button
@@ -175,7 +164,6 @@ const PayPalDepositPage = () => {
                     ))}
                   </div>
                   
-                  {/* Custom amount input */}
                   <div>
                     <label className="block text-sm font-medium mb-2">
                       Hoặc nhập số tiền khác (USD)
@@ -195,7 +183,6 @@ const PayPalDepositPage = () => {
                     )}
                   </div>
                   
-                  {/* Fee information */}
                   {isValidAmount() && (
                     <div className="bg-gray-50 p-4 rounded-md">
                       <h3 className="text-sm font-medium mb-2">Chi tiết thanh toán</h3>
@@ -216,7 +203,6 @@ const PayPalDepositPage = () => {
                     </div>
                   )}
                   
-                  {/* Info box */}
                   <div className="flex p-3 bg-blue-50 border border-blue-200 rounded-md">
                     <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
                     <div className="text-sm text-blue-800">
@@ -224,7 +210,6 @@ const PayPalDepositPage = () => {
                     </div>
                   </div>
                   
-                  {/* PayPal buttons */}
                   {isValidAmount() && (
                     <div className="mt-4 pt-4 border-t">
                       <PayPalScriptProvider options={{ 
@@ -236,7 +221,6 @@ const PayPalDepositPage = () => {
                           disabled={isProcessing}
                           forceReRender={[amount]}
                           createOrder={async (data, actions) => {
-                            // Create a deposit record first
                             const newDepositId = await createDepositRecord(parseFloat(amount));
                             
                             if (!newDepositId) {
@@ -246,7 +230,6 @@ const PayPalDepositPage = () => {
                             
                             setDepositId(newDepositId);
                             
-                            // Now create the PayPal order
                             return actions.order.create({
                               intent: "CAPTURE",
                               purchase_units: [
@@ -277,7 +260,6 @@ const PayPalDepositPage = () => {
                                 return;
                               }
                               
-                              // Update deposit record with PayPal transaction ID
                               const updated = await updateDepositWithTransaction(depositId, transactionId);
                               
                               if (updated) {
@@ -285,7 +267,7 @@ const PayPalDepositPage = () => {
                                 setIsSuccess(true);
                               } else {
                                 toast.error("Thanh toán thành công nhưng không thể cập nhật thông tin giao dịch.");
-                                setIsSuccess(true); // Still show success since payment went through
+                                setIsSuccess(true);
                               }
                               
                               setIsProcessing(false);

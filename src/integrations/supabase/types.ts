@@ -83,6 +83,48 @@ export type Database = {
           },
         ]
       }
+      deposits: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          net_amount: number
+          payer_email: string | null
+          payer_id: string | null
+          payment_method: string
+          status: string
+          transaction_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          net_amount: number
+          payer_email?: string | null
+          payer_id?: string | null
+          payment_method?: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          net_amount?: number
+          payer_email?: string | null
+          payer_id?: string | null
+          payment_method?: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string | null
@@ -433,6 +475,10 @@ export type Database = {
           parent_id_param: string
         }
         Returns: undefined
+      }
+      update_user_balance: {
+        Args: { user_id_param: string; amount_param: number }
+        Returns: boolean
       }
     }
     Enums: {

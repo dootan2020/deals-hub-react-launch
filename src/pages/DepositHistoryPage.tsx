@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -12,20 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Wallet, Clock, Calendar } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-
-interface DepositRecord {
-  id: string;
-  amount: number;
-  net_amount: number;
-  status: 'pending' | 'completed' | 'failed' | 'cancelled';
-  payment_method: string;
-  transaction_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import { Deposit } from '@/types/deposits';
 
 const DepositHistoryPage = () => {
-  const [deposits, setDeposits] = useState<DepositRecord[]>([]);
+  const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -46,7 +35,8 @@ const DepositHistoryPage = () => {
       const { data, error } = await supabase
         .from('deposits')
         .select('*')
-        .order('created_at', { ascending: false });
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false }) as { data: Deposit[] | null, error: any };
       
       if (error) {
         console.error('Error fetching deposit history:', error);
