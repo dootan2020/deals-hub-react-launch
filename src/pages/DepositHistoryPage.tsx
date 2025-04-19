@@ -7,17 +7,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/layout/Layout';
 import { Helmet } from 'react-helmet';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Wallet, Clock, Calendar } from 'lucide-react';
+import { Wallet, Clock, Calendar, RefreshCcw } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Deposit } from '@/types/deposits';
+import { Button } from '@/components/ui/button';
+import { processAllPendingDeposits } from '@/utils/paymentUtils';
+import { toast } from 'sonner';
 
 const DepositHistoryPage = () => {
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { user } = useAuth();
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const { user, refreshUserBalance } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -52,6 +56,32 @@ const DepositHistoryPage = () => {
     }
   };
 
+  const handleProcessPendingDeposits = async () => {
+    try {
+      setIsProcessing(true);
+      toast.info('Đang kiểm tra và xử lý các giao dịch nạp tiền...');
+      
+      const result = await processAllPendingDeposits();
+      
+      if (result.success) {
+        if (result.count > 0) {
+          toast.success(`Đã xử lý thành công ${result.count} giao dịch nạp tiền`);
+          await refreshUserBalance();
+          await fetchDepositHistory();
+        } else {
+          toast.info('Không có giao dịch nạp tiền nào cần xử lý');
+        }
+      } else {
+        toast.error(`Có lỗi xảy ra: ${result.error || 'Không thể xử lý giao dịch'}`);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Lỗi không xác định';
+      toast.error(`Lỗi: ${errorMessage}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
@@ -72,6 +102,11 @@ const DepositHistoryPage = () => {
     return format(date, 'dd/MM/yyyy HH:mm');
   };
 
+  // Check if there are any pending deposits with transaction IDs that need processing
+  const pendingDepositsWithTransactions = deposits.filter(
+    deposit => deposit.status === 'pending' && deposit.transaction_id
+  );
+
   return (
     <Layout>
       <Helmet>
@@ -86,6 +121,18 @@ const DepositHistoryPage = () => {
               <Wallet className="mr-3 h-7 w-7 text-primary" />
               Lịch sử nạp tiền
             </h1>
+            
+            {pendingDepositsWithTransactions.length > 0 && (
+              <Button
+                onClick={handleProcessPendingDeposits}
+                disabled={isProcessing}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <RefreshCcw className={`h-4 w-4 ${isProcessing ? 'animate-spin' : ''}`} />
+                {isProcessing ? 'Đang xử lý...' : 'Xử lý giao dịch đang chờ'}
+              </Button>
+            )}
           </div>
           
           <Card>
@@ -153,6 +200,17 @@ const DepositHistoryPage = () => {
                 </div>
               )}
             </CardContent>
+            
+            {pendingDepositsWithTransactions.length > 0 && (
+              <CardFooter>
+                <div className="w-full p-3 bg-amber-50 border border-amber-200 rounded-md">
+                  <p className="text-sm text-amber-800">
+                    Có {pendingDepositsWithTransactions.length} giao dịch có mã giao dịch nhưng chưa được xử lý. 
+                    Nhấn "Xử lý giao dịch đang chờ" để cập nhật.
+                  </p>
+                </div>
+              </CardFooter>
+            )}
           </Card>
         </div>
       </div>

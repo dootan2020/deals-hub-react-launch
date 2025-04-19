@@ -109,10 +109,12 @@ export const updateDepositWithTransaction = async (
       return { success: false, error: "Missing deposit ID or transaction ID" };
     }
     
+    // Update the deposit with transaction ID and set status to completed
     const { error } = await supabase
       .from('deposits')
       .update({
-        transaction_id: transactionId
+        transaction_id: transactionId,
+        status: 'completed' // Auto-complete deposits when transaction ID is set
       })
       .eq('id', depositId);
 
@@ -121,13 +123,82 @@ export const updateDepositWithTransaction = async (
       return { success: false, error: error.message };
     }
     
-    console.log("Deposit record updated successfully");
+    // Try to update user balance for this deposit
+    await processDepositBalance(depositId);
+    
+    console.log("Deposit record updated and balance updated successfully");
     return { success: true };
   } catch (error) {
     console.error("Exception in updateDepositWithTransaction:", error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : "Unknown error updating deposit" 
+    };
+  }
+};
+
+/**
+ * Ensure deposit is processed and user balance is updated
+ * @param depositId The deposit ID 
+ * @returns Success status and any error
+ */
+export const processDepositBalance = async (
+  depositId: string
+): Promise<{ success: boolean, error?: string }> => {
+  try {
+    // Get deposit details
+    const { data: deposit, error } = await supabase
+      .from('deposits')
+      .select('id, user_id, net_amount, status, transaction_id')
+      .eq('id', depositId)
+      .single();
+      
+    if (error) {
+      console.error("Error fetching deposit:", error);
+      return { success: false, error: error.message };
+    }
+    
+    if (!deposit) {
+      return { success: false, error: "Deposit not found" };
+    }
+    
+    // If deposit has a transaction_id but isn't completed, mark it as completed
+    if (deposit.transaction_id && deposit.status !== 'completed') {
+      const { error: updateError } = await supabase
+        .from('deposits')
+        .update({ status: 'completed' })
+        .eq('id', depositId);
+        
+      if (updateError) {
+        console.error("Error updating deposit status:", updateError);
+        return { success: false, error: updateError.message };
+      }
+    }
+    
+    // If deposit is completed, update balance
+    if (deposit.status === 'completed' || deposit.transaction_id) {
+      const { error: balanceError } = await supabase.rpc(
+        'update_user_balance',
+        {
+          user_id_param: deposit.user_id,
+          amount_param: deposit.net_amount
+        }
+      );
+      
+      if (balanceError) {
+        console.error("Error updating user balance:", balanceError);
+        return { success: false, error: balanceError.message };
+      }
+      
+      return { success: true };
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Exception in processDepositBalance:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error processing deposit balance" 
     };
   }
 };
@@ -212,31 +283,83 @@ export const checkDepositStatus = async (
       return { success: false, error: error.message };
     }
     
-    // If not found by transaction_id, check the custom_id which might contain the order_id
-    if (!deposit) {
-      // Use supabase to get transaction by order_id from webhook logs or custom_id field
-      // This implementation depends on your database schema
-      console.log("Not found by transaction_id, you may need to check by order_id");
+    // If found deposit with transaction_id
+    if (deposit) {
+      // If it has transaction_id but isn't completed, update it and the balance
+      if (deposit.status !== 'completed') {
+        await processDepositBalance(deposit.id);
+        
+        // Fetch the updated deposit
+        const { data: updatedDeposit } = await supabase
+          .from('deposits')
+          .select('*')
+          .eq('id', deposit.id)
+          .single();
+          
+        if (updatedDeposit) {
+          deposit = updatedDeposit;
+        }
+      }
       
-      // For this implementation, we'll trigger processing it in case it wasn't processed yet
-      const result = await processSpecificTransaction(id);
-      return {
-        success: result.success,
-        status: "processed",
-        error: result.error
+      return { 
+        success: true, 
+        status: deposit.status,
+        deposit
       };
     }
     
-    return { 
-      success: true, 
-      status: deposit.status,
-      deposit
+    // If not found by transaction_id, trigger processing
+    const result = await processSpecificTransaction(id);
+    return {
+      success: result.success,
+      status: "processed",
+      error: result.error
     };
   } catch (error) {
     console.error("Exception in checkDepositStatus:", error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : "Unknown error checking deposit" 
+    };
+  }
+};
+
+/**
+ * Find and process all pending deposits with transaction IDs
+ * @returns Number of deposits processed
+ */
+export const processAllPendingDeposits = async (): Promise<{ count: number, success: boolean, error?: string }> => {
+  try {
+    // Find all deposits with transaction IDs that aren't completed yet
+    const { data: deposits, error } = await supabase
+      .from('deposits')
+      .select('id')
+      .not('transaction_id', 'is', null)
+      .eq('status', 'pending');
+      
+    if (error) {
+      console.error("Error finding pending deposits:", error);
+      return { count: 0, success: false, error: error.message };
+    }
+    
+    if (!deposits || deposits.length === 0) {
+      return { count: 0, success: true };
+    }
+    
+    // Process each deposit
+    let processedCount = 0;
+    for (const deposit of deposits) {
+      const { success } = await processDepositBalance(deposit.id);
+      if (success) processedCount++;
+    }
+    
+    return { count: processedCount, success: true };
+  } catch (error) {
+    console.error("Exception in processAllPendingDeposits:", error);
+    return { 
+      count: 0, 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error processing pending deposits" 
     };
   }
 };

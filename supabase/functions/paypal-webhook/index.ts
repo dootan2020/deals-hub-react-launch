@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 // Define CORS headers
@@ -75,6 +74,13 @@ async function processDeposit(
     if (fetchError) {
       console.error("Error fetching deposit by transaction_id:", fetchError);
       return { success: false, message: `Database error: ${fetchError.message}` };
+    }
+    
+    // Special case: If we're providing a transaction_id, always set status to completed
+    // This ensures that any deposit with a transaction_id is marked as successful
+    if (status !== 'completed' && transactionId) {
+      console.log(`Transaction ID present but status is ${status}, overriding to completed`);
+      status = 'completed';
     }
     
     // If not found by transaction_id, try other identifiers
