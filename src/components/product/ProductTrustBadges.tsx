@@ -1,10 +1,9 @@
-
 import { ShieldCheck, Zap, PhoneCall } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export const ProductTrustBadges = () => {
   return (
-    <div className="flex flex-col gap-3 mt-6 border-t border-gray-100 pt-4">
+    <div className="bg-card rounded-lg p-6 shadow-sm transition-all duration-300 ease-in-out hover:shadow-md hover:border-primary/40 hover:scale-[1.01] hover:translate-y-[-4px]">
       <h3 className="text-sm font-medium text-muted-foreground mb-2">Cam kết của chúng tôi:</h3>
       <div className="grid grid-cols-1 gap-3">
         <div className="flex items-center gap-2">
