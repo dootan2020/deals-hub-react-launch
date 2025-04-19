@@ -1,10 +1,9 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { useOrderApi } from '@/hooks/use-order-api';
+import { usePurchaseDialog } from '@/hooks/use-purchase-dialog';
+import PurchaseConfirmDialog from './PurchaseConfirmDialog';
 
 interface BuyNowButtonProps {
   product?: any;
@@ -33,74 +32,61 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   promotionCode,
   children,
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-  const { createOrder } = useOrderApi();
-  
-  // More lenient check for kioskToken
-  const hasValidKioskToken = Boolean(kioskToken);
+  const { 
+    open, 
+    selectedProduct, 
+    openDialog, 
+    closeDialog, 
+    handleConfirm 
+  } = usePurchaseDialog();
 
-  const handleBuyNow = async (quantity: number = 1, promotionCode?: string) => {
-    if (!hasValidKioskToken || !productId) {
-      console.error('Missing or invalid kioskToken or productId', { 
-        kioskToken, 
-        type: typeof kioskToken,
-        productId 
-      });
-      toast.error('Không thể mua sản phẩm này: Thiếu thông tin sản phẩm');
-      return;
-    }
+  // Handle button click - open dialog
+  const handleClick = () => {
+    // Make sure we have a complete product object
+    // If product is directly provided, use it. Otherwise construct minimal product
+    const productData = product || {
+      id: productId,
+      kiosk_token: kioskToken,
+      // Add minimal required fields for the dialog
+      title: 'Product',
+      price: 0,
+      stockQuantity: 10
+    };
+    
+    // Open the purchase dialog
+    openDialog(productData);
+  };
 
-    setIsLoading(true);
-    try {
-      const result = await createOrder({
-        kioskToken,
-        productId,
-        quantity,
-        promotionCode
-      });
-
-      if (result.success && result.orderId) {
-        if (onSuccess) onSuccess();
-        navigate(`/order-success?orderId=${result.orderId}`);
-      } else {
-        throw new Error(result.message || 'Không thể tạo đơn hàng');
-      }
-    } catch (error: any) {
-      console.error('Error placing order:', error);
-      toast.error(error.message || 'Đã xảy ra lỗi khi đặt hàng');
-    } finally {
-      setIsLoading(false);
-    }
+  // Handle confirmation with callback
+  const handleConfirmPurchase = async (quantity: number, code?: string) => {
+    await handleConfirm(quantity, code);
+    if (onSuccess) onSuccess();
   };
 
   return (
-    <Button 
-      variant={variant} 
-      size={size}
-      className={className}
-      disabled={!isInStock || isLoading}
-      onClick={() => {
-        // Temporary disabled while dialog is being rebuilt
-        toast.info('Tính năng đang được nâng cấp');
-      }}
-    >
-      {isLoading ? (
-        <>
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          Đang xử lý...
-        </>
-      ) : (
-        <>
-          {children || (
-            <>
-              <ShoppingBag className="w-4 h-4 mr-2" />
-              {!isInStock ? 'Hết Hàng' : 'Mua Ngay'}
-            </>
-          )}
-        </>
-      )}
-    </Button>
+    <>
+      <Button 
+        variant={variant} 
+        size={size}
+        className={className}
+        disabled={!isInStock}
+        onClick={handleClick}
+      >
+        {children || (
+          <>
+            <ShoppingBag className="w-4 h-4 mr-2" />
+            {!isInStock ? 'Hết Hàng' : 'Mua Ngay'}
+          </>
+        )}
+      </Button>
+
+      <PurchaseConfirmDialog
+        open={open}
+        onOpenChange={closeDialog}
+        product={selectedProduct}
+        onConfirm={handleConfirmPurchase}
+      />
+    </>
   );
 };
 
