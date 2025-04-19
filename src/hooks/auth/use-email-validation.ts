@@ -27,7 +27,7 @@ export const useEmailValidation = () => {
 
       return {
         emailExists: statusData?.[0]?.email_exists ?? false,
-        status: statusData?.[0]?.status ?? null,
+        status: (statusData?.[0]?.status as 'active' | 'pending' | null) ?? null,
         lastVerificationSent: statusData?.[0]?.last_verification_sent ? new Date(statusData[0].last_verification_sent) : null,
         isRateLimited: rateLimit?.[0]?.is_limited ?? false,
         remainingAttempts: rateLimit?.[0]?.remaining_attempts ?? null,
