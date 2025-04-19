@@ -8,6 +8,10 @@ interface OrderStats {
   completed: number;
 }
 
+interface CountQueryResult {
+  count: number | null;
+}
+
 export const useOrderStats = (userId: string | undefined) => {
   const [stats, setStats] = useState<OrderStats>({
     total: 0,
@@ -25,27 +29,33 @@ export const useOrderStats = (userId: string | undefined) => {
 
     const fetchStats = async () => {
       try {
-        const { count: total } = await supabase
+        // Explicitly type the query results to prevent deep type inference
+        const totalResult = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('user_id', userId);
-
-        const { count: processing } = await supabase
+        
+        const processingResult = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
           .eq('status', 'processing');
-
-        const { count: completed } = await supabase
+        
+        const completedResult = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
           .eq('status', 'completed');
 
+        // Extract counts with explicit typing
+        const totalCount: number = totalResult.count || 0;
+        const processingCount: number = processingResult.count || 0;
+        const completedCount: number = completedResult.count || 0;
+
         setStats({
-          total: total || 0,
-          processing: processing || 0,
-          completed: completed || 0
+          total: totalCount,
+          processing: processingCount,
+          completed: completedCount
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch order stats');
