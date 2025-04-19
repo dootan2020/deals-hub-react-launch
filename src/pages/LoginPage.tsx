@@ -6,17 +6,31 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Layout from '@/components/layout/Layout';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Loader2, User, Lock, LogIn } from 'lucide-react';
+import { Form, FormField, FormItem, FormControl, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuthActions } from '@/hooks/use-auth-actions';
+
+const loginSchema = z.object({
+  email: z.string().email('Email không hợp lệ'),
+  password: z.string().min(1, 'Mật khẩu không được để trống'),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
   const { login, isAuthenticated } = useAuth();
+  const { resendVerificationEmail } = useAuthActions();
   const navigate = useNavigate();
   const location = useLocation();
+  const [emailNeedsVerification, setEmailNeedsVerification] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
   
   // Get the redirect URL from the state or default to home
   const from = location.state?.from || '/';
@@ -27,17 +41,56 @@ export default function LoginPage() {
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, from]);
+
+  // Handle resend cooldown timer
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resendCooldown > 0) {
+      timer = setTimeout(() => {
+        setResendCooldown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
   
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+  
+  const handleLogin = async (values: LoginFormValues) => {
     setIsLoading(true);
-    setError(null);
+    setServerError(null);
+    setEmailNeedsVerification(null);
     
     try {
-      await login(email, password);
-      // Navigate will be triggered by the useEffect when isAuthenticated changes
+      await login(values.email, values.password);
+      // Navigation will be triggered by the useEffect when isAuthenticated changes
     } catch (err: any) {
-      setError(err.message || 'Failed to login');
+      console.error('Login error:', err);
+      
+      if (err.message?.includes('Email not confirmed')) {
+        setEmailNeedsVerification(values.email);
+      } else {
+        setServerError(err.message || 'Đăng nhập thất bại');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!emailNeedsVerification || resendCooldown > 0) return;
+    
+    setIsLoading(true);
+    try {
+      await resendVerificationEmail(emailNeedsVerification);
+      setResendCooldown(60); // 60 second cooldown
+    } catch (error) {
+      console.error('Failed to resend verification email:', error);
     } finally {
       setIsLoading(false);
     }
@@ -59,66 +112,123 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           
-          <form onSubmit={handleLogin}>
-            <CardContent className="space-y-4">
-              {error && (
-                <div className="p-3 text-sm bg-red-50 border border-red-100 rounded text-red-600">
-                  {error}
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-text-light" />
-                  <Input 
-                    id="email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">Mật khẩu</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-text-light" />
-                  <Input 
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-            </CardContent>
-            
-            <CardFooter>
-              <Button 
-                type="submit" 
-                className="w-full bg-primary hover:bg-primary-dark"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Đang đăng nhập...
-                  </>
-                ) : (
-                  <>
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Đăng nhập
-                  </>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleLogin)}>
+              <CardContent className="space-y-4">
+                {serverError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{serverError}</AlertDescription>
+                  </Alert>
                 )}
-              </Button>
-            </CardFooter>
-          </form>
+                
+                {emailNeedsVerification && (
+                  <Alert className="bg-amber-50 border border-amber-100">
+                    <AlertDescription className="text-amber-800">
+                      Email của bạn chưa được xác minh. Vui lòng kiểm tra hộp thư hoặc nhấn nút bên dưới để gửi lại email xác minh.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label htmlFor="email">Email</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 h-4 w-4 text-text-light" />
+                        <FormControl>
+                          <Input 
+                            id="email"
+                            type="email"
+                            placeholder="your@email.com"
+                            className="pl-10"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex justify-between items-center">
+                        <Label htmlFor="password">Mật khẩu</Label>
+                        <Link 
+                          to="/forgot-password" 
+                          className="text-sm text-primary hover:underline"
+                        >
+                          Quên mật khẩu?
+                        </Link>
+                      </div>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-text-light" />
+                        <FormControl>
+                          <Input 
+                            id="password"
+                            type="password"
+                            className="pl-10"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {emailNeedsVerification && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={resendCooldown > 0 || isLoading}
+                    onClick={handleResendVerification}
+                  >
+                    {resendCooldown > 0 ? (
+                      `Gửi lại email sau (${resendCooldown}s)`
+                    ) : (
+                      'Gửi lại email xác minh'
+                    )}
+                  </Button>
+                )}
+              </CardContent>
+              
+              <CardFooter className="flex flex-col space-y-4">
+                <Button 
+                  type="submit" 
+                  className="w-full bg-primary hover:bg-primary-dark"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Đang đăng nhập...
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="mr-2 h-4 w-4" />
+                      Đăng nhập
+                    </>
+                  )}
+                </Button>
+                
+                <div className="text-sm text-center text-gray-500">
+                  Chưa có tài khoản?{' '}
+                  <Link to="/register" className="text-primary font-medium hover:underline">
+                    Đăng ký
+                  </Link>
+                </div>
+              </CardFooter>
+            </form>
+          </Form>
         </Card>
       </div>
     </Layout>

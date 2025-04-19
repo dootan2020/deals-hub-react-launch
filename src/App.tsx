@@ -10,6 +10,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 // Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
 import UnauthorizedPage from "./pages/auth/UnauthorizedPage";
 
 import Index from "./pages/Index";
@@ -39,6 +40,7 @@ import ProductEditPage from './pages/admin/ProductEditPage';
 import ProductFormWithTester from './pages/admin/ProductFormWithTester';
 import ProxySettingsPage from './pages/admin/ProxySettingsPage';
 import UsersManagementPage from './pages/admin/UsersManagementPage';
+import SiteSettingsPage from './pages/admin/SiteSettingsPage';
 
 // User pages
 import DashboardPage from "./pages/user/DashboardPage";
@@ -55,6 +57,7 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/auth/verify" element={<VerifyEmailPage />} />
               <Route path="/unauthorized" element={<UnauthorizedPage />} />
               
               {/* Protected User Routes */}
@@ -135,6 +138,11 @@ const App = () => {
               <Route path="/admin/users" element={
                 <ProtectedRoute requiredRoles={['admin']}>
                   <UsersManagementPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/site-settings" element={
+                <ProtectedRoute requiredRoles={['admin']}>
+                  <SiteSettingsPage />
                 </ProtectedRoute>
               } />
               

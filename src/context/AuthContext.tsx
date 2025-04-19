@@ -20,6 +20,8 @@ const AuthContext = createContext<AuthContextType>({
   logout: async () => {},
   register: async () => {},
   checkUserRole: () => false,
+  isEmailVerified: false,
+  resendVerificationEmail: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -37,7 +39,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isLoadingBalance
   } = useAuthState();
 
-  const { login, logout, register } = useAuthActions();
+  const { login, logout, register, resendVerificationEmail } = useAuthActions();
 
   // Set up real-time balance updates
   useBalanceListener(user?.id, (newBalance) => {
@@ -67,6 +69,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return userRoles.includes(role);
   }, [userRoles]);
 
+  // Check if email is verified
+  const isEmailVerified = user?.email_confirmed_at !== null;
+
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue: AuthContextType = {
     user,
@@ -84,6 +89,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     logout,
     register,
     checkUserRole,
+    isEmailVerified,
+    resendVerificationEmail,
   };
 
   return (

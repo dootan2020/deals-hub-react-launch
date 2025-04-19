@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,18 +7,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Layout from '@/components/layout/Layout';
-import { Loader2, UserPlus, User, Lock, Mail } from 'lucide-react';
+import { Loader2, UserPlus, User, Lock, Mail, FileCheck, CheckCircle } from 'lucide-react';
 import { Form, FormField, FormItem, FormControl, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+
+// Enhanced password validation
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
 
 const registerSchema = z.object({
   displayName: z.string().min(2, 'Tên hiển thị phải có ít nhất 2 ký tự'),
   email: z.string().email('Email không hợp lệ'),
-  password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
-  confirmPassword: z.string().min(6, 'Xác nhận mật khẩu phải có ít nhất 6 ký tự')
+  password: z.string()
+    .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
+    .regex(
+      passwordRegex,
+      'Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 số'
+    ),
+  confirmPassword: z.string().min(8, 'Xác nhận mật khẩu phải có ít nhất 8 ký tự'),
+  agreeToTerms: z.boolean().refine(val => val === true, {
+    message: "Bạn phải đồng ý với Điều khoản dịch vụ và Chính sách Bảo mật"
+  })
 }).refine(data => data.password === data.confirmPassword, {
   message: "Mật khẩu xác nhận không khớp",
   path: ["confirmPassword"]
@@ -30,6 +42,9 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const resendTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const { register, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
@@ -41,13 +56,29 @@ export default function RegisterPage() {
     }
   }, [isAuthenticated, navigate, loading]);
   
+  // Handle resend cooldown
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      resendTimerRef.current = setTimeout(() => {
+        setResendCooldown(prev => prev - 1);
+      }, 1000);
+    }
+
+    return () => {
+      if (resendTimerRef.current) {
+        clearTimeout(resendTimerRef.current);
+      }
+    };
+  }, [resendCooldown]);
+  
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       displayName: '',
       email: '',
       password: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      agreeToTerms: false
     },
   });
 
@@ -56,16 +87,31 @@ export default function RegisterPage() {
     setIsLoading(true);
     
     try {
-      await register(values.email, values.password, {
+      const result = await register(values.email, values.password, {
         display_name: values.displayName
       });
       
       // Show success message and reset form
       setRegistrationSuccess(true);
+      setRegisteredEmail(values.email);
       form.reset();
     } catch (error: any) {
       console.error('Registration error:', error);
       setServerError(error.message || 'Lỗi khi đăng ký tài khoản');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendEmail = async () => {
+    if (resendCooldown > 0 || !registeredEmail) return;
+    
+    setIsLoading(true);
+    try {
+      await useAuthActions().resendVerificationEmail(registeredEmail);
+      setResendCooldown(60); // Set 60 second cooldown
+    } catch (error) {
+      console.error('Resend verification email error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -85,21 +131,42 @@ export default function RegisterPage() {
           {registrationSuccess ? (
             <CardContent className="space-y-4">
               <Alert className="bg-green-50 border border-green-100">
-                <AlertDescription className="text-green-800">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <AlertDescription className="text-green-800 ml-2">
                   Đăng ký thành công! Vui lòng kiểm tra email của bạn để xác nhận tài khoản.
                 </AlertDescription>
               </Alert>
               
-              <Button 
-                className="w-full mt-4"
-                onClick={() => navigate('/login')}
-              >
-                Đi đến trang đăng nhập
-              </Button>
+              <div className="text-center mt-6 space-y-4">
+                <Button 
+                  className="w-full"
+                  disabled={resendCooldown > 0 || isLoading}
+                  onClick={handleResendEmail}
+                  variant="outline"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Đang gửi...
+                    </>
+                  ) : resendCooldown > 0 ? (
+                    `Gửi lại email sau (${resendCooldown}s)`
+                  ) : (
+                    'Gửi lại email xác nhận'
+                  )}
+                </Button>
+                
+                <Button 
+                  className="w-full"
+                  onClick={() => navigate('/login')}
+                >
+                  Đi đến trang đăng nhập
+                </Button>
+              </div>
             </CardContent>
           ) : (
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)}>
+              <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
                 <CardContent className="space-y-4">
                   {serverError && (
                     <Alert variant="destructive">
@@ -198,6 +265,37 @@ export default function RegisterPage() {
                           </FormControl>
                         </div>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="agreeToTerms"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <Label
+                            htmlFor="agreeToTerms"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            Tôi đồng ý với{' '}
+                            <Link to="/terms" className="text-primary underline">
+                              Điều khoản dịch vụ
+                            </Link>{' '}
+                            và{' '}
+                            <Link to="/privacy" className="text-primary underline">
+                              Chính sách Bảo mật
+                            </Link>
+                          </Label>
+                        </div>
                       </FormItem>
                     )}
                   />

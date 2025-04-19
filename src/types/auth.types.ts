@@ -23,4 +23,6 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   register: (email: string, password: string, metadata?: Record<string, any>) => Promise<any>;
   checkUserRole: (role: UserRole) => boolean;
+  isEmailVerified: boolean;
+  resendVerificationEmail: (email: string) => Promise<boolean>;
 }
