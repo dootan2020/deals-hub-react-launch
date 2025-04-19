@@ -22,10 +22,12 @@ const Header = () => {
           <Logo />
           <DesktopNavigation />
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-4">
             <DepositOptions />
-            <LanguageSelector />
-            <UserButton />
+            <div className="flex items-center gap-3">
+              <LanguageSelector />
+              <UserButton />
+            </div>
             <MobileMenuToggle 
               isOpen={mobileMenuOpen} 
               toggleMenu={toggleMobileMenu} 

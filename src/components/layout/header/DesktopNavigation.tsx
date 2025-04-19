@@ -23,7 +23,6 @@ const DesktopNavigation = () => {
     );
   }
 
-  // Generate category menu URLs
   const getCategoryUrl = (category: Category) => {
     return `/category/${category.slug}`;
   };
@@ -31,31 +30,32 @@ const DesktopNavigation = () => {
   return (
     <div className="hidden md:block">
       <NavigationMenu>
-        <NavigationMenuList>
-          {/* Map through main categories from the database */}
+        <NavigationMenuList className="space-x-1">
           {mainCategories.map((category) => {
             const subcategories = getSubcategoriesByParentId(category.id);
             
             return (
-              <NavigationMenuItem key={category.id}>
-                <NavigationMenuTrigger className="bg-transparent hover:text-primary focus:bg-transparent data-[state=open]:bg-transparent data-[state=open]:text-primary">
+              <NavigationMenuItem key={category.id} className="relative">
+                <NavigationMenuTrigger 
+                  className="bg-transparent hover:bg-accent/10 hover:text-primary transition-all duration-150 focus:bg-transparent data-[state=open]:bg-transparent data-[state=open]:text-primary"
+                >
                   {category.name}
                 </NavigationMenuTrigger>
                 <NavigationMenuContent className="mt-0">
-                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  <ul className="grid w-[400px] gap-1 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                     {subcategories.length > 0 ? (
                       subcategories.map((subcategory) => (
                         <li key={subcategory.id}>
                           <Link
                             to={getCategoryUrl(subcategory)}
-                            className="block select-none space-y-1 rounded-md p-3 text-sm font-medium leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                            className="block select-none rounded-md px-4 py-2 text-sm font-medium no-underline transition-colors hover:bg-accent/10 hover:text-primary focus:bg-accent focus:text-accent-foreground"
                           >
                             {subcategory.name}
                           </Link>
                         </li>
                       ))
                     ) : (
-                      <li className="p-3 text-sm text-muted-foreground">
+                      <li className="px-4 py-2 text-sm text-muted-foreground">
                         No subcategories found
                       </li>
                     )}
@@ -65,15 +65,20 @@ const DesktopNavigation = () => {
             );
           })}
           
-          {/* Static menu items that don't change */}
           <NavigationMenuItem>
-            <Link to="/support" className="text-text hover:text-primary transition-colors duration-200 px-3 py-2 text-sm font-medium">
+            <Link 
+              to="/support" 
+              className="text-text hover:text-primary transition-all duration-150 px-4 py-2 text-sm font-medium rounded-md hover:bg-accent/10"
+            >
               Support
             </Link>
           </NavigationMenuItem>
           
           <NavigationMenuItem>
-            <Link to="/faqs" className="text-text hover:text-primary transition-colors duration-200 px-3 py-2 text-sm font-medium">
+            <Link 
+              to="/faqs" 
+              className="text-text hover:text-primary transition-all duration-150 px-4 py-2 text-sm font-medium rounded-md hover:bg-accent/10"
+            >
               FAQs
             </Link>
           </NavigationMenuItem>

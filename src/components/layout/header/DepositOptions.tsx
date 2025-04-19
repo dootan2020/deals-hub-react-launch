@@ -8,20 +8,24 @@ export function DepositOptions() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="hidden md:flex">
+        <Button 
+          variant="default" 
+          size="sm" 
+          className="hidden md:flex bg-gradient-to-r from-primary to-primary-dark hover:opacity-90 transition-all duration-150"
+        >
           <WalletIcon className="mr-2 h-4 w-4" />
           Nạp tiền
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem asChild>
-          <Link to="/deposit" className="w-full cursor-pointer">
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem asChild className="p-0">
+          <Link to="/deposit" className="w-full px-4 py-2 cursor-pointer flex items-center">
             <WalletIcon className="mr-2 h-4 w-4" />
             Nạp tiền
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/deposit-history" className="w-full cursor-pointer">
+        <DropdownMenuItem asChild className="p-0">
+          <Link to="/deposit-history" className="w-full px-4 py-2 cursor-pointer flex items-center">
             <History className="mr-2 h-4 w-4" />
             Lịch sử nạp tiền
           </Link>
