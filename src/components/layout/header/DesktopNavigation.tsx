@@ -84,7 +84,7 @@ const DesktopNavigation = () => {
                 </NavigationMenuLink>
                 <NavigationMenuLink asChild>
                   <NavLink to="/categories/yahoo" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <SimpleIcon icon={SimpleIcons.siYahoo} className="w-4 h-4 text-[#6001D2]" />
+                    <SimpleIcon icon={SimpleIcons.siYmail} className="w-4 h-4 text-[#6001D2]" />
                     <span>Yahoo Accounts</span>
                   </NavLink>
                 </NavigationMenuLink>
@@ -110,7 +110,7 @@ const DesktopNavigation = () => {
                 </NavigationMenuLink>
                 <NavigationMenuLink asChild>
                   <NavLink to="/categories/office" className="flex items-center gap-2 p-2 hover:bg-accent rounded-md">
-                    <SimpleIcon icon={SimpleIcons.siMicrosoftoffice} className="w-4 h-4 text-[#D83B01]" />
+                    <SimpleIcon icon={SimpleIcons.siMicrosoftoffice365} className="w-4 h-4 text-[#D83B01]" />
                     <span>Office Keys</span>
                   </NavLink>
                 </NavigationMenuLink>
