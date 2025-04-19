@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
@@ -14,6 +13,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useAuthActions } from '@/hooks/use-auth-actions';
 
 // Enhanced password validation
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
@@ -22,7 +22,7 @@ const registerSchema = z.object({
   displayName: z.string().min(2, 'Tên hiển thị phải có ít nhất 2 ký tự'),
   email: z.string().email('Email không hợp lệ'),
   password: z.string()
-    .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
+    .min(8, 'Mật khẩu phải c�� ít nhất 8 ký tự')
     .regex(
       passwordRegex,
       'Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 số'
@@ -47,6 +47,7 @@ export default function RegisterPage() {
   const resendTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const { register, isAuthenticated, loading } = useAuth();
+  const { resendVerificationEmail } = useAuthActions();
   const navigate = useNavigate();
   
   // Redirect if already authenticated
@@ -108,7 +109,7 @@ export default function RegisterPage() {
     
     setIsLoading(true);
     try {
-      await useAuthActions().resendVerificationEmail(registeredEmail);
+      await resendVerificationEmail(registeredEmail);
       setResendCooldown(60); // Set 60 second cooldown
     } catch (error) {
       console.error('Resend verification email error:', error);
@@ -118,7 +119,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <Layout>
+    <Layout title="Tạo tài khoản">
       <div className="container max-w-md py-12">
         <Card className="shadow-md border border-gray-200">
           <CardHeader className="space-y-1 text-center">

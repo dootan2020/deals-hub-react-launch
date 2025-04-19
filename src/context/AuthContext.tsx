@@ -21,7 +21,7 @@ const AuthContext = createContext<AuthContextType>({
   register: async () => {},
   checkUserRole: () => false,
   isEmailVerified: false,
-  resendVerificationEmail: async () => {},
+  resendVerificationEmail: async () => false,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {

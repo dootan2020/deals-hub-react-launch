@@ -5,9 +5,10 @@ import Footer from './Footer';
 
 interface LayoutProps {
   children: ReactNode;
+  title?: string;
 }
 
-const Layout = ({ children }: LayoutProps) => {
+const Layout = ({ children, title }: LayoutProps) => {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
