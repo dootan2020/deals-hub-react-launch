@@ -21,9 +21,13 @@ export const useCurrencySettings = () => {
         return { vnd_per_usd: 25000 }; // Fallback rate
       }
       
-      return data?.value as CurrencySettings || { vnd_per_usd: 25000 };
+      // Safely cast the JSON data to our expected type
+      const settings = data?.value as Record<string, any>;
+      return { 
+        vnd_per_usd: settings?.vnd_per_usd || 25000 
+      };
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes (previously cacheTime)
   });
 };
