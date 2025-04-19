@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -35,12 +34,19 @@ export const PurchaseConfirmDialog = ({
   
   useEffect(() => {
     if (open) {
-      refreshUserBalance();
+      console.log('Dialog opened, refreshing user balance');
+      refreshUserBalance().then(() => {
+        console.log('User balance refreshed:', userBalance);
+      });
       setQuantity(1);
       setPromotionCode('');
       setError(null);
     }
   }, [open, refreshUserBalance]);
+  
+  useEffect(() => {
+    console.log('Current user balance:', userBalance);
+  }, [userBalance]);
   
   const handleQuantityChange = (amount: number) => {
     const newQuantity = quantity + amount;
@@ -62,11 +68,14 @@ export const PurchaseConfirmDialog = ({
       <DialogContent className="sm:max-w-md bg-white">
         <DialogHeader>
           <DialogTitle className="text-left text-xl font-semibold">Xác nhận mua hàng</DialogTitle>
+          <DialogDescription className="text-left text-gray-500">
+            Vui lòng kiểm tra thông tin trước khi thanh toán
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 text-left">
           {/* Product Info */}
-          <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+          <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-100">
             <h3 className="font-bold text-lg text-gray-900">{product.title}</h3>
             <div className="flex justify-between text-sm text-gray-600">
               <span>Đơn giá:</span>
@@ -79,7 +88,7 @@ export const PurchaseConfirmDialog = ({
           </div>
 
           {/* Balance Info */}
-          <div className="flex justify-between text-sm border-t border-dashed pt-4">
+          <div className="flex justify-between text-sm pt-2">
             <span className="text-gray-600">Số dư hiện tại:</span>
             <span className={`font-medium ${canAfford ? 'text-green-600' : 'text-red-600'}`}>
               {formatPrice(userBalance)}
@@ -138,17 +147,19 @@ export const PurchaseConfirmDialog = ({
             </span>
           </div>
 
+          {/* Insufficient Balance Warning */}
           {!canAfford && (
-            <Alert variant="destructive" className="bg-red-50 border-red-100">
+            <Alert variant="destructive" className="bg-red-50 border border-red-100 text-left">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
+              <AlertDescription className="text-red-800">
                 Số dư của bạn không đủ để thanh toán. Vui lòng nạp thêm tiền vào tài khoản.
               </AlertDescription>
             </Alert>
           )}
 
+          {/* Other Errors */}
           {error && error !== 'Số dư không đủ để thực hiện giao dịch này' && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="text-left">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>

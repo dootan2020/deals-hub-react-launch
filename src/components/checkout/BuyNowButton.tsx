@@ -115,3 +115,4 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
 };
 
 export default BuyNowButton;
+
