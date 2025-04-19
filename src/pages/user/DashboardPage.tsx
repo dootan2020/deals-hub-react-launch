@@ -1,10 +1,9 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import UserLayout from '@/components/layout/UserLayout';
 import { useOrderStats } from '@/hooks/useOrderStats';
 import { toast } from 'sonner';
-import { processSpecificTransaction, checkDepositStatus } from '@/utils/paymentUtils';
+import { processSpecificTransaction, checkDepositStatus } from '@/utils/payment';
 import BalanceCard from '@/components/dashboard/BalanceCard';
 import OrderStatsCard from '@/components/dashboard/OrderStatsCard';
 import CompletedOrdersCard from '@/components/dashboard/CompletedOrdersCard';

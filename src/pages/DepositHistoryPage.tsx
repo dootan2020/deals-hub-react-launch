@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wallet, RefreshCcw } from 'lucide-react';
@@ -9,7 +8,7 @@ import { toast } from 'sonner';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { processAllPendingDeposits } from '@/utils/paymentUtils';
+import { processAllPendingDeposits } from '@/utils/payment';
 import { Deposit } from '@/types/deposits';
 import LoadingState from '@/components/deposit-history/LoadingState';
 import EmptyState from '@/components/deposit-history/EmptyState';
