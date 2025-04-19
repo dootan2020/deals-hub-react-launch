@@ -42,23 +42,23 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
           <div className="flex items-start gap-3">
             <ProductBadge type={getBadgeType(product.title)} />
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-[#1E1E1E] line-clamp-2">
+              <h3 className="font-semibold text-[#1E1E1E] line-clamp-2 pl-1">
                 {product.title}
               </h3>
-              <p className="text-sm text-[#4B5563] line-clamp-2 mt-1">
+              <p className="text-sm text-[#4B5563] line-clamp-2 mt-1 pl-1">
                 {product.shortDescription || product.description}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pl-1">
             <span className="text-base font-bold text-primary">
               {formatPrice(product.price)}
             </span>
             <ProductStock stock={product.stockQuantity || 0} />
           </div>
 
-          <div className="flex flex-wrap gap-2 mt-auto">
+          <div className="flex flex-wrap gap-2 mt-auto pl-1">
             <Button
               variant="outline"
               size="sm"
