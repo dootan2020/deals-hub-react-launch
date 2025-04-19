@@ -16,6 +16,7 @@ export type AuthContextType = {
   isStaff: boolean;
   userRoles: UserRole[];
   userBalance: number;
+  refreshUserBalance: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (email: string, password: string, metadata?: Record<string, any>) => Promise<void>;

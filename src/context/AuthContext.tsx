@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +14,7 @@ const AuthContext = createContext<AuthContextType>({
   isStaff: false,
   userRoles: [],
   userBalance: 0,
+  refreshUserBalance: async () => {},
   login: async () => {},
   logout: async () => {},
   register: async () => {},
@@ -49,6 +49,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.error('Error in fetchUserBalance:', error);
     }
+  };
+
+  // New function to force refresh the user's balance
+  const refreshUserBalance = async () => {
+    if (!user?.id) return;
+    await fetchUserBalance(user.id);
   };
 
   const fetchUserRoles = async (userId: string) => {
@@ -122,6 +128,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Set up listeners for realtime balance updates if needed
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Listen for changes to the user's profile
+    const channel = supabase
+      .channel('profile-changes')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        (payload) => {
+          console.log('Profile updated:', payload);
+          if (payload.new && 'balance' in payload.new) {
+            setUserBalance(payload.new.balance as number);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   const login = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -174,6 +204,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isStaff,
       userRoles,
       userBalance,
+      refreshUserBalance,
       login,
       logout,
       register,
@@ -182,6 +213,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
+};
+
+// Update the context type
+export type AuthContextType = {
+  user: AuthUser | null;
+  session: Session | null;
+  loading: boolean;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+  isStaff: boolean;
+  userRoles: UserRole[];
+  userBalance: number;
+  refreshUserBalance: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  register: (email: string, password: string, metadata?: Record<string, any>) => Promise<void>;
+  checkUserRole: (role: UserRole) => boolean;
 };
 
 export const useAuth = () => useContext(AuthContext);

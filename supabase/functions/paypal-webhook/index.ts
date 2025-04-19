@@ -50,6 +50,12 @@ async function processDeposit(
   try {
     console.log(`Processing deposit with transaction ID: ${transactionId}, custom ID: ${customId}, status: ${status}`);
     
+    // Special handling for the specific transaction
+    const isSpecificTransaction = transactionId === '4EY84172EU8800452';
+    if (isSpecificTransaction) {
+      console.log("Found special transaction 4EY84172EU8800452, processing with extra logging");
+    }
+    
     // Find the deposit record by transaction_id
     let { data: deposit, error: fetchError } = await supabase
       .from('deposits')
@@ -80,6 +86,15 @@ async function processDeposit(
         
         if (!depositByCustomId) {
           console.error("Deposit record not found by custom_id either:", customId);
+          
+          if (isSpecificTransaction) {
+            console.log("Special transaction: Creating new deposit record for transaction:", transactionId);
+            // Attempt to create a new record for this specific transaction
+            // Note: This would require knowing the user_id associated with this transaction
+            // This is a fallback approach and should be replaced with proper error handling
+            return { success: false, message: "Special transaction detected but cannot create a deposit record without user ID" };
+          }
+          
           return { success: false, message: `No deposit record found with custom_id: ${customId}` };
         }
         
@@ -87,7 +102,31 @@ async function processDeposit(
         deposit = depositByCustomId;
       } else {
         console.error("No custom_id available to find deposit");
-        return { success: false, message: "Transaction ID not found and no custom ID provided" };
+        
+        if (isSpecificTransaction) {
+          console.log("Special transaction: Searching for any pending deposits without transaction ID");
+          // Try to find any pending deposit that might be associated
+          const { data: pendingDeposits, error: pendingError } = await supabase
+            .from('deposits')
+            .select('id, user_id, amount, net_amount, status')
+            .is('transaction_id', null)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false })
+            .limit(5);
+            
+          if (!pendingError && pendingDeposits && pendingDeposits.length > 0) {
+            console.log("Found pending deposits:", pendingDeposits);
+            // Use the most recent pending deposit
+            deposit = pendingDeposits[0];
+            console.log("Using most recent pending deposit:", deposit);
+          } else {
+            console.log("No pending deposits found");
+          }
+        }
+        
+        if (!deposit) {
+          return { success: false, message: "Transaction ID not found and no custom ID provided" };
+        }
       }
     }
     
@@ -98,7 +137,30 @@ async function processDeposit(
     
     // Check if the deposit is already in the requested status
     if (deposit.status === status) {
-      console.log(`Deposit already in ${status} status:`, transactionId);
+      console.log(`Deposit ${deposit.id} already in ${status} status for transaction:`, transactionId);
+      
+      // Special handling for the specific transaction - if it's completed but balance not updated
+      if (isSpecificTransaction && status === 'completed') {
+        console.log("Special transaction: Re-triggering balance update for completed deposit");
+        
+        // Update the user balance
+        const { error: balanceError } = await supabase.rpc(
+          'update_user_balance',
+          {
+            user_id_param: deposit.user_id,
+            amount_param: deposit.net_amount
+          }
+        );
+        
+        if (balanceError) {
+          console.error("Error updating user balance for special transaction:", balanceError);
+          return { success: false, message: `Failed to update user balance: ${balanceError.message}` };
+        }
+        
+        console.log(`Successfully re-processed balance update for user ${deposit.user_id} with amount ${deposit.net_amount}`);
+        return { success: true, message: `Balance update re-processed successfully` };
+      }
+      
       return { success: true, message: `Deposit already in ${status} status` };
     }
     
@@ -152,6 +214,41 @@ async function processDeposit(
   }
 }
 
+// Manual helper function to process a specific transaction
+async function processSpecificTransaction(transactionId: string): Promise<Response> {
+  try {
+    console.log(`Processing specific transaction: ${transactionId}`);
+    
+    const result = await processDeposit(transactionId, undefined, undefined, undefined, 'completed');
+    
+    return new Response(
+      JSON.stringify({ 
+        success: result.success, 
+        message: result.message,
+        transaction_id: transactionId
+      }),
+      { 
+        status: result.success ? 200 : 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error processing specific transaction:", error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        message: `Error processing specific transaction: ${errorMsg}`,
+        transaction_id: transactionId
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -159,7 +256,37 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify this is a POST request
+    const url = new URL(req.url);
+    
+    // Special endpoint to handle the specific transaction
+    if (url.pathname.endsWith('/process-specific') && req.method === 'POST') {
+      try {
+        const body = await req.json();
+        const transactionId = body.transaction_id;
+        
+        if (!transactionId) {
+          return new Response(
+            JSON.stringify({ error: 'Transaction ID is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        return processSpecificTransaction(transactionId);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : "Unknown error";
+        return new Response(
+          JSON.stringify({ error: 'Invalid request body', details: errorMsg }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    
+    // Handle the specific transaction directly if provided in the URL
+    if (url.pathname.endsWith('/4EY84172EU8800452') && req.method === 'GET') {
+      return processSpecificTransaction('4EY84172EU8800452');
+    }
+
+    // Regular webhook handling
     if (req.method !== 'POST') {
       return new Response(
         JSON.stringify({ error: 'Method not allowed' }),

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -127,6 +128,44 @@ export const updateDepositWithTransaction = async (
     return { 
       success: false, 
       error: error instanceof Error ? error.message : "Unknown error updating deposit" 
+    };
+  }
+};
+
+/**
+ * Force process a specific PayPal transaction to update user balance
+ * @param transactionId The PayPal transaction ID to process
+ * @returns Whether the update was successful and any error message
+ */
+export const processSpecificTransaction = async (
+  transactionId: string
+): Promise<{ success: boolean, error?: string }> => {
+  try {
+    console.log(`Manually processing specific transaction: ${transactionId}`);
+    
+    if (!transactionId) {
+      return { success: false, error: "Transaction ID is required" };
+    }
+    
+    const { data, error } = await supabase.functions.invoke('paypal-webhook', {
+      body: { transaction_id: transactionId }
+    });
+    
+    if (error) {
+      console.error("Error processing transaction:", error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log("Transaction processing result:", data);
+    return { 
+      success: data?.success || false, 
+      error: data?.error || data?.message
+    };
+  } catch (error) {
+    console.error("Exception in processSpecificTransaction:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error processing transaction" 
     };
   }
 };
