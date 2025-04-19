@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Filter, X } from 'lucide-react';
@@ -5,7 +6,6 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import PriceRangeFilter from './PriceRangeFilter';
 import StockFilter from './StockFilter';
-import CategoryFiltersSection from './CategoryFiltersSection';
 import { Category } from '@/types';
 import ProductSorter from '@/components/product/ProductSorter';
 import { SortOption } from '@/utils/productFilters';

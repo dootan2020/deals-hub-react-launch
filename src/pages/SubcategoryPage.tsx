@@ -25,7 +25,7 @@ const SubcategoryPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortOption, setSortOption] = useState<SortOption>("newest");
+  const [sortOption, setSortOption] = useState<SortOption>("popular");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [stockFilter, setStockFilter] = useState("all");
   
@@ -170,95 +170,51 @@ const SubcategoryPage = () => {
               productCount={products.length}
             />
             
-            <div className="lg:flex gap-8">
-              <div className="hidden lg:block w-64 flex-shrink-0">
-                <div className="bg-card rounded-lg p-6 shadow-sm sticky top-24">
-                  <h3 className="font-semibold text-lg mb-4">Filters</h3>
-                  
-                  {mockSubcategories.length > 0 && (
-                    <div className="mb-6">
-                      <h4 className="font-semibold text-sm mb-3">Subcategories</h4>
-                      <div className="space-y-2">
-                        {mockSubcategories.map((subcategory) => (
-                          <button
-                            key={subcategory.id}
-                            onClick={() => handleSubcategoryToggle(subcategory.id)}
-                            className={`flex items-center justify-between w-full p-2 rounded-md text-left text-sm ${
-                              activeSubcategories.includes(subcategory.id) 
-                                ? 'bg-primary/10 text-primary' 
-                                : 'hover:bg-gray-50'
-                            }`}
-                          >
-                            <span>{subcategory.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="mb-6">
-                    <PriceRangeFilter 
-                      minPrice={priceRange[0]} 
-                      maxPrice={priceRange[1]} 
-                      onPriceChange={handlePriceChange} 
-                    />
-                  </div>
-                  
-                  <div className="mb-2">
-                    <StockFilter 
-                      stockFilter={stockFilter} 
-                      onStockFilterChange={handleStockFilterChange} 
-                    />
+            <div className="mt-6">
+              <SubcategoryFilters
+                subcategories={mockSubcategories}
+                activeSubcategories={activeSubcategories}
+                onSubcategoryToggle={handleSubcategoryToggle}
+                onSortChange={handleSortChange}
+                activeSort={sortOption}
+                onPriceChange={handlePriceChange}
+                onStockFilterChange={handleStockFilterChange}
+                stockFilter={stockFilter}
+                minPrice={priceRange[0]}
+                maxPrice={priceRange[1]}
+              />
+              
+              <ProductGrid 
+                products={products} 
+                showSort={false}
+                isLoading={isLoading}
+                viewMode={viewMode}
+              />
+              
+              {products.length === 0 && !isLoading && (
+                <div className="text-center py-12">
+                  <h3 className="text-xl font-semibold mb-2">No products found</h3>
+                  <p className="text-muted-foreground mb-8">Try adjusting your filters or contact us for assistance.</p>
+                  <SupportSection />
+                </div>
+              )}
+              
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-8">
+                  <div className="flex gap-2">
+                    {Array(totalPages).fill(0).map((_, i) => (
+                      <Button
+                        key={i}
+                        variant={currentPage === i + 1 ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handlePageChange(i + 1)}
+                      >
+                        {i + 1}
+                      </Button>
+                    ))}
                   </div>
                 </div>
-              </div>
-              
-              <div className="flex-grow">
-                <SubcategoryFilters
-                  subcategories={mockSubcategories}
-                  activeSubcategories={activeSubcategories}
-                  onSubcategoryToggle={handleSubcategoryToggle}
-                  onSortChange={handleSortChange}
-                  activeSort={sortOption}
-                  onPriceChange={handlePriceChange}
-                  onStockFilterChange={handleStockFilterChange}
-                  stockFilter={stockFilter}
-                  minPrice={priceRange[0]}
-                  maxPrice={priceRange[1]}
-                />
-                
-                <ProductGrid 
-                  products={products} 
-                  showSort={false}
-                  isLoading={isLoading}
-                  viewMode={viewMode}
-                />
-                
-                {products.length === 0 && !isLoading && (
-                  <div className="text-center py-12">
-                    <h3 className="text-xl font-semibold mb-2">Không tìm thấy sản phẩm nào</h3>
-                    <p className="text-text-light mb-8">Vui lòng thử lại với các bộ lọc khác hoặc liên hệ với chúng tôi để được hỗ trợ.</p>
-                    <SupportSection />
-                  </div>
-                )}
-                
-                {totalPages > 1 && (
-                  <div className="flex justify-center mt-8">
-                    <div className="flex gap-2">
-                      {Array(totalPages).fill(0).map((_, i) => (
-                        <Button
-                          key={i}
-                          variant={currentPage === i + 1 ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => handlePageChange(i + 1)}
-                        >
-                          {i + 1}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
             
             <FAQ />
