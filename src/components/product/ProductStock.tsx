@@ -10,10 +10,10 @@ interface ProductStockProps {
 export const ProductStock: React.FC<ProductStockProps> = ({ stock, className }) => {
   return (
     <span className={cn(
-      "text-xs text-gray-500 whitespace-nowrap",
+      "text-sm text-gray-500 whitespace-nowrap",
       className
     )}>
-      In stock: {stock}
+      Còn {stock} sản phẩm
     </span>
   );
 };
