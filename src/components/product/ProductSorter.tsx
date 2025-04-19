@@ -11,7 +11,7 @@ import { ArrowDownAZ, ArrowUpZA, Clock, TrendingUp } from 'lucide-react';
 import { SortOption } from '@/utils/productFilters';
 
 interface ProductSorterProps {
-  currentSort: string;
+  currentSort: SortOption;
   onSortChange: (value: string) => void;
 }
 
