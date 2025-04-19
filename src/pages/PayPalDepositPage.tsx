@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -56,9 +57,9 @@ const PayPalDepositPage = () => {
           net_amount: netAmount,
           payment_method: 'paypal',
           status: 'pending'
-        } as any)
+        })
         .select('id')
-        .single();
+        .single() as any;
 
       if (error) {
         console.error("Error creating deposit record:", error);
@@ -80,8 +81,8 @@ const PayPalDepositPage = () => {
         .from('deposits')
         .update({
           transaction_id: transactionId
-        } as any)
-        .eq('id', depositId);
+        })
+        .eq('id', depositId) as any;
 
       if (error) {
         console.error("Error updating deposit record:", error);

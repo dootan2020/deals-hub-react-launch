@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -68,7 +69,7 @@ const DepositHistoryPage = () => {
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
-    return format(date, 'dd/MM/yyyy HH:mm', { locale: vi });
+    return format(date, 'dd/MM/yyyy HH:mm');
   };
 
   return (
@@ -134,10 +135,10 @@ const DepositHistoryPage = () => {
                           </TableCell>
                           <TableCell className="text-right">
                             <div>
-                              <div className="font-medium">{formatCurrency(deposit.amount, '$')}</div>
+                              <div className="font-medium">{formatCurrency(deposit.amount)}</div>
                               {deposit.status === 'completed' && (
                                 <div className="text-xs text-gray-500">
-                                  Thực nhận: {formatCurrency(deposit.net_amount, '$')}
+                                  Thực nhận: {formatCurrency(deposit.net_amount)}
                                 </div>
                               )}
                             </div>
