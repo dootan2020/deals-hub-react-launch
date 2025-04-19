@@ -7,15 +7,16 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number) => {
   const [quantity, setQuantity] = useState(1);
   const [promotionCode, setPromotionCode] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [localBalance, setLocalBalance] = useState(0);
+  const [localBalance, setLocalBalance] = useState(userBalance); // Initialize with current balance
   
-  // Update localBalance whenever userBalance changes
+  // Update localBalance whenever userBalance changes from context
   useEffect(() => {
+    console.log('userBalance from context updated: ', userBalance);
     setLocalBalance(userBalance);
-    console.log('userBalance from context updated localBalance:', userBalance);
   }, [userBalance]);
   
-  // Refresh balance when dialog opens
+  // Refresh balance when dialog opens but don't update localBalance here
+  // Let the above useEffect handle it when userBalance is actually updated
   useEffect(() => {
     if (open) {
       console.log('Dialog opened, refreshing user balance');
