@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Filter, X } from 'lucide-react';
@@ -16,7 +15,7 @@ interface SubcategoryFiltersProps {
   activeSubcategories: string[];
   onSubcategoryToggle: (id: string) => void;
   onSortChange: (value: string) => void;
-  activeSort: string;
+  activeSort: SortOption;
   onPriceChange: (min: number, max: number) => void;
   onStockFilterChange: (value: string) => void;
   stockFilter: string;

@@ -32,7 +32,7 @@ export const applyFilters = (products: Product[], filters: any = {}): Product[] 
 };
 
 // Define the sort option type to ensure consistency across the application
-export type SortOption = 'newest' | 'popular' | 'price-low' | 'price-high' | 'recommended' | 'rating';
+export type SortOption = 'newest' | 'popular' | 'price-low' | 'price-high' | 'recommended';
 
 /**
  * Sort products based on specified sort criteria
@@ -44,11 +44,9 @@ export const sortProducts = (products: Product[], sortOption?: string): Product[
   
   switch (sortOption) {
     case 'price-low':
-    case 'price-low-high':
       return sortedProducts.sort((a, b) => a.price - b.price);
       
     case 'price-high':
-    case 'price-high-low':
       return sortedProducts.sort((a, b) => b.price - a.price);
       
     case 'newest':
@@ -57,9 +55,6 @@ export const sortProducts = (products: Product[], sortOption?: string): Product[
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
       });
-      
-    case 'rating':
-      return sortedProducts.sort((a, b) => b.rating - a.rating);
       
     case 'popular':
       // Sort by sales count

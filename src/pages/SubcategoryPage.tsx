@@ -25,7 +25,7 @@ const SubcategoryPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortOption, setSortOption] = useState<SortOption>("recommended");
+  const [sortOption, setSortOption] = useState<SortOption>("newest");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [stockFilter, setStockFilter] = useState("all");
   
