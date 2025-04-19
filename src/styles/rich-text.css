@@ -1,0 +1,83 @@
+
+.product-description {
+  line-height: 1.6;
+  color: #4B5563;
+}
+
+.product-description h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  color: #1E1E1E;
+}
+
+.product-description h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
+  color: #1E1E1E;
+}
+
+.product-description p {
+  margin-bottom: 1rem;
+}
+
+.product-description ul {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.product-description ol {
+  list-style-type: decimal;
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.product-description li {
+  margin-bottom: 0.5rem;
+}
+
+.product-description strong {
+  font-weight: 600;
+}
+
+.product-description em {
+  font-style: italic;
+}
+
+.product-description a {
+  color: #3D5AFE;
+  text-decoration: underline;
+}
+
+.product-description img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem 0;
+  border-radius: 0.375rem;
+}
+
+.product-description .text-center {
+  text-align: center;
+}
+
+.product-description .text-right {
+  text-align: right;
+}
+
+.product-description hr {
+  border-top: 1px solid #E5E7EB;
+  margin: 1.5rem 0;
+}
+
+.product-description blockquote {
+  border-left: 4px solid #1A936F;
+  padding-left: 1rem;
+  margin-left: 0;
+  color: #4B5563;
+  font-style: italic;
+  margin: 1.5rem 0;
+}
