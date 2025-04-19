@@ -25,14 +25,13 @@ export const ProductStock: React.FC<ProductStockProps> = ({ stock, soldCount, cl
           getStockBadgeClasses(stock)
         )}
       >
-        Còn lại: {stock}
+        Còn lại: <strong>{stock}</strong>
       </span>
       <span 
         className="badge-sold inline-block rounded-full px-3 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-700"
       >
-        Đã bán: {soldDisplay}
+        Đã bán: <strong>{soldDisplay}</strong>
       </span>
     </div>
   );
 };
-
