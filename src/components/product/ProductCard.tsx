@@ -47,6 +47,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
 
   // Make sure stock value is properly set
   const stock = product.stockQuantity || product.stock || 0;
+  const salesCount = product.salesCount || product.sales_count || 0;
   
   // Ensure we have a valid kiosk_token
   const hasKioskToken = Boolean(product.kiosk_token);
@@ -88,11 +89,11 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
         </p>
 
         {/* Price + Stock */}
-        <div className="flex flex-col gap-1 mt-auto">
+        <div className="flex flex-col mt-auto">
           <span className="text-lg font-semibold text-primary">
             {formatUSD(priceUSD)}
           </span>
-          <ProductStock stock={stock} />
+          <ProductStock stock={stock} soldCount={salesCount} />
         </div>
 
         {/* Action Buttons */}

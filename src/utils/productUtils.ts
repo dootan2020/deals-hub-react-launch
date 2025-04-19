@@ -1,3 +1,4 @@
+
 import { Product } from '@/types';
 
 /**
@@ -49,10 +50,16 @@ export const formatPrice = (price: number): string => {
 };
 
 export const getStockBadgeClasses = (stock: number): string => {
-  if (stock >= 15) {
-    return 'text-green-600 bg-green-500/10';
+  if (stock > 15) {
+    return 'bg-green-500/10 text-green-700';
   } else if (stock >= 6) {
-    return 'text-orange-600 bg-orange-500/10';
+    return 'bg-amber-500/10 text-amber-700';
   } 
-  return 'text-red-700 bg-red-600/10';
+  return 'bg-red-500/10 text-red-700';
 };
+
+export const getSoldDisplay = (salesCount: number = 0): number => {
+  // Generate a random number between 45 and 200 and add it to salesCount
+  return salesCount + Math.floor(Math.random() * (200 - 45 + 1) + 45);
+};
+
