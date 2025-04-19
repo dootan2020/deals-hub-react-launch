@@ -41,7 +41,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
       "group bg-white rounded-xl border border-primary/20",
       "transition-all duration-300 ease-in-out",
       "hover:shadow-md hover:border-primary/40",
-      "p-6 h-full",
+      "p-6 h-full min-w-[300px]",
       containerClasses
     )}>
       <div className={cn("flex flex-col gap-4 w-full", contentClasses)}>

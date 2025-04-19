@@ -28,17 +28,17 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   viewMode = "grid",
   title,
   description,
-  showViewAll,
-  viewAllLink,
-  viewAllLabel,
   isLoading,
   loadingMore,
   hasMore,
-  onLoadMore
+  onLoadMore,
+  showViewAll,
+  viewAllLink,
+  viewAllLabel
 }) => {
   const gridClasses = viewMode === "list"
     ? "space-y-4"
-    : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4";
+    : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[1200px] mx-auto";
 
   if (isLoading) {
     return (
