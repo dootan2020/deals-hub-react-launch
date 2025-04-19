@@ -1,6 +1,7 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Globe, X, ChevronUp, Loader2, WalletIcon, Bitcoin, CreditCard } from 'lucide-react';
+import { ChevronDown, Globe, X, ChevronUp, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCategoriesContext } from '@/context/CategoriesContext';
 import { Category } from '@/types';
@@ -51,21 +52,6 @@ const MobileNavigation = ({
         </div>
         
         <nav className="flex flex-col space-y-4">
-          {/* Deposit Options for Mobile */}
-          <div className="py-4 border-t border-gray-200">
-            <h3 className="text-sm font-semibold mb-3">Nạp tiền</h3>
-            <div className="space-y-3">
-              <Link
-                to="/deposit"
-                className="flex items-center text-text-light hover:text-primary transition-colors"
-                onClick={toggleMenu}
-              >
-                <WalletIcon className="h-4 w-4 mr-3" />
-                Nạp tiền
-              </Link>
-            </div>
-          </div>
-
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
@@ -133,11 +119,11 @@ const MobileNavigation = ({
               </Link>
               
               <Link 
-                to="/deposit" 
+                to="/account" 
                 className="text-text hover:text-primary transition-colors duration-200"
                 onClick={toggleMenu}
               >
-                Deposit
+                My Account
               </Link>
             </>
           )}
@@ -147,8 +133,7 @@ const MobileNavigation = ({
             <Globe className="h-5 w-5 text-text-light" />
             <select className="ml-2 text-sm text-text-light bg-transparent border-none focus:outline-none">
               <option value="en">English</option>
-              <option value="es">Spanish</option>
-              <option value="pt">Portuguese</option>
+              <option value="vi">Vietnamese</option>
             </select>
           </div>
         </nav>

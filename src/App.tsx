@@ -42,6 +42,7 @@ import UsersManagementPage from './pages/admin/UsersManagementPage';
 
 // User pages
 import DashboardPage from "./pages/user/DashboardPage";
+import MyAccountPage from "./pages/user/MyAccountPage";
 
 const App = () => {
   return (
@@ -60,6 +61,12 @@ const App = () => {
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/account" element={
+                <ProtectedRoute>
+                  <MyAccountPage />
                 </ProtectedRoute>
               } />
               

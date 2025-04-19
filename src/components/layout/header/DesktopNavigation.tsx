@@ -77,12 +77,6 @@ const DesktopNavigation = () => {
               FAQs
             </Link>
           </NavigationMenuItem>
-          
-          <NavigationMenuItem>
-            <Link to="/deposit" className="text-text hover:text-primary transition-colors duration-200 px-3 py-2 text-sm font-medium">
-              Deposit
-            </Link>
-          </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>
     </div>

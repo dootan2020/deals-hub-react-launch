@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -8,6 +9,7 @@ import {
   FileText,
   Settings,
   ChevronDown,
+  Lock,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -34,7 +36,7 @@ export const UserButton = () => {
       <Link to="/login">
         <Button variant="outline" size="sm" className="ml-4">
           <LogIn className="mr-2 h-4 w-4" />
-          Đăng nhập
+          Login
         </Button>
       </Link>
     );
@@ -52,36 +54,42 @@ export const UserButton = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Tài khoản</DropdownMenuLabel>
+        <DropdownMenuLabel>Account</DropdownMenuLabel>
         <DropdownMenuItem className="flex justify-between">
-          <span>Số dư:</span>
+          <span>Balance:</span>
           <span className="font-medium text-primary">
             {formatCurrency(userBalance)}
           </span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        <Link to="/account">
+          <DropdownMenuItem>
+            <User className="mr-2 h-4 w-4" />
+            <span>My Account</span>
+          </DropdownMenuItem>
+        </Link>
         <Link to="/top-up">
           <DropdownMenuItem>
             <CreditCard className="mr-2 h-4 w-4" />
-            <span>Nạp tiền</span>
+            <span>Deposit</span>
           </DropdownMenuItem>
         </Link>
         <Link to="/orders">
           <DropdownMenuItem>
             <FileText className="mr-2 h-4 w-4" />
-            <span>Đơn hàng</span>
+            <span>Orders</span>
           </DropdownMenuItem>
         </Link>
-        <Link to="/settings">
+        <Link to="/account?tab=password">
           <DropdownMenuItem>
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Cài đặt</span>
+            <Lock className="mr-2 h-4 w-4" />
+            <span>Change Password</span>
           </DropdownMenuItem>
         </Link>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Đăng xuất</span>
+          <span>Logout</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
