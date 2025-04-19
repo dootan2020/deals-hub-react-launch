@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -89,12 +88,10 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
         </p>
 
         {/* Price + Stock */}
-        <div className="flex items-center justify-between mt-auto">
-          <div className="flex flex-col">
-            <span className="text-lg font-semibold text-primary">
-              {formatUSD(priceUSD)}
-            </span>
-          </div>
+        <div className="flex flex-col gap-1 mt-auto">
+          <span className="text-lg font-semibold text-primary">
+            {formatUSD(priceUSD)}
+          </span>
           <ProductStock stock={stock} />
         </div>
 

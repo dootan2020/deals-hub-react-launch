@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { getStockBadgeClasses } from '@/utils/productUtils';
 
 interface ProductStockProps {
   stock: number;
@@ -8,12 +9,18 @@ interface ProductStockProps {
 }
 
 export const ProductStock: React.FC<ProductStockProps> = ({ stock, className }) => {
+  if (!stock && stock !== 0) return null;
+
   return (
-    <span className={cn(
-      "text-sm text-gray-500 whitespace-nowrap",
-      className
-    )}>
-      Còn {stock} sản phẩm
+    <span 
+      className={cn(
+        "inline-flex px-2 py-0.5 text-xs font-medium rounded-full",
+        getStockBadgeClasses(stock),
+        className
+      )}
+      aria-label="Product stock remaining"
+    >
+      Còn lại: {stock}
     </span>
   );
 };

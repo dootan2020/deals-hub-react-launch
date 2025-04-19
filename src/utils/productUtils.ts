@@ -1,4 +1,3 @@
-
 import { Product } from '@/types';
 
 /**
@@ -47,4 +46,13 @@ export const formatPrice = (price: number): string => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(price / 100); // Assuming price is stored in cents
+};
+
+export const getStockBadgeClasses = (stock: number): string => {
+  if (stock >= 15) {
+    return 'text-green-600 bg-green-500/10';
+  } else if (stock >= 6) {
+    return 'text-orange-600 bg-orange-500/10';
+  } 
+  return 'text-red-700 bg-red-600/10';
 };
