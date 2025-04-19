@@ -32,9 +32,9 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
 
   return (
     <div className={`
-      bg-white rounded-xl border border-[#E5E7EB] p-5
+      bg-white rounded-xl border border-gray-200 p-5
       shadow-sm transition-all duration-300 ease-in-out 
-      hover:shadow-md hover:border-gray-300 hover:bg-gray-50
+      hover:shadow-md hover:border-gray-300
       ${containerClasses}
     `}>
       <div className={contentClasses}>

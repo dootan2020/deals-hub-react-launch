@@ -22,7 +22,7 @@ const CategoryCard = ({
   totalSubcategories 
 }: CategoryCardProps) => {
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-card-hover overflow-hidden border border-border transition-all duration-300 hover:-translate-y-1">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:border-gray-300">
       <div className="p-6 flex flex-col h-full">
         <div className="flex justify-center mb-6">
           <div className="p-5 bg-green-50 rounded-full">

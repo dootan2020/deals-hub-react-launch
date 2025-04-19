@@ -39,8 +39,8 @@ const FeaturesSection = () => {
           {features.map((feature, index) => (
             <div 
               key={index} 
-              className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-sm
-                transition-all duration-300 ease-in-out hover:shadow-md hover:border-gray-300 hover:bg-gray-50"
+              className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm
+                transition-all duration-300 ease-in-out hover:shadow-md hover:border-gray-300"
             >
               <div className="flex flex-col items-center text-center">
                 <div className="p-4 bg-primary/10 rounded-full mb-5 transition-colors duration-300">

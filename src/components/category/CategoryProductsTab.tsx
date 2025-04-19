@@ -36,7 +36,7 @@ export const CategoryProductsTab = ({
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Products</h2>
         <div className="flex items-center space-x-2">
-          <div className="hidden md:flex items-center space-x-1 border rounded-md">
+          <div className="hidden md:flex items-center space-x-1 border border-gray-200 rounded-md">
             <Button
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
               size="sm"

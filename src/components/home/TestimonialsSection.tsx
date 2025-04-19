@@ -50,8 +50,8 @@ const TestimonialsSection = () => {
           {testimonials.map((testimonial, index) => (
             <div
               key={index}
-              className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-sm 
-                transition-all duration-300 ease-in-out hover:shadow-md hover:border-gray-300 hover:bg-gray-50"
+              className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm 
+                transition-all duration-300 ease-in-out hover:shadow-md hover:border-gray-300"
             >
               <div className="flex items-center mb-4">
                 <Avatar className="h-12 w-12 border-2 border-primary/20">

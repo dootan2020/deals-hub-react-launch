@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { Wallet, RefreshCw } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
@@ -12,7 +13,7 @@ interface BalanceCardProps {
 
 const BalanceCard = ({ userBalance, isRefreshing, onRefreshBalance }: BalanceCardProps) => {
   return (
-    <Card className="transition-all duration-300 ease-in-out hover:shadow-md hover:bg-gray-50/50 hover:border-gray-200">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium">Số dư tài khoản</CardTitle>
         <Wallet className="h-4 w-4 text-muted-foreground" />

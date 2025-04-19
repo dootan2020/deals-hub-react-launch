@@ -34,7 +34,7 @@ const CategoryProductsList: React.FC<CategoryProductsListProps> = ({
             <p className="text-text-light">{totalProducts} products found</p>
             <div className="flex items-center">
               <span className="mr-2 text-text-light">Sort by:</span>
-              <select className="border border-gray-300 rounded p-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
+              <select className="border border-gray-200 rounded p-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
                 <option>Recommended</option>
                 <option>Price: Low to High</option>
                 <option>Price: High to Low</option>
