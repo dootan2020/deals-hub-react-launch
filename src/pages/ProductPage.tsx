@@ -51,13 +51,13 @@ const ProductPage = () => {
       </Helmet>
       
       <div className="bg-background min-h-screen">
-        <div className="container-custom py-8 lg:py-12">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-8 lg:py-12">
           <ProductHeader 
             title={product.title}
             category={product.categories}
           />
 
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <ProductPurchaseSection product={product} />
             <div className="mt-8">
               <ProductDescription description={product.description} />

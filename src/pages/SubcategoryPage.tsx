@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { CategoryHeader } from '@/components/category/CategoryHeader';
 import ProductGrid from '@/components/product/ProductGrid';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -11,6 +10,10 @@ import { fetchProductsWithFilters } from '@/services/productService';
 import { Product } from '@/types';
 import { CategoryWithParent } from '@/types/category.types';
 import { ensureProductsFields } from '@/utils/productUtils';
+import { SubcategoryHeader } from '@/components/category/SubcategoryHeader';
+import SubcategoryFilters from '@/components/category/SubcategoryFilters';
+import { FAQ } from '@/components/category/FAQ';
+import { SupportSection } from '@/components/category/SupportSection';
 
 const SubcategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -20,6 +23,18 @@ const SubcategoryPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortOption, setSortOption] = useState("recommended");
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
+  const [stockFilter, setStockFilter] = useState("all");
+  
+  // Mock subcategories for this example
+  const mockSubcategories = [
+    { id: "1", name: "Gmail", description: "", slug: "gmail", image: "", count: 5, parent_id: null },
+    { id: "2", name: "Hotmail", description: "", slug: "hotmail", image: "", count: 3, parent_id: null },
+    { id: "3", name: "Yahoo", description: "", slug: "yahoo", image: "", count: 2, parent_id: null },
+  ];
+  
+  const [activeSubcategories, setActiveSubcategories] = useState<string[]>([]);
   
   // Fetch products for the subcategory
   useEffect(() => {
@@ -33,7 +48,11 @@ const SubcategoryPage = () => {
         const result = await fetchProductsWithFilters({
           subcategory: slug,
           page: currentPage,
-          perPage: 12  // Changed from 'limit' to 'perPage' which exists in ProductFilters
+          perPage: 12,
+          sort: sortOption,
+          minPrice: priceRange[0],
+          maxPrice: priceRange[1],
+          inStock: stockFilter === "in-stock" ? true : undefined
         });
         
         // Check if result is the expected structure
@@ -62,7 +81,7 @@ const SubcategoryPage = () => {
     };
     
     loadProducts();
-  }, [slug, currentPage]);
+  }, [slug, currentPage, sortOption, priceRange, stockFilter, activeSubcategories]);
   
   // Handle page change
   const handlePageChange = (page: number) => {
@@ -70,21 +89,50 @@ const SubcategoryPage = () => {
     window.scrollTo(0, 0);
   };
   
-  // Toggle view mode
-  const toggleViewMode = () => {
-    setViewMode(prev => prev === "grid" ? "list" : "grid");
+  // Toggle subcategory filter
+  const handleSubcategoryToggle = (id: string) => {
+    setActiveSubcategories(prev => 
+      prev.includes(id) 
+        ? prev.filter(item => item !== id)
+        : [...prev, id]
+    );
+  };
+  
+  // Handle sort change
+  const handleSortChange = (sortValue: string) => {
+    setSortOption(sortValue);
+    setCurrentPage(1); // Reset to first page on sort change
+  };
+  
+  // Handle price range change
+  const handlePriceChange = (min: number, max: number) => {
+    setPriceRange([min, max]);
+    setCurrentPage(1); // Reset to first page on price change
+  };
+  
+  // Handle stock filter change
+  const handleStockFilterChange = (value: string) => {
+    setStockFilter(value);
+    setCurrentPage(1); // Reset to first page on stock filter change
   };
 
-  // Mock category data for CategoryHeader - now with all required properties
+  // Mock category data for CategoryHeader
   const mockCategory: CategoryWithParent = {
     id: slug || 'default-id',
     name: slug ? slug.charAt(0).toUpperCase() + slug.slice(1) : 'Products',
-    description: 'Browse our collection of products',
+    description: 'Browse our collection of email products and services. We offer high-quality, secure accounts for your personal and business needs.',
     slug: slug || 'default-slug',
     image: '',
-    count: 0,  // Added missing required property
-    parent_id: null,
-    parent: null
+    count: products.length,
+    parent_id: 'emails',
+    parent: {
+      id: 'emails',
+      name: 'Email Accounts',
+      slug: 'emails',
+      description: 'All email accounts',
+      image: '',
+      count: 0
+    }
   };
   
   if (error) {
@@ -108,7 +156,7 @@ const SubcategoryPage = () => {
   
   return (
     <Layout>
-      <div className="container py-8">
+      <div className="container mx-auto px-4 sm:px-6 py-8">
         {isLoading ? (
           <>
             <Skeleton className="h-16 w-full mb-8" />
@@ -126,34 +174,109 @@ const SubcategoryPage = () => {
           </>
         ) : (
           <>
-            <CategoryHeader
+            <SubcategoryHeader
               category={mockCategory}
               productCount={products.length}
             />
             
-            <ProductGrid 
-              products={products} 
-              showSort={true}
-              isLoading={isLoading}
-              viewMode={viewMode}
-            />
-            
-            {totalPages > 1 && (
-              <div className="flex justify-center mt-8">
-                <div className="flex gap-2">
-                  {Array(totalPages).fill(0).map((_, i) => (
-                    <Button
-                      key={i}
-                      variant={currentPage === i + 1 ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handlePageChange(i + 1)}
-                    >
-                      {i + 1}
-                    </Button>
-                  ))}
+            <div className="lg:flex gap-8">
+              {/* Filters - Desktop */}
+              <div className="hidden lg:block w-64 flex-shrink-0">
+                <div className="bg-card rounded-lg p-6 shadow-sm sticky top-24">
+                  <h3 className="font-semibold text-lg mb-4">Filters</h3>
+                  
+                  {mockSubcategories.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-sm mb-3">Subcategories</h4>
+                      <div className="space-y-2">
+                        {mockSubcategories.map((subcategory) => (
+                          <button
+                            key={subcategory.id}
+                            onClick={() => handleSubcategoryToggle(subcategory.id)}
+                            className={`flex items-center justify-between w-full p-2 rounded-md text-left text-sm ${
+                              activeSubcategories.includes(subcategory.id) 
+                                ? 'bg-primary/10 text-primary' 
+                                : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            <span>{subcategory.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="mb-6">
+                    <PriceRangeFilter 
+                      minPrice={priceRange[0]} 
+                      maxPrice={priceRange[1]} 
+                      onPriceChange={handlePriceChange} 
+                    />
+                  </div>
+                  
+                  <div className="mb-2">
+                    <StockFilter 
+                      stockFilter={stockFilter} 
+                      onStockFilterChange={handleStockFilterChange} 
+                    />
+                  </div>
                 </div>
               </div>
-            )}
+              
+              {/* Main content */}
+              <div className="flex-grow">
+                <SubcategoryFilters
+                  subcategories={mockSubcategories}
+                  activeSubcategories={activeSubcategories}
+                  onSubcategoryToggle={handleSubcategoryToggle}
+                  onSortChange={handleSortChange}
+                  activeSort={sortOption}
+                  onPriceChange={handlePriceChange}
+                  onStockFilterChange={handleStockFilterChange}
+                  stockFilter={stockFilter}
+                  minPrice={priceRange[0]}
+                  maxPrice={priceRange[1]}
+                />
+                
+                <ProductGrid 
+                  products={products} 
+                  showSort={false}
+                  isLoading={isLoading}
+                  viewMode={viewMode}
+                />
+                
+                {products.length === 0 && !isLoading && (
+                  <div className="text-center py-12">
+                    <h3 className="text-xl font-semibold mb-2">Không tìm thấy sản phẩm nào</h3>
+                    <p className="text-text-light mb-8">Vui lòng thử lại với các bộ lọc khác hoặc liên hệ với chúng tôi để được hỗ trợ.</p>
+                    <SupportSection />
+                  </div>
+                )}
+                
+                {totalPages > 1 && (
+                  <div className="flex justify-center mt-8">
+                    <div className="flex gap-2">
+                      {Array(totalPages).fill(0).map((_, i) => (
+                        <Button
+                          key={i}
+                          variant={currentPage === i + 1 ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => handlePageChange(i + 1)}
+                        >
+                          {i + 1}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* FAQ Section */}
+            <FAQ />
+            
+            {/* Support Section - show only if there are products */}
+            {products.length > 0 && <SupportSection />}
           </>
         )}
       </div>
