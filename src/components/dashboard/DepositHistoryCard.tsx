@@ -20,7 +20,7 @@ const DepositHistoryCard = ({
   onCheckOrder,
 }: DepositHistoryCardProps) => {
   return (
-    <Card>
+    <Card className="hover:border-gray-300">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle>Lịch sử nạp tiền</CardTitle>
         <History className="h-4 w-4 text-muted-foreground" />

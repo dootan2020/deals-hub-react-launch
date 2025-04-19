@@ -71,7 +71,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
               <Button
                 variant="outline"
                 size="lg"
-                className="rounded-full px-8"
+                className="rounded-full px-8 transition-all duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-50"
                 onClick={onLoadMore}
                 disabled={loadingMore}
               >
@@ -92,11 +92,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({
               <Button
                 asChild
                 size="lg"
-                className="group hover:scale-105 transition-transform duration-200"
+                className="transition-all duration-300 ease-in-out"
               >
                 <a href={viewAllLink} className="flex items-center gap-2">
                   {viewAllLabel || "View All"}
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" />
+                  <ArrowRight className="w-5 h-5 transition-transform duration-200" />
                 </a>
               </Button>
             </div>
@@ -112,4 +112,3 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 };
 
 export default ProductGrid;
-

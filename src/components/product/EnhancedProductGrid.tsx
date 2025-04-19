@@ -95,7 +95,7 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
           <Button
             variant="outline"
             size="lg"
-            className="rounded-full px-8"
+            className="rounded-full px-8 transition-all duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-50"
             onClick={onLoadMore}
             disabled={loadingMore}
           >
@@ -119,7 +119,11 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
               <button
                 key={i}
                 onClick={() => onPageChange && onPageChange(i + 1)}
-                className={`px-3 py-1 rounded ${currentPage === i + 1 ? 'bg-primary text-white' : 'bg-gray-100'}`}
+                className={`px-3 py-1 rounded transition-all duration-300 ease-in-out ${
+                  currentPage === i + 1 
+                    ? 'bg-primary text-white' 
+                    : 'bg-gray-100 hover:bg-gray-200'
+                }`}
               >
                 {i + 1}
               </button>
@@ -130,7 +134,7 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
       
       {showViewAll && viewAllLink && (
         <div className="flex justify-center mt-6">
-          <a href={viewAllLink} className="text-primary hover:underline">
+          <a href={viewAllLink} className="text-primary hover:underline transition-colors">
             {viewAllLabel || "View All"}
           </a>
         </div>
