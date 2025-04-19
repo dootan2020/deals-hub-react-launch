@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -10,6 +11,7 @@ import { Product, Category } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Helmet } from 'react-helmet';
 import { BuyNowButton } from '@/components/checkout/BuyNowButton';
+import { ProductStock } from '@/components/product/ProductStock'; // Add this import
 import {
   Breadcrumb,
   BreadcrumbList,
