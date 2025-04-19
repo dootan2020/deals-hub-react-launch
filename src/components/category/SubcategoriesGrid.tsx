@@ -19,7 +19,7 @@ const SubcategoriesGrid: React.FC<SubcategoriesGridProps> = ({ categorySlug, sub
           <Link
             to={`/category/${categorySlug}/${subcategory.slug}`}
             key={subcategory.id}
-            className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col items-center text-center transition-all duration-300 hover:shadow-md hover:border-gray-300"
+            className="bg-white border border-primary/20 rounded-xl p-6 flex flex-col items-center text-center transition-all duration-300 hover:shadow-md hover:border-primary/40"
           >
             <img 
               src={subcategory.image} 

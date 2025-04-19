@@ -22,10 +22,10 @@ const CategoryCard = ({
   totalSubcategories 
 }: CategoryCardProps) => {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:border-gray-300">
-      <div className="p-6 flex flex-col h-full">
+    <div className="bg-white rounded-xl border border-primary/20 p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/40">
+      <div className="flex flex-col h-full">
         <div className="flex justify-center mb-6">
-          <div className="p-5 bg-green-50 rounded-full">
+          <div className="p-5 bg-primary/5 rounded-full">
             <CategoryIcon 
               category={name} 
               className="h-14 w-14 text-primary" 
@@ -51,7 +51,7 @@ const CategoryCard = ({
           {topSubcategories && topSubcategories.length > 0 ? (
             <ul className="space-y-0">
               {topSubcategories.map((sub, index) => (
-                <li key={sub.id} className={`py-2 ${index < topSubcategories.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                <li key={sub.id} className={`py-2 ${index < topSubcategories.length - 1 ? 'border-b border-primary/10' : ''}`}>
                   <Link 
                     to={`/category/${slug}/${sub.slug}`}
                     className="text-sm text-text-muted hover:text-primary transition-colors flex items-center"
@@ -83,7 +83,7 @@ const CategoryCard = ({
         
         <Link 
           to={`/category/${slug}`}
-          className="inline-flex w-full justify-center items-center text-center bg-primary hover:bg-primary-dark text-white font-medium px-4 py-3 rounded-md transition-colors group"
+          className="inline-flex w-full justify-center items-center bg-primary hover:bg-primary-dark text-white font-medium px-4 py-3 rounded-md transition-colors group"
         >
           Browse Category
           <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
