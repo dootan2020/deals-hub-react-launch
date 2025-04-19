@@ -3,12 +3,12 @@ import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
-import { sortProducts } from '@/utils/productFilters';
+import { sortProducts, SortOption } from '@/utils/productFilters';
 
 interface UseCategoryProductsProps {
   categoryId?: string;
   isProductsPage?: boolean;
-  sort?: string;
+  sort?: SortOption;
 }
 
 export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort = 'recommended' }: UseCategoryProductsProps) => {
@@ -122,7 +122,7 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
   };
 
   const handleSortChange = (newSort: string) => {
-    setCurrentSort(newSort);
+    setCurrentSort(newSort as SortOption);
     setProducts([]);
     setPage(1);
     setHasMore(true);

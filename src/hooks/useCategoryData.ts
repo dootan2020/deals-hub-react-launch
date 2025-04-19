@@ -4,10 +4,11 @@ import { CategoryPageParams } from '@/types/category.types';
 import { useCategory } from './useCategory';
 import { useCategoryProducts } from './useCategoryProducts';
 import { useSubcategories } from './useSubcategories';
+import { SortOption } from '@/utils/productFilters';
 
 export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPageParams) => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [activeFilters, setActiveFilters] = useState({ sort: 'recommended' });
+  const [activeFilters, setActiveFilters] = useState({ sort: 'recommended' as SortOption });
   
   const { category, loading: categoryLoading, error } = useCategory({ 
     categorySlug, 
@@ -44,7 +45,7 @@ export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPa
   };
 
   const handleSort = (newSort: string) => {
-    setActiveFilters(prev => ({ ...prev, sort: newSort }));
+    setActiveFilters(prev => ({ ...prev, sort: newSort as SortOption }));
     handleSortChange(newSort);
   };
 

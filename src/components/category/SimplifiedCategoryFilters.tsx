@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SortOption } from '@/utils/productFilters';
 
 interface SimplifiedCategoryFiltersProps {
   onSortChange: (sort: string) => void;
@@ -25,10 +26,10 @@ const SimplifiedCategoryFilters: React.FC<SimplifiedCategoryFiltersProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="recommended">Recommended</SelectItem>
-          <SelectItem value="price-low-high">Price: Low to High</SelectItem>
-          <SelectItem value="price-high-low">Price: High to Low</SelectItem>
+          <SelectItem value="price-low">Price: Low to High</SelectItem>
+          <SelectItem value="price-high">Price: High to Low</SelectItem>
           <SelectItem value="newest">Newest</SelectItem>
-          <SelectItem value="rating">Highest Rated</SelectItem>
+          <SelectItem value="popular">Most Popular</SelectItem>
         </SelectContent>
       </Select>
     </div>

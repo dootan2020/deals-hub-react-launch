@@ -29,13 +29,13 @@ const ProductSorter: React.FC<ProductSorterProps> = ({ currentSort, onSortChange
               Recommended
             </div>
           </SelectItem>
-          <SelectItem value="price-high-low">
+          <SelectItem value="price-high">
             <div className="flex items-center gap-2">
               <ArrowDownAZ className="h-4 w-4" />
               Price: High to Low
             </div>
           </SelectItem>
-          <SelectItem value="price-low-high">
+          <SelectItem value="price-low">
             <div className="flex items-center gap-2">
               <ArrowUpZA className="h-4 w-4" />
               Price: Low to High
