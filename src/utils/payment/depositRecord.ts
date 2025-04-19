@@ -1,5 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
+import { calculateNetAmount } from './calculateFees';
+import { processDepositBalance } from './balanceProcessing';
 
 /**
  * Create a deposit record in the database
@@ -62,8 +63,6 @@ export const createDepositRecord = async (
     };
   }
 };
-
-import { calculateNetAmount } from './calculateFees';
 
 /**
  * Update a deposit record with a transaction ID

@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { DollarSign, Loader2 } from 'lucide-react';
-import { createDepositRecord, updateDepositWithTransaction } from '@/utils/paymentUtils';
+import { createDepositRecord, updateDepositWithTransaction } from '@/utils/payment';
 import { supabase } from '@/integrations/supabase/client';
 
 interface PayPalCheckoutButtonProps {

@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { processDepositBalance } from './balanceProcessing';
 
 /**
  * Force process a specific PayPal transaction to update user balance

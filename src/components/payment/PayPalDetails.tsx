@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { calculateFee, calculateNetAmount } from '@/utils/paymentUtils';
+import { calculateFee, calculateNetAmount } from '@/utils/payment';
 
 interface PayPalDetailsProps {
   amount: number;
