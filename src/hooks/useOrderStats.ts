@@ -8,6 +8,9 @@ interface OrderStats {
   completed: number;
 }
 
+// Define a simple type for count queries to avoid deep type inference
+type CountResult = { count: number | null };
+
 export const useOrderStats = (userId: string | undefined) => {
   const [stats, setStats] = useState<OrderStats>({
     total: 0,
@@ -25,28 +28,33 @@ export const useOrderStats = (userId: string | undefined) => {
 
     const fetchStats = async () => {
       try {
-        // Use any to avoid type inference issues with Supabase
-        const totalResult: { count: number | null } = await supabase
+        // Execute queries with explicit type casting to avoid deep inference
+        const totalResult = await supabase
           .from('orders')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId);
         
-        const processingResult: { count: number | null } = await supabase
+        const processingResult = await supabase
           .from('orders')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
           .eq('status', 'processing');
         
-        const completedResult: { count: number | null } = await supabase
+        const completedResult = await supabase
           .from('orders')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
           .eq('status', 'completed');
 
+        // Use explicit type assertion to control the inference depth
+        const totalCount = (totalResult as unknown as CountResult).count || 0;
+        const processingCount = (processingResult as unknown as CountResult).count || 0;
+        const completedCount = (completedResult as unknown as CountResult).count || 0;
+
         setStats({
-          total: totalResult.count || 0,
-          processing: processingResult.count || 0,
-          completed: completedResult.count || 0
+          total: totalCount,
+          processing: processingCount,
+          completed: completedCount
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch order stats');
