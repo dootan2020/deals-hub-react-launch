@@ -4,17 +4,22 @@ import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import BuyNowButton from '@/components/checkout/BuyNowButton';
 import { formatPrice } from '@/utils/productUtils';
-import { ProductBadge } from './ProductBadge';
-import { ProductStock } from './ProductStock';
+import { ProductLogo } from './ProductLogo';
 import { ArrowRight, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ProductCardProps {
   product: Product;
   viewMode?: "grid" | "list";
 }
 
-const getBadgeType = (title: string): 'gmail' | 'facebook' | 'outlook' | 'default' => {
+const getLogoType = (title: string): 'gmail' | 'facebook' | 'outlook' | 'default' => {
   const lowercaseTitle = title.toLowerCase();
   if (lowercaseTitle.includes('gmail')) return 'gmail';
   if (lowercaseTitle.includes('facebook')) return 'facebook';
@@ -25,7 +30,7 @@ const getBadgeType = (title: string): 'gmail' | 'facebook' | 'outlook' | 'defaul
 const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
   const containerClasses = viewMode === "list" 
     ? "flex gap-6" 
-    : "flex flex-col h-full";
+    : "flex flex-col";
 
   const contentClasses = viewMode === "list"
     ? "flex-1"
@@ -33,37 +38,48 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
 
   return (
     <div className={cn(
-      "bg-white rounded-xl border border-primary/20",
-      "shadow-sm transition-all duration-300 ease-in-out",
+      "group bg-white rounded-xl border border-primary/20",
+      "transition-all duration-300 ease-in-out",
       "hover:shadow-md hover:border-primary/40",
-      "p-6",
+      "p-6 h-full",
       containerClasses
     )}>
-      <div className={cn("flex flex-col gap-4", contentClasses)}>
-        {/* Header: Icon + Title + Description */}
+      <div className={cn("flex flex-col gap-4 w-full", contentClasses)}>
+        {/* Header: Logo + Title */}
         <div className="flex items-start gap-4">
-          <div className="flex-shrink-0">
-            <ProductBadge type={getBadgeType(product.title)} />
-          </div>
-          <div className="flex-1 min-w-0 space-y-2">
-            <h3 className="font-semibold text-[#1E1E1E] text-base leading-tight">
-              {product.title}
-            </h3>
-            <p className="text-sm text-[#4B5563] line-clamp-2">
-              {product.shortDescription || product.description}
-            </p>
+          <ProductLogo 
+            type={getLogoType(product.title)} 
+            size={32}
+          />
+          <div className="flex-1 min-w-0">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <h3 className="font-semibold text-[#1E1E1E] text-base leading-tight line-clamp-2">
+                    {product.title}
+                  </h3>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{product.title}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
+
+        {/* Description */}
+        <p className="text-sm text-[#4B5563] line-clamp-2 min-h-[40px]">
+          {product.shortDescription || product.description}
+        </p>
 
         {/* Price + Stock */}
         <div className="flex items-center justify-between mt-auto">
           <span className="text-lg font-semibold text-primary">
             {formatPrice(product.price)}
           </span>
-          <ProductStock 
-            stock={product.stockQuantity || 0}
-            className="text-sm"
-          />
+          <span className="text-sm text-gray-500">
+            Còn {product.stockQuantity || 0} sản phẩm
+          </span>
         </div>
 
         {/* Action Buttons */}
