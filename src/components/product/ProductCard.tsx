@@ -32,9 +32,9 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
 
   return (
     <div className={`
-      bg-white rounded-xl border border-primary/20 p-5
+      bg-white rounded-xl border border-primary/20
       shadow-sm transition-all duration-300 ease-in-out 
-      hover:shadow-md hover:border-primary/40
+      hover:shadow-md hover:border-primary/40 p-5
       ${containerClasses}
     `}>
       <div className={contentClasses}>
@@ -42,23 +42,23 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
           <div className="flex items-start gap-3">
             <ProductBadge type={getBadgeType(product.title)} />
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-[#1E1E1E] line-clamp-2 pl-1">
+              <h3 className="font-semibold text-[#1E1E1E] text-left">
                 {product.title}
               </h3>
-              <p className="text-sm text-[#4B5563] line-clamp-2 mt-1 pl-1">
+              <p className="text-sm text-[#4B5563] mt-1 text-left line-clamp-2">
                 {product.shortDescription || product.description}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center justify-between pl-1">
+          <div className="flex items-center justify-between">
             <span className="text-base font-bold text-primary">
               {formatPrice(product.price)}
             </span>
             <ProductStock stock={product.stockQuantity || 0} />
           </div>
 
-          <div className="flex flex-wrap gap-2 mt-auto pl-1">
+          <div className="flex flex-wrap gap-2 mt-2">
             <Button
               variant="outline"
               size="sm"
@@ -66,7 +66,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
               asChild
             >
               <a href={`/product/${product.slug}`}>
-                <span>Details</span>
+                <span>Chi tiết</span>
                 <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </a>
             </Button>
@@ -81,7 +81,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
               product={product}
             >
               <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
-              Buy Now
+              Mua ngay
             </BuyNowButton>
           </div>
         </div>
