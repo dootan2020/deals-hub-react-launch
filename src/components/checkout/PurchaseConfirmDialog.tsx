@@ -1,11 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+
+import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Loader2, Heart, Minus, Plus } from 'lucide-react';
+import { AlertTriangle, Loader2, Heart } from 'lucide-react';
 import { formatPrice } from '@/utils/productUtils';
-import { useAuth } from '@/context/AuthContext';
+import { ProductInfo } from './dialog-sections/ProductInfo';
+import { QuantitySelector } from './dialog-sections/QuantitySelector';
+import { PromotionInput } from './dialog-sections/PromotionInput';
+import { usePurchaseDialogState } from '@/hooks/use-purchase-dialog-state';
 import { Product } from '@/types';
 
 interface PurchaseConfirmDialogProps {
@@ -23,49 +26,19 @@ export const PurchaseConfirmDialog = ({
   product,
   isProcessing = false
 }: PurchaseConfirmDialogProps) => {
-  const { userBalance, refreshUserBalance } = useAuth();
-  const [quantity, setQuantity] = useState(1);
-  const [promotionCode, setPromotionCode] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [localBalance, setLocalBalance] = useState(0);
-  
-  const totalPrice = quantity * product.price;
-  const canAfford = localBalance >= totalPrice;
   const maxQuantity = product.stockQuantity || 0;
   
-  // First, set up an effect to update localBalance whenever userBalance changes
-  useEffect(() => {
-    setLocalBalance(userBalance);
-    console.log('userBalance from context updated localBalance:', userBalance);
-  }, [userBalance]);
-  
-  // Separate effect to trigger the refresh when dialog opens
-  useEffect(() => {
-    if (open) {
-      console.log('Dialog opened, refreshing user balance');
-      // Just trigger the refresh - don't try to update localBalance here
-      // The first useEffect will handle that once userBalance is updated
-      refreshUserBalance()
-        .then(() => {
-          console.log('User balance refresh completed');
-        })
-        .catch(error => {
-          console.error('Error refreshing balance:', error);
-        });
-        
-      // Reset form state
-      setQuantity(1);
-      setPromotionCode('');
-      setError(null);
-    }
-  }, [open, refreshUserBalance]);
-  
-  const handleQuantityChange = (amount: number) => {
-    const newQuantity = quantity + amount;
-    if (newQuantity >= 1 && newQuantity <= maxQuantity) {
-      setQuantity(newQuantity);
-    }
-  };
+  const {
+    quantity,
+    setQuantity,
+    promotionCode,
+    setPromotionCode,
+    error,
+    setError,
+    localBalance,
+    totalPrice,
+    canAfford
+  } = usePurchaseDialogState(open, product.price);
   
   const handleConfirm = () => {
     if (!canAfford) {
@@ -86,20 +59,8 @@ export const PurchaseConfirmDialog = ({
         </DialogHeader>
 
         <div className="space-y-4 text-left">
-          {/* Product Info */}
-          <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-100">
-            <h3 className="font-bold text-lg text-gray-900">{product.title}</h3>
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>Đơn giá:</span>
-              <span className="font-medium text-gray-900">{formatPrice(product.price)}</span>
-            </div>
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>Kho còn lại:</span>
-              <span className="font-medium text-gray-900">{maxQuantity} sản phẩm</span>
-            </div>
-          </div>
+          <ProductInfo product={product} maxQuantity={maxQuantity} />
 
-          {/* Balance Info */}
           <div className="flex justify-between text-sm pt-2">
             <span className="text-gray-600">Số dư hiện tại:</span>
             <span className={`font-medium ${canAfford ? 'text-green-600' : 'text-red-600'}`}>
@@ -107,51 +68,17 @@ export const PurchaseConfirmDialog = ({
             </span>
           </div>
 
-          {/* Quantity Selector */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Số lượng:</label>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleQuantityChange(-1)}
-                disabled={quantity <= 1}
-                className="border-gray-300 hover:bg-gray-50"
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <Input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(Math.min(maxQuantity, Math.max(1, parseInt(e.target.value) || 1)))}
-                className="w-20 text-center"
-                min={1}
-                max={maxQuantity}
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleQuantityChange(1)}
-                disabled={quantity >= maxQuantity}
-                className="border-gray-300 hover:bg-gray-50"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <QuantitySelector
+            quantity={quantity}
+            maxQuantity={maxQuantity}
+            onQuantityChange={setQuantity}
+          />
 
-          {/* Promotion Code */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Mã giảm giá (không bắt buộc):</label>
-            <Input
-              placeholder="Nhập mã giảm giá"
-              value={promotionCode}
-              onChange={(e) => setPromotionCode(e.target.value)}
-              className="border-gray-300"
-            />
-          </div>
+          <PromotionInput
+            promotionCode={promotionCode}
+            onPromotionChange={setPromotionCode}
+          />
 
-          {/* Total Price */}
           <div className="flex justify-between items-center font-bold text-lg border-t border-b py-3 mt-4">
             <span className="text-gray-700">Tổng thanh toán:</span>
             <span className={!canAfford ? 'text-red-600' : 'text-primary'}>
@@ -159,7 +86,6 @@ export const PurchaseConfirmDialog = ({
             </span>
           </div>
 
-          {/* Insufficient Balance Warning */}
           {!canAfford && (
             <Alert variant="destructive" className="bg-red-50 border border-red-100 text-left">
               <AlertTriangle className="h-4 w-4" />
@@ -169,7 +95,6 @@ export const PurchaseConfirmDialog = ({
             </Alert>
           )}
 
-          {/* Other Errors */}
           {error && error !== 'Số dư không đủ để thực hiện giao dịch này' && (
             <Alert variant="destructive" className="text-left">
               <AlertTriangle className="h-4 w-4" />
