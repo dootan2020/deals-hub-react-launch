@@ -6,6 +6,14 @@ import { formatCurrency } from '@/lib/utils';
 import { ShoppingBag, Loader2, AlertCircle } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
+interface OrderItem {
+  product_id: string;
+}
+
+interface Product {
+  title: string;
+}
+
 interface Order {
   id: string;
   created_at: string;
@@ -37,7 +45,7 @@ const OrderHistoryTab = ({ userId }: OrderHistoryTabProps) => {
         if (error) throw error;
         
         // Enhance orders with product information if needed
-        let enhancedOrders = [...data];
+        let enhancedOrders = [...(data as Order[])];
 
         // For each order, get the first product name
         for (let i = 0; i < enhancedOrders.length; i++) {
