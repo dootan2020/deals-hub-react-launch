@@ -11,7 +11,7 @@ interface UseCategoryProductsProps {
   sort?: SortOption;
 }
 
-export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort = 'recommended' }: UseCategoryProductsProps) => {
+export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort = 'popular' }: UseCategoryProductsProps) => {
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);

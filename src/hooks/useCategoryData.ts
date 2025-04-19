@@ -8,7 +8,7 @@ import { SortOption } from '@/utils/productFilters';
 
 export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPageParams) => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [activeFilters, setActiveFilters] = useState({ sort: 'recommended' as SortOption });
+  const [activeFilters, setActiveFilters] = useState({ sort: 'popular' as SortOption });
   
   const { category, loading: categoryLoading, error } = useCategory({ 
     categorySlug, 

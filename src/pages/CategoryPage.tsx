@@ -62,7 +62,7 @@ const CategoryPage: React.FC = () => {
           <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <ProductSorter
-                currentSort={activeFilters.sort || 'recommended'}
+                currentSort={activeFilters.sort || 'popular'}
                 onSortChange={handleSortChange}
               />
               <ViewToggle

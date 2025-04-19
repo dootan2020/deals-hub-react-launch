@@ -11,6 +11,8 @@ export interface ProductFilters {
   page?: number;
   perPage?: number;
   priceRange?: { min: number; max: number };
+  minPrice?: number; // Add this for backward compatibility
+  maxPrice?: number; // Add this for backward compatibility
   inStock?: boolean;
 }
 
@@ -65,12 +67,20 @@ export const fetchProductsWithFilters = async (filters: ProductFilters): Promise
     }
   }
   
-  // Apply price range filter
+  // Apply price range filter - handle both priceRange object and minPrice/maxPrice
   if (filters.priceRange) {
     filteredProducts = filteredProducts.filter(product => 
       product.price >= filters.priceRange!.min && 
       product.price <= filters.priceRange!.max
     );
+  } else if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+    // Handle minPrice/maxPrice as separate parameters for backward compatibility
+    if (filters.minPrice !== undefined) {
+      filteredProducts = filteredProducts.filter(product => product.price >= filters.minPrice!);
+    }
+    if (filters.maxPrice !== undefined) {
+      filteredProducts = filteredProducts.filter(product => product.price <= filters.maxPrice!);
+    }
   }
   
   // Apply stock filter
