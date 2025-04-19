@@ -66,9 +66,7 @@ const ProductPage = () => {
             
             {/* Right column - Trust badges */}
             <div className="lg:col-span-5">
-              <div className="bg-card rounded-lg p-6 shadow-sm">
-                <ProductTrustBadges />
-              </div>
+              <ProductTrustBadges />
             </div>
           </div>
 
