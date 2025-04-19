@@ -19,8 +19,10 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number) => {
       
       console.log('Fetching live balance for user:', user.id);
       setIsLoadingBalance(true);
+      setError(null); // Clear any previous errors when starting a new fetch
       
       try {
+        // Always fetch the most recent balance directly from the database
         const { data, error } = await supabase
           .from('profiles')
           .select('balance')
@@ -49,6 +51,7 @@ export const usePurchaseDialogState = (open: boolean, productPrice: number) => {
       }
     };
 
+    // Call the function immediately when dialog opens or user changes
     fetchLiveBalance();
   }, [open, user]); // Added user as dependency to ensure refetch when user changes
 
