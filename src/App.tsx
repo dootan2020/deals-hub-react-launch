@@ -22,6 +22,7 @@ import SupportPage from "./pages/SupportPage";
 import FaqsPage from "./pages/FaqsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import DepositPage from "./pages/DepositPage";
+import PayPalDepositPage from "./pages/PayPalDepositPage";
 import CheckoutPage from "./pages/CheckoutPage";
 
 // Admin pages
@@ -141,13 +142,14 @@ const App = () => {
               <Route path="/page/knowledge" element={<KnowledgeBasePage />} />
               <Route path="/knowledge" element={<KnowledgeBasePage />} />
               
+              {/* Deposit Routes */}
               <Route path="/page/deposit" element={<DepositPage />} />
               <Route path="/deposit" element={<DepositPage />} />
               <Route path="/top-up" element={<DepositPage />} />
               
               <Route path="/deposit/binance" element={<DepositPage method="binance" />} />
               <Route path="/deposit/usdt" element={<DepositPage method="usdt" />} />
-              <Route path="/deposit/paypal" element={<DepositPage method="paypal" />} />
+              <Route path="/deposit/paypal" element={<PayPalDepositPage />} />
               
               <Route path="/order-success" element={<OrderSuccessPage />} />
               
