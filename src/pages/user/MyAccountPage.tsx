@@ -56,7 +56,6 @@ const MyAccountPage = () => {
         setTotalOrders(count || 0);
 
         // Get last login information from auth.users
-        // This requires a Supabase function with admin rights
         const { data: authData } = await supabase.auth.getSession();
         if (authData?.session?.user?.last_sign_in_at) {
           setLastLoginAt(new Date(authData.session.user.last_sign_in_at));

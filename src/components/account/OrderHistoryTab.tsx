@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/utils';
 import { ShoppingBag, Loader2, AlertCircle } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
+// Define clear interfaces for data types
 interface OrderItem {
   product_id: string;
 }
@@ -32,54 +33,78 @@ const OrderHistoryTab = ({ userId }: OrderHistoryTabProps) => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchOrderData = async () => {
       setIsLoading(true);
       try {
-        // Fetch orders with basic information
-        const { data, error } = await supabase
-          .from('orders')
-          .select('id, created_at, status, total_amount')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        
-        // Enhance orders with product information if needed
-        const enhancedOrders: Order[] = data || [];
-
-        // For each order, get the first product name
-        for (let i = 0; i < enhancedOrders.length; i++) {
-          const { data: orderItems } = await supabase
-            .from('order_items')
-            .select('product_id')
-            .eq('order_id', enhancedOrders[i].id)
-            .limit(1)
-            .single();
-            
-          if (orderItems?.product_id) {
-            const { data: product } = await supabase
-              .from('products')
-              .select('title')
-              .eq('id', orderItems.product_id)
-              .single();
-              
-            if (product) {
-              enhancedOrders[i].product_title = product.title;
-            }
-          }
-        }
-
-        setOrders(enhancedOrders);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-        setError('Failed to load order history');
+        await fetchAndEnhanceOrders();
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load order history';
+        console.error("Error fetching orders:", err);
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchOrders();
+    fetchOrderData();
   }, [userId]);
+
+  // Separated function to fetch and enhance orders
+  const fetchAndEnhanceOrders = async () => {
+    // Fetch basic order information
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .select('id, created_at, status, total_amount')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (orderError) {
+      throw new Error(orderError.message);
+    }
+
+    // Create a new array of orders, ensuring it's not undefined
+    const fetchedOrders: Order[] = orderData || [];
+    
+    // Enhanced orders with product information
+    const enhancedOrders = await enhanceOrdersWithProducts(fetchedOrders);
+    
+    setOrders(enhancedOrders);
+  };
+
+  // Function to add product information to orders
+  const enhanceOrdersWithProducts = async (fetchedOrders: Order[]): Promise<Order[]> => {
+    const result: Order[] = [];
+    
+    for (const order of fetchedOrders) {
+      // Make a copy of the order to modify
+      const enhancedOrder = { ...order };
+      
+      // Fetch the first product for this order
+      const { data: orderItemData, error: itemError } = await supabase
+        .from('order_items')
+        .select('product_id')
+        .eq('order_id', order.id)
+        .limit(1)
+        .single();
+      
+      if (!itemError && orderItemData) {
+        // Get product title
+        const { data: productData, error: productError } = await supabase
+          .from('products')
+          .select('title')
+          .eq('id', orderItemData.product_id)
+          .single();
+          
+        if (!productError && productData) {
+          enhancedOrder.product_title = productData.title;
+        }
+      }
+      
+      result.push(enhancedOrder);
+    }
+    
+    return result;
+  };
 
   const renderOrderStatus = (status: string) => {
     switch (status.toLowerCase()) {
