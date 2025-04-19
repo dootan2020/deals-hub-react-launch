@@ -33,7 +33,6 @@ export const PurchaseConfirmDialog = ({
   const canAfford = userBalance >= totalPrice;
   const maxQuantity = product.stockQuantity || 0;
   
-  // Refresh user balance when the dialog opens
   useEffect(() => {
     if (open) {
       refreshUserBalance();
@@ -60,28 +59,28 @@ export const PurchaseConfirmDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-white">
         <DialogHeader>
-          <DialogTitle className="text-left text-xl">Xác nhận mua hàng</DialogTitle>
+          <DialogTitle className="text-left text-xl font-semibold">Xác nhận mua hàng</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Product Info */}
-          <div className="space-y-2">
-            <h3 className="font-bold text-lg">{product.title}</h3>
-            <div className="flex justify-between text-sm text-muted-foreground">
+          <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+            <h3 className="font-bold text-lg text-gray-900">{product.title}</h3>
+            <div className="flex justify-between text-sm text-gray-600">
               <span>Đơn giá:</span>
-              <span className="font-medium text-foreground">{formatPrice(product.price)}</span>
+              <span className="font-medium text-gray-900">{formatPrice(product.price)}</span>
             </div>
-            <div className="flex justify-between text-sm text-muted-foreground">
+            <div className="flex justify-between text-sm text-gray-600">
               <span>Kho còn lại:</span>
-              <span className="font-medium text-foreground">{maxQuantity} sản phẩm</span>
+              <span className="font-medium text-gray-900">{maxQuantity} sản phẩm</span>
             </div>
           </div>
 
           {/* Balance Info */}
-          <div className="flex justify-between text-sm border-t pt-2">
-            <span>Số dư hiện tại:</span>
+          <div className="flex justify-between text-sm border-t border-dashed pt-4">
+            <span className="text-gray-600">Số dư hiện tại:</span>
             <span className={`font-medium ${canAfford ? 'text-green-600' : 'text-red-600'}`}>
               {formatPrice(userBalance)}
             </span>
@@ -89,13 +88,14 @@ export const PurchaseConfirmDialog = ({
 
           {/* Quantity Selector */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Số lượng:</label>
+            <label className="text-sm font-medium text-gray-700">Số lượng:</label>
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => handleQuantityChange(-1)}
                 disabled={quantity <= 1}
+                className="border-gray-300 hover:bg-gray-50"
               >
                 <Minus className="h-4 w-4" />
               </Button>
@@ -112,6 +112,7 @@ export const PurchaseConfirmDialog = ({
                 size="icon"
                 onClick={() => handleQuantityChange(1)}
                 disabled={quantity >= maxQuantity}
+                className="border-gray-300 hover:bg-gray-50"
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -120,18 +121,21 @@ export const PurchaseConfirmDialog = ({
 
           {/* Promotion Code */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Mã giảm giá (không bắt buộc):</label>
+            <label className="text-sm font-medium text-gray-700">Mã giảm giá (không bắt buộc):</label>
             <Input
               placeholder="Nhập mã giảm giá"
               value={promotionCode}
               onChange={(e) => setPromotionCode(e.target.value)}
+              className="border-gray-300"
             />
           </div>
 
           {/* Total Price */}
-          <div className="flex justify-between items-center font-bold text-lg border-t border-b py-2">
-            <span>Tổng thanh toán:</span>
-            <span className={!canAfford ? 'text-red-600' : 'text-primary'}>{formatPrice(totalPrice)}</span>
+          <div className="flex justify-between items-center font-bold text-lg border-t border-b py-3 mt-4">
+            <span className="text-gray-700">Tổng thanh toán:</span>
+            <span className={!canAfford ? 'text-red-600' : 'text-primary'}>
+              {formatPrice(totalPrice)}
+            </span>
           </div>
 
           {!canAfford && (
@@ -151,7 +155,7 @@ export const PurchaseConfirmDialog = ({
           )}
         </div>
 
-        <DialogFooter className="sm:justify-between mt-4">
+        <DialogFooter className="sm:justify-between gap-4 mt-4 border-t pt-4">
           <Button
             variant="outline"
             size="lg"
@@ -160,19 +164,19 @@ export const PurchaseConfirmDialog = ({
           >
             Hủy
           </Button>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="flex flex-row gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
               size="icon"
-              className="w-full sm:w-auto border-gray-300"
+              className="w-10 h-10 border-gray-300 hover:bg-gray-50"
               onClick={() => {}}
             >
-              <Heart className="h-4 w-4" />
+              <Heart className="h-4 w-4 text-gray-600" />
             </Button>
             <Button
               variant="default"
               size="lg"
-              className="w-full sm:w-auto bg-gradient-to-r from-green-600 to-green-500 py-2 px-6"
+              className="flex-1 sm:w-auto bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary transition-all duration-300 py-2 px-8"
               onClick={handleConfirm}
               disabled={!canAfford || isProcessing}
             >
