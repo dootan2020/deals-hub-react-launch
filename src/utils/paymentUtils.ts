@@ -1,4 +1,6 @@
 
+import { supabase } from '@/integrations/supabase/client';
+
 /**
  * Calculate the PayPal fee for a given amount
  * @param amount The amount to calculate the fee for
