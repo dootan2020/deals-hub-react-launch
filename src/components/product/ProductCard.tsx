@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -107,7 +106,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
             variant="default"
             size="sm"
             className="flex-1 min-w-[100px] bg-gradient-to-r from-primary to-primary-dark text-sm"
-            isInStock={product.inStock !== false} // Default to true if undefined
+            isInStock={product.inStock !== false}
             product={product}
           >
             <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />

@@ -1,22 +1,18 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useOrderApi } from '@/hooks/use-order-api';
-import { PurchaseConfirmDialog } from './PurchaseConfirmDialog';
 
 interface BuyNowButtonProps {
   product?: any;
   kioskToken?: string;
   productId?: string;
-  quantity?: number;
   className?: string;
   variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link' | 'destructive';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   isInStock?: boolean;
-  promotionCode?: string;
   onSuccess?: () => void;
   children?: React.ReactNode;
 }
@@ -33,7 +29,6 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   children,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const navigate = useNavigate();
   const { createOrder } = useOrderApi();
   
@@ -71,48 +66,37 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       toast.error(error.message || 'Đã xảy ra lỗi khi đặt hàng');
     } finally {
       setIsLoading(false);
-      setShowConfirmDialog(false);
     }
   };
 
   return (
-    <>
-      <Button 
-        variant={variant} 
-        size={size}
-        className={className}
-        disabled={!isInStock || isLoading}
-        onClick={() => setShowConfirmDialog(true)}
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Đang xử lý...
-          </>
-        ) : (
-          <>
-            {children || (
-              <>
-                <ShoppingBag className="w-4 h-4 mr-2" />
-                {!isInStock ? 'Hết Hàng' : 'Mua Ngay'}
-              </>
-            )}
-          </>
-        )}
-      </Button>
-
-      {product && (
-        <PurchaseConfirmDialog
-          open={showConfirmDialog}
-          onClose={() => setShowConfirmDialog(false)}
-          onConfirm={handleBuyNow}
-          product={product}
-          isProcessing={isLoading}
-        />
+    <Button 
+      variant={variant} 
+      size={size}
+      className={className}
+      disabled={!isInStock || isLoading}
+      onClick={() => {
+        // Temporary disabled while dialog is being rebuilt
+        toast.info('Tính năng đang được nâng cấp');
+      }}
+    >
+      {isLoading ? (
+        <>
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          Đang xử lý...
+        </>
+      ) : (
+        <>
+          {children || (
+            <>
+              <ShoppingBag className="w-4 h-4 mr-2" />
+              {!isInStock ? 'Hết Hàng' : 'Mua Ngay'}
+            </>
+          )}
+        </>
       )}
-    </>
+    </Button>
   );
 };
 
 export default BuyNowButton;
-
