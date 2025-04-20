@@ -11,6 +11,7 @@ import LoginPage from '@/pages/LoginPage';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import SupportPage from '@/pages/SupportPage';
 import OrdersPage from './pages/OrdersPage';
+import AccountPage from './pages/AccountPage';
 import NotFound from '@/pages/NotFound';
 import { CategoriesProvider } from '@/context/CategoriesContext';
 
@@ -49,6 +50,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <Layout><OrdersPage /></Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/account',
+    element: (
+      <ProtectedRoute>
+        <Layout><AccountPage /></Layout>
       </ProtectedRoute>
     ),
   },
