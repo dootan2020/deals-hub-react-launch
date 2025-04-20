@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Sparkles, X, ArrowRight } from 'lucide-react';
@@ -8,10 +7,11 @@ import { Product } from '@/types';
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
+import { SearchProduct } from '@/types/search';
 
 const popularSearches = [
   "Gmail Accounts",
-  "Outlook Premium",
+  "Outlook Premium", 
   "Steam Games",
   "Office 365",
   "Discord Nitro",
@@ -22,13 +22,12 @@ const SearchSection = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [productSuggestions, setProductSuggestions] = useState<Product[]>([]);
+  const [productSuggestions, setProductSuggestions] = useState<SearchProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const debouncedSearchTerm = useDebounce(searchQuery, 300);
 
-  // Fetch product suggestions when search term changes
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (debouncedSearchTerm.length < 3) {
@@ -47,7 +46,7 @@ const SearchSection = () => {
           
         if (error) throw error;
         
-        setProductSuggestions(data as Product[]);
+        setProductSuggestions(data as SearchProduct[]);
       } catch (error) {
         console.error('Error fetching suggestions:', error);
       } finally {
@@ -59,13 +58,11 @@ const SearchSection = () => {
   }, [debouncedSearchTerm]);
 
   useEffect(() => {
-    // Load recent searches from localStorage
     const savedSearches = localStorage.getItem('recentSearches');
     if (savedSearches) {
       setRecentSearches(JSON.parse(savedSearches));
     }
 
-    // Click outside handler to close suggestions
     const handleClickOutside = (event: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
@@ -82,7 +79,6 @@ const SearchSection = () => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
     
-    // Save to recent searches
     const updatedRecentSearches = [
       searchQuery, 
       ...recentSearches.filter(item => item !== searchQuery)
@@ -91,7 +87,6 @@ const SearchSection = () => {
     setRecentSearches(updatedRecentSearches);
     localStorage.setItem('recentSearches', JSON.stringify(updatedRecentSearches));
     
-    // Navigate to search results
     navigate(`/products?search=${encodeURIComponent(searchQuery)}`);
     setShowSuggestions(false);
   };
@@ -121,7 +116,6 @@ const SearchSection = () => {
           </div>
 
           <div ref={searchContainerRef} className="relative">
-            {/* Search Form */}
             <form onSubmit={handleSearch} className="flex w-full">
               <div className="relative w-full">
                 <input
@@ -151,10 +145,8 @@ const SearchSection = () => {
               </button>
             </form>
 
-            {/* Suggestions Dropdown */}
             {showSuggestions && (
               <div className="absolute z-40 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                {/* Recent Searches */}
                 {recentSearches.length > 0 && (
                   <div className="p-3 border-b border-gray-100">
                     <div className="flex justify-between items-center mb-2">
@@ -180,7 +172,6 @@ const SearchSection = () => {
                   </div>
                 )}
 
-                {/* Product Suggestions - show when typing */}
                 {searchQuery.length >= 3 && (
                   <div className="max-h-64 overflow-y-auto">
                     <h3 className="px-4 py-2 text-sm font-medium text-text-light bg-gray-50">Gợi ý sản phẩm</h3>
@@ -236,7 +227,6 @@ const SearchSection = () => {
                   </div>
                 )}
 
-                {/* Popular Searches - show when empty or typing less than 3 chars */}
                 {(!searchQuery || searchQuery.length < 3) && (
                   <div className="p-3">
                     <div className="flex items-center gap-1 mb-2">
@@ -260,7 +250,6 @@ const SearchSection = () => {
             )}
           </div>
 
-          {/* Search Tags */}
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             <span className="text-sm text-text-light">Phổ biến:</span>
             <button 

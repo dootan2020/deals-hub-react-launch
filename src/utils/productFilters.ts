@@ -1,4 +1,3 @@
-
 import { Product, FilterParams } from '@/types';
 
 /**
@@ -18,9 +17,9 @@ export const applyFilters = (products: Product[], filters: FilterParams = {}): P
     }
   }
   
-  // Filter by rating
-  if (filters.rating !== undefined) {
-    filteredProducts = filteredProducts.filter(p => p.rating >= filters.rating);
+  // Filter by ratings
+  if (filters.ratings !== undefined) {
+    filteredProducts = filteredProducts.filter(p => p.rating >= filters.ratings);
   }
   
   // Filter by search query
