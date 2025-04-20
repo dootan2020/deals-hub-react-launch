@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import { useAuth } from '@/context/AuthContext';
@@ -245,12 +246,14 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
               }}
               onError={(err) => {
                 console.error("PayPal error:", err);
+                
+                // Fixed error handling to properly type the error
                 const errorMessage = typeof err === 'string' 
                   ? err 
                   : err instanceof Error
                     ? err.message
-                    : typeof err === 'object' && err !== null && 'message' in err
-                      ? String(err.message)
+                    : typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string'
+                      ? err.message
                       : "Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại sau.";
                 
                 handlePaymentFailure(errorMessage);
