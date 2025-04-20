@@ -16,7 +16,8 @@ import { toast } from 'sonner';
 const Index = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeSort, setActiveSort] = useState('recommended');
+  // Đổi giá trị mặc định từ 'recommended' thành 'newest'
+  const [activeSort, setActiveSort] = useState('newest');
 
   useEffect(() => {
     const loadProducts = async () => {
