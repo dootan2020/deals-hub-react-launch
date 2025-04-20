@@ -12,13 +12,17 @@ interface PayPalCheckoutButtonProps {
 
 export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amount, onSuccess }) => {
   // Access the PayPal script loading state from the provider
-  const [{ isPending, isRejected, error }, dispatch] = usePayPalScriptReducer();
+  const [{ isPending, isRejected, isInitializing }, paypalDispatch] = usePayPalScriptReducer();
   const [showButtons, setShowButtons] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Show buttons only when the script is loaded
   useEffect(() => {
     if (!isPending && !isRejected) {
       setShowButtons(true);
+    }
+    if (isRejected) {
+      setErrorMessage('Không thể kết nối với PayPal. Vui lòng thử lại sau.');
     }
   }, [isPending, isRejected]);
 
@@ -41,7 +45,10 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
   }
 
   if (isRejected) {
-    return <PayPalStateError errorMessage={error ? error.message : 'Lỗi khi tải PayPal.'} onRetry={() => dispatch({ type: 'resetOptions' })} />;
+    return <PayPalStateError 
+      errorMessage={errorMessage || 'Lỗi khi tải PayPal.'} 
+      onRetry={() => paypalDispatch({ type: 'resetOptions', value: { clientId: '' } })} 
+    />;
   }
 
   return (
@@ -52,7 +59,12 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
           forceReRender={[amount]}
           createOrder={(data, actions) => {
             return actions.order.create({
-              purchase_units: [{ amount: { value: amount.toFixed(2) } }],
+              purchase_units: [{ 
+                amount: { 
+                  value: amount.toFixed(2),
+                  currency_code: 'USD' 
+                } 
+              }],
             });
           }}
           onApprove={handleApprove}
@@ -65,4 +77,3 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
 };
 
 export default PayPalCheckoutButton;
-
