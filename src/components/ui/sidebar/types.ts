@@ -27,10 +27,11 @@ export interface SidebarProps extends React.ComponentProps<"div"> {
 }
 
 export interface SidebarMenuButtonProps 
-  extends React.ComponentProps<"button">,
-  VariantProps<typeof buttonVariants> {
+  extends React.ComponentProps<"button"> {
   asChild?: boolean
   isActive?: boolean
+  variant?: "default" | "outline"
+  size?: "default" | "sm" | "lg"
   tooltip?: string | React.ComponentProps<typeof import('../tooltip').TooltipContent>
 }
 
