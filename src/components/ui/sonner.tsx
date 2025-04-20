@@ -1,6 +1,6 @@
 
 import { useTheme } from "next-themes"
-import { Toaster as Sonner, toast } from "sonner"
+import { Toaster as Sonner } from "sonner"
 import { Check, X, AlertTriangle, Info, Loader } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -23,17 +23,23 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "group-[.toaster]:flex group-[.toaster]:items-start"
         ),
         descriptionClassName: "group-[.toast]:text-muted-foreground text-sm mt-1",
-        icons: {
-          success: <Check className="h-5 w-5 text-green-500 mr-3 mt-0.5 shrink-0" />,
-          error: <X className="h-5 w-5 text-red-500 mr-3 mt-0.5 shrink-0" />,
-          warning: <AlertTriangle className="h-5 w-5 text-amber-500 mr-3 mt-0.5 shrink-0" />,
-          info: <Info className="h-5 w-5 text-blue-500 mr-3 mt-0.5 shrink-0" />,
-          loading: <Loader className="h-5 w-5 text-primary animate-spin mr-3 mt-0.5 shrink-0" />,
-        }
       }}
       {...props}
-    />
+    >
+      {/* Custom icons passed as children instead of in toastOptions */}
+      {({ toast }) => (
+        <div>
+          {toast.type === 'success' && <Check className="h-5 w-5 text-green-500 mr-3 mt-0.5 shrink-0" />}
+          {toast.type === 'error' && <X className="h-5 w-5 text-red-500 mr-3 mt-0.5 shrink-0" />}
+          {toast.type === 'warning' && <AlertTriangle className="h-5 w-5 text-amber-500 mr-3 mt-0.5 shrink-0" />}
+          {toast.type === 'info' && <Info className="h-5 w-5 text-blue-500 mr-3 mt-0.5 shrink-0" />}
+          {toast.type === 'loading' && <Loader className="h-5 w-5 text-primary animate-spin mr-3 mt-0.5 shrink-0" />}
+          {toast.title || toast.description}
+        </div>
+      )}
+    </Sonner>
   )
 }
 
-export { Toaster, toast }
+export { Toaster }
+export { toast } from "sonner"
