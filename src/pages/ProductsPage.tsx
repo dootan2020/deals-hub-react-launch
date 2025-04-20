@@ -50,9 +50,6 @@ const ProductsPage = () => {
   const [filters, setFilters] = useState<FilterParams>({
     sort: (searchParams.get('sort') || 'newest') as string,
     search: searchParams.get('search') || '',
-    categoryId: searchParams.get('category') || undefined,
-    inStock: searchParams.get('inStock') === 'true',
-    priceRange: [0, 500],
     perPage: perPage
   });
 
@@ -101,9 +98,7 @@ const ProductsPage = () => {
         setTotalProducts(result.total || 0);
       } catch (error) {
         console.error('Error loading products:', error);
-        toast("Error", {
-          description: "Failed to load products. Please try again.",
-        });
+        toast.error("Failed to load products. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -215,12 +210,13 @@ const ProductsPage = () => {
       <div className="bg-background py-8 min-h-screen">
         <div className="container-custom">
           <div className="space-y-8">
+            {/* Header */}
             <div>
-              <h1 className="text-3xl font-bold mb-4">{pageTitle}</h1>
+              <h1 className="text-3xl font-bold mb-4">All Products</h1>
               <p className="text-muted-foreground">
                 {filters.search 
                   ? `Products related to "${filters.search}"`
-                  : 'Explore our collection of digital products'
+                  : 'Explore our complete collection of digital products'
                 }
               </p>
             </div>
@@ -364,7 +360,7 @@ const ProductsPage = () => {
                 </SheetContent>
               </Sheet>
             </div>
-
+            
             {/* Main Content */}
             <div className="flex flex-col md:flex-row gap-6">
               {/* Desktop Sidebar Filters */}
