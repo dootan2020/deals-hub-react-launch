@@ -2,13 +2,13 @@
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, User, Lock, LogIn } from 'lucide-react';
-import { Form, FormField, FormItem, FormControl, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { Form } from '@/components/ui/form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
+import { EmailField } from './fields/EmailField';
+import { PasswordField } from './fields/PasswordField';
+import { SubmitButton } from './fields/SubmitButton';
+import { Button } from '@/components/ui/button';
 
 const loginSchema = z.object({
   email: z.string().email('Email không hợp lệ'),
@@ -60,60 +60,8 @@ export const LoginForm = ({
             </Alert>
           )}
           
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-text-light" />
-                  <FormControl>
-                    <Input 
-                      id="email"
-                      type="email"
-                      placeholder="your@email.com"
-                      className="pl-10"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                  </FormControl>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="password">Mật khẩu</Label>
-                  <Link 
-                    to="/forgot-password" 
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Quên mật khẩu?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-text-light" />
-                  <FormControl>
-                    <Input 
-                      id="password"
-                      type="password"
-                      className="pl-10"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                  </FormControl>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <EmailField control={form.control} isLoading={isLoading} />
+          <PasswordField control={form.control} isLoading={isLoading} />
           
           {emailNeedsVerification && (
             <Button
@@ -131,23 +79,7 @@ export const LoginForm = ({
             </Button>
           )}
 
-          <Button 
-            type="submit" 
-            className="w-full bg-primary hover:bg-primary-dark"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Đang đăng nhập...
-              </>
-            ) : (
-              <>
-                <LogIn className="mr-2 h-4 w-4" />
-                Đăng nhập
-              </>
-            )}
-          </Button>
+          <SubmitButton isLoading={isLoading} />
 
           <div className="text-sm text-center text-gray-500">
             Chưa có tài khoản?{' '}
