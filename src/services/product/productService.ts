@@ -14,5 +14,4 @@ export interface ProductResponse {
   totalPages?: number;
 }
 
-// Export type properly for TypeScript isolatedModules compatibility
-export type { ProductResponse };
+// No need to re-export ProductResponse as a type, since we're already exporting the interface

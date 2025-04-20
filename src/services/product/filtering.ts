@@ -78,8 +78,10 @@ export async function fetchProductsWithFilters(filters?: FilterParams): Promise<
       if (Array.isArray(filters.priceRange)) {
         [min, max] = filters.priceRange;
       } else {
-        min = filters.priceRange.min;
-        max = filters.priceRange.max;
+        // Fix the type error by type assertion
+        const priceRangeObj = filters.priceRange as { min: number; max: number };
+        min = priceRangeObj.min;
+        max = priceRangeObj.max;
       }
       
       filteredProducts = filteredProducts.filter(p => p.price >= min && p.price <= max);

@@ -192,5 +192,5 @@ export const fetchProductBySlug = async (slug: string): Promise<Product> => {
   };
 };
 
-// Export type properly for TypeScript isolatedModules compatibility
-export type { ProductResponse };
+// Don't use export type with ProductResponse as we're defining the interface in this file
+// Removing this line resolves the TS2484 conflict error
