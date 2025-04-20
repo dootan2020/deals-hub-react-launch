@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -8,17 +7,19 @@ import {
   DialogFooter,
   DialogDescription
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Product } from '@/types';
-import { formatUSD, convertVNDtoUSD } from '@/utils/currency';
-import { Loader2, CreditCard, AlertTriangle, Plus, Minus, Check } from 'lucide-react';
+import { convertVNDtoUSD } from '@/utils/currency';
+import { AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { QuantitySelector } from './purchase-dialog/QuantitySelector';
+import { BalanceInfo } from './purchase-dialog/BalanceInfo';
+import { DialogFooterButtons } from './purchase-dialog/DialogFooterButtons';
 
 interface PurchaseConfirmDialogProps {
   open: boolean;
@@ -112,7 +113,6 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
     setQuantity(Math.min(Math.max(1, value), maxQuantity));
   };
 
-  // Function to handle the confirmation and submission
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
@@ -165,125 +165,61 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              <Label htmlFor="quantity">Số lượng:</Label>
-              <div className="flex items-center border rounded-md">
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="sm" 
-                  className="rounded-r-none"
-                  onClick={() => handleQuantityChange(-1)}
-                  disabled={quantity <= 1}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
+            <>
+              <QuantitySelector
+                quantity={quantity}
+                maxQuantity={verifiedStock ?? product.stockQuantity ?? 1}
+                onQuantityChange={setQuantity}
+                verifiedStock={verifiedStock}
+                productStock={product.stockQuantity}
+              />
+              
+              <div className="space-y-2">
+                <Label htmlFor="promotionCode">Mã giảm giá (tùy chọn):</Label>
                 <Input
-                  id="quantity"
-                  type="number"
-                  value={quantity}
-                  onChange={handleQuantityInput}
-                  min={1}
-                  max={product.stockQuantity}
-                  className="border-0 text-center w-16"
+                  id="promotionCode"
+                  value={promotionCode}
+                  onChange={(e) => setPromotionCode(e.target.value)}
+                  placeholder="Nhập mã giảm giá nếu có"
+                  className="w-full"
                 />
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="sm" 
-                  className="rounded-l-none"
-                  onClick={() => handleQuantityChange(1)}
-                  disabled={quantity >= (product.stockQuantity || 1)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
               </div>
-              <div className="text-xs text-muted-foreground">
-                Còn lại: {verifiedStock !== null ? verifiedStock : product.stockQuantity || 0} sản phẩm
-              </div>
-            </div>
-          )}
-          
-          <div className="space-y-2">
-            <Label htmlFor="promotionCode">Mã giảm giá (tùy chọn):</Label>
-            <Input
-              id="promotionCode"
-              value={promotionCode}
-              onChange={(e) => setPromotionCode(e.target.value)}
-              placeholder="Nhập mã giảm giá nếu có"
-              className="w-full"
-            />
-          </div>
-          
-          <div className="flex justify-between items-center p-3 bg-secondary/20 rounded-md border border-border">
-            <div className="flex flex-col">
-              <span className="text-sm text-muted-foreground">Số dư tài khoản:</span>
-              {isLoadingBalance ? (
-                <div className="flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span className="text-sm">Đang tải...</span>
-                </div>
-              ) : (
-                <span className="font-medium">{formatUSD(userBalance || 0)}</span>
+              
+              <BalanceInfo
+                isLoadingBalance={isLoadingBalance}
+                userBalance={userBalance}
+                totalPriceUSD={totalPriceUSD}
+              />
+              
+              {!isLoadingBalance && !hasEnoughBalance && (
+                <Alert className="bg-red-50 border-red-200 text-red-800">
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-800">
+                    Số dư tài khoản của bạn không đủ để thực hiện giao dịch này.
+                  </AlertDescription>
+                </Alert>
               )}
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-sm text-muted-foreground">Tổng tiền:</span>
-              <span className="font-medium text-primary">{formatUSD(totalPriceUSD)}</span>
-            </div>
-          </div>
-          
-          {!isLoadingBalance && !hasEnoughBalance && (
-            <Alert className="bg-red-50 border-red-200 text-red-800">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800">
-                Số dư tài khoản của bạn không đủ để thực hiện giao dịch này.
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          {!isVerifying && verifiedStock !== null && verifiedStock < (product.stockQuantity || 0) && (
-            <Alert className="bg-amber-50 border-amber-200">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-              <AlertDescription className="text-amber-800">
-                Tồn kho thực tế ({verifiedStock}) thấp hơn dự kiến.
-              </AlertDescription>
-            </Alert>
+              
+              {!isVerifying && verifiedStock !== null && verifiedStock < (product.stockQuantity || 0) && (
+                <Alert className="bg-amber-50 border-amber-200">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <AlertDescription className="text-amber-800">
+                    Tồn kho thực tế ({verifiedStock}) thấp hơn dự kiến.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </>
           )}
         </div>
         
         <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          <Button 
-            variant="outline" 
-            className="flex-1" 
-            onClick={() => onOpenChange(false)} 
-            disabled={isSubmitting || isVerifying}
-          >
-            Hủy bỏ
-          </Button>
-          <Button 
-            variant="default" 
-            className="flex-1 bg-primary text-white" 
-            disabled={!hasEnoughBalance || isSubmitting || isVerifying}
-            onClick={handleSubmit}
-          >
-            {isVerifying ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> 
-                Đang kiểm tra
-              </>
-            ) : isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> 
-                Đang xử lý
-              </>
-            ) : (
-              <>
-                <CreditCard className="w-4 h-4 mr-2" /> 
-                Thanh toán
-              </>
-            )}
-          </Button>
+          <DialogFooterButtons
+            onCancel={() => onOpenChange(false)}
+            onConfirm={handleSubmit}
+            isSubmitting={isSubmitting}
+            isVerifying={isVerifying}
+            hasEnoughBalance={hasEnoughBalance}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>
