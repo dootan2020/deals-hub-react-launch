@@ -1,26 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter,
-  DialogDescription
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Product } from '@/types';
-import { convertVNDtoUSD, formatUSD } from '@/utils/currency';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { convertVNDtoUSD } from '@/utils/currency';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { DialogHeader } from './purchase-dialog/DialogHeader';
+import { DialogContent as PurchaseDialogContent } from './purchase-dialog/DialogContent';
+import { DialogFooterButtons } from './purchase-dialog/DialogFooterButtons';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import { useCurrencySettings } from '@/hooks/useCurrencySettings';
-import { QuantitySelector } from './purchase-dialog/QuantitySelector';
-import { BalanceInfo } from './purchase-dialog/BalanceInfo';
-import { DialogFooterButtons } from './purchase-dialog/DialogFooterButtons';
 
 interface PurchaseConfirmDialogProps {
   open: boolean;
@@ -101,17 +89,14 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
   }, [open]);
 
   const handleQuantityChange = (newQuantity: number) => {
-    // Make sure newQuantity is valid and within range
     const maxQuantity = verifiedStock ?? product?.stockQuantity ?? 1;
     const validQuantity = Math.min(Math.max(1, newQuantity), maxQuantity);
     setQuantity(validQuantity);
     
-    // Log for debugging
     console.log(`Quantity changed: ${validQuantity} (max: ${maxQuantity})`);
   };
 
   const handleSubmit = async () => {
-    // Additional validation before submitting
     const maxQuantity = verifiedStock ?? product?.stockQuantity ?? 1;
     
     if (quantity < 1) {
@@ -140,91 +125,22 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader className="bg-muted px-6 py-4 -mx-6 -mt-6 border-b border-border">
-          <DialogTitle className="text-xl font-semibold text-foreground">
-            {isVerifying ? 'Đang xác minh tồn kho...' : 'Xác nhận mua hàng'}
-          </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground mt-1">
-            {isVerifying ? 
-              'Vui lòng đợi trong khi chúng tôi kiểm tra tồn kho sản phẩm' : 
-              'Vui lòng xác nhận thông tin mua hàng của bạn'}
-          </DialogDescription>
-        </DialogHeader>
+        <DialogHeader isVerifying={isVerifying} />
         
-        <div className="space-y-4 py-4">
-          {/* Product Title */}
-          <div className="space-y-2">
-            <h3 className="font-medium text-lg text-center">{product.title}</h3>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Đơn giá:</span>
-              <span className="font-medium text-primary">
-                {formatUSD(productPriceUSD)}
-                {verifiedPrice && verifiedPrice !== product.price && (
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    (Đã cập nhật)
-                  </span>
-                )}
-              </span>
-            </div>
-          </div>
-
-          {isVerifying ? (
-            <div className="flex flex-col items-center py-8 space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">
-                Đang kiểm tra tồn kho và cập nhật giá...
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Centered Quantity Selector */}
-              <div className="flex flex-col items-center space-y-2 py-4">
-                <QuantitySelector
-                  quantity={quantity}
-                  maxQuantity={verifiedStock ?? product.stockQuantity ?? 1}
-                  onQuantityChange={handleQuantityChange}
-                  verifiedStock={verifiedStock}
-                  productStock={product.stockQuantity ?? 0}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="promotionCode">Mã giảm giá (tùy chọn):</Label>
-                <Input
-                  id="promotionCode"
-                  value={promotionCode}
-                  onChange={(e) => setPromotionCode(e.target.value)}
-                  placeholder="Nhập mã giảm giá nếu có"
-                  className="w-full"
-                />
-              </div>
-              
-              <BalanceInfo
-                isLoadingBalance={isLoadingBalance}
-                userBalance={userBalance}
-                totalPriceUSD={totalPriceUSD}
-              />
-              
-              {!isLoadingBalance && !hasEnoughBalance && (
-                <Alert className="bg-red-50 border-red-200 text-red-800">
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                  <AlertDescription className="text-red-800">
-                    Số dư tài khoản của bạn không đủ để thực hiện giao dịch này.
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              {!isVerifying && verifiedStock !== null && verifiedStock < (product.stockQuantity || 0) && (
-                <Alert className="bg-amber-50 border-amber-200">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
-                  <AlertDescription className="text-amber-800">
-                    Tồn kho thực tế ({verifiedStock}) thấp hơn dự kiến.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </>
-          )}
-        </div>
+        <PurchaseDialogContent
+          product={product}
+          isVerifying={isVerifying}
+          quantity={quantity}
+          verifiedStock={verifiedStock}
+          verifiedPrice={verifiedPrice}
+          priceUSD={productPriceUSD}
+          totalPriceUSD={totalPriceUSD}
+          promotionCode={promotionCode}
+          onQuantityChange={handleQuantityChange}
+          onPromotionCodeChange={setPromotionCode}
+          isLoadingBalance={isLoadingBalance}
+          userBalance={userBalance}
+        />
         
         <DialogFooter className="flex flex-col sm:flex-row gap-2">
           <DialogFooterButtons
