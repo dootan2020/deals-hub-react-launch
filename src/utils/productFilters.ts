@@ -1,23 +1,27 @@
-
-import { Product, FilterParams } from '@/types';
+import { FilterParams, Product } from '@/types';
 
 /**
  * Filter products based on specified criteria
  */
-export const applyFilters = (products: Product[], filters: FilterParams = {}): Product[] => {
+export function applyFilters(products: Product[], filters: FilterParams) {
   let filteredProducts = [...products];
-  
-  // Filter by price range
+
   if (filters.priceRange) {
-    const [min, max] = filters.priceRange;
-    if (min !== undefined) {
-      filteredProducts = filteredProducts.filter(p => p.price >= min);
+    let min: number = 0;
+    let max: number = Infinity;
+
+    if (Array.isArray(filters.priceRange)) {
+      [min, max] = filters.priceRange;
+    } else {
+      min = filters.priceRange.min;
+      max = filters.priceRange.max;
     }
-    if (max !== undefined) {
-      filteredProducts = filteredProducts.filter(p => p.price <= max);
-    }
+
+    filteredProducts = filteredProducts.filter(
+      (product) => product.price >= min && product.price <= max
+    );
   }
-  
+
   // Search query filtering
   if (filters.search) {
     const searchTerms = filters.search.toLowerCase().split(' ').filter(Boolean);
@@ -32,16 +36,16 @@ export const applyFilters = (products: Product[], filters: FilterParams = {}): P
       return titleMatch || descMatch;
     });
   }
-  
+
   // Filter by availability (in stock)
   if (filters.inStock === true) {
     filteredProducts = filteredProducts.filter(p => 
       p.inStock && (p.stockQuantity > 0 || p.stock > 0)
     );
   }
-  
+
   return filteredProducts;
-};
+}
 
 // Update the SortOption type definition
 export type SortOption = 'newest' | 'popular' | 'price-low' | 'price-high' | 'name-asc' | 'recommended';
