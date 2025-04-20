@@ -10,8 +10,7 @@ export const useAuthActions = () => {
       
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
-        password,
-        // Remove cookieOptions as it's not supported in the type
+        password
       });
       
       // Dismiss loading toast
@@ -94,8 +93,7 @@ export const useAuthActions = () => {
             registration_date: new Date().toISOString(),
             user_agent: navigator.userAgent,
           },
-          emailRedirectTo: `${window.location.origin}/auth/verify`,
-          // Remove cookieOptions as it's not supported in the type
+          emailRedirectTo: `${window.location.origin}/auth/verify`
         }
       });
       

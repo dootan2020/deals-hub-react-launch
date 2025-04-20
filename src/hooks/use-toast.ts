@@ -1,7 +1,7 @@
 
 import { toast as sonnerToast, type ToastT } from "sonner";
 import { AlertTriangle } from "lucide-react";
-import { createElement } from "react";
+import { createElement, ReactNode } from "react";
 
 type ToastProps = {
   id?: string | number;
@@ -10,24 +10,27 @@ type ToastProps = {
   action?: React.ReactNode;
   variant?: "default" | "destructive";
   duration?: number;
+  icon?: ReactNode;
   className?: string;
   [key: string]: any; // Allow other properties
 };
 
 // Our custom toast function that adapts the shadcn/ui toast API to Sonner
 export function toast(props: ToastProps) {
-  const { title, description, variant, ...rest } = props;
+  const { title, description, variant, icon, ...rest } = props;
   
   // If variant is destructive, use the error type
   if (variant === "destructive") {
     return sonnerToast.error(title as string, {
       description,
+      icon,
       ...rest
     });
   }
   
   return sonnerToast(title as string, {
     description,
+    icon,
     ...rest
   });
 }
