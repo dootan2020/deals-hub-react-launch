@@ -6,7 +6,7 @@ export * from './filtering';
 
 import { FilterParams, Product } from '@/types';
 
-// Định nghĩa kiểu trả về chuẩn cho fetchProductsWithFilters
+// Define standard return type for fetchProductsWithFilters
 export interface ProductResponse {
   products: Product[];
   total?: number;
@@ -14,5 +14,5 @@ export interface ProductResponse {
   totalPages?: number;
 }
 
-// Đảm bảo interface này được export để các file khác có thể sử dụng
-export { ProductResponse };
+// Export type properly for TypeScript isolatedModules compatibility
+export type { ProductResponse };

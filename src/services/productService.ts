@@ -1,3 +1,4 @@
+
 // Mock product service
 import { Product } from '@/types';
 import mockProducts from '@/data/mockData';
@@ -62,7 +63,12 @@ export const fetchProductsWithFilters = async (filters: ProductFilters): Promise
         filteredProducts.sort((a, b) => a.title.localeCompare(b.title));
         break;
       case 'recommended':
-        filteredProducts.sort((a, b) => (b.recommended || 0) - (a.recommended || 0));
+        filteredProducts.sort((a, b) => {
+          // Use the recommended field if available, default to false if not present
+          const aRec = a.recommended === true ? 1 : 0;
+          const bRec = b.recommended === true ? 1 : 0;
+          return bRec - aRec;
+        });
         break;
       case 'newest':
       default:
@@ -72,14 +78,15 @@ export const fetchProductsWithFilters = async (filters: ProductFilters): Promise
     }
   }
   
-  // Apply price range filter - handle both priceRange object and array
+  // Apply price range filter with proper type checking
   if (filters.priceRange) {
     if (Array.isArray(filters.priceRange)) {
+      const [min, max] = filters.priceRange;
       filteredProducts = filteredProducts.filter(product => 
-        product.price >= filters.priceRange![0] && 
-        product.price <= filters.priceRange![1]
+        product.price >= min && product.price <= max
       );
     } else {
+      // TypeScript now knows this is the object shape with min/max properties
       filteredProducts = filteredProducts.filter(product => 
         product.price >= filters.priceRange!.min && 
         product.price <= filters.priceRange!.max

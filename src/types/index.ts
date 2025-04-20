@@ -1,4 +1,3 @@
-
 import { TableHTMLAttributes } from 'react';
 import { Json } from '@/integrations/supabase/types';
 
@@ -30,6 +29,7 @@ export interface Product {
   createdAt: string;
   kiosk_token: string;
   stock: number;
+  recommended?: boolean;
 }
 
 export interface Category {

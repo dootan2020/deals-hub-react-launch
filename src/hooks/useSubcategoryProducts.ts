@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { fetchProductsWithFilters } from '@/services/product/productService';
+import { fetchProductsWithFilters, ProductResponse } from '@/services/product/productService';
 import { Product } from '@/types';
 import { SortOption } from '@/utils/productFilters';
 
@@ -9,14 +9,6 @@ interface UseSubcategoryProductsProps {
   sortOption: SortOption;
   priceRange: [number, number];
   stockFilter: string;
-}
-
-// Định nghĩa kiểu trả về từ fetchProductsWithFilters
-interface ProductResponse {
-  products: Product[];
-  total?: number;
-  page?: number;
-  totalPages?: number;
 }
 
 export const useSubcategoryProducts = ({ 
@@ -46,18 +38,14 @@ export const useSubcategoryProducts = ({
           inStock: stockFilter === "in-stock" ? true : undefined
         });
         
-        // Xử lý kết quả với type checking
-        if (result && Array.isArray(result.products)) {
+        // Ensure result is treated as ProductResponse with proper type checking
+        if (result && 'products' in result && Array.isArray(result.products)) {
           setProducts(result.products);
           setTotalPages(result.totalPages || 1);
           
           if (result.products.length === 0 && currentPage > 1) {
             setCurrentPage(1);
           }
-        } else if (Array.isArray(result)) {
-          // Fallback nếu kết quả trả về là array trực tiếp
-          setProducts(result);
-          setTotalPages(1);
         } else {
           setProducts([]);
           setTotalPages(1);

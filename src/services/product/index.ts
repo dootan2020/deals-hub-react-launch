@@ -1,6 +1,9 @@
 
 // Product service implementation
 
+import { FilterParams } from '@/types';
+import { ProductResponse } from './productService';
+
 // Mock fetch functions to be replaced with actual implementation later
 export const fetchProducts = async () => {
   return [] as any[];
@@ -30,8 +33,8 @@ export const updateProduct = async (productData: any) => {
   return { success: true };
 };
 
-// Add missing function
-export const fetchProductsWithFilters = async (filters: any) => {
+// Properly typed fetchProductsWithFilters function
+export const fetchProductsWithFilters = async (filters: FilterParams): Promise<ProductResponse> => {
   console.log("Fetch products with filters requested:", filters);
   return {
     products: [],
@@ -41,4 +44,5 @@ export const fetchProductsWithFilters = async (filters: any) => {
   };
 };
 
-// Re-export functions from other files if needed in the future
+// Re-export ProductResponse type
+export type { ProductResponse } from './productService';

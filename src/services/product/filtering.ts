@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { FilterParams, Product } from '@/types';
 import { mapProductFromDatabase } from './utils';
 import { applyFilters, sortProducts } from '@/utils/productFilters';
+import { ProductResponse } from './productService';
 
-export async function fetchProductsWithFilters(filters?: FilterParams) {
+export async function fetchProductsWithFilters(filters?: FilterParams): Promise<ProductResponse> {
   try {
     let query = supabase
       .from('products')
@@ -57,23 +58,32 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
     
     const products = data?.map(mapProductFromDatabase) || [];
     
-    const filteredProducts = applyFilters(products, {
+    // Apply additional filters that can't be done at the database level
+    let filteredProducts = applyFilters(products, {
       ...filters,
       categoryId: undefined,
       search: undefined,
       inStock: undefined
     });
     
+    // Handle special sorting cases
     if (filters?.sort === 'popular') {
-      return sortProducts(filteredProducts, 'popular');
+      filteredProducts = sortProducts(filteredProducts, 'popular');
     }
     
+    // Handle price range filtering if needed
     if (filters?.priceRange) {
       const [min, max] = filters.priceRange;
-      return filteredProducts.filter(p => p.price >= min && p.price <= max);
+      filteredProducts = filteredProducts.filter(p => p.price >= min && p.price <= max);
     }
     
-    return filteredProducts;
+    // Return properly structured ProductResponse object
+    return {
+      products: filteredProducts,
+      total: filteredProducts.length,
+      page: filters?.page || 1,
+      totalPages: Math.ceil(filteredProducts.length / (filters?.perPage || 12))
+    };
   } catch (error) {
     console.error("Error fetching products with filters:", error);
     throw error;
