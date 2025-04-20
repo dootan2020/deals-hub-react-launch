@@ -107,11 +107,6 @@ export const usePurchaseDialog = () => {
       return;
     }
 
-    if (verifiedStock !== null && quantity > verifiedStock) {
-      toast.error('Requested quantity exceeds available stock');
-      return;
-    }
-    
     setIsProcessing(true);
     setOrderStatus('loading');
     setOrderError(null);
@@ -125,7 +120,8 @@ export const usePurchaseDialog = () => {
       const orderData: OrderInsert = {
         user_id: user.id,
         product_id: selectedProduct.id,
-        total_amount: priceUSD * quantity,
+        total_price: priceUSD * quantity,
+        qty: quantity,
         promotion_code: promotionCode || null,
         status: 'pending',
         keys: []
@@ -136,41 +132,41 @@ export const usePurchaseDialog = () => {
         .insert(orderData)
         .select('id')
         .single();
-      
-      if (error) {
-        console.error('Order API error:', error);
-        setOrderError(error.message || 'Failed to place order');
-        setOrderStatus('error');
-        return { success: false, message: error.message || 'Could not create order' };
-      }
-      
-      console.log('Order created successfully with ID:', data.id);
-      setOrderResult({ orderId: data.id });
-      setOrderStatus('success');
-      
-      toast.success('Order placed! Processing your request...');
-      
-      const { error: applyKeysError } = await supabase.functions
-        .invoke('apply-keys', {
-          body: { orderId: data.id }
-        });
-      
-      if (applyKeysError) {
-        console.error('Error applying keys:', applyKeysError);
-        toast.error('Order placed but error applying keys. Please contact support.');
-      }
-      
-      return { success: true, orderId: data.id };
-    } catch (error: any) {
-      console.error('Error during purchase:', error);
-      setOrderError(error.message || 'An error occurred during purchase');
+    
+    if (error) {
+      console.error('Order API error:', error);
+      setOrderError(error.message || 'Failed to place order');
       setOrderStatus('error');
-      toast.error(error.message || 'An error occurred during purchase');
-      return { success: false, message: error.message || 'An error occurred during purchase' };
-    } finally {
-      setIsProcessing(false);
+      return { success: false, message: error.message || 'Could not create order' };
     }
-  }, [selectedProduct, verifiedStock, verifiedPrice, currencySettings, user]);
+    
+    console.log('Order created successfully with ID:', data.id);
+    setOrderResult({ orderId: data.id });
+    setOrderStatus('success');
+    
+    toast.success('Order placed! Processing your request...');
+    
+    const { error: applyKeysError } = await supabase.functions
+      .invoke('apply-keys', {
+        body: { orderId: data.id }
+      });
+    
+    if (applyKeysError) {
+      console.error('Error applying keys:', applyKeysError);
+      toast.error('Order placed but error applying keys. Please contact support.');
+    }
+    
+    return { success: true, orderId: data.id };
+  } catch (error: any) {
+    console.error('Error during purchase:', error);
+    setOrderError(error.message || 'An error occurred during purchase');
+    setOrderStatus('error');
+    toast.error(error.message || 'An error occurred during purchase');
+    return { success: false, message: error.message || 'An error occurred during purchase' };
+  } finally {
+    setIsProcessing(false);
+  }
+}, [selectedProduct, verifiedPrice, currencySettings, user]);
 
   return {
     open,

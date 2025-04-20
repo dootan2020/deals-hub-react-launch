@@ -17,7 +17,13 @@ const OrdersPage = () => {
       try {
         const { data, error } = await supabase
           .from('orders')
-          .select('*')
+          .select(`
+            id,
+            qty,
+            total_price,
+            keys,
+            product:products(title)
+          `)
           .eq('user_id', user.id);
         
         if (error) {
@@ -27,7 +33,7 @@ const OrdersPage = () => {
         
         // Transform the keys JSONB array to ProductKey[]
         const allKeys = data?.flatMap(order => {
-          const keys = order.keys as any[] || [];
+          const keys = (order.keys as any[]) || [];
           return keys.map(key => ({
             id: key.id,
             key_content: key.key_content,
@@ -35,7 +41,7 @@ const OrdersPage = () => {
             created_at: key.created_at || order.created_at,
             product_id: order.product_id
           }));
-        });
+        }) || [];
         
         setOrderKeys(allKeys);
       } catch (error) {
