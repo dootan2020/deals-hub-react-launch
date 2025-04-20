@@ -1,4 +1,3 @@
-
 // Export all UI components from a single entry point
 export * from "./accordion";
 export * from "./alert";
@@ -35,7 +34,7 @@ export * from "./scroll-area";
 export * from "./select";
 export * from "./separator";
 export * from "./sheet";
-export * from "./sidebar";
+export * from "./sidebar/index";
 export * from "./skeleton";
 export * from "./slider";
 // Export sonner with renamed toast to avoid conflict
