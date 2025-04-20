@@ -14,6 +14,11 @@ export async function fetchProductsWithFilters(filters?: FilterParams): Promise<
     if (filters?.categoryId) {
       query = query.eq('category_id', filters.categoryId);
     }
+
+    // Handle subcategory filtering
+    if (filters?.subcategory) {
+      query = query.eq('category_id', filters.subcategory);
+    }
     
     if (filters?.inStock === true) {
       query = query.gt('stock', 0);
@@ -52,7 +57,7 @@ export async function fetchProductsWithFilters(filters?: FilterParams): Promise<
       query = query.order('created_at', { ascending: false });
     }
       
-    const { data, error } = await query;
+    const { data, error, count } = await query;
       
     if (error) throw error;
     
@@ -62,6 +67,7 @@ export async function fetchProductsWithFilters(filters?: FilterParams): Promise<
     let filteredProducts = applyFilters(products, {
       ...filters,
       categoryId: undefined,
+      subcategory: undefined,
       search: undefined,
       inStock: undefined
     });
@@ -90,9 +96,9 @@ export async function fetchProductsWithFilters(filters?: FilterParams): Promise<
     // Return properly structured ProductResponse object
     return {
       products: filteredProducts,
-      total: filteredProducts.length,
+      total: count || filteredProducts.length,
       page: filters?.page || 1,
-      totalPages: Math.ceil(filteredProducts.length / (filters?.perPage || 12))
+      totalPages: Math.ceil((count || filteredProducts.length) / (filters?.perPage || 12))
     };
   } catch (error) {
     console.error("Error fetching products with filters:", error);

@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from 'sonner';
 import ProductSorter from '@/components/product/ProductSorter';
 import ViewToggle from '@/components/product/ViewToggle';
 import { Category, FilterParams, Product } from '@/types';
@@ -32,8 +33,7 @@ import PriceRangeFilter from '@/components/category/PriceRangeFilter';
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { toast } = useToast();
-  const { categories, mainCategories } = useCategoriesContext();
+  const { categories, mainCategories, getSubcategoriesByParentId } = useCategoriesContext();
   
   // UI states
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -44,6 +44,8 @@ const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
   
   // Filters
   const [filters, setFilters] = useState<FilterParams>({
@@ -54,10 +56,16 @@ const ProductsPage = () => {
     priceRange: [0, 500]
   });
 
+  // Active subcategory
+  const [activeSubcategoryId, setActiveSubcategoryId] = useState<string | undefined>(
+    searchParams.get('subcategory') || undefined
+  );
+
   // Handle search param changes
   useEffect(() => {
     const search = searchParams.get('search');
     const category = searchParams.get('category');
+    const subcategory = searchParams.get('subcategory');
     const sort = searchParams.get('sort');
     const inStock = searchParams.get('inStock') === 'true';
     
@@ -68,7 +76,8 @@ const ProductsPage = () => {
       sort: sort || 'newest',
       inStock
     }));
-    
+
+    setActiveSubcategoryId(subcategory || undefined);
     setPage(1);
   }, [searchParams]);
 
@@ -79,19 +88,28 @@ const ProductsPage = () => {
       setProducts([]);
       
       try {
-        const result = await fetchProductsWithFilters({
+        const filterParams: FilterParams = {
           ...filters,
           page: 1,
-        });
+        };
+        
+        // If subcategory is selected, use that instead of category
+        if (activeSubcategoryId) {
+          filterParams.subcategory = activeSubcategoryId;
+          // Remove categoryId to avoid conflicting filters
+          delete filterParams.categoryId;
+        }
+        
+        const result = await fetchProductsWithFilters(filterParams);
         
         setProducts(result.products || []);
-        setHasMore((result.products || []).length === 12);
+        setHasMore((result.totalPages || 1) > 1);
+        setTotalPages(result.totalPages || 1);
+        setTotalProducts(result.total || 0);
       } catch (error) {
         console.error('Error loading products:', error);
-        toast({
-          title: "Lỗi",
-          description: "Không thể tải danh sách sản phẩm. Vui lòng thử lại sau.",
-          variant: "destructive"
+        toast("Error", {
+          description: "Failed to load products. Please try again.",
         });
       } finally {
         setIsLoading(false);
@@ -99,7 +117,7 @@ const ProductsPage = () => {
     };
     
     loadProducts();
-  }, [filters.search, filters.categoryId, filters.inStock, filters.sort, filters.priceRange]);
+  }, [filters.search, filters.categoryId, filters.inStock, filters.sort, filters.priceRange, activeSubcategoryId]);
 
   const loadMore = async () => {
     if (loadingMore) return;
@@ -108,26 +126,32 @@ const ProductsPage = () => {
     const nextPage = page + 1;
     
     try {
-      const result = await fetchProductsWithFilters({
+      const filterParams: FilterParams = {
         ...filters,
         page: nextPage,
-      });
+      };
+      
+      // If subcategory is selected, use that instead of category
+      if (activeSubcategoryId) {
+        filterParams.subcategory = activeSubcategoryId;
+        delete filterParams.categoryId;
+      }
+      
+      const result = await fetchProductsWithFilters(filterParams);
       
       const newProducts = result.products || [];
       
       if (newProducts.length > 0) {
         setProducts(prev => [...prev, ...newProducts]);
         setPage(nextPage);
-        setHasMore(newProducts.length === 12);
+        setHasMore(nextPage < (result.totalPages || 1));
       } else {
         setHasMore(false);
       }
     } catch (error) {
       console.error('Error loading more products:', error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể tải thêm sản phẩm. Vui lòng thử lại sau.",
-        variant: "destructive"
+      toast("Error", {
+        description: "Failed to load more products. Please try again.",
       });
     } finally {
       setLoadingMore(false);
@@ -147,6 +171,14 @@ const ProductsPage = () => {
   const handleCategoryClick = (category: Category) => {
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set('category', category.id);
+    // Clear subcategory when selecting a new category
+    newSearchParams.delete('subcategory');
+    setSearchParams(newSearchParams);
+  };
+
+  const handleSubcategoryClick = (subcategory: Category) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set('subcategory', subcategory.id);
     setSearchParams(newSearchParams);
   };
 
@@ -178,10 +210,21 @@ const ProductsPage = () => {
     setSearchParams(newSearchParams);
   };
 
-  const subcategories = categories.filter(cat => !cat.parent_id);
-  const hasActiveFilters = Boolean(filters.categoryId || filters.inStock || 
+  // Get current category's subcategories
+  const subcategories = filters.categoryId 
+    ? getSubcategoriesByParentId(filters.categoryId)
+    : [];
+
+  const hasActiveFilters = Boolean(filters.categoryId || activeSubcategoryId || filters.inStock || 
     (filters.priceRange && (filters.priceRange[0] > 0 || filters.priceRange[1] < 500)));
-  const pageTitle = filters.search ? `Kết quả tìm kiếm: ${filters.search}` : 'Tất cả sản phẩm';
+    
+  const pageTitle = filters.search 
+    ? `Search results: ${filters.search}` 
+    : activeSubcategoryId
+      ? categories.find(c => c.id === activeSubcategoryId)?.name || 'Subcategory Products'
+      : filters.categoryId
+        ? categories.find(c => c.id === filters.categoryId)?.name || 'Category Products'
+        : 'All Products';
 
   return (
     <Layout>
@@ -192,11 +235,19 @@ const ProductsPage = () => {
               <h1 className="text-3xl font-bold mb-4">{pageTitle}</h1>
               <p className="text-muted-foreground">
                 {filters.search 
-                  ? `Sản phẩm liên quan đến từ khóa "${filters.search}"`
-                  : 'Khám phá bộ sưu tập sản phẩm số của chúng tôi'
+                  ? `Products related to "${filters.search}"`
+                  : 'Explore our collection of digital products'
                 }
               </p>
             </div>
+
+            {/* Display subcategory pills if a main category is selected */}
+            {filters.categoryId && subcategories.length > 0 && (
+              <SubcategoryPills 
+                subcategories={subcategories} 
+                onSubcategoryClick={handleSubcategoryClick}
+              />
+            )}
 
             {/* Mobile Filter Button */}
             <div className="md:hidden">
@@ -205,7 +256,7 @@ const ProductsPage = () => {
                   <Button variant="outline" className="w-full flex justify-between items-center">
                     <span className="flex items-center gap-2">
                       <Filter className="h-4 w-4" />
-                      Bộ lọc & Sắp xếp
+                      Filters & Sort
                     </span>
                     {hasActiveFilters && (
                       <span className="bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -217,9 +268,9 @@ const ProductsPage = () => {
                 
                 <SheetContent side="bottom" className="h-[85vh]">
                   <SheetHeader className="mb-2">
-                    <SheetTitle>Bộ lọc sản phẩm</SheetTitle>
+                    <SheetTitle>Product Filters</SheetTitle>
                     <SheetDescription>
-                      Tùy chỉnh kết quả hiển thị theo nhu cầu của bạn
+                      Customize results to match your needs
                     </SheetDescription>
                   </SheetHeader>
                   
@@ -227,14 +278,14 @@ const ProductsPage = () => {
                     {/* Mobile Sorting */}
                     <Accordion type="single" collapsible className="w-full">
                       <AccordionItem value="sort">
-                        <AccordionTrigger>Sắp xếp theo</AccordionTrigger>
+                        <AccordionTrigger>Sort by</AccordionTrigger>
                         <AccordionContent>
                           <div className="space-y-2">
                             {[
-                              { label: 'Mới nhất', value: 'newest' },
-                              { label: 'Phổ biến nhất', value: 'popular' },
-                              { label: 'Giá: Thấp đến cao', value: 'price-low' },
-                              { label: 'Giá: Cao đến thấp', value: 'price-high' },
+                              { label: 'Newest', value: 'newest' },
+                              { label: 'Most Popular', value: 'popular' },
+                              { label: 'Price: Low to High', value: 'price-low' },
+                              { label: 'Price: High to Low', value: 'price-high' },
                             ].map((option) => (
                               <div 
                                 key={option.value} 
@@ -256,10 +307,10 @@ const ProductsPage = () => {
                     {/* Mobile Categories */}
                     <Accordion type="single" collapsible className="w-full">
                       <AccordionItem value="categories">
-                        <AccordionTrigger>Danh mục sản phẩm</AccordionTrigger>
+                        <AccordionTrigger>Categories</AccordionTrigger>
                         <AccordionContent>
                           <div className="space-y-2">
-                            {subcategories.map((category) => (
+                            {mainCategories.map((category) => (
                               <div 
                                 key={category.id} 
                                 className={`p-2 rounded-md cursor-pointer ${
@@ -277,10 +328,36 @@ const ProductsPage = () => {
                       </AccordionItem>
                     </Accordion>
                     
+                    {/* Mobile Subcategories (if a category is selected) */}
+                    {filters.categoryId && subcategories.length > 0 && (
+                      <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="subcategories">
+                          <AccordionTrigger>Subcategories</AccordionTrigger>
+                          <AccordionContent>
+                            <div className="space-y-2">
+                              {subcategories.map((subcategory) => (
+                                <div 
+                                  key={subcategory.id} 
+                                  className={`p-2 rounded-md cursor-pointer ${
+                                    activeSubcategoryId === subcategory.id 
+                                      ? 'bg-primary/10 text-primary font-medium' 
+                                      : 'hover:bg-gray-100'
+                                  }`}
+                                  onClick={() => handleSubcategoryClick(subcategory)}
+                                >
+                                  {subcategory.name}
+                                </div>
+                              ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    )}
+                    
                     {/* Mobile Price Range */}
                     <Accordion type="single" collapsible className="w-full">
                       <AccordionItem value="price">
-                        <AccordionTrigger>Khoảng giá</AccordionTrigger>
+                        <AccordionTrigger>Price Range</AccordionTrigger>
                         <AccordionContent>
                           <PriceRangeFilter 
                             minPrice={0} 
@@ -298,7 +375,7 @@ const ProductsPage = () => {
                         checked={filters.inStock}
                         onCheckedChange={handleInStockChange}
                       />
-                      <Label htmlFor="mobile-in-stock">Chỉ hiển thị sản phẩm còn hàng</Label>
+                      <Label htmlFor="mobile-in-stock">Show in-stock products only</Label>
                     </div>
                     
                     {/* Clear Filters */}
@@ -309,7 +386,7 @@ const ProductsPage = () => {
                           onClick={clearFilters} 
                           className="w-full"
                         >
-                          Xóa tất cả bộ lọc
+                          Clear all filters
                         </Button>
                       </div>
                     )}
@@ -323,13 +400,13 @@ const ProductsPage = () => {
               {/* Desktop Sidebar Filters */}
               <div className="hidden md:block w-64 shrink-0 space-y-6">
                 <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm space-y-6">
-                  <h3 className="font-semibold text-lg mb-4">Bộ lọc</h3>
+                  <h3 className="font-semibold text-lg mb-4">Filters</h3>
                   
                   {/* Categories */}
                   <div>
-                    <h4 className="font-medium mb-2">Danh mục</h4>
+                    <h4 className="font-medium mb-2">Categories</h4>
                     <div className="space-y-2">
-                      {subcategories.map((category) => (
+                      {mainCategories.map((category) => (
                         <div 
                           key={category.id} 
                           className={`flex items-center p-1.5 rounded-md cursor-pointer text-sm ${
@@ -348,6 +425,31 @@ const ProductsPage = () => {
                     </div>
                   </div>
                   
+                  {/* Subcategories (if a category is selected) */}
+                  {filters.categoryId && subcategories.length > 0 && (
+                    <div className="border-t pt-4">
+                      <h4 className="font-medium mb-2">Subcategories</h4>
+                      <div className="space-y-2">
+                        {subcategories.map((subcategory) => (
+                          <div 
+                            key={subcategory.id} 
+                            className={`flex items-center p-1.5 rounded-md cursor-pointer text-sm ${
+                              activeSubcategoryId === subcategory.id 
+                                ? 'bg-primary/10 text-primary font-medium' 
+                                : 'hover:bg-gray-100'
+                            }`}
+                            onClick={() => handleSubcategoryClick(subcategory)}
+                          >
+                            {subcategory.name}
+                            {subcategory.count > 0 && (
+                              <span className="ml-auto text-xs text-text-light">{subcategory.count}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Price Range */}
                   <div className="border-t pt-4">
                     <PriceRangeFilter
@@ -359,14 +461,14 @@ const ProductsPage = () => {
                   
                   {/* Inventory */}
                   <div className="border-t pt-4">
-                    <h4 className="font-medium mb-2">Tình trạng</h4>
+                    <h4 className="font-medium mb-2">Availability</h4>
                     <div className="flex items-center space-x-2">
                       <Checkbox 
                         id="in-stock" 
                         checked={filters.inStock}
                         onCheckedChange={handleInStockChange}
                       />
-                      <Label htmlFor="in-stock">Chỉ hiển thị còn hàng</Label>
+                      <Label htmlFor="in-stock">Show in-stock only</Label>
                     </div>
                   </div>
                   
@@ -378,7 +480,7 @@ const ProductsPage = () => {
                         onClick={clearFilters} 
                         className="w-full"
                       >
-                        Xóa tất cả bộ lọc
+                        Clear all filters
                       </Button>
                     </div>
                   )}
@@ -400,6 +502,13 @@ const ProductsPage = () => {
                     />
                   </div>
 
+                  {/* Product Count Display */}
+                  {!isLoading && (
+                    <div className="text-sm text-muted-foreground mb-4">
+                      Showing {products.length} of {totalProducts} products
+                    </div>
+                  )}
+
                   {/* Product Grid */}
                   {isLoading ? (
                     <div className="flex items-center justify-center min-h-[400px]">
@@ -415,15 +524,15 @@ const ProductsPage = () => {
                     />
                   ) : (
                     <div className="text-center py-16 space-y-3">
-                      <h3 className="text-lg font-medium">Không tìm thấy sản phẩm phù hợp.</h3>
-                      <p className="text-muted-foreground">Thử tìm kiếm với từ khóa khác hoặc điều chỉnh bộ lọc.</p>
+                      <h3 className="text-lg font-medium">No products found matching your criteria.</h3>
+                      <p className="text-muted-foreground">Try searching with different keywords or adjusting your filters.</p>
                       {hasActiveFilters && (
                         <Button 
                           variant="outline" 
                           onClick={clearFilters} 
                           className="mt-4"
                         >
-                          Xóa bộ lọc và thử lại
+                          Clear filters and try again
                         </Button>
                       )}
                     </div>
