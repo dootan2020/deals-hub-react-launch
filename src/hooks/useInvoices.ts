@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Invoice } from '@/integrations/supabase/types-extension';
+import type { Invoice } from '@/integrations/supabase/types-extension';
 
 export type { Invoice };
 
@@ -14,14 +14,14 @@ export const useInvoices = (userId: string) => {
     const fetchInvoices = async () => {
       try {
         const { data: invoiceData, error: invoiceError } = await supabase
-          .from('invoices')
+          .from<Invoice>('invoices')
           .select('*')
           .eq('user_id', userId)
           .order('created_at', { ascending: false });
 
         if (invoiceError) throw invoiceError;
-        
-        setInvoices(invoiceData as Invoice[] || []);
+
+        setInvoices(invoiceData ?? []);
       } catch (err) {
         console.error('Error fetching invoices:', err);
         setError(err instanceof Error ? err.message : 'Failed to load invoices');
@@ -36,7 +36,7 @@ export const useInvoices = (userId: string) => {
   const getInvoiceById = async (invoiceId: string) => {
     try {
       const { data, error } = await supabase
-        .from('invoices')
+        .from<Invoice>('invoices')
         .select('*')
         .eq('id', invoiceId)
         .eq('user_id', userId)

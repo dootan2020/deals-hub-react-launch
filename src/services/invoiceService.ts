@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Invoice } from '@/integrations/supabase/types-extension';
+import type { Invoice } from '@/integrations/supabase/types-extension';
 
 interface InvoiceDetails {
   products: Array<{
@@ -32,7 +32,7 @@ export const createInvoice = async (
     const invoiceNumber = generateInvoiceNumber();
     
     const { data, error } = await supabase
-      .from('invoices')
+      .from<Invoice>('invoices')
       .insert({
         invoice_number: invoiceNumber,
         user_id: userId,
@@ -55,7 +55,7 @@ export const createInvoice = async (
 export const getInvoiceByOrderId = async (userId: string, orderId: string): Promise<Invoice | null> => {
   try {
     const { data, error } = await supabase
-      .from('invoices')
+      .from<Invoice>('invoices')
       .select('*')
       .eq('order_id', orderId)
       .eq('user_id', userId)

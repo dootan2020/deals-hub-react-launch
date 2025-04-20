@@ -28,7 +28,7 @@ import { useOrderApi } from '@/hooks/use-order-api';
 import { createInvoiceFromOrder } from '@/components/account/invoice-utils';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Invoice } from '@/integrations/supabase/types-extension';
+import type { Invoice } from '@/integrations/supabase/types-extension';
 
 interface OrderProduct {
   product: string;
@@ -81,38 +81,39 @@ const OrderSuccessPage = () => {
 
   const createOrderInvoice = async (orderId: string) => {
     if (!user?.id) return;
-    
+
     try {
       setIsInvoiceLoading(true);
-      
+
+      // fix: explicitly type as Invoice for Supabase query
       const { data: existingInvoice, error: checkError } = await supabase
-        .from('invoices')
+        .from<Invoice>('invoices')
         .select('id')
         .eq('order_id', orderId)
         .eq('user_id', user.id)
         .maybeSingle();
-      
-      if (existingInvoice) {
+
+      if (existingInvoice && existingInvoice.id) {
         setInvoiceId(existingInvoice.id);
         return;
       }
-      
+
       const { data: orderDetails, error: orderError } = await supabase
         .from('orders')
         .select('*, order_items(*)')
         .eq('id', orderId)
         .eq('user_id', user.id)
         .single();
-      
+
       if (orderError) {
         console.error("Error fetching order details:", orderError);
         return;
       }
-        
+
       const { data, error: invoiceError } = await supabase.functions.invoke('create-invoice', {
         body: { orderId }
       });
-      
+
       if (data?.invoice?.id) {
         setInvoiceId(data.invoice.id);
       }
