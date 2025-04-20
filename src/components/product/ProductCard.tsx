@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -45,12 +46,18 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
     ? "flex-1"
     : "";
 
-  // Make sure stock value is properly set
-  const stock = product.stockQuantity || product.stock || 0;
-  const salesCount = product.salesCount || product.sales_count || 0;
+  // Make sure stock value is properly set and converted to number
+  const stock = Number(product.stockQuantity || product.stock || 0);
+  const salesCount = Number(product.salesCount || product.sales_count || 0);
   
   // Ensure we have a valid kiosk_token
   const hasKioskToken = Boolean(product.kiosk_token);
+  
+  // Product is in stock if stock > 0
+  const isInStock = stock > 0;
+
+  // For debugging
+  console.log(`Product: ${product.title}, Stock: ${stock}, Type: ${typeof stock}, isInStock: ${isInStock}`);
 
   return (
     <div className={cn(
@@ -116,7 +123,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
             variant="default"
             size="sm"
             className="flex-1 min-w-[100px] bg-gradient-to-r from-primary to-primary-dark text-sm"
-            isInStock={product.inStock !== false}
+            isInStock={isInStock}
             product={product}
           >
             <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
