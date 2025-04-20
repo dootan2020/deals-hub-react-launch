@@ -1,3 +1,4 @@
+
 import { Product, FilterParams } from '@/types';
 
 /**
@@ -43,7 +44,7 @@ export const applyFilters = (products: Product[], filters: FilterParams = {}): P
 };
 
 // Update the SortOption type definition
-export type SortOption = 'newest' | 'popular' | 'price-low' | 'price-high' | 'name-asc';
+export type SortOption = 'newest' | 'popular' | 'price-low' | 'price-high' | 'name-asc' | 'recommended';
 
 /**
  * Sort products based on specified sort criteria

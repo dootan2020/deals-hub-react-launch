@@ -11,6 +11,14 @@ interface UseSubcategoryProductsProps {
   stockFilter: string;
 }
 
+// Định nghĩa kiểu trả về từ fetchProductsWithFilters
+interface ProductResponse {
+  products: Product[];
+  total?: number;
+  page?: number;
+  totalPages?: number;
+}
+
 export const useSubcategoryProducts = ({ 
   slug,
   sortOption,
@@ -38,6 +46,7 @@ export const useSubcategoryProducts = ({
           inStock: stockFilter === "in-stock" ? true : undefined
         });
         
+        // Xử lý kết quả với type checking
         if (result && Array.isArray(result.products)) {
           setProducts(result.products);
           setTotalPages(result.totalPages || 1);
@@ -45,6 +54,10 @@ export const useSubcategoryProducts = ({
           if (result.products.length === 0 && currentPage > 1) {
             setCurrentPage(1);
           }
+        } else if (Array.isArray(result)) {
+          // Fallback nếu kết quả trả về là array trực tiếp
+          setProducts(result);
+          setTotalPages(1);
         } else {
           setProducts([]);
           setTotalPages(1);

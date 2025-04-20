@@ -1,4 +1,3 @@
-
 // Mock product service
 import { Product } from '@/types';
 import mockProducts from '@/data/mockData';
@@ -7,12 +6,12 @@ export interface ProductFilters {
   search?: string;
   category?: string;
   subcategory?: string;
-  sort?: 'newest' | 'price-low' | 'price-high' | 'popular';
+  sort?: 'newest' | 'price-low' | 'price-high' | 'popular' | 'name-asc' | 'recommended';
   page?: number;
   perPage?: number;
-  priceRange?: { min: number; max: number };
-  minPrice?: number; // Add this for backward compatibility
-  maxPrice?: number; // Add this for backward compatibility
+  priceRange?: [number, number] | { min: number; max: number };
+  minPrice?: number;
+  maxPrice?: number;
   inStock?: boolean;
 }
 
@@ -59,6 +58,12 @@ export const fetchProductsWithFilters = async (filters: ProductFilters): Promise
       case 'popular':
         filteredProducts.sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
         break;
+      case 'name-asc':
+        filteredProducts.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case 'recommended':
+        filteredProducts.sort((a, b) => (b.recommended || 0) - (a.recommended || 0));
+        break;
       case 'newest':
       default:
         filteredProducts.sort((a, b) => 
@@ -67,12 +72,19 @@ export const fetchProductsWithFilters = async (filters: ProductFilters): Promise
     }
   }
   
-  // Apply price range filter - handle both priceRange object and minPrice/maxPrice
+  // Apply price range filter - handle both priceRange object and array
   if (filters.priceRange) {
-    filteredProducts = filteredProducts.filter(product => 
-      product.price >= filters.priceRange!.min && 
-      product.price <= filters.priceRange!.max
-    );
+    if (Array.isArray(filters.priceRange)) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.price >= filters.priceRange![0] && 
+        product.price <= filters.priceRange![1]
+      );
+    } else {
+      filteredProducts = filteredProducts.filter(product => 
+        product.price >= filters.priceRange!.min && 
+        product.price <= filters.priceRange!.max
+      );
+    }
   } else if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
     // Handle minPrice/maxPrice as separate parameters for backward compatibility
     if (filters.minPrice !== undefined) {
