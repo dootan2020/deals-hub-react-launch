@@ -1,3 +1,4 @@
+
 import { TableHTMLAttributes } from 'react';
 
 export interface Product {
@@ -41,10 +42,8 @@ export interface Category {
   subcategories?: Category[];
 }
 
-export interface SortOption {
-  label: string;
-  value: string;
-}
+// Changed SortOption to string literal type to match utils/productFilters.ts
+export type SortOption = 'newest' | 'popular' | 'price-low' | 'price-high' | 'recommended';
 
 export interface FilterParams {
   categoryId?: string;

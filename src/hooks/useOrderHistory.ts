@@ -28,7 +28,7 @@ export const useOrderHistory = (userId: string) => {
       try {
         const { data: orderData, error: orderError } = await supabase
           .from('orders')
-          .select('id, created_at, status, total_amount')
+          .select('id, created_at, status, total_price')
           .eq('user_id', userId)
           .order('created_at', { ascending: false });
 
@@ -50,14 +50,18 @@ export const useOrderHistory = (userId: string) => {
 
             return {
               ...order,
+              total_amount: order.total_price, // Map total_price to total_amount
               product_title: product?.title
             };
           }
 
-          return order;
+          return {
+            ...order,
+            total_amount: order.total_price // Map total_price to total_amount
+          };
         }));
 
-        setOrders(ordersWithProducts);
+        setOrders(ordersWithProducts as Order[]);
       } catch (err) {
         console.error('Error fetching orders:', err);
         setError(err instanceof Error ? err.message : 'Failed to load order history');

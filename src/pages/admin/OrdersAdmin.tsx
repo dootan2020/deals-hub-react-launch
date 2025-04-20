@@ -62,7 +62,14 @@ const OrdersAdmin = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setOrders(data || []);
+      
+      // Map the data to match the Order interface (total_price to total_amount)
+      const mappedOrders = (data || []).map(order => ({
+        ...order,
+        total_amount: order.total_price
+      }));
+      
+      setOrders(mappedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Failed to fetch orders');
@@ -100,7 +107,10 @@ const OrdersAdmin = () => {
       setSelectedOrder({
         id: orderId,
         items: items || [],
-        details: orderDetails
+        details: {
+          ...orderDetails,
+          total_amount: orderDetails.total_price // Map total_price to total_amount
+        }
       });
     } catch (error) {
       console.error('Error fetching order details:', error);

@@ -32,7 +32,7 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
     const params = new URLSearchParams(searchParams);
     
     if (newFilters.sort) {
-      params.set('sort', newFilters.sort);
+      params.set('sort', String(newFilters.sort));
     }
     
     if (newFilters.priceRange) {
@@ -78,7 +78,7 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
 
   // Convert filters to FilterParams for API requests
   const getFilterParams = (): FilterParams => ({
-    sort: filters.sort,
+    sort: String(filters.sort),
     minPrice: filters.priceRange[0],
     maxPrice: filters.priceRange[1],
     inStock: filters.stockFilter === 'in-stock' ? true : undefined,

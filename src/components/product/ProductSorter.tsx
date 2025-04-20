@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowDownAZ, ArrowUpZA, Clock, TrendingUp } from 'lucide-react';
-import { SortOption } from '@/utils/productFilters';
+import { SortOption } from '@/types';
 
 interface ProductSorterProps {
   currentSort: SortOption;

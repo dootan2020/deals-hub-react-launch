@@ -30,8 +30,9 @@ export const applyFilters = (products: Product[], filters: any = {}): Product[] 
   return filteredProducts;
 };
 
-// Define the sort option type to ensure consistency across the application
-export type SortOption = 'newest' | 'popular' | 'price-low' | 'price-high';
+// Define the sort option type using the same type from the main types file
+import { SortOption as ImportedSortOption } from '@/types';
+export type SortOption = ImportedSortOption;
 
 /**
  * Sort products based on specified sort criteria
