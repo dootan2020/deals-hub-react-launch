@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { fetchProductsWithFilters } from '@/services/productService';
+import { fetchProductsWithFilters } from '@/services/product/productService';
 import { Product } from '@/types';
 import { SortOption } from '@/utils/productFilters';
 
@@ -34,8 +34,7 @@ export const useSubcategoryProducts = ({
           page: currentPage,
           perPage: 12,
           sort: sortOption,
-          minPrice: priceRange[0],
-          maxPrice: priceRange[1],
+          priceRange: priceRange,
           inStock: stockFilter === "in-stock" ? true : undefined
         });
         

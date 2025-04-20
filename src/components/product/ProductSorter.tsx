@@ -12,14 +12,14 @@ import { SortOption } from '@/utils/productFilters';
 
 interface ProductSorterProps {
   currentSort: SortOption;
-  onSortChange: (value: string) => void;
+  onSortChange: (value: SortOption) => void;
 }
 
 const ProductSorter: React.FC<ProductSorterProps> = ({ currentSort, onSortChange }) => {
   return (
     <div className="flex items-center gap-2">
       <span className="text-sm text-gray-500 hidden sm:inline">Sắp xếp theo:</span>
-      <Select value={currentSort} onValueChange={onSortChange}>
+      <Select value={currentSort} onValueChange={(value) => onSortChange(value as SortOption)}>
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Sắp xếp" />
         </SelectTrigger>

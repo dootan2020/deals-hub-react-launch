@@ -8,8 +8,8 @@ export const useSubcategoryFilters = () => {
   const [stockFilter, setStockFilter] = useState("all");
   const [activeSubcategories, setActiveSubcategories] = useState<string[]>([]);
 
-  const handleSortChange = (newSort: string) => {
-    setSortOption(newSort as SortOption);
+  const handleSortChange = (newSort: SortOption) => {
+    setSortOption(newSort);
   };
 
   const handlePriceChange = (min: number, max: number) => {
