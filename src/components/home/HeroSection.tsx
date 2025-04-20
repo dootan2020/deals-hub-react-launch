@@ -8,7 +8,7 @@ const HeroSection = () => {
       <div 
         className="absolute inset-0 z-0"
         style={{
-          backgroundImage: "url('/lovable-uploads/2e4fb3ed-d351-4846-8613-dd834e00be9b.png')",
+          backgroundImage: "url('/lovable-uploads/3989129c-56cd-48fd-b7e5-b30f0d3a4935.png')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -50,3 +50,4 @@ const HeroSection = () => {
 };
 
 export default HeroSection;
+
