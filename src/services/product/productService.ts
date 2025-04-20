@@ -82,6 +82,7 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
       features: item.features || [],
       specifications: item.specifications as Record<string, string | number | boolean | object> || {},
       salesCount: item.sales_count || 0,
+      sales_count: item.sales_count || 0,
       stock: item.stock || 0,
       kiosk_token: item.kiosk_token || '',
       createdAt: item.created_at

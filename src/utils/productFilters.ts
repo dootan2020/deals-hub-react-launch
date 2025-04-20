@@ -1,3 +1,4 @@
+
 import { Product, FilterParams } from '@/types';
 
 /**
@@ -17,9 +18,17 @@ export const applyFilters = (products: Product[], filters: FilterParams = {}): P
     }
   }
   
-  // Filter by ratings
+  // Filter by ratings - Fix for TS2365 error
   if (filters.ratings !== undefined) {
-    filteredProducts = filteredProducts.filter(p => p.rating >= filters.ratings);
+    // Check if ratings is an array
+    if (Array.isArray(filters.ratings)) {
+      filteredProducts = filteredProducts.filter(p => 
+        filters.ratings!.includes(p.rating)
+      );
+    } else {
+      // If it's a single number, compare directly
+      filteredProducts = filteredProducts.filter(p => p.rating >= filters.ratings as number);
+    }
   }
   
   // Filter by search query
