@@ -1,7 +1,7 @@
-
 import { useState } from 'react';
 import { SortOption, FilterParams } from '@/types';
 import { useSearchParams } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 
 export interface ProductFilters {
   sort: SortOption;
@@ -33,20 +33,36 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
     
     if (newFilters.sort) {
       params.set('sort', String(newFilters.sort));
+      toast({
+        title: "Sắp xếp sản phẩm",
+        description: `Đã sắp xếp theo ${getSortLabel(newFilters.sort)}`,
+      });
     }
     
     if (newFilters.priceRange) {
       params.set('minPrice', newFilters.priceRange[0].toString());
       params.set('maxPrice', newFilters.priceRange[1].toString());
+      toast({
+        title: "Lọc theo giá",
+        description: `Từ ${formatPrice(newFilters.priceRange[0])} đến ${formatPrice(newFilters.priceRange[1])}`,
+      });
     }
     
     if (newFilters.stockFilter) {
       params.set('stock', newFilters.stockFilter);
+      toast({
+        title: "Lọc theo kho",
+        description: getStockFilterLabel(newFilters.stockFilter),
+      });
     }
     
     if (newFilters.activeSubcategories) {
       if (newFilters.activeSubcategories.length > 0) {
         params.set('categories', newFilters.activeSubcategories.join(','));
+        toast({
+          title: "Lọc theo danh mục",
+          description: `Đã chọn ${newFilters.activeSubcategories.length} danh mục`,
+        });
       } else {
         params.delete('categories');
       }
@@ -55,7 +71,32 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
     setSearchParams(params);
   };
 
-  // Helper methods for updating specific filters
+  // Helper functions for toast messages
+  const getSortLabel = (sort: SortOption): string => {
+    switch (sort) {
+      case 'newest': return 'Mới nhất';
+      case 'popular': return 'Phổ biến nhất';
+      case 'price-low': return 'Giá tăng dần';
+      case 'price-high': return 'Giá giảm dần';
+      default: return 'Mới nhất';
+    }
+  };
+
+  const formatPrice = (price: number): string => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(price);
+  };
+
+  const getStockFilterLabel = (filter: string): string => {
+    switch (filter) {
+      case 'in-stock': return 'Chỉ hiển thị sản phẩm còn hàng';
+      case 'all': return 'Hiển thị tất cả sản phẩm';
+      default: return 'Hiển thị tất cả sản phẩm';
+    }
+  };
+
   const handleSortChange = (newSort: string) => {
     updateFilters({ sort: newSort as SortOption });
   };
@@ -82,7 +123,7 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
     minPrice: filters.priceRange[0],
     maxPrice: filters.priceRange[1],
     inStock: filters.stockFilter === 'in-stock' ? true : undefined,
-    categoryId: filters.activeSubcategories.length > 0 ? filters.activeSubcategories[0] : undefined, // Changed from categoryIds to categoryId
+    categoryId: filters.activeSubcategories.length > 0 ? filters.activeSubcategories[0] : undefined,
   });
 
   return {
@@ -94,4 +135,3 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
     getFilterParams,
   };
 };
-

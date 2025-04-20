@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Product } from '@/types';
 import { ProductStock } from './ProductStock';
 import { BuyNowButton } from '@/components/checkout/BuyNowButton';
+import { toast } from '@/hooks/use-toast';
 
 interface ProductPurchaseSectionProps {
   product: Product;
@@ -14,6 +15,10 @@ export const ProductPurchaseSection = ({ product }: ProductPurchaseSectionProps)
     const newQuantity = quantity + amount;
     if (newQuantity >= 1) {
       setQuantity(newQuantity);
+      toast({
+        title: "Số lượng đã được cập nhật",
+        description: `Số lượng: ${newQuantity}`,
+      });
     }
   };
 

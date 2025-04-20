@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { Mail } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 const NewsletterSection = () => {
   const [email, setEmail] = useState('');
@@ -11,8 +12,16 @@ const NewsletterSection = () => {
     e.preventDefault();
     setIsSubmitting(true);
     
+    // Show loading toast
+    const loadingToast = toast.loading("Đang đăng ký...");
+    
     // Simulate API call
     setTimeout(() => {
+      toast.dismiss(loadingToast);
+      toast.success(
+        "Đăng ký thành công",
+        "Cảm ơn bạn đã đăng ký nhận thông báo!"
+      );
       setIsSubmitting(false);
       setSubscribed(true);
       setEmail('');
