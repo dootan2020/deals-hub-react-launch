@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -131,11 +130,11 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-center text-xl font-medium">
+        <DialogHeader className="bg-muted px-6 py-4 -mx-6 -mt-6 border-b border-border">
+          <DialogTitle className="text-xl font-semibold text-foreground">
             {isVerifying ? 'Đang xác minh tồn kho...' : 'Xác nhận mua hàng'}
           </DialogTitle>
-          <DialogDescription className="text-center text-sm text-muted-foreground">
+          <DialogDescription className="text-sm text-muted-foreground mt-1">
             {isVerifying ? 
               'Vui lòng đợi trong khi chúng tôi kiểm tra tồn kho sản phẩm' : 
               'Vui lòng xác nhận thông tin mua hàng của bạn'}
