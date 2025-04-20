@@ -85,9 +85,8 @@ const OrderSuccessPage = () => {
     try {
       setIsInvoiceLoading(true);
 
-      // fix: explicitly type as Invoice for Supabase query
       const { data: existingInvoice, error: checkError } = await supabase
-        .from<Invoice>('invoices')
+        .from('invoices')
         .select('id')
         .eq('order_id', orderId)
         .eq('user_id', user.id)

@@ -37,20 +37,15 @@ export interface UserWithRolesRow {
 
 // Extend the original Database type
 export interface Database extends OriginalDatabase {
-  public: OriginalDatabase['public'] & {
-    Tables: OriginalDatabase['public']['Tables'] & {
-      deposits: {
-        Row: Deposit;
-        Insert: Omit<Deposit, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Deposit, 'id' | 'created_at' | 'updated_at'>>;
-      };
+  public: {
+    Tables: {
       invoices: {
         Row: Invoice;
         Insert: Omit<Invoice, 'id' | 'created_at'>;
         Update: Partial<Omit<Invoice, 'id' | 'created_at'>>;
-      }
-    };
-    Views: {
+      };
+    } & OriginalDatabase['public']['Tables'];
+    Views: OriginalDatabase['public']['Views'] & {
       users_with_roles: {
         Row: UserWithRolesRow;
       };

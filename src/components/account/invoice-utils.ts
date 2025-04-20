@@ -8,13 +8,13 @@ export const createInvoiceFromOrder = async (
   orderDetails: any
 ): Promise<Invoice | null> => {
   try {
-    // Kiểm tra nếu hóa đơn đã tồn tại
+    // Check if invoice already exists
     const existingInvoice = await getInvoiceByOrderId(userId, orderId);
     if (existingInvoice) {
       return existingInvoice;
     }
     
-    // Tạo cấu trúc dữ liệu cho hóa đơn từ thông tin đơn hàng
+    // Create invoice data structure from order details
     const orderAmount = orderDetails.total_amount || orderDetails.total_price;
     const products = orderDetails.items?.map((item: any) => ({
       title: item.title || item.product_title || 'Sản phẩm',
@@ -22,7 +22,7 @@ export const createInvoiceFromOrder = async (
       quantity: item.quantity || 1
     })) || [];
     
-    // Nếu không có items, nhưng có thông tin sản phẩm
+    // If no items but product info exists
     if (products.length === 0 && orderDetails.product_title) {
       products.push({
         title: orderDetails.product_title,
@@ -31,7 +31,7 @@ export const createInvoiceFromOrder = async (
       });
     }
     
-    // Tạo thông tin chi tiết hóa đơn
+    // Create invoice details
     const invoiceDetails = {
       products,
       recipient: {
@@ -40,7 +40,7 @@ export const createInvoiceFromOrder = async (
       }
     };
     
-    // Tạo hóa đơn mới
+    // Create new invoice
     return await createInvoice(
       userId,
       orderId,
