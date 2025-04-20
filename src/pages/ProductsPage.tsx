@@ -56,10 +56,16 @@ const ProductsPage = () => {
     perPage: perPage
   });
 
+  // Get subcategories for the selected main category
+  const subcategories = filters.categoryId 
+    ? getSubcategoriesByParentId(filters.categoryId)
+    : [];
+
   // Handle search param changes
   useEffect(() => {
     const search = searchParams.get('search');
     const category = searchParams.get('category');
+    const subcategory = searchParams.get('subcategory');
     const sort = searchParams.get('sort');
     const inStock = searchParams.get('inStock') === 'true';
     
@@ -67,6 +73,7 @@ const ProductsPage = () => {
       ...prev,
       search: search || undefined,
       categoryId: category || undefined,
+      subcategory: subcategory || undefined,
       sort: sort || 'newest',
       inStock
     }));
@@ -152,6 +159,13 @@ const ProductsPage = () => {
   const handleCategoryClick = (category: Category) => {
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set('category', category.id);
+    newSearchParams.delete('subcategory'); // Clear subcategory when changing main category
+    setSearchParams(newSearchParams);
+  };
+
+  const handleSubcategoryClick = (subcategory: Category) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set('subcategory', subcategory.id);
     setSearchParams(newSearchParams);
   };
 
@@ -183,8 +197,12 @@ const ProductsPage = () => {
     setSearchParams(newSearchParams);
   };
 
-  const hasActiveFilters = Boolean(filters.categoryId || filters.inStock || 
-    (filters.priceRange && (filters.priceRange[0] > 0 || filters.priceRange[1] < 500)));
+  const hasActiveFilters = Boolean(
+    filters.categoryId || 
+    filters.subcategory ||
+    filters.inStock || 
+    (filters.priceRange && (filters.priceRange[0] > 0 || filters.priceRange[1] < 500))
+  );
     
   const pageTitle = filters.search 
     ? `Search results: ${filters.search}` 
@@ -269,16 +287,36 @@ const ProductsPage = () => {
                         <AccordionContent>
                           <div className="space-y-2">
                             {mainCategories.map((category) => (
-                              <div 
-                                key={category.id} 
-                                className={`p-2 rounded-md cursor-pointer ${
-                                  filters.categoryId === category.id 
-                                    ? 'bg-primary/10 text-primary font-medium' 
-                                    : 'hover:bg-gray-100'
-                                }`}
-                                onClick={() => handleCategoryClick(category)}
-                              >
-                                {category.name}
+                              <div key={category.id}>
+                                <div 
+                                  className={`p-2 rounded-md cursor-pointer ${
+                                    filters.categoryId === category.id 
+                                      ? 'bg-primary/10 text-primary font-medium' 
+                                      : 'hover:bg-gray-100'
+                                  }`}
+                                  onClick={() => handleCategoryClick(category)}
+                                >
+                                  {category.name}
+                                </div>
+                                
+                                {/* Show subcategories when parent is selected */}
+                                {filters.categoryId === category.id && subcategories.length > 0 && (
+                                  <div className="ml-4 mt-2 space-y-1">
+                                    {subcategories.map((sub) => (
+                                      <div
+                                        key={sub.id}
+                                        className={`p-2 rounded-md cursor-pointer text-sm ${
+                                          filters.subcategory === sub.id
+                                            ? 'bg-primary/10 text-primary font-medium'
+                                            : 'hover:bg-gray-50'
+                                        }`}
+                                        onClick={() => handleSubcategoryClick(sub)}
+                                      >
+                                        {sub.name}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -339,25 +377,52 @@ const ProductsPage = () => {
                     <h4 className="font-medium mb-2">Categories</h4>
                     <div className="space-y-2">
                       {mainCategories.map((category) => (
-                        <div 
-                          key={category.id} 
-                          className={`flex items-center p-1.5 rounded-md cursor-pointer text-sm ${
-                            filters.categoryId === category.id 
-                              ? 'bg-primary/10 text-primary font-medium' 
-                              : 'hover:bg-gray-100'
-                          }`}
-                          onClick={() => handleCategoryClick(category)}
-                        >
-                          {category.name}
-                          {category.count > 0 && (
-                            <span className="ml-auto text-xs text-text-light">{category.count}</span>
+                        <div key={category.id}>
+                          <div 
+                            className={`flex items-center p-1.5 rounded-md cursor-pointer text-sm ${
+                              filters.categoryId === category.id 
+                                ? 'bg-primary/10 text-primary font-medium' 
+                                : 'hover:bg-gray-100'
+                            }`}
+                            onClick={() => handleCategoryClick(category)}
+                          >
+                            {category.name}
+                            {category.count > 0 && (
+                              <span className="ml-auto text-xs text-text-light">
+                                {category.count}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Show subcategories when parent is selected */}
+                          {filters.categoryId === category.id && subcategories.length > 0 && (
+                            <div className="ml-4 mt-2 space-y-1">
+                              {subcategories.map((sub) => (
+                                <div
+                                  key={sub.id}
+                                  className={`flex items-center p-1.5 rounded-md cursor-pointer text-sm ${
+                                    filters.subcategory === sub.id
+                                      ? 'bg-primary/10 text-primary font-medium'
+                                      : 'hover:bg-gray-50'
+                                  }`}
+                                  onClick={() => handleSubcategoryClick(sub)}
+                                >
+                                  {sub.name}
+                                  {sub.count > 0 && (
+                                    <span className="ml-auto text-xs text-text-light">
+                                      {sub.count}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
                       ))}
                     </div>
                   </div>
                   
-                  {/* Price Range */}
+                  {/* Price Range and other filters */}
                   <div className="border-t pt-4">
                     <PriceRangeFilter
                       minPrice={0}
