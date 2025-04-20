@@ -24,9 +24,9 @@ export interface Product {
   features: string[];
   specifications: Record<string, string | number | boolean | object>;
   salesCount?: number;
-  sales_count?: number;  // Added this line to match backend naming convention
+  sales_count?: number;
   createdAt: string;
-  kiosk_token: string;  // Changed from optional to required
+  kiosk_token: string;
   stock: number;
 }
 
@@ -50,14 +50,14 @@ export interface FilterParams {
   categoryId?: string;
   minPrice?: number;
   maxPrice?: number;
-  ratings?: number[]; // Changed from 'rating' to 'ratings' for consistency
+  ratings?: number[];
   search?: string;
   tags?: string[];
   inStock?: boolean;
   sort?: string;
   page?: number;
   limit?: number;
-  priceRange?: [number, number]; // Changed from {min, max} to tuple for consistency with usage
+  priceRange?: [number, number];
 }
 
 export interface CategoryPageParams extends Record<string, string> {
@@ -98,4 +98,21 @@ export interface ProductKey {
   status: string;
   created_at: string;
   product_id?: string;
+}
+
+interface Order {
+  id: string;
+  created_at: string;
+  status: string;
+  total_price: number;
+  external_order_id: string | null;
+  promotion_code: string | null;
+  product_id: string | null;
+  qty: number;
+  keys: any[];
+  updated_at: string;
+  user_id: string;
+  product?: {
+    title: string;
+  };
 }

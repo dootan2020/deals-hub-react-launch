@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -19,8 +18,11 @@ const OrdersPage = () => {
           .from('orders')
           .select(`
             id,
+            created_at,
+            product_id,
             qty,
             total_price,
+            status,
             keys,
             product:products(title)
           `)
@@ -38,7 +40,7 @@ const OrdersPage = () => {
             id: key.id,
             key_content: key.key_content,
             status: key.status,
-            created_at: key.created_at || order.created_at,
+            created_at: order.created_at,
             product_id: order.product_id
           }));
         }) || [];

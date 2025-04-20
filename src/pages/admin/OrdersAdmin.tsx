@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -19,9 +18,14 @@ interface Order {
   id: string;
   external_order_id: string | null;
   status: string;
-  total_amount: number;
+  total_price: number;
   created_at: string;
   updated_at: string;
+  product_id: string | null;
+  qty: number;
+  keys: any[];
+  promotion_code: string | null;
+  user_id: string;
 }
 
 interface OrderItem {
@@ -40,7 +44,7 @@ interface OrderDetails {
     status: string;
     external_order_id: string | null;
     created_at: string;
-    total_amount: number;
+    total_price: number;
     promotion_code?: string | null;
     updated_at: string;
   };
@@ -58,7 +62,20 @@ const OrdersAdmin = () => {
     try {
       const { data, error } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          id,
+          created_at,
+          product_id,
+          qty,
+          total_price,
+          status,
+          keys,
+          external_order_id,
+          promotion_code,
+          updated_at,
+          user_id,
+          product:products(title)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -191,7 +208,7 @@ const OrdersAdmin = () => {
                           {order.status}
                         </span>
                       </TableCell>
-                      <TableCell>${order.total_amount.toFixed(2)}</TableCell>
+                      <TableCell>${order.total_price.toFixed(2)}</TableCell>
                       <TableCell>{formatDate(order.created_at)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
@@ -251,7 +268,7 @@ const OrdersAdmin = () => {
                   
                   <div className="mb-4">
                     <p className="text-sm text-gray-500">Total Amount</p>
-                    <p className="font-medium">${selectedOrder.details.total_amount.toFixed(2)}</p>
+                    <p className="font-medium">${selectedOrder.details.total_price.toFixed(2)}</p>
                   </div>
                 </>
               )}
