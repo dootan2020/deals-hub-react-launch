@@ -82,7 +82,7 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
     minPrice: filters.priceRange[0],
     maxPrice: filters.priceRange[1],
     inStock: filters.stockFilter === 'in-stock' ? true : undefined,
-    categoryIds: filters.activeSubcategories.length > 0 ? filters.activeSubcategories : undefined,
+    categoryId: filters.activeSubcategories.length > 0 ? filters.activeSubcategories[0] : undefined, // Changed from categoryIds to categoryId
   });
 
   return {
@@ -94,3 +94,4 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
     getFilterParams,
   };
 };
+

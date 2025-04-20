@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -10,13 +9,13 @@ import { useCategoryProducts } from '@/hooks/useCategoryProducts';
 import { useCategoriesContext } from '@/context/CategoriesContext';
 import SubcategoryPills from '@/components/category/SubcategoryPills';
 import { Category } from '@/types';
-import { SortOption } from '@/utils/productFilters';
+import { SortOption } from '@/types';
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const initialSort = (searchParams.get('sort') || 'recommended') as SortOption;
+  const initialSort = (searchParams.get('sort') || 'newest') as SortOption;
   const { categories } = useCategoriesContext();
   
   const subcategories = categories.filter(cat => cat.parent_id !== null);

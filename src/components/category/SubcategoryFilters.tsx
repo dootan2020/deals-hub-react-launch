@@ -7,7 +7,7 @@ import PriceRangeFilter from './PriceRangeFilter';
 import StockFilter from './StockFilter';
 import { Category } from '@/types';
 import ProductSorter from '@/components/product/ProductSorter';
-import { SortOption } from '@/utils/productFilters';
+import { SortOption } from '@/types';
 
 interface SubcategoryFiltersProps {
   subcategories: Category[];

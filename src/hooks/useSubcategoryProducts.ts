@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { fetchProductsWithFilters } from '@/services/productService';
 import { Product } from '@/types';
-import { SortOption } from '@/utils/productFilters';
+import { SortOption } from '@/types';
 
 interface UseSubcategoryProductsProps {
   slug: string;
