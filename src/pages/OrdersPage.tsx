@@ -1,7 +1,9 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { ProductKey } from '@/types';
+import { ProductKey, OrderHistoryItem } from '@/types';
+import { Json } from '@/integrations/supabase/types';
 
 const OrdersPage = () => {
   const [orderKeys, setOrderKeys] = useState<ProductKey[]>([]);
@@ -35,7 +37,7 @@ const OrdersPage = () => {
         
         // Transform the keys JSONB array to ProductKey[]
         const allKeys = data?.flatMap(order => {
-          const keys = (order.keys as any[]) || [];
+          const keys = (order.keys as any[] | null) || [];
           return keys.map(key => ({
             id: key.id,
             key_content: key.key_content,

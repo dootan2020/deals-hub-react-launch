@@ -1,4 +1,6 @@
+
 import { TableHTMLAttributes } from 'react';
+import { Json } from '@/integrations/supabase/types';
 
 export interface Product {
   id: string;
@@ -100,16 +102,26 @@ export interface ProductKey {
   product_id?: string;
 }
 
-interface Order {
+export interface OrderHistoryItem {
   id: string;
   created_at: string;
-  status: string;
+  qty: number;
   total_price: number;
-  external_order_id: string | null;
-  promotion_code: string | null;
+  status: string;
+  keys: Json | null;
+  product: { title: string };
+}
+
+export interface AdminOrder {
+  id: string;
+  created_at: string;
   product_id: string | null;
   qty: number;
-  keys: any[];
+  total_price: number;
+  status: string;
+  keys: Json | null;
+  external_order_id: string | null;
+  promotion_code: string | null;
   updated_at: string;
   user_id: string;
   product?: {

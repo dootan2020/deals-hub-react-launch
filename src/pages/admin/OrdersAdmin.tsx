@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -13,20 +14,8 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useOrderApi } from '@/hooks/use-order-api';
 import { toast } from 'sonner';
-
-interface Order {
-  id: string;
-  external_order_id: string | null;
-  status: string;
-  total_price: number;
-  created_at: string;
-  updated_at: string;
-  product_id: string | null;
-  qty: number;
-  keys: any[];
-  promotion_code: string | null;
-  user_id: string;
-}
+import { Json } from '@/integrations/supabase/types';
+import { AdminOrder } from '@/types';
 
 interface OrderItem {
   id: string;
@@ -51,7 +40,7 @@ interface OrderDetails {
 }
 
 const OrdersAdmin = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<OrderDetails | null>(null);
   const [isDetailsLoading, setIsDetailsLoading] = useState(false);
@@ -79,7 +68,7 @@ const OrdersAdmin = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setOrders(data || []);
+      setOrders(data as AdminOrder[] || []);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Failed to fetch orders');
