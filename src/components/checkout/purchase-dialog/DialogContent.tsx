@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Product } from '@/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -99,4 +98,3 @@ export const DialogContent = ({
     </div>
   );
 };
-

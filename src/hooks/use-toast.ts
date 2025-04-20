@@ -1,4 +1,3 @@
-
 import { toast as sonnerToast, type ToastT } from "sonner";
 
 type ToastProps = {
@@ -9,15 +8,16 @@ type ToastProps = {
   variant?: "default" | "destructive";
   duration?: number;
   className?: string;
+  type?: "success" | "error" | "warning" | "info";
   [key: string]: any; // Allow other properties
 };
 
 // Our custom toast function that adapts the shadcn/ui toast API to Sonner
 export function toast(props: ToastProps) {
-  const { title, description, variant, ...rest } = props;
+  const { title, description, variant, type: explicitType, ...rest } = props;
   
-  // Map destructive variant to error type
-  const type = variant === "destructive" ? "error" : "default";
+  // Map destructive variant to error type or use explicit type
+  const type = explicitType || (variant === "destructive" ? "error" : "default");
   
   return sonnerToast(title as string, {
     description,
@@ -27,11 +27,29 @@ export function toast(props: ToastProps) {
   });
 }
 
-// Expose original Sonner methods
-toast.success = sonnerToast.success;
-toast.error = sonnerToast.error;
-toast.info = sonnerToast.info;
-toast.warning = sonnerToast.warning;
+// Add helper methods for specific toast types
+toast.success = (title: string, description?: string, options = {}) => {
+  return sonnerToast.success(title, { description, ...options });
+};
+
+toast.error = (title: string, description?: string, options = {}) => {
+  return sonnerToast.error(title, { description, ...options });
+};
+
+toast.warning = (title: string, description?: string, options = {}) => {
+  return sonnerToast(title, { 
+    description, 
+    type: "warning", 
+    icon: "⚠️", 
+    ...options 
+  });
+};
+
+toast.info = (title: string, description?: string, options = {}) => {
+  return sonnerToast.info(title, { description, ...options });
+};
+
+// Keep other Sonner methods
 toast.loading = sonnerToast.loading;
 toast.dismiss = sonnerToast.dismiss;
 toast.custom = sonnerToast.custom;
