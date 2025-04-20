@@ -2,7 +2,7 @@
 import React from 'react';
 import { Product } from '@/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader } from 'lucide-react';
 import { QuantitySelector } from './QuantitySelector';
 import { ProductInfo } from './ProductInfo';
 import { PromotionCodeInput } from './PromotionCodeInput';
@@ -49,7 +49,7 @@ export const DialogContent = ({
 
       {isVerifying ? (
         <div className="flex flex-col items-center py-8 space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">
             Đang kiểm tra tồn kho và cập nhật giá...
           </p>
@@ -99,3 +99,4 @@ export const DialogContent = ({
     </div>
   );
 };
+
