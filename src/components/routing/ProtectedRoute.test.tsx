@@ -83,7 +83,7 @@ describe('ProtectedRoute', () => {
 
     render(
       <MemoryRouter>
-        <ProtectedRoute requiredRole="admin">
+        <ProtectedRoute requiredRoles={['admin']}>
           <div>Admin Content</div>
         </ProtectedRoute>
       </MemoryRouter>
@@ -118,7 +118,7 @@ describe('ProtectedRoute', () => {
 
     render(
       <MemoryRouter>
-        <ProtectedRoute requiredRole="admin">
+        <ProtectedRoute requiredRoles={['admin']}>
           <div>Admin Content</div>
         </ProtectedRoute>
       </MemoryRouter>
