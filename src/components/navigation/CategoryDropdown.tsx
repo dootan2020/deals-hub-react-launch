@@ -13,8 +13,9 @@ const CategoryDropdown = ({ className, isOpen = false }: CategoryDropdownProps) 
 
   return (
     <div className={cn(
-      "absolute top-full left-0 mt-1 w-[900px] bg-white rounded-xl shadow-lg z-50",
+      "absolute left-1/2 -translate-x-1/2 mt-1 w-[900px] bg-white rounded-xl shadow-lg z-50",
       "p-8 grid grid-cols-3 gap-8",
+      "transition-all duration-200 ease-in-out",
       className
     )}>
       {/* Column 1: Accounts */}

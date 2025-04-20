@@ -10,7 +10,7 @@ export const DesktopNavigation = () => {
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
 
   return (
-    <nav className="hidden md:flex items-center gap-6">
+    <nav className="hidden md:flex items-center justify-center gap-6">
       <Link
         to="/"
         className={cn('text-sm font-medium transition-colors hover:text-primary', {
@@ -20,7 +20,7 @@ export const DesktopNavigation = () => {
         Trang chủ
       </Link>
       
-      <div className="relative">
+      <div className="relative group">
         <button
           onMouseEnter={() => setIsCategoryDropdownOpen(true)}
           onMouseLeave={() => setIsCategoryDropdownOpen(false)}
@@ -32,6 +32,7 @@ export const DesktopNavigation = () => {
         </button>
         
         <div
+          className="absolute top-full left-1/2 -translate-x-1/2"
           onMouseEnter={() => setIsCategoryDropdownOpen(true)}
           onMouseLeave={() => setIsCategoryDropdownOpen(false)}
         >
