@@ -23,10 +23,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "group-[.toaster]:flex group-[.toaster]:items-start"
         ),
         descriptionClassName: "group-[.toast]:text-muted-foreground text-sm mt-1",
-        actionClassName:
-          "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground group-[.toast]:ml-auto",
-        cancelClassName:
-          "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+        // Remove actionClassName as it doesn't exist in ToastOptions
         iconClassName: "h-5 w-5 mr-3 mt-0.5 shrink-0",
         icons: {
           success: <Check className="h-5 w-5 text-green-500" />,

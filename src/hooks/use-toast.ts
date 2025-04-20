@@ -1,4 +1,5 @@
 import { toast as sonnerToast, type ToastT } from "sonner";
+import { AlertTriangle } from "lucide-react";
 
 type ToastProps = {
   id?: string | number;
@@ -8,22 +9,24 @@ type ToastProps = {
   variant?: "default" | "destructive";
   duration?: number;
   className?: string;
-  type?: "success" | "error" | "warning" | "info";
   [key: string]: any; // Allow other properties
 };
 
 // Our custom toast function that adapts the shadcn/ui toast API to Sonner
 export function toast(props: ToastProps) {
-  const { title, description, variant, type: explicitType, ...rest } = props;
+  const { title, description, variant, ...rest } = props;
   
-  // Map destructive variant to error type or use explicit type
-  const type = explicitType || (variant === "destructive" ? "error" : "default");
+  // If variant is destructive, use the error type
+  if (variant === "destructive") {
+    return sonnerToast.error(title as string, {
+      description,
+      ...rest
+    });
+  }
   
   return sonnerToast(title as string, {
     description,
-    ...rest,
-    // Only add type if it's not default to avoid unnecessary props
-    ...(type !== "default" ? { type } : {})
+    ...rest
   });
 }
 
@@ -39,8 +42,7 @@ toast.error = (title: string, description?: string, options = {}) => {
 toast.warning = (title: string, description?: string, options = {}) => {
   return sonnerToast(title, { 
     description, 
-    type: "warning", 
-    icon: "⚠️", 
+    icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
     ...options 
   });
 };
