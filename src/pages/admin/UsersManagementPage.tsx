@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { 
@@ -51,11 +52,16 @@ export default function UsersManagementPage() {
 
   const assignRole = async (userId: string, role: UserRole) => {
     try {
+      // Show loading toast
+      const loadingToast = toast.loading(`Đang thêm vai trò ${role}...`);
+      
       const { error } = await (supabase as any).rpc('assign_role', {
         user_id_param: userId,
         role_param: role
       });
-
+      
+      toast.dismiss(loadingToast);
+      
       if (error) throw error;
       
       toast.success(`Đã thêm vai trò ${role} cho người dùng này`);
@@ -67,11 +73,16 @@ export default function UsersManagementPage() {
 
   const removeRole = async (userId: string, role: UserRole) => {
     try {
+      // Show loading toast
+      const loadingToast = toast.loading(`Đang xóa vai trò ${role}...`);
+      
       const { error } = await (supabase as any).rpc('remove_role', {
         user_id_param: userId,
         role_param: role
       });
-
+      
+      toast.dismiss(loadingToast);
+      
       if (error) throw error;
       
       toast.success(`Đã xóa vai trò ${role} khỏi người dùng này`);
@@ -142,13 +153,14 @@ export default function UsersManagementPage() {
                           <Badge 
                             key={role} 
                             variant="secondary"
-                            className={`flex items-center gap-1 ${getRoleBadgeColor(role)}`}
+                            className={`flex items-center gap-1 text-white ${getRoleBadgeColor(role)}`}
                           >
                             {getRoleIcon(role)}
                             {role}
                             <button 
                               onClick={() => removeRole(user.id, role)}
                               className="ml-1 rounded-full hover:bg-red-700 p-0.5"
+                              aria-label={`Xóa vai trò ${role}`}
                             >
                               <Trash2 className="h-3 w-3" />
                             </button>

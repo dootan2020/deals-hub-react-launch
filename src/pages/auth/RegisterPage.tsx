@@ -6,10 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Layout from '@/components/layout/Layout';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useAuthActions } from '@/hooks/use-auth-actions';
+import { useAuthActions } from '@/hooks/auth/use-auth-actions';
 import { registerSchema, type RegisterFormValues } from '@/validations/registerSchema';
 import { RegistrationForm } from '@/components/auth/RegistrationForm';
 import { RegistrationSuccess } from '@/components/auth/RegistrationSuccess';
+import { toast } from '@/hooks/use-toast';
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -61,9 +62,15 @@ export default function RegisterPage() {
     setIsLoading(true);
     
     try {
+      // Show loading toast
+      const loadingToast = toast.loading("Đang đăng ký tài khoản...");
+      
       const result = await register(values.email, values.password, {
         display_name: values.displayName
       });
+      
+      // Close loading toast
+      toast.dismiss(loadingToast);
       
       setRegistrationSuccess(true);
       setRegisteredEmail(values.email);
@@ -81,7 +88,14 @@ export default function RegisterPage() {
     
     setIsLoading(true);
     try {
+      // Show loading toast
+      const loadingToast = toast.loading("Đang gửi lại email xác minh...");
+      
       await resendVerificationEmail(registeredEmail);
+      
+      // Close loading toast
+      toast.dismiss(loadingToast);
+      
       setResendCooldown(60);
     } catch (error) {
       console.error('Resend verification email error:', error);

@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteProps) => {
-  const { isAuthenticated, loading, userRoles } = useAuth();
+  const { isAuthenticated, loading, userRoles, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [authTimeout, setAuthTimeout] = useState(false);
@@ -54,14 +54,14 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
   }
   
   // Redirect to login if not authenticated
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     console.log('User not authenticated - redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
   // Check for required roles if any
   const hasRequiredRole = requiredRoles.length === 0 || 
-                         requiredRoles.some(role => userRoles.includes(role));
+                          requiredRoles.some(role => userRoles.includes(role));
   
   // Redirect to unauthorized if doesn't have required role
   if (!hasRequiredRole) {
@@ -72,3 +72,5 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
   // Render children if authenticated and has required roles
   return <>{children}</>;
 };
+
+export default ProtectedRoute;

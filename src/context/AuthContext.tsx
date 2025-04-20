@@ -1,7 +1,7 @@
 
-import React, { createContext, useContext, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
 import { useAuthState } from '@/hooks/use-auth-state';
-import { useAuthActions } from '@/hooks/use-auth-actions';
+import { useAuthActions } from '@/hooks/auth/use-auth-actions';
 import { useBalanceListener } from '@/hooks/use-balance-listener';
 import { AuthContextType } from '@/types/auth.types';
 import { toast } from '@/hooks/use-toast';
@@ -26,6 +26,8 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [hydrated, setHydrated] = useState(false);
+  
   const {
     user,
     session,
@@ -43,8 +45,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const { login, logout, register, resendVerificationEmail } = useAuthActions();
 
+  // Handle hydration (prevent SSR/CSR mismatch)
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
   // Log authentication errors
-  React.useEffect(() => {
+  useEffect(() => {
     if (authError) {
       console.error('Authentication error:', authError);
       toast.error('Lỗi xác thực', authError.message);
@@ -120,6 +127,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isLoadingBalance, refreshUserBalance, refreshUserProfile, login, 
     logout, register, checkUserRole, isEmailVerified, resendVerificationEmail
   ]);
+
+  // Return null during SSR to prevent hydration mismatch
+  if (!hydrated) {
+    return null;
+  }
 
   return (
     <AuthContext.Provider value={contextValue}>

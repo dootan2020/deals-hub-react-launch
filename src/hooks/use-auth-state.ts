@@ -88,7 +88,7 @@ export const useAuthState = () => {
       setUser(authUser);
       
       // When we get a valid session, proceed with fetching additional data
-      // But delay slightly to prevent potential race conditions
+      // But defer slightly to prevent potential race conditions
       setTimeout(() => {
         if (authUser.id) {
           fetchUserRoles(authUser.id);
@@ -110,7 +110,7 @@ export const useAuthState = () => {
     
     const initializeAuth = async () => {
       try {
-        // Set up the auth state change listener first
+        // First set up the auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
           if (isMounted) {
             handleAuthStateChange(event, currentSession);
@@ -135,15 +135,12 @@ export const useAuthState = () => {
           }
           
           // Always set loading to false regardless of session status
-          // This ensures the app doesn't get stuck in loading state
           setLoading(false);
         }
         
         // Cleanup function
         return () => {
-          isMounted = false;
           subscription.unsubscribe();
-          if (authTimeout) clearTimeout(authTimeout);
         };
       } catch (error) {
         console.error('Error in initializeAuth:', error);
@@ -167,7 +164,7 @@ export const useAuthState = () => {
       isMounted = false;
       clearTimeout(authTimeout);
     };
-  }, [handleAuthStateChange, loading]);
+  }, [handleAuthStateChange]);
 
   // Function to manually refresh user profile data
   const refreshUserData = useCallback(async () => {

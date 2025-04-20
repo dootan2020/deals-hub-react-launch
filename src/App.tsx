@@ -12,6 +12,8 @@ import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
 import UnauthorizedPage from "./pages/auth/UnauthorizedPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -58,6 +60,9 @@ const App = () => {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/auth/verify" element={<VerifyEmailPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/unauthorized" element={<UnauthorizedPage />} />
               
               {/* Protected User Routes */}
@@ -152,7 +157,11 @@ const App = () => {
               <Route path="/product/:productSlug" element={<ProductPage />} />
               <Route path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />
               <Route path="/products" element={<ProductsPage />} />
-              <Route path="/checkout/:slug" element={<CheckoutPage />} />
+              <Route path="/checkout/:slug" element={
+                <ProtectedRoute>
+                  <CheckoutPage />
+                </ProtectedRoute>
+              } />
               
               {/* Static pages with SEO-friendly URLs */}
               <Route path="/page/support" element={<SupportPage />} />
@@ -165,15 +174,43 @@ const App = () => {
               <Route path="/knowledge" element={<KnowledgeBasePage />} />
               
               {/* Deposit Routes */}
-              <Route path="/page/deposit" element={<DepositPage />} />
-              <Route path="/deposit" element={<DepositPage />} />
-              <Route path="/top-up" element={<DepositPage />} />
+              <Route path="/page/deposit" element={
+                <ProtectedRoute>
+                  <DepositPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/deposit" element={
+                <ProtectedRoute>
+                  <DepositPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/top-up" element={
+                <ProtectedRoute>
+                  <DepositPage />
+                </ProtectedRoute>
+              } />
               
-              <Route path="/deposit/binance" element={<DepositPage method="binance" />} />
-              <Route path="/deposit/usdt" element={<DepositPage method="usdt" />} />
-              <Route path="/deposit/paypal" element={<PayPalDepositPage />} />
+              <Route path="/deposit/binance" element={
+                <ProtectedRoute>
+                  <DepositPage method="binance" />
+                </ProtectedRoute>
+              } />
+              <Route path="/deposit/usdt" element={
+                <ProtectedRoute>
+                  <DepositPage method="usdt" />
+                </ProtectedRoute>
+              } />
+              <Route path="/deposit/paypal" element={
+                <ProtectedRoute>
+                  <PayPalDepositPage />
+                </ProtectedRoute>
+              } />
               
-              <Route path="/order-success" element={<OrderSuccessPage />} />
+              <Route path="/order-success" element={
+                <ProtectedRoute>
+                  <OrderSuccessPage />
+                </ProtectedRoute>
+              } />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
