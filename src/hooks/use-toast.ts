@@ -1,5 +1,7 @@
+
 import { toast as sonnerToast, type ToastT } from "sonner";
 import { AlertTriangle } from "lucide-react";
+import { createElement } from "react";
 
 type ToastProps = {
   id?: string | number;
@@ -42,7 +44,7 @@ toast.error = (title: string, description?: string, options = {}) => {
 toast.warning = (title: string, description?: string, options = {}) => {
   return sonnerToast(title, { 
     description, 
-    icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
+    icon: createElement(AlertTriangle, { className: "h-5 w-5 text-amber-500" }),
     ...options 
   });
 };
