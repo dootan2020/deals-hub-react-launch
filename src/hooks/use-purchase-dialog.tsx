@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { Product } from '@/types';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +8,9 @@ import { fetchProductInfoByKioskToken } from '@/services/product/mockProductServ
 import { useProxyConfig } from '@/hooks/useProxyConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { Database } from '@/integrations/supabase/types';
+
+type OrderInsert = Database['public']['Tables']['orders']['Insert'];
 
 export const usePurchaseDialog = () => {
   const [open, setOpen] = useState(false);
@@ -120,17 +122,18 @@ export const usePurchaseDialog = () => {
       const finalPrice = verifiedPrice || selectedProduct.price;
       const priceUSD = convertVNDtoUSD(finalPrice, rate);
       
-      // Use a direct SQL call instead of RPC to avoid type checking issues
-      const { data, error } = await supabase.from('orders')
-        .insert({
-          user_id: user.id,
-          product_id: selectedProduct.id,
-          quantity: quantity,
-          price_per_unit: priceUSD,
-          promotion_code: promotionCode || null,
-          kiosk_token: selectedProduct.kiosk_token || null,
-          status: 'pending'
-        })
+      const orderData: OrderInsert = {
+        user_id: user.id,
+        product_id: selectedProduct.id,
+        total_amount: priceUSD * quantity,
+        promotion_code: promotionCode || null,
+        status: 'pending',
+        keys: []
+      };
+      
+      const { data, error } = await supabase
+        .from('orders')
+        .insert(orderData)
         .select('id')
         .single();
       
@@ -138,7 +141,7 @@ export const usePurchaseDialog = () => {
         console.error('Order API error:', error);
         setOrderError(error.message || 'Failed to place order');
         setOrderStatus('error');
-        return { success: false, message: error.message || 'Không thể tạo đơn hàng' };
+        return { success: false, message: error.message || 'Could not create order' };
       }
       
       console.log('Order created successfully with ID:', data.id);
@@ -147,7 +150,6 @@ export const usePurchaseDialog = () => {
       
       toast.success('Order placed! Processing your request...');
       
-      // Call the apply-keys edge function
       const { error: applyKeysError } = await supabase.functions
         .invoke('apply-keys', {
           body: { orderId: data.id }

@@ -12,21 +12,32 @@ const OrdersPage = () => {
   useEffect(() => {
     if (!user) return;
     
-    const fetchProductKeys = async () => {
+    const fetchOrders = async () => {
       setLoading(true);
       try {
-        // Use direct SQL query instead of RPC
         const { data, error } = await supabase
-          .from('product_keys')
+          .from('orders')
           .select('*')
           .eq('user_id', user.id);
         
         if (error) {
-          console.error('Error fetching product keys:', error);
+          console.error('Error fetching orders:', error);
           return;
         }
         
-        setOrderKeys(data as ProductKey[]);
+        // Transform the keys JSONB array to ProductKey[]
+        const allKeys = data?.flatMap(order => {
+          const keys = order.keys as any[] || [];
+          return keys.map(key => ({
+            id: key.id,
+            key_content: key.key_content,
+            status: key.status,
+            created_at: key.created_at || order.created_at,
+            product_id: order.product_id
+          }));
+        });
+        
+        setOrderKeys(allKeys);
       } catch (error) {
         console.error('Error fetching orders:', error);
       } finally {
@@ -34,7 +45,7 @@ const OrdersPage = () => {
       }
     };
     
-    fetchProductKeys();
+    fetchOrders();
   }, [user]);
   
   return (
