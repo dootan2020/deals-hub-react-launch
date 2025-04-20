@@ -11,8 +11,7 @@ const HeroSection = () => {
           backgroundImage: "url('https://i.imgur.com/byYdYpf.png')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          loading: 'lazy'
+          backgroundRepeat: 'no-repeat'
         }}
       >
         <div className="absolute inset-0 bg-black/50" />
