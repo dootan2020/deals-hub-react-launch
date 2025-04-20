@@ -1,12 +1,14 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Loader2, XOctagon } from 'lucide-react';
+import { DollarSign, Loader2, XOctagon, RefreshCw } from 'lucide-react';
 import { createDepositRecord, updateDepositWithTransaction } from '@/utils/payment';
 import { supabase } from '@/integrations/supabase/client';
+import { checkDepositStatus } from '@/utils/payment/transactionProcessing';
+import { useBalanceListener } from '@/hooks/use-balance-listener';
 
 interface PayPalCheckoutButtonProps {
   amount: number;
@@ -24,10 +26,57 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
   const [depositId, setDepositId] = useState<string | null>(null);
   const [paypalClientId, setPaypalClientId] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, refreshUserBalance } = useAuth();
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const isValidAmount = !isNaN(amount) && amount >= 1;
+  
+  // Sử dụng balance listener để cập nhật số dư theo thời gian thực
+  useBalanceListener(user?.id, () => {
+    console.log("Balance updated from realtime notification");
+    refreshUserBalance();
+  });
+  
+  // Phương thức kiểm tra trạng thái giao dịch
+  const verifyTransaction = useCallback(async (txId: string) => {
+    if (!txId) return;
+    
+    setIsVerifying(true);
+    try {
+      const toastId = toast.loading("Đang kiểm tra trạng thái giao dịch...");
+      
+      const result = await checkDepositStatus(txId);
+      toast.dismiss(toastId);
+      
+      if (result.success) {
+        toast.success("Giao dịch đã được xác nhận thành công");
+        // Refresh user balance sau khi xác nhận giao dịch
+        await refreshUserBalance();
+        return true;
+      } else {
+        toast.error(`Lỗi khi kiểm tra giao dịch: ${result.error || "Không xác định"}`);
+        return false;
+      }
+    } catch (error) {
+      toast.error(`Không thể kiểm tra trạng thái giao dịch: ${error instanceof Error ? error.message : "Lỗi không xác định"}`);
+      return false;
+    } finally {
+      setIsVerifying(false);
+    }
+  }, [refreshUserBalance]);
+
+  // Kiểm tra trạng thái giao dịch tự động khi có transaction ID
+  useEffect(() => {
+    if (transactionId) {
+      const timer = setTimeout(() => {
+        verifyTransaction(transactionId);
+      }, 3000); // Chờ 3 giây sau khi nhận được transaction ID
+      
+      return () => clearTimeout(timer);
+    }
+  }, [transactionId, verifyTransaction]);
   
   useEffect(() => {
     const fetchPayPalClientId = async () => {
@@ -68,6 +117,7 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
   const handlePayPalClick = () => {
     setErrorMessage(null);
     setPaymentError(null);
+    setTransactionId(null);
 
     if (!user) {
       toast.error("Vui lòng đăng nhập để nạp tiền");
@@ -87,6 +137,15 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
     setIsShowPayPal(false);
     setPaymentError(msg);
     toast.error(msg);
+  };
+
+  // Xử lý nút kiểm tra trạng thái giao dịch
+  const handleManualVerify = () => {
+    if (transactionId) {
+      verifyTransaction(transactionId);
+    } else {
+      toast.error("Không có thông tin giao dịch để kiểm tra");
+    }
   };
 
   if (isShowPayPal && !paypalClientId) {
@@ -127,6 +186,28 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
             onClick={() => setPaymentError(null)}
           >
             Đóng
+          </Button>
+        </div>
+      )}
+
+      {transactionId && !isShowPayPal && (
+        <div className="flex items-center gap-2 bg-blue-50 text-blue-700 border border-blue-200 p-3 rounded-md mb-2">
+          <div className="flex-1">
+            <span className="font-semibold">Giao dịch đã được ghi nhận:</span> 
+            <div className="text-sm mt-1">ID: {transactionId}</div>
+          </div>
+          <Button 
+            size="sm"
+            variant="outline"
+            className="whitespace-nowrap"
+            onClick={handleManualVerify}
+            disabled={isVerifying}
+          >
+            {isVerifying ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Đang kiểm tra...</>
+            ) : (
+              <><RefreshCw className="h-4 w-4 mr-2" /> Kiểm tra trạng thái</>
+            )}
           </Button>
         </div>
       )}
@@ -196,35 +277,47 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
               onApprove={async (data, actions) => {
                 try {
                   const toastId = toast.loading("Đang xử lý giao dịch...");
+                  
                   if (!actions.order) {
                     toast.dismiss(toastId);
                     handlePaymentFailure("Không thể xử lý giao dịch. Thiếu thông tin đơn hàng.");
                     return;
                   }
+                  
                   return actions.order.capture().then(async (details) => {
                     try {
                       const transactionId = data.orderID;
+                      setTransactionId(transactionId);
+                      
                       if (!depositId) {
                         toast.dismiss(toastId);
                         handlePaymentFailure("Không tìm thấy thông tin giao dịch");
                         return;
                       }
+                      
                       const updateResult = await updateDepositWithTransaction(depositId, transactionId);
 
                       if (updateResult.success) {
                         toast.dismiss(toastId);
-                        toast.success("Thanh toán thành công! Số dư của bạn sẽ được cập nhật trong vài giây.");
+                        toast.success("Thanh toán thành công! Số dư của bạn đang được cập nhật.");
                         setPaymentError(null);
-                        onSuccess();
+                        // Thêm timeout để đảm bảo backend đã xử lý cập nhật số dư
+                        setTimeout(() => {
+                          refreshUserBalance();
+                          onSuccess();
+                        }, 1500);
                       } else {
                         toast.dismiss(toastId);
-                        handlePaymentFailure(`Thanh toán thành công nhưng không thể cập nhật thông tin giao dịch: ${updateResult.error || "Unknown error"}`);
+                        setIsShowPayPal(false);
+                        toast.warning(`Thanh toán đã thành công nhưng đang chờ xử lý: ${updateResult.error || "Vui lòng chờ trong giây lát"}`);
+                        // Vẫn gọi onSuccess vì giao dịch đã thành công ở phía PayPal
                         onSuccess();
                       }
                     } catch (error) {
                       toast.dismiss(toastId);
                       const message = error instanceof Error ? error.message : "Unknown error";
-                      handlePaymentFailure(`Có lỗi xảy ra khi xử lý giao dịch: ${message}`);
+                      toast.warning(`Đang kiểm tra trạng thái giao dịch: ${message}`);
+                      setIsShowPayPal(false);
                       if (details && details.id) {
                         onSuccess();
                       }
