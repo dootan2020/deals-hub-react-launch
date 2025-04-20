@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import ProductSorter from '@/components/product/ProductSorter';
 import ViewToggle from '@/components/product/ViewToggle';
 import { Category, FilterParams, Product } from '@/types';
-import SubcategoryPills from '@/components/category/SubcategoryPills';
 import { SortOption } from '@/utils/productFilters';
 import { fetchProductsWithFilters } from '@/services/product/productService';
 import { 
@@ -45,7 +44,7 @@ const ProductsPage = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
-  const [perPage] = useState(24); // Increased from default 12
+  const [perPage] = useState(24);
   
   // Filters
   const [filters, setFilters] = useState<FilterParams>({
@@ -57,16 +56,10 @@ const ProductsPage = () => {
     perPage: perPage
   });
 
-  // Active subcategory
-  const [activeSubcategoryId, setActiveSubcategoryId] = useState<string | undefined>(
-    searchParams.get('subcategory') || undefined
-  );
-
   // Handle search param changes
   useEffect(() => {
     const search = searchParams.get('search');
     const category = searchParams.get('category');
-    const subcategory = searchParams.get('subcategory');
     const sort = searchParams.get('sort');
     const inStock = searchParams.get('inStock') === 'true';
     
@@ -78,7 +71,6 @@ const ProductsPage = () => {
       inStock
     }));
 
-    setActiveSubcategoryId(subcategory || undefined);
     setPage(1);
   }, [searchParams]);
 
@@ -94,13 +86,6 @@ const ProductsPage = () => {
           page: 1,
           perPage: perPage
         };
-        
-        // If subcategory is selected, use that instead of category
-        if (activeSubcategoryId) {
-          filterParams.subcategory = activeSubcategoryId;
-          // Remove categoryId to avoid conflicting filters
-          delete filterParams.categoryId;
-        }
         
         const result = await fetchProductsWithFilters(filterParams);
         
@@ -119,7 +104,7 @@ const ProductsPage = () => {
     };
     
     loadProducts();
-  }, [filters.search, filters.categoryId, filters.inStock, filters.sort, filters.priceRange, activeSubcategoryId, perPage]);
+  }, [filters.search, filters.categoryId, filters.inStock, filters.sort, filters.priceRange, perPage]);
 
   const loadMore = async () => {
     if (loadingMore) return;
@@ -133,12 +118,6 @@ const ProductsPage = () => {
         page: nextPage,
         perPage: perPage
       };
-      
-      // If subcategory is selected, use that instead of category
-      if (activeSubcategoryId) {
-        filterParams.subcategory = activeSubcategoryId;
-        delete filterParams.categoryId;
-      }
       
       const result = await fetchProductsWithFilters(filterParams);
       
@@ -174,14 +153,6 @@ const ProductsPage = () => {
   const handleCategoryClick = (category: Category) => {
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set('category', category.id);
-    // Clear subcategory when selecting a new category
-    newSearchParams.delete('subcategory');
-    setSearchParams(newSearchParams);
-  };
-
-  const handleSubcategoryClick = (subcategory: Category) => {
-    const newSearchParams = new URLSearchParams(searchParams);
-    newSearchParams.set('subcategory', subcategory.id);
     setSearchParams(newSearchParams);
   };
 
@@ -213,21 +184,17 @@ const ProductsPage = () => {
     setSearchParams(newSearchParams);
   };
 
-  // Get current category's subcategories
-  const subcategories = filters.categoryId 
-    ? getSubcategoriesByParentId(filters.categoryId)
-    : [];
-
-  const hasActiveFilters = Boolean(filters.categoryId || activeSubcategoryId || filters.inStock || 
-    (filters.priceRange && (filters.priceRange[0] > 0 || filters.priceRange[1] < 500)));
+  const hasActiveFilters = Boolean(
+    filters.categoryId || 
+    filters.inStock || 
+    (filters.priceRange && (filters.priceRange[0] > 0 || filters.priceRange[1] < 500))
+  );
     
   const pageTitle = filters.search 
     ? `Search results: ${filters.search}` 
-    : activeSubcategoryId
-      ? categories.find(c => c.id === activeSubcategoryId)?.name || 'Subcategory Products'
-      : filters.categoryId
-        ? categories.find(c => c.id === filters.categoryId)?.name || 'Category Products'
-        : 'All Products';
+    : filters.categoryId
+      ? categories.find(c => c.id === filters.categoryId)?.name || 'Category Products'
+      : 'All Products';
 
   return (
     <Layout>
@@ -243,14 +210,6 @@ const ProductsPage = () => {
                 }
               </p>
             </div>
-
-            {/* Display subcategory pills if a main category is selected */}
-            {filters.categoryId && (getSubcategoriesByParentId(filters.categoryId)?.length || 0) > 0 && (
-              <SubcategoryPills 
-                subcategories={getSubcategoriesByParentId(filters.categoryId)} 
-                onSubcategoryClick={handleSubcategoryClick}
-              />
-            )}
 
             {/* Mobile Filter Button */}
             <div className="md:hidden">
@@ -331,32 +290,6 @@ const ProductsPage = () => {
                       </AccordionItem>
                     </Accordion>
                     
-                    {/* Mobile Subcategories (if a category is selected) */}
-                    {filters.categoryId && subcategories.length > 0 && (
-                      <Accordion type="single" collapsible className="w-full">
-                        <AccordionItem value="subcategories">
-                          <AccordionTrigger>Subcategories</AccordionTrigger>
-                          <AccordionContent>
-                            <div className="space-y-2">
-                              {subcategories.map((subcategory) => (
-                                <div 
-                                  key={subcategory.id} 
-                                  className={`p-2 rounded-md cursor-pointer ${
-                                    activeSubcategoryId === subcategory.id 
-                                      ? 'bg-primary/10 text-primary font-medium' 
-                                      : 'hover:bg-gray-100'
-                                  }`}
-                                  onClick={() => handleSubcategoryClick(subcategory)}
-                                >
-                                  {subcategory.name}
-                                </div>
-                              ))}
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                    )}
-                    
                     {/* Mobile Price Range */}
                     <Accordion type="single" collapsible className="w-full">
                       <AccordionItem value="price">
@@ -427,31 +360,6 @@ const ProductsPage = () => {
                       ))}
                     </div>
                   </div>
-                  
-                  {/* Subcategories (if a category is selected) */}
-                  {filters.categoryId && subcategories.length > 0 && (
-                    <div className="border-t pt-4">
-                      <h4 className="font-medium mb-2">Subcategories</h4>
-                      <div className="space-y-2">
-                        {subcategories.map((subcategory) => (
-                          <div 
-                            key={subcategory.id} 
-                            className={`flex items-center p-1.5 rounded-md cursor-pointer text-sm ${
-                              activeSubcategoryId === subcategory.id 
-                                ? 'bg-primary/10 text-primary font-medium' 
-                                : 'hover:bg-gray-100'
-                            }`}
-                            onClick={() => handleSubcategoryClick(subcategory)}
-                          >
-                            {subcategory.name}
-                            {subcategory.count > 0 && (
-                              <span className="ml-auto text-xs text-text-light">{subcategory.count}</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                   
                   {/* Price Range */}
                   <div className="border-t pt-4">
