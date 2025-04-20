@@ -28,7 +28,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   kioskToken,
   productId,
   product,
-  quantity = 1,  // Default to 1 if not provided
+  quantity = 1,
   promotionCode,
   children,
 }) => {
@@ -37,7 +37,10 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
     selectedProduct, 
     openDialog, 
     closeDialog, 
-    handleConfirm 
+    handleConfirm,
+    isVerifying,
+    verifiedStock,
+    verifiedPrice
   } = usePurchaseDialog();
 
   // Handle button click - open dialog
@@ -85,6 +88,9 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
         onOpenChange={closeDialog}
         product={selectedProduct}
         onConfirm={handleConfirmPurchase}
+        isVerifying={isVerifying}
+        verifiedStock={verifiedStock}
+        verifiedPrice={verifiedPrice}
       />
     </>
   );
