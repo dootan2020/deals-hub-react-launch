@@ -4,10 +4,12 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { ShoppingBag } from 'lucide-react';
 import CategoryDropdown from '@/components/navigation/CategoryDropdown';
+import { useCategoriesContext } from '@/context/CategoriesContext';
 
 export const DesktopNavigation = () => {
   const location = useLocation();
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const { mainCategories, getSubcategoriesByParentId, isLoading } = useCategoriesContext();
 
   return (
     <nav className="hidden md:flex items-center justify-center gap-6">
@@ -36,7 +38,11 @@ export const DesktopNavigation = () => {
           onMouseEnter={() => setIsCategoryDropdownOpen(true)}
           onMouseLeave={() => setIsCategoryDropdownOpen(false)}
         >
-          <CategoryDropdown isOpen={isCategoryDropdownOpen} />
+          <CategoryDropdown 
+            isOpen={isCategoryDropdownOpen} 
+            mainCategories={mainCategories}
+            getSubcategoriesByParentId={getSubcategoriesByParentId}
+          />
         </div>
       </div>
 
