@@ -1,3 +1,4 @@
+
 import { TableHTMLAttributes } from 'react';
 import { Json } from '@/integrations/supabase/types';
 
@@ -50,7 +51,7 @@ export interface SortOption {
 
 export interface FilterParams {
   categoryId?: string;
-  subcategory?: string;  // Thêm thuộc tính subcategory
+  subcategory?: string;
   minPrice?: number;
   maxPrice?: number;
   ratings?: number[];
@@ -59,7 +60,7 @@ export interface FilterParams {
   inStock?: boolean;
   sort?: string;
   page?: number;
-  perPage?: number;  // Thêm thuộc tính perPage
+  perPage?: number;
   limit?: number;
   priceRange?: [number, number];
 }

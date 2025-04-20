@@ -1,4 +1,3 @@
-
 // Mock product service
 import { Product } from '@/types';
 import mockProducts from '@/data/mockData';
@@ -191,3 +190,6 @@ export const fetchProductBySlug = async (slug: string): Promise<Product> => {
     createdAt: new Date().toISOString()
   };
 };
+
+// Export type properly for TypeScript isolatedModules compatibility
+export type { ProductResponse };

@@ -12,9 +12,10 @@ import ProductGrid from '@/components/product/ProductGrid';
 import TestimonialsSection from '@/components/home/TestimonialsSection';
 import NewsletterSection from '@/components/home/NewsletterSection';
 import { toast } from 'sonner';
+import { Product } from '@/types';
 
 const Index = () => {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSort, setActiveSort] = useState('recommended');
 
@@ -22,16 +23,16 @@ const Index = () => {
     const loadProducts = async () => {
       try {
         setLoading(true);
-        const fetchedProducts = await fetchProductsWithFilters({
+        const response = await fetchProductsWithFilters({
           sort: activeSort,
         });
         
-        console.log('Featured products in Index page:', fetchedProducts.map(p => ({
+        console.log('Featured products in Index page:', response.products.map(p => ({
           title: p.title,
           kiosk_token: p.kiosk_token ? 'present' : 'missing'
         })));
         
-        setProducts(fetchedProducts);
+        setProducts(response.products || []);
       } catch (error) {
         console.error('Error loading products:', error);
         toast('Failed to load products');

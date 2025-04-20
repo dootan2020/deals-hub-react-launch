@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -85,8 +84,8 @@ const ProductsPage = () => {
           page: 1,
         });
         
-        setProducts(result || []);
-        setHasMore(result.length === 12);
+        setProducts(result.products || []);
+        setHasMore((result.products || []).length === 12);
       } catch (error) {
         console.error('Error loading products:', error);
         toast({
@@ -114,10 +113,12 @@ const ProductsPage = () => {
         page: nextPage,
       });
       
-      if (result.length > 0) {
-        setProducts(prev => [...prev, ...result]);
+      const newProducts = result.products || [];
+      
+      if (newProducts.length > 0) {
+        setProducts(prev => [...prev, ...newProducts]);
         setPage(nextPage);
-        setHasMore(result.length === 12);
+        setHasMore(newProducts.length === 12);
       } else {
         setHasMore(false);
       }
