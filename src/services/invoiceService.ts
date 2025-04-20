@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { Invoice } from '@/integrations/supabase/types-extension';
 
 interface InvoiceDetails {
   products: Array<{
@@ -26,7 +27,7 @@ export const createInvoice = async (
   orderId: string,
   amount: number,
   details: InvoiceDetails
-) => {
+): Promise<Invoice> => {
   try {
     const invoiceNumber = generateInvoiceNumber();
     
@@ -44,24 +45,24 @@ export const createInvoice = async (
       .single();
       
     if (error) throw error;
-    return data;
+    return data as Invoice;
   } catch (err) {
     console.error('Error creating invoice:', err);
     throw err;
   }
 };
 
-export const getInvoiceByOrderId = async (userId: string, orderId: string) => {
+export const getInvoiceByOrderId = async (userId: string, orderId: string): Promise<Invoice | null> => {
   try {
     const { data, error } = await supabase
       .from('invoices')
       .select('*')
       .eq('order_id', orderId)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
     
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 là "not found"
-    return data;
+    if (error) throw error;
+    return data as Invoice | null;
   } catch (err) {
     console.error('Error fetching invoice:', err);
     throw err;

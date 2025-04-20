@@ -3,6 +3,28 @@ import { Database as OriginalDatabase } from './types';
 import { UserRole } from '@/types/auth.types';
 import { Deposit } from '@/types/deposits';
 
+// Define the Invoice interface
+export interface Invoice {
+  id: string;
+  invoice_number: string;
+  user_id: string;
+  order_id: string;
+  amount: number;
+  details: {
+    products: Array<{
+      title: string;
+      price: number;
+      quantity: number;
+    }>;
+    recipient?: {
+      name?: string;
+      email?: string;
+    };
+  };
+  status: string;
+  created_at: string;
+}
+
 export interface UserWithRolesRow {
   id: string;
   email: string;
@@ -21,6 +43,11 @@ export interface Database extends OriginalDatabase {
         Row: Deposit;
         Insert: Omit<Deposit, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<Deposit, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      invoices: {
+        Row: Invoice;
+        Insert: Omit<Invoice, 'id' | 'created_at'>;
+        Update: Partial<Omit<Invoice, 'id' | 'created_at'>>;
       }
     };
     Views: {

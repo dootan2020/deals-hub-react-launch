@@ -1,11 +1,12 @@
 
 import { createInvoice, getInvoiceByOrderId } from '@/services/invoiceService';
+import { Invoice } from '@/integrations/supabase/types-extension';
 
 export const createInvoiceFromOrder = async (
   userId: string,
   orderId: string,
   orderDetails: any
-) => {
+): Promise<Invoice | null> => {
   try {
     // Kiểm tra nếu hóa đơn đã tồn tại
     const existingInvoice = await getInvoiceByOrderId(userId, orderId);
@@ -52,7 +53,7 @@ export const createInvoiceFromOrder = async (
   }
 };
 
-export const generateInvoiceForExistingOrder = async (userId: string, order: any) => {
+export const generateInvoiceForExistingOrder = async (userId: string, order: any): Promise<Invoice | null> => {
   try {
     return await createInvoiceFromOrder(userId, order.id, order);
   } catch (err) {

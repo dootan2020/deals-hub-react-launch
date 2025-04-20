@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -29,6 +28,7 @@ import { useOrderApi } from '@/hooks/use-order-api';
 import { createInvoiceFromOrder } from '@/components/account/invoice-utils';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { Invoice } from '@/integrations/supabase/types-extension';
 
 interface OrderProduct {
   product: string;
@@ -113,12 +113,12 @@ const OrderSuccessPage = () => {
       }
         
       // Tạo hóa đơn qua Edge Function để có quyền ghi vào bảng
-      const { data: invoiceData } = await supabase.functions.invoke('create-invoice', {
+      const { data, error: invoiceError } = await supabase.functions.invoke('create-invoice', {
         body: { orderId }
       });
       
-      if (invoiceData?.invoice?.id) {
-        setInvoiceId(invoiceData.invoice.id);
+      if (data?.invoice?.id) {
+        setInvoiceId(data.invoice.id);
       }
     } catch (err) {
       console.error("Error creating invoice:", err);

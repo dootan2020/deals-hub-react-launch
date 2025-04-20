@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Dialog, 
@@ -12,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Download, Printer } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { Invoice } from '@/hooks/useInvoices';
+import { Invoice } from '@/integrations/supabase/types-extension';
 
 interface InvoiceDetailDialogProps {
   invoice: Invoice;

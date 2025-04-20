@@ -1,11 +1,11 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { FileText, Loader2, AlertCircle, Download, Eye } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from '@/lib/utils';
-import { useInvoices, Invoice } from '@/hooks/useInvoices';
+import { useInvoices } from '@/hooks/useInvoices';
+import { Invoice } from '@/integrations/supabase/types-extension';
 import InvoiceDetailDialog from './InvoiceDetailDialog';
 
 interface InvoiceHistoryTabProps {
