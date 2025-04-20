@@ -4,7 +4,7 @@ import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Loader2 } from 'lucide-react';
+import { DollarSign, Loader2, XOctagon } from 'lucide-react';
 import { createDepositRecord, updateDepositWithTransaction } from '@/utils/payment';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -25,7 +25,8 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
   const [paypalClientId, setPaypalClientId] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { user } = useAuth();
-  
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+
   const isValidAmount = !isNaN(amount) && amount >= 1;
   
   useEffect(() => {
@@ -65,7 +66,8 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
   
   const handlePayPalClick = () => {
     setErrorMessage(null);
-    
+    setPaymentError(null);
+
     if (!user) {
       toast.error("Vui lòng đăng nhập để nạp tiền");
       return;
@@ -77,6 +79,13 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
     }
 
     setIsShowPayPal(true);
+  };
+
+  const handlePaymentFailure = (msg: string) => {
+    setIsProcessing(false);
+    setIsShowPayPal(false);
+    setPaymentError(msg);
+    toast.error(msg);
   };
 
   if (isShowPayPal && !paypalClientId) {
@@ -104,6 +113,23 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
 
   return (
     <div className="space-y-4">
+      {paymentError && (
+        <div className="flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 p-3 rounded-md mb-2">
+          <XOctagon className="h-5 w-5 text-red-500" />
+          <div>
+            <span className="font-bold">Thanh toán thất bại:</span> {paymentError}
+          </div>
+          <Button 
+            size="sm"
+            variant="outline"
+            className="ml-auto"
+            onClick={() => setPaymentError(null)}
+          >
+            Đóng
+          </Button>
+        </div>
+      )}
+
       {!isShowPayPal ? (
         <Button 
           onClick={handlePayPalClick} 
@@ -133,19 +159,19 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
               createOrder={async (data, actions) => {
                 try {
                   setIsProcessing(true);
-                  
+
                   if (!user?.id) {
                     throw new Error("Vui lòng đăng nhập để tiếp tục");
                   }
-                  
+
                   const result = await createDepositRecord(user.id, amount);
-                  
+
                   if (!result.success || !result.id) {
                     throw new Error(result.error || "Không thể tạo giao dịch");
                   }
-                  
+
                   setDepositId(result.id);
-                  
+
                   return actions.order.create({
                     intent: "CAPTURE",
                     purchase_units: [{
@@ -162,55 +188,42 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
                   });
                 } catch (error) {
                   const errorMsg = error instanceof Error ? error.message : "Lỗi không xác định";
-                  toast.error(errorMsg);
-                  setIsProcessing(false);
-                  setIsShowPayPal(false);
+                  handlePaymentFailure(errorMsg);
                   throw error;
                 }
               }}
               onApprove={async (data, actions) => {
                 try {
                   const toastId = toast.loading("Đang xử lý giao dịch...");
-                  console.log("PayPal order approved:", data.orderID);
-                  
                   if (!actions.order) {
-                    toast.error("Không thể xử lý giao dịch. Thiếu thông tin đơn hàng.");
-                    setIsProcessing(false);
+                    toast.dismiss(toastId);
+                    handlePaymentFailure("Không thể xử lý giao dịch. Thiếu thông tin đơn hàng.");
                     return;
                   }
-                  
                   return actions.order.capture().then(async (details) => {
                     try {
                       const transactionId = data.orderID;
-                      console.log("PayPal transaction captured:", transactionId);
-                      console.log("Transaction details:", details);
-                      
                       if (!depositId) {
                         toast.dismiss(toastId);
-                        toast.error("Không tìm thấy thông tin giao dịch");
-                        setIsProcessing(false);
+                        handlePaymentFailure("Không tìm thấy thông tin giao dịch");
                         return;
                       }
-                      
-                      console.log("Updating deposit record with transaction ID:", transactionId);
                       const updateResult = await updateDepositWithTransaction(depositId, transactionId);
-                      
+
                       if (updateResult.success) {
                         toast.dismiss(toastId);
                         toast.success("Thanh toán thành công! Số dư của bạn sẽ được cập nhật trong vài giây.");
+                        setPaymentError(null);
                         onSuccess();
                       } else {
                         toast.dismiss(toastId);
-                        toast.error(`Thanh toán thành công nhưng không thể cập nhật thông tin giao dịch: ${updateResult.error || "Unknown error"}`);
+                        handlePaymentFailure(`Thanh toán thành công nhưng không thể cập nhật thông tin giao dịch: ${updateResult.error || "Unknown error"}`);
                         onSuccess();
                       }
                     } catch (error) {
-                      console.error("Error processing PayPal approval:", error);
                       toast.dismiss(toastId);
-                      
                       const errorMsg = error instanceof Error ? error.message : "Unknown error";
-                      toast.error(`Có lỗi xảy ra khi xử lý giao dịch: ${errorMsg}`);
-                      
+                      handlePaymentFailure(`Có lỗi xảy ra khi xử lý giao dịch: ${errorMsg}`);
                       if (details && details.id) {
                         onSuccess();
                       }
@@ -219,10 +232,9 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
                     }
                   });
                 } catch (error) {
-                  console.error("Error in onApprove flow:", error);
                   toast.dismiss();
                   const errorMsg = error instanceof Error ? error.message : "Unknown error";
-                  toast.error(`Lỗi xử lý giao dịch PayPal: ${errorMsg}`);
+                  handlePaymentFailure(`Lỗi xử lý giao dịch PayPal: ${errorMsg}`);
                   setIsProcessing(false);
                 }
               }}
@@ -233,9 +245,10 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
               }}
               onError={(err) => {
                 console.error("PayPal error:", err);
-                toast.error("Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại sau.");
-                setIsProcessing(false);
-                setIsShowPayPal(false);
+                const msg = typeof err === 'string'
+                  ? err
+                  : err?.message || "Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại sau.";
+                handlePaymentFailure(msg);
               }}
             />
             {isProcessing && (
