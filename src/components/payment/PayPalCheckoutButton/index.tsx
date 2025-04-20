@@ -12,7 +12,7 @@ interface PayPalCheckoutButtonProps {
 
 export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amount, onSuccess }) => {
   // Access the PayPal script loading state from the provider
-  const [{ isPending, isRejected, isInitializing }, paypalDispatch] = usePayPalScriptReducer();
+  const [{ isPending, isRejected }, paypalDispatch] = usePayPalScriptReducer();
   const [showButtons, setShowButtons] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -47,7 +47,7 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
   if (isRejected) {
     return <PayPalStateError 
       errorMessage={errorMessage || 'Lỗi khi tải PayPal.'} 
-      onRetry={() => paypalDispatch({ type: 'resetOptions', value: { clientId: '' } })} 
+      onRetry={() => paypalDispatch({ type: "resetOptions", value: { 'data-client-id': '', currency: 'USD' } })} 
     />;
   }
 
@@ -59,6 +59,7 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
           forceReRender={[amount]}
           createOrder={(data, actions) => {
             return actions.order.create({
+              intent: "CAPTURE",
               purchase_units: [{ 
                 amount: { 
                   value: amount.toFixed(2),
