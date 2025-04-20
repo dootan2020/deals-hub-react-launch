@@ -7,12 +7,12 @@ export interface ProductFilters {
   search?: string;
   category?: string;
   subcategory?: string;
-  sort?: 'newest' | 'price-low' | 'price-high' | 'popular' | 'name-asc' | 'recommended';
+  sort?: 'newest' | 'price-low' | 'price-high' | 'popular';
   page?: number;
   perPage?: number;
-  priceRange?: [number, number] | { min: number; max: number };
-  minPrice?: number;
-  maxPrice?: number;
+  priceRange?: { min: number; max: number };
+  minPrice?: number; // Add this for backward compatibility
+  maxPrice?: number; // Add this for backward compatibility
   inStock?: boolean;
 }
 
@@ -59,17 +59,6 @@ export const fetchProductsWithFilters = async (filters: ProductFilters): Promise
       case 'popular':
         filteredProducts.sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
         break;
-      case 'name-asc':
-        filteredProducts.sort((a, b) => a.title.localeCompare(b.title));
-        break;
-      case 'recommended':
-        filteredProducts.sort((a, b) => {
-          // Use the recommended field if available, default to false if not present
-          const aRec = a.recommended === true ? 1 : 0;
-          const bRec = b.recommended === true ? 1 : 0;
-          return bRec - aRec;
-        });
-        break;
       case 'newest':
       default:
         filteredProducts.sort((a, b) => 
@@ -78,19 +67,11 @@ export const fetchProductsWithFilters = async (filters: ProductFilters): Promise
     }
   }
   
-  // Apply price range filter with proper type checking
+  // Apply price range filter - handle both priceRange object and minPrice/maxPrice
   if (filters.priceRange) {
-    let min: number, max: number;
-    
-    if (Array.isArray(filters.priceRange)) {
-      [min, max] = filters.priceRange;
-    } else {
-      min = filters.priceRange.min;
-      max = filters.priceRange.max;
-    }
-    
     filteredProducts = filteredProducts.filter(product => 
-      product.price >= min && product.price <= max
+      product.price >= filters.priceRange!.min && 
+      product.price <= filters.priceRange!.max
     );
   } else if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
     // Handle minPrice/maxPrice as separate parameters for backward compatibility
@@ -191,6 +172,3 @@ export const fetchProductBySlug = async (slug: string): Promise<Product> => {
     createdAt: new Date().toISOString()
   };
 };
-
-// Don't use export type with ProductResponse as we're defining the interface in this file
-// Removing this line resolves the TS2484 conflict error

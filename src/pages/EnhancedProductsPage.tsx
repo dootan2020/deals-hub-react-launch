@@ -8,7 +8,6 @@ import ViewToggle from '@/components/category/ViewToggle';
 import { FilterParams, Product } from '@/types';
 import { fetchProductsWithFilters } from '@/services/product';
 import { useToast } from "@/hooks/use-toast";
-import { SortOption } from '@/utils/productFilters';
 import { 
   Breadcrumb, 
   BreadcrumbList, 
@@ -27,9 +26,9 @@ const EnhancedProductsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<'grid' | 'list'>('grid');
   
-  // Active filters from URL search params or defaults with type assertion to ensure valid SortOption
+  // Active filters from URL search params or defaults
   const [activeFilters, setActiveFilters] = useState<FilterParams>({
-    sort: (searchParams.get('sort') || 'recommended') as SortOption,
+    sort: searchParams.get('sort') || 'recommended',
   });
 
   // Fetch products based on active filters
@@ -77,7 +76,7 @@ const EnhancedProductsPage = () => {
     }
   }, [activeFilters, setSearchParams, searchParams]);
 
-  const handleSortChange = (sort: SortOption) => {
+  const handleSortChange = (sort: string) => {
     setActiveFilters(prev => ({ ...prev, sort }));
   };
 
@@ -127,7 +126,7 @@ const EnhancedProductsPage = () => {
         <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
           <SimplifiedCategoryFilters
             onSortChange={handleSortChange}
-            activeSort={(activeFilters.sort || 'recommended') as SortOption}
+            activeSort={activeFilters.sort || 'recommended'}
           />
           <ViewToggle
             currentView={currentView}

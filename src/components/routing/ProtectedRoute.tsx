@@ -5,11 +5,11 @@ import { UserRole } from '@/types/auth.types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRoles?: UserRole[];
+  requiredRole?: UserRole;
 }
 
-export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteProps) => {
-  const { isAuthenticated, loading, userRoles } = useAuth();
+export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
+  const { isAuthenticated, loading, checkUserRole } = useAuth();
   const location = useLocation();
   
   // Show loading state while checking auth
@@ -23,15 +23,11 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
   }
   
   // Check role requirements if specified
-  const hasRequiredRole = requiredRoles.length === 0 || 
-                         requiredRoles.some(role => userRoles.includes(role));
-  
-  // Redirect to unauthorized if doesn't have required role
-  if (!hasRequiredRole) {
+  if (requiredRole && !checkUserRole(requiredRole)) {
     return <Navigate to="/unauthorized" replace />;
   }
   
-  // Render children if authenticated and has required roles
+  // Render children if authenticated and has required role
   return <>{children}</>;
 };
 

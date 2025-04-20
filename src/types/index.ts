@@ -1,5 +1,4 @@
 import { TableHTMLAttributes } from 'react';
-import { Json } from '@/integrations/supabase/types';
 
 export interface Product {
   id: string;
@@ -25,11 +24,10 @@ export interface Product {
   features: string[];
   specifications: Record<string, string | number | boolean | object>;
   salesCount?: number;
-  sales_count?: number;
+  sales_count?: number;  // Added this line to match backend naming convention
   createdAt: string;
-  kiosk_token: string;
+  kiosk_token: string;  // Changed from optional to required
   stock: number;
-  recommended?: boolean;
 }
 
 export interface Category {
@@ -50,13 +48,16 @@ export interface SortOption {
 
 export interface FilterParams {
   categoryId?: string;
-  subcategory?: string;
-  inStock?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
+  ratings?: number[]; // Changed from 'rating' to 'ratings' for consistency
   search?: string;
+  tags?: string[];
+  inStock?: boolean;
   sort?: string;
   page?: number;
-  perPage?: number;
-  priceRange?: [number, number] | { min: number; max: number };
+  limit?: number;
+  priceRange?: [number, number]; // Changed from {min, max} to tuple for consistency with usage
 }
 
 export interface CategoryPageParams extends Record<string, string> {
@@ -89,39 +90,4 @@ export interface TableProps<T> extends TableHTMLAttributes<HTMLTableElement> {
   data: T[];
   columns: TableColumn<T>[];
   isLoading?: boolean;
-}
-
-export interface ProductKey {
-  id: string;
-  key_content: string;
-  status: string;
-  created_at: string;
-  product_id?: string;
-}
-
-export interface OrderHistoryItem {
-  id: string;
-  created_at: string;
-  qty: number;
-  total_price: number;
-  status: string;
-  keys: Json | null;
-  product: { title: string };
-}
-
-export interface AdminOrder {
-  id: string;
-  created_at: string;
-  product_id: string | null;
-  qty: number;
-  total_price: number;
-  status: string;
-  keys: Json | null;
-  external_order_id: string | null;
-  promotion_code: string | null;
-  updated_at: string;
-  user_id: string;
-  product?: {
-    title: string;
-  };
 }

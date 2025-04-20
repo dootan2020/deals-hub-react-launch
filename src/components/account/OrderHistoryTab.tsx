@@ -90,8 +90,8 @@ const OrderHistoryTab = ({ userId }: OrderHistoryTabProps) => {
                     day: 'numeric'
                   })}
                 </TableCell>
-                <TableCell className="max-w-[200px] truncate">{order.product?.title || 'N/A'}</TableCell>
-                <TableCell>{formatCurrency(order.total_price)}</TableCell>
+                <TableCell className="max-w-[200px] truncate">{order.product_title || 'N/A'}</TableCell>
+                <TableCell>{formatCurrency(order.total_amount)}</TableCell>
                 <TableCell>{renderOrderStatus(order.status)}</TableCell>
               </TableRow>
             ))}

@@ -1,54 +1,37 @@
-import { FilterParams, Product } from '@/types';
+import { Product } from '@/types';
 
 /**
  * Filter products based on specified criteria
  */
-export function applyFilters(products: Product[], filters: FilterParams) {
+export const applyFilters = (products: Product[], filters: any = {}): Product[] => {
   let filteredProducts = [...products];
-
+  
+  // Filter by price range
   if (filters.priceRange) {
-    let min: number = 0;
-    let max: number = Infinity;
-
-    if (Array.isArray(filters.priceRange)) {
-      [min, max] = filters.priceRange;
-    } else {
-      min = filters.priceRange.min;
-      max = filters.priceRange.max;
+    const [min, max] = filters.priceRange;
+    if (min !== undefined) {
+      filteredProducts = filteredProducts.filter(p => p.price >= min);
     }
-
-    filteredProducts = filteredProducts.filter(
-      (product) => product.price >= min && product.price <= max
-    );
+    if (max !== undefined) {
+      filteredProducts = filteredProducts.filter(p => p.price <= max);
+    }
   }
-
-  // Search query filtering
-  if (filters.search) {
-    const searchTerms = filters.search.toLowerCase().split(' ').filter(Boolean);
-    filteredProducts = filteredProducts.filter(p => {
-      const titleMatch = searchTerms.some(term => 
-        p.title.toLowerCase().includes(term)
-      );
-      const descMatch = p.description ? searchTerms.some(term => 
-        p.description.toLowerCase().includes(term)
-      ) : false;
-      
-      return titleMatch || descMatch;
-    });
+  
+  // Filter by rating
+  if (filters.rating !== undefined) {
+    filteredProducts = filteredProducts.filter(p => p.rating >= filters.rating);
   }
-
+  
   // Filter by availability (in stock)
   if (filters.inStock === true) {
-    filteredProducts = filteredProducts.filter(p => 
-      p.inStock && (p.stockQuantity > 0 || p.stock > 0)
-    );
+    filteredProducts = filteredProducts.filter(p => p.inStock);
   }
-
+  
   return filteredProducts;
-}
+};
 
-// Update the SortOption type definition
-export type SortOption = 'newest' | 'popular' | 'price-low' | 'price-high' | 'name-asc' | 'recommended';
+// Define the sort option type to ensure consistency across the application
+export type SortOption = 'newest' | 'popular' | 'price-low' | 'price-high';
 
 /**
  * Sort products based on specified sort criteria
@@ -72,24 +55,15 @@ export const sortProducts = (products: Product[], sortOption?: string): Product[
         return dateB - dateA;
       });
       
-    case 'name-asc':
-      return sortedProducts.sort((a, b) => a.title.localeCompare(b.title));
-      
     case 'popular':
       // Sort by sales count
-      return sortedProducts.sort((a, b) => {
-        const salesA = a.salesCount || a.sales_count || 0;
-        const salesB = b.salesCount || b.sales_count || 0;
-        return salesB - salesA;
-      });
+      return sortedProducts.sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
       
     case 'recommended':
     default:
       // Sort by a combination of sales count and creation date
       return sortedProducts.sort((a, b) => {
-        const salesA = a.salesCount || a.sales_count || 0;
-        const salesB = b.salesCount || b.sales_count || 0;
-        const salesDiff = salesB - salesA;
+        const salesDiff = (b.salesCount || 0) - (a.salesCount || 0);
         
         // If sales count is the same, sort by date (newest first)
         if (salesDiff === 0) {

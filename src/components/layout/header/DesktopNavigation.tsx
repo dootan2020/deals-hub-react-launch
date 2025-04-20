@@ -1,65 +1,91 @@
 
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { ShoppingBag } from 'lucide-react';
-import CategoryDropdown from '@/components/navigation/CategoryDropdown';
+import { Link } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+import { 
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuList,
+  NavigationMenuTrigger
+} from '@/components/ui/navigation-menu';
 import { useCategoriesContext } from '@/context/CategoriesContext';
+import { Category } from '@/types';
 
-export const DesktopNavigation = () => {
-  const location = useLocation();
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const { mainCategories, getSubcategoriesByParentId } = useCategoriesContext();
+const DesktopNavigation = () => {
+  const { mainCategories, getSubcategoriesByParentId, isLoading } = useCategoriesContext();
+  
+  if (isLoading) {
+    return (
+      <div className="hidden md:flex items-center">
+        <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
+        <span className="text-sm">Loading menu...</span>
+      </div>
+    );
+  }
+
+  const getCategoryUrl = (category: Category) => {
+    return `/category/${category.slug}`;
+  };
 
   return (
-    <nav className="hidden md:flex items-center justify-center gap-6">
-      <Link
-        to="/"
-        className={cn('text-sm font-medium transition-colors hover:text-primary', {
-          'text-primary': location.pathname === '/',
-        })}
-      >
-        Trang chủ
-      </Link>
-      
-      <div 
-        className="relative"
-        onMouseEnter={() => setIsCategoryDropdownOpen(true)}
-        onMouseLeave={() => setIsCategoryDropdownOpen(false)}
-      >
-        <button
-          className={cn('text-sm font-medium transition-colors hover:text-primary', {
-            'text-primary': location.pathname.startsWith('/categories'),
+    <div className="hidden md:block">
+      <NavigationMenu>
+        <NavigationMenuList className="space-x-1">
+          {mainCategories.map((category) => {
+            const subcategories = getSubcategoriesByParentId(category.id);
+            
+            return (
+              <NavigationMenuItem key={category.id} className="relative">
+                <NavigationMenuTrigger 
+                  className="bg-transparent hover:bg-accent/10 hover:text-primary transition-all duration-150 focus:bg-transparent data-[state=open]:bg-transparent data-[state=open]:text-primary"
+                >
+                  {category.name}
+                </NavigationMenuTrigger>
+                <NavigationMenuContent className="mt-0">
+                  <ul className="grid w-[400px] gap-1 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                    {subcategories.length > 0 ? (
+                      subcategories.map((subcategory) => (
+                        <li key={subcategory.id}>
+                          <Link
+                            to={getCategoryUrl(subcategory)}
+                            className="block select-none rounded-md px-4 py-2 text-sm font-medium no-underline transition-colors hover:bg-accent/10 hover:text-primary focus:bg-accent focus:text-accent-foreground"
+                          >
+                            {subcategory.name}
+                          </Link>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="px-4 py-2 text-sm text-muted-foreground">
+                        No subcategories found
+                      </li>
+                    )}
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            );
           })}
-        >
-          Danh mục
-        </button>
-        
-        <CategoryDropdown 
-          isOpen={isCategoryDropdownOpen} 
-          mainCategories={mainCategories}
-          getSubcategoriesByParentId={getSubcategoriesByParentId}
-        />
-      </div>
-
-      <Link
-        to="/support"
-        className={cn('text-sm font-medium transition-colors hover:text-primary', {
-          'text-primary': location.pathname.startsWith('/support'),
-        })}
-      >
-        Hỗ trợ
-      </Link>
-      
-      <Link
-        to="/orders"
-        className={cn('text-sm font-medium transition-colors hover:text-primary', {
-          'text-primary': location.pathname.startsWith('/orders'),
-        })}
-      >
-        <ShoppingBag className="w-4 h-4 inline mr-1" />
-        Đơn hàng
-      </Link>
-    </nav>
+          
+          <NavigationMenuItem>
+            <Link 
+              to="/support" 
+              className="text-text hover:text-primary transition-all duration-150 px-4 py-2 text-sm font-medium rounded-md hover:bg-accent/10"
+            >
+              Support
+            </Link>
+          </NavigationMenuItem>
+          
+          <NavigationMenuItem>
+            <Link 
+              to="/faqs" 
+              className="text-text hover:text-primary transition-all duration-150 px-4 py-2 text-sm font-medium rounded-md hover:bg-accent/10"
+            >
+              FAQs
+            </Link>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>
+    </div>
   );
 };
+
+export default DesktopNavigation;

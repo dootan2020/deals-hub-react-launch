@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Filter, X, Check } from 'lucide-react';
+import { Filter, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import PriceRangeFilter from './PriceRangeFilter';
@@ -75,9 +74,6 @@ const SubcategoryFilters = ({
                       }`}
                     >
                       <span>{subcategory.name}</span>
-                      {activeSubcategories.includes(subcategory.id) && (
-                        <Check className="h-4 w-4" />
-                      )}
                     </button>
                   ))}
                 </div>

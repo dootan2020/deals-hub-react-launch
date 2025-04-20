@@ -8,7 +8,6 @@ interface DialogFooterButtonsProps {
   onConfirm: () => void;
   isSubmitting: boolean;
   isVerifying: boolean;
-  isProcessing?: boolean;
   hasEnoughBalance: boolean;
 }
 
@@ -17,7 +16,6 @@ export const DialogFooterButtons = ({
   onConfirm,
   isSubmitting,
   isVerifying,
-  isProcessing,
   hasEnoughBalance,
 }: DialogFooterButtonsProps) => {
   return (
@@ -26,25 +24,20 @@ export const DialogFooterButtons = ({
         variant="outline" 
         className="flex-1" 
         onClick={onCancel} 
-        disabled={isSubmitting || isVerifying || isProcessing}
+        disabled={isSubmitting || isVerifying}
       >
         Hủy bỏ
       </Button>
       <Button 
         variant="default" 
         className="flex-1 bg-primary text-white" 
-        disabled={!hasEnoughBalance || isSubmitting || isVerifying || isProcessing}
+        disabled={!hasEnoughBalance || isSubmitting || isVerifying}
         onClick={onConfirm}
       >
         {isVerifying ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" /> 
             Đang kiểm tra
-          </>
-        ) : isProcessing ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> 
-            Đang xử lý
           </>
         ) : isSubmitting ? (
           <>

@@ -1,89 +1,145 @@
 
-import React from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import { ShoppingBag, ChevronRight } from 'lucide-react';
+import { ChevronDown, Globe, X, ChevronUp, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useCategoriesContext } from '@/context/CategoriesContext';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { MobileNavigationProps } from '@/types/layout';
+import { Category } from '@/types';
 
-export const MobileNavigation = ({ isOpen, onOpenChange }: MobileNavigationProps) => {
-  const { mainCategories, getSubcategoriesByParentId } = useCategoriesContext();
-  
+interface MobileNavigationProps {
+  isOpen: boolean;
+  toggleMenu: () => void;
+}
+
+const MobileNavigation = ({ 
+  isOpen, 
+  toggleMenu 
+}: MobileNavigationProps) => {
+  const { mainCategories, getSubcategoriesByParentId, isLoading } = useCategoriesContext();
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
+  };
+
+  const getCategoryUrl = (category: Category) => {
+    return `/category/${category.slug}`;
+  };
+
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="w-[300px] p-0">
-        <SheetHeader className="p-4 border-b">
-          <SheetTitle>Menu</SheetTitle>
-          <SheetDescription>Danh mục sản phẩm</SheetDescription>
-        </SheetHeader>
-        <ScrollArea className="h-[calc(100vh-100px)]">
-          <div className="flex flex-col p-2">
-            <Link to="/" onClick={() => onOpenChange(false)}>
-              <Button variant="ghost" className="w-full justify-start">
-                Trang chủ
-              </Button>
-            </Link>
-            
-            <Accordion type="single" collapsible className="w-full">
+    <div
+      className={cn(
+        "fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden transition-opacity duration-200",
+        isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+      )}
+      onClick={toggleMenu}
+    >
+      <div
+        className={cn(
+          "fixed top-0 right-0 bottom-0 w-64 bg-white p-6 shadow-xl transition-transform duration-300 z-50",
+          isOpen ? "translate-x-0" : "translate-x-full"
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-primary">Menu</h2>
+          <button onClick={toggleMenu}>
+            <X className="h-6 w-6 text-text-light" />
+          </button>
+        </div>
+        
+        <nav className="flex flex-col space-y-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+              <span>Loading...</span>
+            </div>
+          ) : (
+            <>
+              {/* Dynamic categories from database */}
               {mainCategories.map((category) => {
                 const subcategories = getSubcategoriesByParentId(category.id);
+                const isExpanded = expandedCategories[category.id] || false;
+                
                 return (
-                  <AccordionItem value={category.id} key={category.id}>
-                    <AccordionTrigger className="py-2 px-4 hover:no-underline">
-                      {category.name}
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="flex flex-col space-y-1">
-                        <Link
-                          to={`/categories/${category.slug}`}
-                          onClick={() => onOpenChange(false)}
-                          className="py-2 px-4 text-sm hover:bg-accent rounded-md flex items-center"
-                        >
-                          Tất cả {category.name}
-                          <ChevronRight className="ml-auto h-4 w-4" />
-                        </Link>
-                        {subcategories.map((subcategory) => (
-                          <Link
-                            key={subcategory.id}
-                            to={`/categories/${category.slug}/${subcategory.slug}`}
-                            onClick={() => onOpenChange(false)}
-                            className="py-2 px-4 text-sm hover:bg-accent rounded-md flex items-center"
-                          >
-                            {subcategory.name}
-                            <ChevronRight className="ml-auto h-4 w-4" />
-                          </Link>
-                        ))}
+                  <div key={category.id} className="space-y-2">
+                    <div 
+                      className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200"
+                      onClick={() => toggleCategory(category.id)}
+                    >
+                      <span>{category.name}</span>
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </div>
+                    {isExpanded && (
+                      <div className="pl-4 space-y-2">
+                        {subcategories.length > 0 ? (
+                          subcategories.map((subcategory) => (
+                            <Link 
+                              key={subcategory.id}
+                              to={getCategoryUrl(subcategory)} 
+                              className="block text-text-light hover:text-primary transition-colors duration-200"
+                              onClick={toggleMenu}
+                            >
+                              {subcategory.name}
+                            </Link>
+                          ))
+                        ) : (
+                          <div className="text-sm text-muted-foreground">
+                            No subcategories found
+                          </div>
+                        )}
                       </div>
-                    </AccordionContent>
-                  </AccordionItem>
+                    )}
+                  </div>
                 );
               })}
-            </Accordion>
+              
+              {/* Static menu items */}
+              <Link 
+                to="/support" 
+                className="text-text hover:text-primary transition-colors duration-200"
+                onClick={toggleMenu}
+              >
+                Support
+              </Link>
+              
+              <Link 
+                to="/faqs" 
+                className="text-text hover:text-primary transition-colors duration-200"
+                onClick={toggleMenu}
+              >
+                FAQs
+              </Link>
+              
+              <Link 
+                to="/account" 
+                className="text-text hover:text-primary transition-colors duration-200"
+                onClick={toggleMenu}
+              >
+                My Account
+              </Link>
+            </>
+          )}
 
-            <Link to="/support" onClick={() => onOpenChange(false)}>
-              <Button variant="ghost" className="w-full justify-start">
-                Hỗ trợ
-              </Button>
-            </Link>
-            
-            <Link to="/orders" onClick={() => onOpenChange(false)}>
-              <Button variant="ghost" className="w-full justify-start">
-                <ShoppingBag className="mr-2 h-4 w-4" />
-                Đơn hàng
-              </Button>
-            </Link>
+          {/* Language Selector for Mobile */}
+          <div className="flex items-center pt-4 border-t border-gray-200 mt-4">
+            <Globe className="h-5 w-5 text-text-light" />
+            <select className="ml-2 text-sm text-text-light bg-transparent border-none focus:outline-none">
+              <option value="en">English</option>
+              <option value="vi">Vietnamese</option>
+            </select>
           </div>
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+        </nav>
+      </div>
+    </div>
   );
 };
+
+export default MobileNavigation;

@@ -7,7 +7,6 @@ export const useSubcategoryFilters = () => {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [stockFilter, setStockFilter] = useState("all");
   const [activeSubcategories, setActiveSubcategories] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const handleSortChange = (newSort: string) => {
     setSortOption(newSort as SortOption);
@@ -22,17 +21,11 @@ export const useSubcategoryFilters = () => {
   };
 
   const handleSubcategoryToggle = (id: string) => {
-    // For simplicity, we're just using a single active subcategory
-    // This can be expanded to support multiple active subcategories if needed
     setActiveSubcategories(prev => 
       prev.includes(id) 
-        ? []  // Remove if already active
-        : [id] // Replace with new subcategory
+        ? prev.filter(item => item !== id)
+        : [...prev, id]
     );
-  };
-
-  const handleViewModeChange = (mode: "grid" | "list") => {
-    setViewMode(mode);
   };
 
   return {
@@ -40,11 +33,9 @@ export const useSubcategoryFilters = () => {
     priceRange,
     stockFilter,
     activeSubcategories,
-    viewMode,
     handleSortChange,
     handlePriceChange,
     handleStockFilterChange,
-    handleSubcategoryToggle,
-    handleViewModeChange
+    handleSubcategoryToggle
   };
 };

@@ -20,10 +20,6 @@ interface SubcategoryMainContentProps {
   subcategories: any[];
   activeSubcategories: string[];
   onSubcategoryToggle: (id: string) => void;
-  totalProducts?: number;
-  currentPage?: number;
-  totalPages?: number;
-  onPageChange?: (page: number) => void;
 }
 
 const SubcategoryMainContent: React.FC<SubcategoryMainContentProps> = ({
@@ -38,11 +34,7 @@ const SubcategoryMainContent: React.FC<SubcategoryMainContentProps> = ({
   handlePriceChange,
   subcategories,
   activeSubcategories,
-  onSubcategoryToggle,
-  totalProducts,
-  currentPage,
-  totalPages,
-  onPageChange
+  onSubcategoryToggle
 }) => {
   return (
     <div className="mt-6">
@@ -64,8 +56,6 @@ const SubcategoryMainContent: React.FC<SubcategoryMainContentProps> = ({
         showSort={false}
         isLoading={isLoading}
         viewMode={viewMode}
-        hasMore={totalPages ? currentPage < totalPages : false}
-        onLoadMore={onPageChange ? () => onPageChange((currentPage || 1) + 1) : undefined}
       />
       
       {products.length === 0 && !isLoading && (

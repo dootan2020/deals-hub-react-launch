@@ -1,6 +1,6 @@
 
 import { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -18,12 +18,6 @@ interface AdminLayoutProps {
 }
 
 const AdminLayout = ({ children, title }: AdminLayoutProps) => {
-  const location = useLocation();
-  
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
-
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
@@ -39,11 +33,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
             <li>
               <Link 
                 to="/admin" 
-                className={`flex items-center p-2 rounded-lg hover:bg-gray-100 ${
-                  isActive('/admin') 
-                    ? 'bg-primary/10 text-primary font-medium' 
-                    : 'text-gray-600'
-                }`}
+                className="flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100"
               >
                 <LayoutDashboard className="w-5 h-5 mr-2" />
                 Dashboard
@@ -52,11 +42,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
             <li>
               <Link 
                 to="/admin/categories" 
-                className={`flex items-center p-2 rounded-lg hover:bg-gray-100 ${
-                  isActive('/admin/categories') 
-                    ? 'bg-primary/10 text-primary font-medium' 
-                    : 'text-gray-600'
-                }`}
+                className="flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100"
               >
                 <FolderTree className="w-5 h-5 mr-2" />
                 Categories
@@ -65,11 +51,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
             <li>
               <Link 
                 to="/admin/product-manager" 
-                className={`flex items-center p-2 rounded-lg hover:bg-gray-100 ${
-                  isActive('/admin/product-manager') 
-                    ? 'bg-primary/10 text-primary font-medium' 
-                    : 'text-gray-600'
-                }`}
+                className="flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100"
               >
                 <Package className="w-5 h-5 mr-2" />
                 Product Manager
@@ -78,11 +60,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
             <li>
               <Link 
                 to="/admin/orders" 
-                className={`flex items-center p-2 rounded-lg hover:bg-gray-100 ${
-                  isActive('/admin/orders') 
-                    ? 'bg-primary/10 text-primary font-medium' 
-                    : 'text-gray-600'
-                }`}
+                className="flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100"
               >
                 <ShoppingCart className="w-5 h-5 mr-2" />
                 Orders
@@ -91,11 +69,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
             <li>
               <Link 
                 to="/admin/users" 
-                className={`flex items-center p-2 rounded-lg hover:bg-gray-100 ${
-                  isActive('/admin/users') 
-                    ? 'bg-primary/10 text-primary font-medium' 
-                    : 'text-gray-600'
-                }`}
+                className="flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100"
               >
                 <Users2 className="w-5 h-5 mr-2" />
                 User Management
@@ -104,11 +78,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
             <li>
               <Link 
                 to="/admin/api-config" 
-                className={`flex items-center p-2 rounded-lg hover:bg-gray-100 ${
-                  isActive('/admin/api-config') 
-                    ? 'bg-primary/10 text-primary font-medium' 
-                    : 'text-gray-600'
-                }`}
+                className="flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100"
               >
                 <Settings className="w-5 h-5 mr-2" />
                 API Config
@@ -117,11 +87,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
             <li>
               <Link 
                 to="/admin/api-tester" 
-                className={`flex items-center p-2 rounded-lg hover:bg-gray-100 ${
-                  isActive('/admin/api-tester') 
-                    ? 'bg-primary/10 text-primary font-medium' 
-                    : 'text-gray-600'
-                }`}
+                className="flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100"
               >
                 <Globe className="w-5 h-5 mr-2" />
                 API Tester
@@ -130,11 +96,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
             <li>
               <Link 
                 to="/admin/sync-logs" 
-                className={`flex items-center p-2 rounded-lg hover:bg-gray-100 ${
-                  isActive('/admin/sync-logs') 
-                    ? 'bg-primary/10 text-primary font-medium' 
-                    : 'text-gray-600'
-                }`}
+                className="flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100"
               >
                 <BarChart3 className="w-5 h-5 mr-2" />
                 Sync Logs

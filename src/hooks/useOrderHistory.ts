@@ -1,11 +1,25 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { OrderHistoryItem } from '@/types';
-import { Json } from '@/integrations/supabase/types';
+
+interface OrderProduct {
+  title: string;
+}
+
+interface OrderItem {
+  product_id: string;
+}
+
+interface Order {
+  id: string;
+  created_at: string;
+  status: string;
+  total_amount: number;
+  product_title?: string;
+}
 
 export const useOrderHistory = (userId: string) => {
-  const [orders, setOrders] = useState<OrderHistoryItem[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,21 +28,36 @@ export const useOrderHistory = (userId: string) => {
       try {
         const { data: orderData, error: orderError } = await supabase
           .from('orders')
-          .select(`
-            id,
-            created_at,
-            product_id,
-            qty,
-            total_price,
-            status,
-            keys,
-            product:products(title)
-          `)
+          .select('id, created_at, status, total_amount')
           .eq('user_id', userId)
           .order('created_at', { ascending: false });
 
         if (orderError) throw orderError;
-        setOrders(orderData as OrderHistoryItem[] || []);
+
+        const ordersWithProducts = await Promise.all((orderData || []).map(async (order) => {
+          const { data: orderItem } = await supabase
+            .from('order_items')
+            .select('product_id')
+            .eq('order_id', order.id)
+            .single();
+
+          if (orderItem) {
+            const { data: product } = await supabase
+              .from('products')
+              .select('title')
+              .eq('id', orderItem.product_id)
+              .single();
+
+            return {
+              ...order,
+              product_title: product?.title
+            };
+          }
+
+          return order;
+        }));
+
+        setOrders(ordersWithProducts);
       } catch (err) {
         console.error('Error fetching orders:', err);
         setError(err instanceof Error ? err.message : 'Failed to load order history');

@@ -175,12 +175,9 @@ export type Database = {
           created_at: string | null
           external_order_id: string | null
           id: string
-          keys: Json | null
-          product_id: string | null
           promotion_code: string | null
-          qty: number
           status: string
-          total_price: number
+          total_amount: number
           updated_at: string | null
           user_id: string
         }
@@ -188,12 +185,9 @@ export type Database = {
           created_at?: string | null
           external_order_id?: string | null
           id?: string
-          keys?: Json | null
-          product_id?: string | null
           promotion_code?: string | null
-          qty?: number
           status: string
-          total_price: number
+          total_amount: number
           updated_at?: string | null
           user_id: string
         }
@@ -201,24 +195,13 @@ export type Database = {
           created_at?: string | null
           external_order_id?: string | null
           id?: string
-          keys?: Json | null
-          product_id?: string | null
           promotion_code?: string | null
-          qty?: number
           status?: string
-          total_price?: number
+          total_amount?: number
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "orders_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       products: {
         Row: {

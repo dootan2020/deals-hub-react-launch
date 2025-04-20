@@ -7,9 +7,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('vi-VN', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'VND',
+    currency: 'USD',
   }).format(amount);
 }
 
@@ -33,42 +33,4 @@ export function debounce<T extends (...args: any[]) => any>(
     if (timeout) clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
   };
-}
-
-export const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleString('vi-VN', {
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-export function copyToClipboard(text: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (!navigator.clipboard) {
-      try {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        const successful = document.execCommand("copy");
-        document.body.removeChild(textArea);
-        resolve(successful);
-      } catch (err) {
-        console.error("Fallback clipboard copy failed:", err);
-        resolve(false);
-      }
-    } else {
-      navigator.clipboard.writeText(text)
-        .then(() => resolve(true))
-        .catch((err) => {
-          console.error("Clipboard API copy failed:", err);
-          resolve(false);
-        });
-    }
-  });
 }

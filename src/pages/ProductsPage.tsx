@@ -1,147 +1,41 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
-import { toast } from 'sonner';
+import { useToast } from "@/components/ui/use-toast";
 import ProductSorter from '@/components/product/ProductSorter';
 import ViewToggle from '@/components/product/ViewToggle';
-import { Category, FilterParams, Product } from '@/types';
-import { SortOption } from '@/utils/productFilters';
-import { fetchProductsWithFilters } from '@/services/product/productService';
-import { 
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Loader2, Filter } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { 
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger 
-} from "@/components/ui/accordion";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { useCategoryProducts } from '@/hooks/useCategoryProducts';
 import { useCategoriesContext } from '@/context/CategoriesContext';
-import PriceRangeFilter from '@/components/category/PriceRangeFilter';
+import SubcategoryPills from '@/components/category/SubcategoryPills';
+import { Category } from '@/types';
+import { SortOption } from '@/utils/productFilters';
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { categories, mainCategories, getSubcategoriesByParentId } = useCategoriesContext();
-  
-  // UI states
+  const { toast } = useToast();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const initialSort = (searchParams.get('sort') || 'recommended') as SortOption;
+  const { categories } = useCategoriesContext();
   
-  // Product data
-  const [products, setProducts] = useState<Product[]>([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalProducts, setTotalProducts] = useState(0);
-  const [perPage] = useState(24);
+  const subcategories = categories.filter(cat => cat.parent_id !== null);
   
-  // Filters
-  const [filters, setFilters] = useState<FilterParams>({
-    sort: (searchParams.get('sort') || 'newest') as string,
-    search: searchParams.get('search') || '',
-    perPage: perPage
+  const { 
+    products, 
+    loading,
+    loadingMore,
+    hasMore,
+    loadMore,
+    handleSortChange: handleSort,
+    setSelectedCategory 
+  } = useCategoryProducts({
+    isProductsPage: true,
+    sort: initialSort
   });
 
-  // Get subcategories for the selected main category
-  const subcategories = filters.categoryId 
-    ? getSubcategoriesByParentId(filters.categoryId)
-    : [];
-
-  // Handle search param changes
-  useEffect(() => {
-    const search = searchParams.get('search');
-    const category = searchParams.get('category');
-    const subcategory = searchParams.get('subcategory');
-    const sort = searchParams.get('sort');
-    const inStock = searchParams.get('inStock') === 'true';
-    
-    setFilters(prev => ({
-      ...prev,
-      search: search || undefined,
-      categoryId: category || undefined,
-      subcategory: subcategory || undefined,
-      sort: sort || 'newest',
-      inStock
-    }));
-    setPage(1);
-  }, [searchParams]);
-
-  // Fetch products when filters change
-  useEffect(() => {
-    const loadProducts = async () => {
-      setIsLoading(true);
-      setProducts([]);
-      
-      try {
-        const filterParams: FilterParams = {
-          ...filters,
-          page: 1,
-          perPage: perPage
-        };
-        
-        const result = await fetchProductsWithFilters(filterParams);
-        
-        setProducts(result.products || []);
-        setHasMore((result.totalPages || 1) > 1);
-        setTotalPages(result.totalPages || 1);
-        setTotalProducts(result.total || 0);
-      } catch (error) {
-        console.error('Error loading products:', error);
-        toast.error("Failed to load products. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadProducts();
-  }, [filters.search, filters.categoryId, filters.inStock, filters.sort, filters.priceRange, perPage]);
-
-  const loadMore = async () => {
-    if (loadingMore) return;
-    
-    setLoadingMore(true);
-    const nextPage = page + 1;
-    
-    try {
-      const filterParams: FilterParams = {
-        ...filters,
-        page: nextPage,
-        perPage: perPage
-      };
-      
-      const result = await fetchProductsWithFilters(filterParams);
-      
-      const newProducts = result.products || [];
-      
-      if (newProducts.length > 0) {
-        setProducts(prev => [...prev, ...newProducts]);
-        setPage(nextPage);
-        setHasMore(nextPage < (result.totalPages || 1));
-      } else {
-        setHasMore(false);
-      }
-    } catch (error) {
-      console.error('Error loading more products:', error);
-      toast("Error", {
-        description: "Failed to load more products. Please try again.",
-      });
-    } finally {
-      setLoadingMore(false);
-    }
-  };
-
   const handleSortChange = (value: string) => {
+    handleSort(value);
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set('sort', value);
     setSearchParams(newSearchParams);
@@ -151,362 +45,57 @@ const ProductsPage = () => {
     setViewMode(newView);
   };
 
-  const handleCategoryClick = (category: Category) => {
-    const newSearchParams = new URLSearchParams(searchParams);
-    newSearchParams.set('category', category.id);
-    newSearchParams.delete('subcategory'); // Clear subcategory when changing main category
-    setSearchParams(newSearchParams);
+  const handleSubcategoryClick = (category: Category) => {
+    setSelectedCategory(category.id);
+    toast({
+      title: "Category Filter Applied",
+      description: `Showing products from ${category.name}`,
+    });
   };
-
-  const handleSubcategoryClick = (subcategory: Category) => {
-    const newSearchParams = new URLSearchParams(searchParams);
-    newSearchParams.set('subcategory', subcategory.id);
-    setSearchParams(newSearchParams);
-  };
-
-  const handleInStockChange = (checked: boolean) => {
-    const newSearchParams = new URLSearchParams(searchParams);
-    if (checked) {
-      newSearchParams.set('inStock', 'true');
-    } else {
-      newSearchParams.delete('inStock');
-    }
-    setSearchParams(newSearchParams);
-  };
-
-  const handlePriceRangeChange = (min: number, max: number) => {
-    setFilters(prev => ({
-      ...prev,
-      priceRange: [min, max]
-    }));
-  };
-
-  const clearFilters = () => {
-    const newSearchParams = new URLSearchParams();
-    if (searchParams.get('search')) {
-      newSearchParams.set('search', searchParams.get('search')!);
-    }
-    if (searchParams.get('sort')) {
-      newSearchParams.set('sort', searchParams.get('sort')!);
-    }
-    setSearchParams(newSearchParams);
-  };
-
-  const hasActiveFilters = Boolean(
-    filters.categoryId || 
-    filters.subcategory ||
-    filters.inStock || 
-    (filters.priceRange && (filters.priceRange[0] > 0 || filters.priceRange[1] < 500))
-  );
-    
-  const pageTitle = filters.search 
-    ? `Search results: ${filters.search}` 
-    : filters.categoryId
-      ? mainCategories.find(c => c.id === filters.categoryId)?.name || 'Category Products'
-      : 'All Products';
 
   return (
     <Layout>
       <div className="bg-background py-8 min-h-screen">
         <div className="container-custom">
           <div className="space-y-8">
-            {/* Header */}
             <div>
               <h1 className="text-3xl font-bold mb-4">All Products</h1>
               <p className="text-muted-foreground">
-                {filters.search 
-                  ? `Products related to "${filters.search}"`
-                  : 'Explore our complete collection of digital products'
-                }
+                Browse our collection of digital products
               </p>
             </div>
 
-            {/* Mobile Filter Button */}
-            <div className="md:hidden">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" className="w-full flex justify-between items-center">
-                    <span className="flex items-center gap-2">
-                      <Filter className="h-4 w-4" />
-                      Filters & Sort
-                    </span>
-                    {hasActiveFilters && (
-                      <span className="bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                        !
-                      </span>
-                    )}
-                  </Button>
-                </SheetTrigger>
-                
-                <SheetContent side="bottom" className="h-[85vh]">
-                  <SheetHeader className="mb-2">
-                    <SheetTitle>Product Filters</SheetTitle>
-                    <SheetDescription>
-                      Customize results to match your needs
-                    </SheetDescription>
-                  </SheetHeader>
-                  
-                  <div className="space-y-4">
-                    {/* Mobile Sorting */}
-                    <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value="sort">
-                        <AccordionTrigger>Sort by</AccordionTrigger>
-                        <AccordionContent>
-                          <div className="space-y-2">
-                            {[
-                              { label: 'Newest', value: 'newest' },
-                              { label: 'Most Popular', value: 'popular' },
-                              { label: 'Price: Low to High', value: 'price-low' },
-                              { label: 'Price: High to Low', value: 'price-high' },
-                            ].map((option) => (
-                              <div 
-                                key={option.value} 
-                                className={`p-2 rounded-md cursor-pointer ${
-                                  filters.sort === option.value 
-                                    ? 'bg-primary/10 text-primary font-medium' 
-                                    : 'hover:bg-gray-100'
-                                }`}
-                                onClick={() => handleSortChange(option.value)}
-                              >
-                                {option.label}
-                              </div>
-                            ))}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                    
-                    {/* Mobile Categories */}
-                    <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value="categories">
-                        <AccordionTrigger>Categories</AccordionTrigger>
-                        <AccordionContent>
-                          <div className="space-y-2">
-                            {mainCategories.map((category) => (
-                              <div key={category.id}>
-                                <div 
-                                  className={`p-2 rounded-md cursor-pointer ${
-                                    filters.categoryId === category.id 
-                                      ? 'bg-primary/10 text-primary font-medium' 
-                                      : 'hover:bg-gray-100'
-                                  }`}
-                                  onClick={() => handleCategoryClick(category)}
-                                >
-                                  {category.name}
-                                </div>
-                                
-                                {/* Show subcategories when parent is selected */}
-                                {filters.categoryId === category.id && subcategories.length > 0 && (
-                                  <div className="ml-4 mt-2 space-y-1">
-                                    {subcategories.map((sub) => (
-                                      <div
-                                        key={sub.id}
-                                        className={`p-2 rounded-md cursor-pointer text-sm ${
-                                          filters.subcategory === sub.id
-                                            ? 'bg-primary/10 text-primary font-medium'
-                                            : 'hover:bg-gray-50'
-                                        }`}
-                                        onClick={() => handleSubcategoryClick(sub)}
-                                      >
-                                        {sub.name}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                    
-                    {/* Mobile Price Range */}
-                    <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value="price">
-                        <AccordionTrigger>Price Range</AccordionTrigger>
-                        <AccordionContent>
-                          <PriceRangeFilter 
-                            minPrice={0} 
-                            maxPrice={500} 
-                            onPriceChange={handlePriceRangeChange}
-                          />
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                    
-                    {/* Mobile Inventory Filter */}
-                    <div className="flex items-center space-x-2 p-4 border-t">
-                      <Checkbox 
-                        id="mobile-in-stock" 
-                        checked={filters.inStock}
-                        onCheckedChange={handleInStockChange}
-                      />
-                      <Label htmlFor="mobile-in-stock">Show in-stock products only</Label>
-                    </div>
-                    
-                    {/* Clear Filters */}
-                    {hasActiveFilters && (
-                      <div className="p-4 border-t">
-                        <Button 
-                          variant="outline" 
-                          onClick={clearFilters} 
-                          className="w-full"
-                        >
-                          Clear all filters
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
-            
-            {/* Main Content */}
-            <div className="flex flex-col md:flex-row gap-6">
-              {/* Desktop Sidebar Filters */}
-              <div className="hidden md:block w-64 shrink-0 space-y-6">
-                <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm space-y-6">
-                  <h3 className="font-semibold text-lg mb-4">Filters</h3>
-                  
-                  {/* Categories */}
-                  <div>
-                    <h4 className="font-medium mb-2">Categories</h4>
-                    <div className="space-y-2">
-                      {mainCategories.map((category) => (
-                        <div key={category.id}>
-                          <div 
-                            className={`flex items-center p-1.5 rounded-md cursor-pointer text-sm ${
-                              filters.categoryId === category.id 
-                                ? 'bg-primary/10 text-primary font-medium' 
-                                : 'hover:bg-gray-100'
-                            }`}
-                            onClick={() => handleCategoryClick(category)}
-                          >
-                            {category.name}
-                            {category.count > 0 && (
-                              <span className="ml-auto text-xs text-text-light">
-                                {category.count}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Show subcategories when parent is selected */}
-                          {filters.categoryId === category.id && subcategories.length > 0 && (
-                            <div className="ml-4 mt-2 space-y-1">
-                              {subcategories.map((sub) => (
-                                <div
-                                  key={sub.id}
-                                  className={`flex items-center p-1.5 rounded-md cursor-pointer text-sm ${
-                                    filters.subcategory === sub.id
-                                      ? 'bg-primary/10 text-primary font-medium'
-                                      : 'hover:bg-gray-50'
-                                  }`}
-                                  onClick={() => handleSubcategoryClick(sub)}
-                                >
-                                  {sub.name}
-                                  {sub.count > 0 && (
-                                    <span className="ml-auto text-xs text-text-light">
-                                      {sub.count}
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Price Range and other filters */}
-                  <div className="border-t pt-4">
-                    <PriceRangeFilter
-                      minPrice={0}
-                      maxPrice={500}
-                      onPriceChange={handlePriceRangeChange}
-                    />
-                  </div>
-                  
-                  {/* Inventory */}
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-2">Availability</h4>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="in-stock" 
-                        checked={filters.inStock}
-                        onCheckedChange={handleInStockChange}
-                      />
-                      <Label htmlFor="in-stock">Show in-stock only</Label>
-                    </div>
-                  </div>
-                  
-                  {/* Clear Filters */}
-                  {hasActiveFilters && (
-                    <div className="border-t pt-4">
-                      <Button 
-                        variant="outline" 
-                        onClick={clearFilters} 
-                        className="w-full"
-                      >
-                        Clear all filters
-                      </Button>
-                    </div>
-                  )}
+            {subcategories.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-100 shadow-sm">
+                <div className="p-4">
+                  <SubcategoryPills 
+                    subcategories={subcategories}
+                    onSubcategoryClick={handleSubcategoryClick}
+                  />
                 </div>
               </div>
-              
-              {/* Product Grid */}
-              <div className="flex-1">
-                <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm space-y-6">
-                  {/* Desktop Sort & View Options */}
-                  <div className="hidden md:flex justify-between items-center">
-                    <ProductSorter 
-                      currentSort={filters.sort as SortOption} 
-                      onSortChange={handleSortChange} 
-                    />
-                    <ViewToggle 
-                      currentView={viewMode}
-                      onViewChange={handleViewChange}
-                    />
-                  </div>
+            )}
 
-                  {/* Product Count Display */}
-                  {!isLoading && (
-                    <div className="text-sm text-muted-foreground mb-4">
-                      Showing {products.length} of {totalProducts} products
-                    </div>
-                  )}
-
-                  {/* Product Grid */}
-                  {isLoading ? (
-                    <div className="flex items-center justify-center min-h-[400px]">
-                      <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                    </div>
-                  ) : products.length > 0 ? (
-                    <ProductGrid 
-                      products={products}
-                      viewMode={viewMode}
-                      loadingMore={loadingMore}
-                      hasMore={hasMore}
-                      onLoadMore={loadMore}
-                    />
-                  ) : (
-                    <div className="text-center py-16 space-y-3">
-                      <h3 className="text-lg font-medium">No products found matching your criteria.</h3>
-                      <p className="text-muted-foreground">Try searching with different keywords or adjusting your filters.</p>
-                      {hasActiveFilters && (
-                        <Button 
-                          variant="outline" 
-                          onClick={clearFilters} 
-                          className="mt-4"
-                        >
-                          Clear filters and try again
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
+            <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
+              <div className="flex justify-between items-center mb-6">
+                <ProductSorter 
+                  currentSort={initialSort} 
+                  onSortChange={handleSortChange} 
+                />
+                <ViewToggle 
+                  currentView={viewMode}
+                  onViewChange={handleViewChange}
+                />
               </div>
+
+              <ProductGrid 
+                products={products}
+                viewMode={viewMode}
+                isLoading={loading}
+                loadingMore={loadingMore}
+                hasMore={hasMore}
+                onLoadMore={loadMore}
+              />
             </div>
           </div>
         </div>

@@ -10,8 +10,8 @@ import {
 import { SortOption } from '@/utils/productFilters';
 
 interface SimplifiedCategoryFiltersProps {
-  onSortChange: (sort: SortOption) => void;
-  activeSort: SortOption;
+  onSortChange: (sort: string) => void;
+  activeSort: string;
 }
 
 const SimplifiedCategoryFilters: React.FC<SimplifiedCategoryFiltersProps> = ({
@@ -20,7 +20,7 @@ const SimplifiedCategoryFilters: React.FC<SimplifiedCategoryFiltersProps> = ({
 }) => {
   return (
     <div className="h-10 flex items-center">
-      <Select value={activeSort} onValueChange={(value) => onSortChange(value as SortOption)}>
+      <Select value={activeSort} onValueChange={onSortChange}>
         <SelectTrigger className="w-[180px] md:w-[220px] focus:ring-primary">
           <SelectValue placeholder="Sort By" />
         </SelectTrigger>
@@ -29,7 +29,6 @@ const SimplifiedCategoryFilters: React.FC<SimplifiedCategoryFiltersProps> = ({
           <SelectItem value="popular">Most Popular</SelectItem>
           <SelectItem value="price-low">Price: Low to High</SelectItem>
           <SelectItem value="price-high">Price: High to Low</SelectItem>
-          <SelectItem value="name-asc">Name: A to Z</SelectItem>
         </SelectContent>
       </Select>
     </div>
