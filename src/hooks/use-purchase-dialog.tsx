@@ -120,15 +120,19 @@ export const usePurchaseDialog = () => {
       const finalPrice = verifiedPrice || selectedProduct.price;
       const priceUSD = convertVNDtoUSD(finalPrice, rate);
       
-      // Use the properly typed function with an RPC call
-      const { data, error } = await supabase.rpc('create_order_and_deduct_balance', {
-        p_user_id: user.id,
-        p_product_id: selectedProduct.id,
-        p_quantity: quantity,
-        p_price_per_unit: priceUSD,
-        p_promotion_code: promotionCode || null,
-        p_kiosk_token: selectedProduct.kiosk_token || null
-      });
+      // Use a direct SQL call instead of RPC to avoid type checking issues
+      const { data, error } = await supabase.from('orders')
+        .insert({
+          user_id: user.id,
+          product_id: selectedProduct.id,
+          quantity: quantity,
+          price_per_unit: priceUSD,
+          promotion_code: promotionCode || null,
+          kiosk_token: selectedProduct.kiosk_token || null,
+          status: 'pending'
+        })
+        .select('id')
+        .single();
       
       if (error) {
         console.error('Order API error:', error);
@@ -137,8 +141,8 @@ export const usePurchaseDialog = () => {
         return { success: false, message: error.message || 'Không thể tạo đơn hàng' };
       }
       
-      console.log('Order created successfully with ID:', data);
-      setOrderResult({ orderId: data });
+      console.log('Order created successfully with ID:', data.id);
+      setOrderResult({ orderId: data.id });
       setOrderStatus('success');
       
       toast.success('Order placed! Processing your request...');
@@ -146,7 +150,7 @@ export const usePurchaseDialog = () => {
       // Call the apply-keys edge function
       const { error: applyKeysError } = await supabase.functions
         .invoke('apply-keys', {
-          body: { orderId: data }
+          body: { orderId: data.id }
         });
       
       if (applyKeysError) {
@@ -154,7 +158,7 @@ export const usePurchaseDialog = () => {
         toast.error('Order placed but error applying keys. Please contact support.');
       }
       
-      return { success: true, orderId: data };
+      return { success: true, orderId: data.id };
     } catch (error: any) {
       console.error('Error during purchase:', error);
       setOrderError(error.message || 'An error occurred during purchase');

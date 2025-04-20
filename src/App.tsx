@@ -12,59 +12,57 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import SupportPage from '@/pages/SupportPage';
 import OrdersPage from './pages/OrdersPage';
 import NotFound from '@/pages/NotFound';
-import { useAuth } from '@/context/AuthContext';
+
+// Create a single router instance
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Layout><Index /></Layout>,
+  },
+  {
+    path: '/products',
+    element: <Layout><ProductsPage /></Layout>,
+  },
+  {
+    path: '/products/:productSlug',
+    element: <Layout><ProductPage /></Layout>,
+  },
+  {
+    path: '/categories/:categorySlug',
+    element: <Layout><CategoryPage /></Layout>,
+  },
+  {
+    path: '/categories/:parentCategorySlug/:categorySlug',
+    element: <Layout><SubcategoryPage /></Layout>,
+  },
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
+    path: '/support',
+    element: <Layout><SupportPage /></Layout>,
+  },
+  {
+    path: '/orders',
+    element: (
+      <ProtectedRoute>
+        <Layout><OrdersPage /></Layout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/404',
+    element: <Layout><NotFound /></Layout>,
+  },
+  {
+    path: '*',
+    element: <Layout><NotFound /></Layout>,
+  },
+]);
 
 function App() {
-  return (
-    <RouterProvider
-      router={createBrowserRouter([
-        {
-          path: '/',
-          element: <Layout><Index /></Layout>,
-        },
-        {
-          path: '/products',
-          element: <Layout><ProductsPage /></Layout>,
-        },
-        {
-          path: '/products/:productSlug',
-          element: <Layout><ProductPage /></Layout>,
-        },
-        {
-          path: '/categories/:categorySlug',
-          element: <Layout><CategoryPage /></Layout>,
-        },
-        {
-          path: '/categories/:parentCategorySlug/:categorySlug',
-          element: <Layout><SubcategoryPage /></Layout>,
-        },
-        {
-          path: '/login',
-          element: <LoginPage />,
-        },
-        {
-          path: '/support',
-          element: <Layout><SupportPage /></Layout>,
-        },
-        {
-          path: '/orders',
-          element: (
-            <ProtectedRoute>
-              <Layout><OrdersPage /></Layout>
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: '/404',
-          element: <Layout><NotFound /></Layout>,
-        },
-        {
-          path: '*',
-          element: <Layout><NotFound /></Layout>,
-        },
-      ])}
-    />
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;
