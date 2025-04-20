@@ -1,15 +1,12 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ModeToggle } from '@/components/ModeToggle';
 import { ShoppingBag } from 'lucide-react';
 
 export const DesktopNavigation = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
 
   return (
@@ -29,14 +26,6 @@ export const DesktopNavigation = () => {
         })}
       >
         Products
-      </Link>
-      <Link
-        to="/faq"
-        className={cn('text-sm font-medium transition-colors hover:text-primary', {
-          'text-primary': location.pathname.startsWith('/faq'),
-        })}
-      >
-        FAQ
       </Link>
       <Link
         to="/support"

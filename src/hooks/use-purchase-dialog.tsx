@@ -114,15 +114,14 @@ export const usePurchaseDialog = () => {
       const priceUSD = convertVNDtoUSD(finalPrice, rate);
       
       // Call the database function to create order and deduct balance
-      const { data, error } = await supabase
-        .rpc('create_order_and_deduct_balance', {
-          p_user_id: user.id,
-          p_product_id: selectedProduct.id,
-          p_quantity: quantity,
-          p_price_per_unit: priceUSD,
-          p_promotion_code: promotionCode || null,
-          p_kiosk_token: selectedProduct.kiosk_token || null
-        });
+      const { data, error } = await supabase.rpc('create_order_and_deduct_balance', {
+        p_user_id: user.id,
+        p_product_id: selectedProduct.id,
+        p_quantity: quantity,
+        p_price_per_unit: priceUSD,
+        p_promotion_code: promotionCode || null,
+        p_kiosk_token: selectedProduct.kiosk_token || null
+      });
       
       if (error) {
         toast.error(error.message || 'Failed to place order');

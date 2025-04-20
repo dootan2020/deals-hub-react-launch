@@ -1,11 +1,11 @@
 
 import { useState } from 'react';
 import Logo from './header/Logo';
-import DesktopNavigation from './header/DesktopNavigation';
+import { DesktopNavigation } from './header/DesktopNavigation';
 import LanguageSelector from './header/LanguageSelector';
 import { UserButton } from './header/UserButton';
 import MobileMenuToggle from './header/MobileMenuToggle';
-import MobileNavigation from './header/MobileNavigation';
+import { MobileNavigation } from './header/MobileNavigation';
 import { DepositOptions } from './header/DepositOptions';
 
 const Header = () => {
@@ -36,7 +36,7 @@ const Header = () => {
 
           <MobileNavigation 
             isOpen={mobileMenuOpen}
-            toggleMenu={toggleMobileMenu}
+            onOpenChange={setMobileMenuOpen}
           />
         </div>
       </div>
