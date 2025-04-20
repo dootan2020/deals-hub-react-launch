@@ -40,6 +40,7 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ProductKey } from '@/types';
 
 interface Order {
   id: string;
@@ -47,13 +48,6 @@ interface Order {
   status: string;
   total_amount: number;
   product_title?: string;
-}
-
-interface ProductKey {
-  id: string;
-  key_content: string;
-  status: string;
-  created_at: string;
 }
 
 const OrdersPage = () => {
@@ -112,14 +106,16 @@ const OrdersPage = () => {
   const fetchProductKeys = async (orderId: string) => {
     setIsLoadingKeys(true);
     try {
+      // Use raw SQL query with supabase to get around the type issues
       const { data, error } = await supabase
-        .from('product_keys')
-        .select('id, key_content, status, created_at')
-        .eq('order_id', orderId)
-        .order('created_at', { ascending: true });
+        .rpc('get_product_keys_by_order', {
+          order_id_param: orderId
+        });
 
       if (error) throw error;
-      setProductKeys(data || []);
+      
+      // Type assertion to ensure we get the right type
+      setProductKeys(data as ProductKey[] || []);
       setSelectedOrder(orderId);
       setDialogOpen(true);
     } catch (err: any) {

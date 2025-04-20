@@ -91,3 +91,11 @@ export interface TableProps<T> extends TableHTMLAttributes<HTMLTableElement> {
   columns: TableColumn<T>[];
   isLoading?: boolean;
 }
+
+export interface ProductKey {
+  id: string;
+  key_content: string;
+  status: string;
+  created_at: string;
+  order_id?: string;
+}

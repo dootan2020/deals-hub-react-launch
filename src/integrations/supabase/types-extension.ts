@@ -1,4 +1,3 @@
-
 import { Database as OriginalDatabase } from './types';
 import { UserRole } from '@/types/auth.types';
 import { Deposit } from '@/types/deposits';
@@ -21,6 +20,38 @@ export interface Database extends OriginalDatabase {
         Row: Deposit;
         Insert: Omit<Deposit, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<Deposit, 'id' | 'created_at' | 'updated_at'>>;
+      },
+      product_keys: {
+        Row: {
+          id: string;
+          order_id: string;
+          product_id: string;
+          key_content: string;
+          status: string;
+          created_at: string;
+          updated_at: string;
+          used_at: string | null;
+        };
+        Insert: Omit<{
+          id: string;
+          order_id: string;
+          product_id: string;
+          key_content: string;
+          status: string;
+          created_at: string;
+          updated_at: string;
+          used_at: string | null;
+        }, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<{
+          id: string;
+          order_id: string;
+          product_id: string;
+          key_content: string;
+          status: string;
+          created_at: string;
+          updated_at: string;
+          used_at: string | null;
+        }, 'id' | 'created_at' | 'updated_at'>>;
       }
     };
     Views: {
@@ -40,6 +71,19 @@ export interface Database extends OriginalDatabase {
       remove_role: {
         Args: { user_id_param: string; role_param: UserRole };
         Returns: undefined;
+      };
+      get_product_keys_by_order: {
+        Args: { order_id_param: string };
+        Returns: {
+          id: string;
+          order_id: string;
+          product_id: string;
+          key_content: string;
+          status: string;
+          created_at: string;
+          updated_at: string;
+          used_at: string | null;
+        }[];
       };
     };
   };

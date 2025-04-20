@@ -113,7 +113,7 @@ export const usePurchaseDialog = () => {
       const finalPrice = verifiedPrice || selectedProduct.price;
       const priceUSD = convertVNDtoUSD(finalPrice, rate);
       
-      // Call the database function to create order and deduct balance
+      // Use supabase.rpc to call the database function rather than directly using the function name string
       const { data, error } = await supabase.rpc('create_order_and_deduct_balance', {
         p_user_id: user.id,
         p_product_id: selectedProduct.id,
@@ -124,20 +124,21 @@ export const usePurchaseDialog = () => {
       });
       
       if (error) {
-        toast.error(error.message || 'Failed to place order');
-        throw error;
+        console.error('Order API error:', error);
+        setOrderError(error.message || 'Failed to place order');
+        setOrderStatus('error');
+        return { success: false, message: error.message || 'Không thể tạo đơn hàng' };
       }
       
-      const orderId = data;
-      console.log('Order created successfully with ID:', orderId);
-      setOrderResult({ orderId });
+      console.log('Order created successfully with ID:', data);
+      setOrderResult({ orderId: data });
       
       toast.success('Order placed! Processing your request...');
       
       // Call the apply-keys edge function
       const { error: applyKeysError } = await supabase.functions
         .invoke('apply-keys', {
-          body: { orderId }
+          body: { orderId: data }
         });
       
       if (applyKeysError) {
