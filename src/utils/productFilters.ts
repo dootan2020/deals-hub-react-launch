@@ -18,20 +18,7 @@ export const applyFilters = (products: Product[], filters: FilterParams = {}): P
     }
   }
   
-  // Filter by ratings - Fix for TS2365 error
-  if (filters.ratings !== undefined) {
-    // Check if ratings is an array
-    if (Array.isArray(filters.ratings)) {
-      filteredProducts = filteredProducts.filter(p => 
-        filters.ratings!.includes(p.rating)
-      );
-    } else {
-      // If it's a single number, compare directly
-      filteredProducts = filteredProducts.filter(p => p.rating >= filters.ratings as number);
-    }
-  }
-  
-  // Filter by search query
+  // Search query filtering
   if (filters.search) {
     const searchTerms = filters.search.toLowerCase().split(' ').filter(Boolean);
     filteredProducts = filteredProducts.filter(p => {
@@ -86,13 +73,19 @@ export const sortProducts = (products: Product[], sortOption?: string): Product[
       
     case 'popular':
       // Sort by sales count
-      return sortedProducts.sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
+      return sortedProducts.sort((a, b) => {
+        const salesA = a.salesCount || a.sales_count || 0;
+        const salesB = b.salesCount || b.sales_count || 0;
+        return salesB - salesA;
+      });
       
     case 'recommended':
     default:
       // Sort by a combination of sales count and creation date
       return sortedProducts.sort((a, b) => {
-        const salesDiff = (b.salesCount || 0) - (a.salesCount || 0);
+        const salesA = a.salesCount || a.sales_count || 0;
+        const salesB = b.salesCount || b.sales_count || 0;
+        const salesDiff = salesB - salesA;
         
         // If sales count is the same, sort by date (newest first)
         if (salesDiff === 0) {

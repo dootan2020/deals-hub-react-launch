@@ -7,5 +7,7 @@ export interface SearchProduct {
   category_id: string;
   categories?: {
     name: string;
+    id?: string;
+    slug?: string;
   };
 }
