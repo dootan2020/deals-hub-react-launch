@@ -44,5 +44,5 @@ export const fetchProductsWithFilters = async (filters: FilterParams): Promise<P
   };
 };
 
-// Re-export ProductResponse type
+// Re-export ProductResponse type properly
 export type { ProductResponse } from './productService';

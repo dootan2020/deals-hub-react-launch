@@ -71,9 +71,17 @@ export async function fetchProductsWithFilters(filters?: FilterParams): Promise<
       filteredProducts = sortProducts(filteredProducts, 'popular');
     }
     
-    // Handle price range filtering if needed
+    // Handle price range filtering
     if (filters?.priceRange) {
-      const [min, max] = filters.priceRange;
+      let min: number, max: number;
+      
+      if (Array.isArray(filters.priceRange)) {
+        [min, max] = filters.priceRange;
+      } else {
+        min = filters.priceRange.min;
+        max = filters.priceRange.max;
+      }
+      
       filteredProducts = filteredProducts.filter(p => p.price >= min && p.price <= max);
     }
     

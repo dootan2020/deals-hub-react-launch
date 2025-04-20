@@ -1,3 +1,4 @@
+
 // Mock product service
 import { Product } from '@/types';
 import mockProducts from '@/data/mockData';
@@ -79,18 +80,18 @@ export const fetchProductsWithFilters = async (filters: ProductFilters): Promise
   
   // Apply price range filter with proper type checking
   if (filters.priceRange) {
+    let min: number, max: number;
+    
     if (Array.isArray(filters.priceRange)) {
-      const [min, max] = filters.priceRange;
-      filteredProducts = filteredProducts.filter(product => 
-        product.price >= min && product.price <= max
-      );
+      [min, max] = filters.priceRange;
     } else {
-      // TypeScript now knows this is the object shape with min/max properties
-      filteredProducts = filteredProducts.filter(product => 
-        product.price >= filters.priceRange!.min && 
-        product.price <= filters.priceRange!.max
-      );
+      min = filters.priceRange.min;
+      max = filters.priceRange.max;
     }
+    
+    filteredProducts = filteredProducts.filter(product => 
+      product.price >= min && product.price <= max
+    );
   } else if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
     // Handle minPrice/maxPrice as separate parameters for backward compatibility
     if (filters.minPrice !== undefined) {
