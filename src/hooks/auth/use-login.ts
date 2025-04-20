@@ -12,11 +12,10 @@ export const useLogin = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Đăng nhập thành công",
-        description: "Chào mừng bạn quay trở lại!",
-        variant: "default",
-      });
+      toast.success(
+        "Đăng nhập thành công",
+        "Chào mừng bạn quay trở lại!"
+      );
       
       return data;
     } catch (error: any) {
@@ -28,11 +27,10 @@ export const useLogin = () => {
         message = 'Vui lòng xác nhận email trước khi đăng nhập';
       }
       
-      toast({
-        title: "Đăng nhập thất bại",
-        description: message,
-        variant: "destructive",
-      });
+      toast.error(
+        "Đăng nhập thất bại",
+        message
+      );
       
       throw error;
     }

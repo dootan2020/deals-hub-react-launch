@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { UserRole } from '@/types/auth.types';
 import AuthLoadingScreen from './AuthLoadingScreen';
+import { toast } from '@/hooks/use-toast';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -33,6 +34,7 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
   useEffect(() => {
     if (authTimeout) {
       console.log('Authentication timeout triggered - redirecting to login');
+      toast.error("Phiên đăng nhập hết hạn", "Vui lòng đăng nhập lại");
     }
   }, [authTimeout, navigate]);
   

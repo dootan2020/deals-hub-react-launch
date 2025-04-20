@@ -4,7 +4,7 @@ import { useAuthState } from '@/hooks/use-auth-state';
 import { useAuthActions } from '@/hooks/use-auth-actions';
 import { useBalanceListener } from '@/hooks/use-balance-listener';
 import { AuthContextType } from '@/types/auth.types';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   React.useEffect(() => {
     if (authError) {
       console.error('Authentication error:', authError);
-      toast.error('Lỗi xác thực: ' + authError.message);
+      toast.error('Lỗi xác thực', authError.message);
     }
   }, [authError]);
 
@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return userBalance; // Return current balance after refresh
     } catch (error) {
       console.error('Error refreshing balance:', error);
-      toast.error('Không thể cập nhật số dư');
+      toast.error('Không thể cập nhật số dư', 'Vui lòng thử lại sau');
       throw error;
     }
   }, [user?.id, fetchUserBalance, userBalance]);
@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await refreshUserData();
     } catch (error) {
       console.error('Error refreshing user profile:', error);
-      toast.error('Không thể cập nhật thông tin người dùng');
+      toast.error('Không thể cập nhật thông tin người dùng', 'Vui lòng thử lại sau');
       throw error;
     }
   }, [user?.id, refreshUserData]);

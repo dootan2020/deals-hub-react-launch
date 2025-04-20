@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Layout from '@/components/layout/Layout';
 import { Loader2, LogIn, User, Lock } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -20,12 +21,13 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get the redirect URL from the state or default to home
-  const from = location.state?.from?.pathname || '/';
+  // Get the redirect URL from the state or default to dashboard
+  const from = location.state?.from?.pathname || '/dashboard';
   
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !loading) {
+      toast.success("Đăng nhập thành công", "Chào mừng bạn quay trở lại!");
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, from, loading]);
@@ -43,7 +45,7 @@ export default function LoginPage() {
     
     try {
       await login(email, password);
-      // Navigate will be handled by the useEffect when isAuthenticated changes
+      // Navigation will be handled by the useEffect when isAuthenticated changes
     } catch (err: any) {
       setError(err.message || 'Lỗi khi đăng nhập');
     } finally {

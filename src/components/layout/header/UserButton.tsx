@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatCurrency } from "@/lib/utils";
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export const UserButton = () => {
@@ -28,8 +28,14 @@ export const UserButton = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+    try {
+      await logout();
+      toast.success("Đăng xuất thành công", "Hẹn gặp lại bạn!");
+      navigate('/login');
+    } catch (error) {
+      toast.error("Đăng xuất thất bại", "Vui lòng thử lại");
+      console.error("Logout error:", error);
+    }
   };
   
   const handleRefreshBalance = async (event: React.MouseEvent) => {
