@@ -28,7 +28,7 @@ serve(async (req: Request) => {
         );
       }
       
-      // Lấy thông tin chi tiết đơn hàng
+      // Get order details
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .select('*')
@@ -42,7 +42,7 @@ serve(async (req: Request) => {
         );
       }
       
-      // Lấy thông tin chi tiết sản phẩm
+      // Get order item details
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
         .select('*, products:product_id(*)')
@@ -52,24 +52,24 @@ serve(async (req: Request) => {
         console.error('Error fetching order items:', itemsError);
       }
       
-      // Tạo mã hóa đơn theo định dạng "INV-YYYYMMDD-XXXXX"
+      // Create invoice number with format "INV-YYYYMMDD-XXXXX"
       const now = new Date();
       const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-      const randomPart = Math.floor(10000 + Math.random() * 90000); // 5 chữ số ngẫu nhiên
+      const randomPart = Math.floor(10000 + Math.random() * 90000); // 5 random digits
       const invoiceNumber = `INV-${datePart}-${randomPart}`;
       
-      // Chuẩn bị thông tin sản phẩm cho hóa đơn
+      // Prepare product info for invoice
       const products = orderItems ? orderItems.map(item => ({
-        title: item.products?.title || 'Sản phẩm',
+        title: item.products?.title || 'Product',
         price: item.price || 0,
         quantity: item.quantity || 1
       })) : [{
-        title: 'Sản phẩm',
+        title: 'Product',
         price: order.total_price || 0,
         quantity: order.qty || 1
       }];
       
-      // Kiểm tra xem đã có hóa đơn cho đơn hàng này chưa
+      // Check if invoice already exists for this order
       const { data: existingInvoice } = await supabase
         .from('invoices')
         .select('*')
@@ -87,7 +87,12 @@ serve(async (req: Request) => {
         );
       }
       
-      // Tạo hóa đơn mới
+      // Create new invoice with proper type handling
+      const invoiceDetails = {
+        products,
+        recipient: {} // Recipient info can be empty
+      };
+      
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
         .insert({
@@ -95,10 +100,7 @@ serve(async (req: Request) => {
           user_id: order.user_id,
           order_id: order.id,
           amount: order.total_price,
-          details: {
-            products,
-            recipient: {} // Thông tin người nhận có thể trống 
-          },
+          details: invoiceDetails,
           status: 'issued'
         })
         .select()

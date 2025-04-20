@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import type { Invoice } from '@/integrations/supabase/types-extension';
+import type { Json } from '@/integrations/supabase/types';
 
 interface InvoiceDetails {
   products: Array<{
@@ -15,10 +16,10 @@ interface InvoiceDetails {
 }
 
 export const generateInvoiceNumber = (): string => {
-  // Tạo mã hóa đơn theo định dạng "INV-YYYYMMDD-XXXXX" 
+  // Create invoice code with format "INV-YYYYMMDD-XXXXX"
   const now = new Date();
   const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-  const randomPart = Math.floor(10000 + Math.random() * 90000); // 5 chữ số ngẫu nhiên
+  const randomPart = Math.floor(10000 + Math.random() * 90000); // 5 random digits
   return `INV-${datePart}-${randomPart}`;
 };
 
@@ -38,7 +39,7 @@ export const createInvoice = async (
         user_id: userId,
         order_id: orderId,
         amount,
-        details,
+        details: details as unknown as Json,
         status: 'issued'
       })
       .select()

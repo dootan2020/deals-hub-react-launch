@@ -2,6 +2,7 @@
 import { Database as OriginalDatabase } from './types';
 import { UserRole } from '@/types/auth.types';
 import { Deposit } from '@/types/deposits';
+import { Json } from './types';
 
 // Define the Invoice interface
 export interface Invoice {
@@ -64,5 +65,7 @@ export interface Database extends OriginalDatabase {
         Returns: undefined;
       };
     };
+    Enums: OriginalDatabase['public']['Enums'];
+    CompositeTypes: OriginalDatabase['public']['CompositeTypes'];
   };
 }
