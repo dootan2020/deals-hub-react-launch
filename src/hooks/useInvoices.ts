@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Invoice } from '@/integrations/supabase/types-extension';
 
-export { Invoice };
+export type { Invoice };
 
 export const useInvoices = (userId: string) => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);

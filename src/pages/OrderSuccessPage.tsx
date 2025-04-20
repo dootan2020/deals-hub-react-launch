@@ -68,7 +68,6 @@ const OrderSuccessPage = () => {
       setOrderData(result);
       
       if (result.success === 'true' && user?.id) {
-        // Khi đơn hàng thành công, tự động tạo hóa đơn
         await createOrderInvoice(orderId);
       }
       
@@ -86,7 +85,6 @@ const OrderSuccessPage = () => {
     try {
       setIsInvoiceLoading(true);
       
-      // Kiểm tra xem hóa đơn đã tồn tại chưa
       const { data: existingInvoice, error: checkError } = await supabase
         .from('invoices')
         .select('id')
@@ -99,7 +97,6 @@ const OrderSuccessPage = () => {
         return;
       }
       
-      // Lấy thông tin đơn hàng từ database
       const { data: orderDetails, error: orderError } = await supabase
         .from('orders')
         .select('*, order_items(*)')
@@ -112,7 +109,6 @@ const OrderSuccessPage = () => {
         return;
       }
         
-      // Tạo hóa đơn qua Edge Function để có quyền ghi vào bảng
       const { data, error: invoiceError } = await supabase.functions.invoke('create-invoice', {
         body: { orderId }
       });
