@@ -45,10 +45,12 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
   }
 
   if (isRejected) {
-    return <PayPalStateError 
-      errorMessage={errorMessage || 'Lỗi khi tải PayPal.'} 
-      onRetry={() => paypalDispatch({ type: "reset" })} 
-    />;
+    return (
+      <PayPalStateError
+        errorMessage={errorMessage || 'Lỗi khi tải PayPal.'}
+        onRetry={() => paypalDispatch({ type: "resetOptions", options: { clientId: '' } })}
+      />
+    );
   }
 
   return (
@@ -60,11 +62,11 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
           createOrder={(data, actions) => {
             return actions.order.create({
               intent: "CAPTURE",
-              purchase_units: [{ 
-                amount: { 
+              purchase_units: [{
+                amount: {
                   value: amount.toFixed(2),
-                  currency_code: 'USD' 
-                } 
+                  currency_code: 'USD'
+                }
               }],
             });
           }}
@@ -78,3 +80,4 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
 };
 
 export default PayPalCheckoutButton;
+
