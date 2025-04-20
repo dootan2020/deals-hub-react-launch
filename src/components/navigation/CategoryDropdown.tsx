@@ -12,23 +12,23 @@ interface CategoryDropdownProps {
 }
 
 const CategoryDropdown = ({ 
-  className, 
-  isOpen = false, 
+  className,
+  isOpen = false,
   mainCategories = [],
   getSubcategoriesByParentId
 }: CategoryDropdownProps) => {
-  if (!isOpen) return null;
-
-  // Get the first 3 main categories (or less if there are fewer)
   const displayCategories = mainCategories.slice(0, 3);
 
   return (
-    <div className={cn(
-      "absolute left-1/2 -translate-x-1/2 mt-1 w-[900px] bg-white rounded-xl shadow-lg z-50",
-      "p-8 grid grid-cols-3 gap-8",
-      "transition-all duration-200 ease-in-out",
-      className
-    )}>
+    <div 
+      className={cn(
+        "absolute left-1/2 -translate-x-1/2 mt-1 w-[900px] bg-white rounded-xl shadow-lg z-50",
+        "opacity-0 invisible transition-all duration-200 ease-in-out transform -translate-y-2",
+        isOpen && "opacity-100 visible translate-y-0",
+        "p-8 grid grid-cols-1 md:grid-cols-3 gap-8",
+        className
+      )}
+    >
       {displayCategories.map((category) => (
         <div key={category.id} className="space-y-4">
           <h4 className="text-lg font-semibold text-gray-900 mb-3">{category.name}</h4>
@@ -47,9 +47,8 @@ const CategoryDropdown = ({
         </div>
       ))}
 
-      {/* If we have fewer than 3 categories, fill in with empty divs to maintain grid structure */}
       {[...Array(Math.max(0, 3 - displayCategories.length))].map((_, i) => (
-        <div key={`empty-${i}`}></div>
+        <div key={`empty-${i}`} />
       ))}
     </div>
   );

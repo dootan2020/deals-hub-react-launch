@@ -9,7 +9,7 @@ import { useCategoriesContext } from '@/context/CategoriesContext';
 export const DesktopNavigation = () => {
   const location = useLocation();
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const { mainCategories, getSubcategoriesByParentId, isLoading } = useCategoriesContext();
+  const { mainCategories, getSubcategoriesByParentId } = useCategoriesContext();
 
   return (
     <nav className="hidden md:flex items-center justify-center gap-6">
@@ -22,10 +22,12 @@ export const DesktopNavigation = () => {
         Trang chủ
       </Link>
       
-      <div className="relative group">
+      <div 
+        className="relative"
+        onMouseEnter={() => setIsCategoryDropdownOpen(true)}
+        onMouseLeave={() => setIsCategoryDropdownOpen(false)}
+      >
         <button
-          onMouseEnter={() => setIsCategoryDropdownOpen(true)}
-          onMouseLeave={() => setIsCategoryDropdownOpen(false)}
           className={cn('text-sm font-medium transition-colors hover:text-primary', {
             'text-primary': location.pathname.startsWith('/categories'),
           })}
@@ -33,17 +35,11 @@ export const DesktopNavigation = () => {
           Danh mục
         </button>
         
-        <div
-          className="absolute top-full left-1/2 -translate-x-1/2"
-          onMouseEnter={() => setIsCategoryDropdownOpen(true)}
-          onMouseLeave={() => setIsCategoryDropdownOpen(false)}
-        >
-          <CategoryDropdown 
-            isOpen={isCategoryDropdownOpen} 
-            mainCategories={mainCategories}
-            getSubcategoriesByParentId={getSubcategoriesByParentId}
-          />
-        </div>
+        <CategoryDropdown 
+          isOpen={isCategoryDropdownOpen} 
+          mainCategories={mainCategories}
+          getSubcategoriesByParentId={getSubcategoriesByParentId}
+        />
       </div>
 
       <Link
