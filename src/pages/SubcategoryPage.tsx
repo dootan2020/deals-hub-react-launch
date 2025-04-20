@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { useSubcategoryFilters } from '@/hooks/useSubcategoryFilters';
+import { useProductFilters } from '@/hooks/useProductFilters';
 import { useSubcategoryProducts } from '@/hooks/useSubcategoryProducts';
 import SubcategoryError from '@/components/subcategory/SubcategoryError';
 import SubcategoryMainContent from '@/components/subcategory/SubcategoryMainContent';
@@ -12,15 +12,12 @@ const SubcategoryPage = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   
   const {
-    sortOption,
-    priceRange,
-    stockFilter,
-    activeSubcategories,
+    filters,
     handleSortChange,
     handlePriceChange,
     handleStockFilterChange,
-    handleSubcategoryToggle
-  } = useSubcategoryFilters();
+    handleSubcategoryToggle,
+  } = useProductFilters();
 
   const {
     products,
@@ -31,9 +28,9 @@ const SubcategoryPage = () => {
     handlePageChange
   } = useSubcategoryProducts({
     slug: slug || '',
-    sortOption,
-    priceRange,
-    stockFilter
+    sortOption: filters.sort,
+    priceRange: filters.priceRange,
+    stockFilter: filters.stockFilter
   });
   
   const mockSubcategories = [
@@ -53,14 +50,14 @@ const SubcategoryPage = () => {
           products={products}
           isLoading={isLoading}
           viewMode={viewMode}
-          sortOption={sortOption}
+          sortOption={filters.sort}
           handleSortChange={handleSortChange}
-          stockFilter={stockFilter}
+          stockFilter={filters.stockFilter}
           handleStockFilterChange={handleStockFilterChange}
-          priceRange={priceRange}
+          priceRange={filters.priceRange}
           handlePriceChange={handlePriceChange}
           subcategories={mockSubcategories}
-          activeSubcategories={activeSubcategories}
+          activeSubcategories={filters.activeSubcategories}
           onSubcategoryToggle={handleSubcategoryToggle}
         />
       </div>
