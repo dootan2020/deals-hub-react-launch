@@ -1,6 +1,6 @@
 
 import * as React from "react"
-import type { SidebarContext as SidebarContextType } from "./types"
+import type { SidebarContext as SidebarContextType, SidebarProviderProps } from "./types"
 import { SIDEBAR_COOKIE_NAME, SIDEBAR_COOKIE_MAX_AGE, SIDEBAR_KEYBOARD_SHORTCUT } from "./utils"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -49,7 +49,7 @@ export const SidebarProvider = React.forwardRef<HTMLDivElement, SidebarProviderP
     }, [toggleSidebar])
 
     const state = open ? "expanded" : "collapsed"
-    const contextValue = React.useMemo<SidebarContext>(() => ({
+    const contextValue = React.useMemo<SidebarContextType>(() => ({
       state,
       open,
       setOpen,
