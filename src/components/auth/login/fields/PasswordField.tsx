@@ -20,12 +20,12 @@ export const PasswordField = ({ control, isLoading }: PasswordFieldProps) => {
       render={({ field }) => (
         <FormItem>
           <div className="flex justify-between items-center">
-            <Label htmlFor="password">Mật khẩu</Label>
+            <Label htmlFor="password">Password</Label>
             <Link 
               to="/forgot-password" 
               className="text-sm text-primary hover:underline"
             >
-              Quên mật khẩu?
+              Forgot password?
             </Link>
           </div>
           <div className="relative">
