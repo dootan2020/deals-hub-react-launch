@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -11,8 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Product } from '@/types';
-import { convertVNDtoUSD } from '@/utils/currency';
-import { AlertTriangle } from 'lucide-react';
+import { convertVNDtoUSD, formatUSD } from '@/utils/currency'; // Added formatUSD import
+import { AlertTriangle, Loader2 } from 'lucide-react'; // Added Loader2 import
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
