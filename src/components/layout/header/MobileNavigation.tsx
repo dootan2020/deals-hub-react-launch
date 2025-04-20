@@ -8,54 +8,81 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { ShoppingBag } from 'lucide-react';
-
-interface MobileNavLinkProps {
-  to: string;
-  onClick?: () => void;
-  children: React.ReactNode;
-}
-
-const MobileNavLink = ({ to, onClick, children }: MobileNavLinkProps) => {
-  return (
-    <Link 
-      to={to} 
-      className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
-      onClick={onClick}
-    >
-      {children}
-    </Link>
-  );
-};
-
-interface MobileNavigationProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-}
+import { ShoppingBag, ChevronRight } from 'lucide-react';
+import { useCategoriesContext } from '@/context/CategoriesContext';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { MobileNavigationProps } from '@/types/layout';
 
 export const MobileNavigation = ({ isOpen, onOpenChange }: MobileNavigationProps) => {
+  const { mainCategories, getSubcategoriesByParentId } = useCategoriesContext();
+  
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="w-[240px]">
-        <SheetHeader>
+      <SheetContent side="left" className="w-[300px] p-0">
+        <SheetHeader className="p-4 border-b">
           <SheetTitle>Menu</SheetTitle>
-          <SheetDescription>Browse our site</SheetDescription>
+          <SheetDescription>Danh mục sản phẩm</SheetDescription>
         </SheetHeader>
-        <nav className="flex flex-col gap-3 mt-6">
-          <MobileNavLink to="/" onClick={() => onOpenChange(false)}>
-            Home
-          </MobileNavLink>
-          <MobileNavLink to="/products" onClick={() => onOpenChange(false)}>
-            Products
-          </MobileNavLink>
-          <MobileNavLink to="/support" onClick={() => onOpenChange(false)}>
-            Support
-          </MobileNavLink>
-          <MobileNavLink to="/orders" onClick={() => onOpenChange(false)}>
-            <ShoppingBag className="w-4 h-4 mr-2" />
-            Orders
-          </MobileNavLink>
-        </nav>
+        <ScrollArea className="h-[calc(100vh-100px)]">
+          <div className="flex flex-col p-2">
+            <Link to="/" onClick={() => onOpenChange(false)}>
+              <Button variant="ghost" className="w-full justify-start">
+                Trang chủ
+              </Button>
+            </Link>
+            
+            <Accordion type="single" collapsible className="w-full">
+              {mainCategories.map((category) => {
+                const subcategories = getSubcategoriesByParentId(category.id);
+                return (
+                  <AccordionItem value={category.id} key={category.id}>
+                    <AccordionTrigger className="py-2 px-4 hover:no-underline">
+                      {category.name}
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="flex flex-col space-y-1">
+                        <Link
+                          to={`/categories/${category.slug}`}
+                          onClick={() => onOpenChange(false)}
+                          className="py-2 px-4 text-sm hover:bg-accent rounded-md flex items-center"
+                        >
+                          Tất cả {category.name}
+                          <ChevronRight className="ml-auto h-4 w-4" />
+                        </Link>
+                        {subcategories.map((subcategory) => (
+                          <Link
+                            key={subcategory.id}
+                            to={`/categories/${category.slug}/${subcategory.slug}`}
+                            onClick={() => onOpenChange(false)}
+                            className="py-2 px-4 text-sm hover:bg-accent rounded-md flex items-center"
+                          >
+                            {subcategory.name}
+                            <ChevronRight className="ml-auto h-4 w-4" />
+                          </Link>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+
+            <Link to="/support" onClick={() => onOpenChange(false)}>
+              <Button variant="ghost" className="w-full justify-start">
+                Hỗ trợ
+              </Button>
+            </Link>
+            
+            <Link to="/orders" onClick={() => onOpenChange(false)}>
+              <Button variant="ghost" className="w-full justify-start">
+                <ShoppingBag className="mr-2 h-4 w-4" />
+                Đơn hàng
+              </Button>
+            </Link>
+          </div>
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );
