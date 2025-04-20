@@ -19,23 +19,23 @@ import { CategoriesProvider } from '@/context/CategoriesContext';
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <Layout><Index /></Layout>,
+    element: <Index />,
   },
   {
     path: '/products',
-    element: <Layout><ProductsPage /></Layout>,
+    element: <ProductsPage />,
   },
   {
     path: '/products/:productSlug',
-    element: <Layout><ProductPage /></Layout>,
+    element: <ProductPage />,
   },
   {
     path: '/categories/:categorySlug',
-    element: <Layout><CategoryPage /></Layout>,
+    element: <CategoryPage />,
   },
   {
     path: '/categories/:parentCategorySlug/:categorySlug',
-    element: <Layout><SubcategoryPage /></Layout>,
+    element: <SubcategoryPage />,
   },
   {
     path: '/login',
@@ -43,13 +43,13 @@ const router = createBrowserRouter([
   },
   {
     path: '/support',
-    element: <Layout><SupportPage /></Layout>,
+    element: <SupportPage />,
   },
   {
     path: '/orders',
     element: (
       <ProtectedRoute>
-        <Layout><OrdersPage /></Layout>
+        <OrdersPage />
       </ProtectedRoute>
     ),
   },
@@ -57,17 +57,17 @@ const router = createBrowserRouter([
     path: '/account',
     element: (
       <ProtectedRoute>
-        <Layout><AccountPage /></Layout>
+        <AccountPage />
       </ProtectedRoute>
     ),
   },
   {
     path: '/404',
-    element: <Layout><NotFound /></Layout>,
+    element: <NotFound />,
   },
   {
     path: '*',
-    element: <Layout><NotFound /></Layout>,
+    element: <NotFound />,
   },
 ]);
 

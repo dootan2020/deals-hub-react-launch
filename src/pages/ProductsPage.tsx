@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -46,6 +45,7 @@ const ProductsPage = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
+  const [perPage] = useState(24); // Increased from default 12
   
   // Filters
   const [filters, setFilters] = useState<FilterParams>({
@@ -53,7 +53,8 @@ const ProductsPage = () => {
     search: searchParams.get('search') || '',
     categoryId: searchParams.get('category') || undefined,
     inStock: searchParams.get('inStock') === 'true',
-    priceRange: [0, 500]
+    priceRange: [0, 500],
+    perPage: perPage
   });
 
   // Active subcategory
@@ -91,6 +92,7 @@ const ProductsPage = () => {
         const filterParams: FilterParams = {
           ...filters,
           page: 1,
+          perPage: perPage
         };
         
         // If subcategory is selected, use that instead of category
@@ -117,7 +119,7 @@ const ProductsPage = () => {
     };
     
     loadProducts();
-  }, [filters.search, filters.categoryId, filters.inStock, filters.sort, filters.priceRange, activeSubcategoryId]);
+  }, [filters.search, filters.categoryId, filters.inStock, filters.sort, filters.priceRange, activeSubcategoryId, perPage]);
 
   const loadMore = async () => {
     if (loadingMore) return;
@@ -129,6 +131,7 @@ const ProductsPage = () => {
       const filterParams: FilterParams = {
         ...filters,
         page: nextPage,
+        perPage: perPage
       };
       
       // If subcategory is selected, use that instead of category
@@ -242,9 +245,9 @@ const ProductsPage = () => {
             </div>
 
             {/* Display subcategory pills if a main category is selected */}
-            {filters.categoryId && subcategories.length > 0 && (
+            {filters.categoryId && (getSubcategoriesByParentId(filters.categoryId)?.length || 0) > 0 && (
               <SubcategoryPills 
-                subcategories={subcategories} 
+                subcategories={getSubcategoriesByParentId(filters.categoryId)} 
                 onSubcategoryClick={handleSubcategoryClick}
               />
             )}

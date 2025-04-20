@@ -35,7 +35,7 @@ const SubcategoryPage = () => {
     sortOption,
     priceRange,
     stockFilter,
-    activeSubcategories // Adding the missing activeSubcategories prop
+    activeSubcategories
   });
   
   const mockSubcategories = [

@@ -1,4 +1,3 @@
-
 import { TableHTMLAttributes } from 'react';
 import { Json } from '@/integrations/supabase/types';
 
@@ -52,17 +51,12 @@ export interface SortOption {
 export interface FilterParams {
   categoryId?: string;
   subcategory?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  ratings?: number[];
-  search?: string;
-  tags?: string[];
   inStock?: boolean;
+  search?: string;
   sort?: string;
   page?: number;
   perPage?: number;
-  limit?: number;
-  priceRange?: [number, number];
+  priceRange?: [number, number] | { min: number; max: number };
 }
 
 export interface CategoryPageParams extends Record<string, string> {

@@ -9,7 +9,7 @@ export async function fetchProductsWithFilters(filters?: FilterParams): Promise<
   try {
     let query = supabase
       .from('products')
-      .select('*, categories:category_id(*)');
+      .select('*, categories:category_id(*)', { count: 'exact' });
     
     if (filters?.categoryId) {
       query = query.eq('category_id', filters.categoryId);
@@ -28,8 +28,10 @@ export async function fetchProductsWithFilters(filters?: FilterParams): Promise<
       query = query.ilike('title', `%${filters.search}%`);
     }
 
+    // Use perPage from filters or default to 24 (increased from 12)
+    const pageSize = filters?.perPage || 24;
+    
     if (filters?.page !== undefined) {
-      const pageSize = 12;
       const start = (filters.page - 1) * pageSize;
       const end = start + pageSize - 1;
       query = query.range(start, end);
@@ -98,7 +100,7 @@ export async function fetchProductsWithFilters(filters?: FilterParams): Promise<
       products: filteredProducts,
       total: count || filteredProducts.length,
       page: filters?.page || 1,
-      totalPages: Math.ceil((count || filteredProducts.length) / (filters?.perPage || 12))
+      totalPages: Math.ceil((count || filteredProducts.length) / (filters?.perPage || pageSize))
     };
   } catch (error) {
     console.error("Error fetching products with filters:", error);
