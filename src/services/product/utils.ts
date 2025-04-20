@@ -1,4 +1,6 @@
 
+import { Json } from '@/integrations/supabase/types';
+
 interface DatabaseProduct {
   id: string;
   title: string;
@@ -16,7 +18,7 @@ interface DatabaseProduct {
   badges?: string[];
   slug: string;
   features?: string[];
-  specifications?: Record<string, any>;
+  specifications?: Json;
   sales_count?: number;
   stock: number;
   kiosk_token?: string;
