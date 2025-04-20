@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -111,6 +112,19 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
     setQuantity(Math.min(Math.max(1, value), maxQuantity));
   };
 
+  // Function to handle the confirmation and submission
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      await onConfirm(quantity, promotionCode);
+    } catch (error) {
+      console.error("Error during purchase confirmation:", error);
+      toast.error("Có lỗi xảy ra khi xác nhận mua hàng");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (!product) return null;
 
   return (
@@ -185,7 +199,7 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
                 </Button>
               </div>
               <div className="text-xs text-muted-foreground">
-                Còn lại: {product.stockQuantity || 0} sản phẩm
+                Còn lại: {verifiedStock !== null ? verifiedStock : product.stockQuantity || 0} sản phẩm
               </div>
             </div>
           )}
@@ -251,7 +265,7 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
             variant="default" 
             className="flex-1 bg-primary text-white" 
             disabled={!hasEnoughBalance || isSubmitting || isVerifying}
-            onClick={() => handleConfirm(quantity, promotionCode)}
+            onClick={handleSubmit}
           >
             {isVerifying ? (
               <>
