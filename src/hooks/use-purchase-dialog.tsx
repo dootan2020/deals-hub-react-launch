@@ -1,13 +1,14 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { Product } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useOrderApi } from '@/hooks/use-order-api';
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
 import { convertVNDtoUSD } from '@/utils/currency';
 import { fetchProductInfoByKioskToken } from '@/services/product/mockProductService';
 import { useProxyConfig } from '@/hooks/useProxyConfig';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 export const usePurchaseDialog = () => {
   const [open, setOpen] = useState(false);
@@ -15,17 +16,19 @@ export const usePurchaseDialog = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifiedStock, setVerifiedStock] = useState<number | null>(null);
   const [verifiedPrice, setVerifiedPrice] = useState<number | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
-  const { createOrder } = useOrderApi();
   const { data: currencySettings } = useCurrencySettings();
   const { proxyConfig } = useProxyConfig();
   const [orderResult, setOrderResult] = useState<any>(null);
+  const { user } = useAuth();
 
   const closeDialog = useCallback(() => {
     setOpen(false);
     setVerifiedStock(null);
     setVerifiedPrice(null);
     setIsVerifying(false);
+    setOrderResult(null);
   }, []);
 
   const openDialog = useCallback(async (product: Product) => {
@@ -72,6 +75,7 @@ export const usePurchaseDialog = () => {
           filter: `id=eq.${orderResult.orderId}`
         },
         async (payload) => {
+          console.log('Order status changed:', payload);
           if (payload.new.status === 'completed') {
             toast.success('Order completed successfully!');
             closeDialog();
@@ -84,11 +88,16 @@ export const usePurchaseDialog = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [orderResult?.orderId]);
+  }, [orderResult?.orderId, navigate, closeDialog]);
 
   const handleConfirm = useCallback(async (quantity: number, promotionCode?: string) => {
     if (!selectedProduct) {
       toast.error('Product information not found');
+      return;
+    }
+
+    if (!user) {
+      toast.error('You must be logged in to purchase');
       return;
     }
 
@@ -97,38 +106,53 @@ export const usePurchaseDialog = () => {
       return;
     }
     
+    setIsProcessing(true);
     try {
       const rate = currencySettings?.vnd_per_usd ?? 24000;
       
       const finalPrice = verifiedPrice || selectedProduct.price;
       const priceUSD = convertVNDtoUSD(finalPrice, rate);
       
-      const result = await createOrder({
-        kioskToken: selectedProduct.kiosk_token || '',
-        productId: selectedProduct.id,
-        quantity,
-        promotionCode,
-        priceUSD
-      });
+      // Call the database function to create order and deduct balance
+      const { data, error } = await supabase
+        .rpc('create_order_and_deduct_balance', {
+          p_user_id: user.id,
+          p_product_id: selectedProduct.id,
+          p_quantity: quantity,
+          p_price_per_unit: priceUSD,
+          p_promotion_code: promotionCode || null,
+          p_kiosk_token: selectedProduct.kiosk_token || null
+        });
       
-      if (result.success && result.orderId) {
-        const { data: applyKeysResult, error: applyKeysError } = await supabase.functions
-          .invoke('apply-keys', {
-            body: { orderId: result.orderId }
-          });
-        
-        if (applyKeysError) {
-          console.error('Error applying keys:', applyKeysError);
-          toast.error('Order placed but error applying keys. Please contact support.');
-        }
-      } else {
-        throw new Error(result.message || 'Could not create order');
+      if (error) {
+        toast.error(error.message || 'Failed to place order');
+        throw error;
       }
+      
+      const orderId = data;
+      console.log('Order created successfully with ID:', orderId);
+      setOrderResult({ orderId });
+      
+      toast.success('Order placed! Processing your request...');
+      
+      // Call the apply-keys edge function
+      const { error: applyKeysError } = await supabase.functions
+        .invoke('apply-keys', {
+          body: { orderId }
+        });
+      
+      if (applyKeysError) {
+        console.error('Error applying keys:', applyKeysError);
+        toast.error('Order placed but error applying keys. Please contact support.');
+      }
+      
     } catch (error: any) {
       console.error('Error during purchase:', error);
       toast.error(error.message || 'An error occurred during purchase');
+    } finally {
+      setIsProcessing(false);
     }
-  }, [selectedProduct, verifiedStock, verifiedPrice, createOrder, closeDialog, navigate, currencySettings]);
+  }, [selectedProduct, verifiedStock, verifiedPrice, currencySettings, user]);
 
   return {
     open,
@@ -137,6 +161,7 @@ export const usePurchaseDialog = () => {
     closeDialog,
     handleConfirm,
     isVerifying,
+    isProcessing,
     verifiedStock,
     verifiedPrice
   };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Product } from '@/types';
@@ -16,6 +17,7 @@ interface PurchaseConfirmDialogProps {
   product?: Product;
   onConfirm: (quantity: number, promotionCode?: string) => void;
   isVerifying?: boolean;
+  isProcessing?: boolean;
   verifiedStock?: number | null;
   verifiedPrice?: number | null;
 }
@@ -26,6 +28,7 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
   product,
   onConfirm,
   isVerifying = false,
+  isProcessing = false,
   verifiedStock = null,
   verifiedPrice = null
 }) => {
@@ -148,6 +151,7 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
             onConfirm={handleSubmit}
             isSubmitting={isSubmitting}
             isVerifying={isVerifying}
+            isProcessing={isProcessing}
             hasEnoughBalance={hasEnoughBalance}
           />
         </DialogFooter>
