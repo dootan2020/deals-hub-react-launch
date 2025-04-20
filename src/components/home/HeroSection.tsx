@@ -3,41 +3,44 @@ import { Link } from 'react-router-dom';
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-[600px] py-16 md:py-24 overflow-hidden">
-      {/* Background Image with Blur Effect */}
+    <section className="relative min-h-[600px] flex items-center justify-center py-16 md:py-24 overflow-hidden">
+      {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 z-0"
         style={{
-          backgroundImage: "url('/lovable-uploads/3989129c-56cd-48fd-b7e5-b30f0d3a4935.png')",
+          backgroundImage: "url('https://i.imgur.com/byYdYpf.png')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
+          loading: 'lazy'
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-black/50" />
       </div>
 
-      {/* Content */}
-      <div className="container-custom relative z-10">
-        <div className="flex flex-col items-center text-center">
-          <div className="animate-fade-in max-w-3xl">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Premium Digital Products at <span className="text-primary">Unbeatable Prices</span>
+      {/* Content Card */}
+      <div className="relative z-10 w-full max-w-3xl mx-auto px-4">
+        <div className="bg-gray-800/85 backdrop-blur-sm rounded-xl shadow-lg p-8 md:p-12">
+          <div className="text-center">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 font-inter">
+              Premium Digital Products at{' '}
+              <span className="text-[#10b981]">Unbeatable Prices</span>
             </h1>
-            <p className="text-gray-200 text-lg mb-8">
+            
+            <p className="text-[#e5e7eb] text-lg mb-8">
               Discover a wide range of digital products including email accounts, gaming accounts, and software keys.
             </p>
 
-            <div className="flex justify-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link 
                 to="/category/email" 
-                className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-md transition-all duration-300 hover:scale-105"
+                className="inline-flex justify-center items-center px-6 py-3 rounded-lg bg-[#10b981] text-white font-medium hover:bg-[#059669] transition-colors duration-200"
               >
                 Explore Products
               </Link>
               <Link 
                 to="/category/account" 
-                className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-6 py-3 rounded-md transition-all duration-300 hover:bg-white/20"
+                className="inline-flex justify-center items-center px-6 py-3 rounded-lg bg-[#f9fafb] text-[#111827] font-medium hover:bg-[#e5e7eb] transition-colors duration-200"
               >
                 View Featured
               </Link>
@@ -50,4 +53,3 @@ const HeroSection = () => {
 };
 
 export default HeroSection;
-
