@@ -1,5 +1,4 @@
-
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Product } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -8,6 +7,7 @@ import { useCurrencySettings } from '@/hooks/useCurrencySettings';
 import { convertVNDtoUSD } from '@/utils/currency';
 import { fetchProductInfoByKioskToken } from '@/services/product/mockProductService';
 import { useProxyConfig } from '@/hooks/useProxyConfig';
+import { supabase } from '@/integrations/supabase/client';
 
 export const usePurchaseDialog = () => {
   const [open, setOpen] = useState(false);
@@ -19,21 +19,19 @@ export const usePurchaseDialog = () => {
   const { createOrder } = useOrderApi();
   const { data: currencySettings } = useCurrencySettings();
   const { proxyConfig } = useProxyConfig();
-  
-  // Reset state when dialog closes
+  const [orderResult, setOrderResult] = useState<any>(null);
+
   const closeDialog = useCallback(() => {
     setOpen(false);
     setVerifiedStock(null);
     setVerifiedPrice(null);
     setIsVerifying(false);
   }, []);
-  
-  // Verify stock before opening dialog
+
   const openDialog = useCallback(async (product: Product) => {
     setSelectedProduct(product);
     setOpen(true);
 
-    // Start stock verification only if we have a kiosk token
     if (product.kiosk_token) {
       setIsVerifying(true);
       try {
@@ -59,25 +57,49 @@ export const usePurchaseDialog = () => {
       }
     }
   }, [closeDialog, proxyConfig]);
-  
-  // Handle purchase confirmation
+
+  useEffect(() => {
+    if (!orderResult?.orderId) return;
+
+    const channel = supabase
+      .channel('order-status')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `id=eq.${orderResult.orderId}`
+        },
+        async (payload) => {
+          if (payload.new.status === 'completed') {
+            toast.success('Order completed successfully!');
+            closeDialog();
+            navigate(`/order-success?orderId=${orderResult.orderId}`);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orderResult?.orderId]);
+
   const handleConfirm = useCallback(async (quantity: number, promotionCode?: string) => {
     if (!selectedProduct) {
-      toast.error('Không tìm thấy thông tin sản phẩm');
+      toast.error('Product information not found');
       return;
     }
 
-    // Check if we have verified stock data
     if (verifiedStock !== null && quantity > verifiedStock) {
-      toast.error('Số lượng vượt quá tồn kho hiện có');
+      toast.error('Requested quantity exceeds available stock');
       return;
     }
     
     try {
-      // Get the exchange rate
       const rate = currencySettings?.vnd_per_usd ?? 24000;
       
-      // Use verified price if available, otherwise use product price
       const finalPrice = verifiedPrice || selectedProduct.price;
       const priceUSD = convertVNDtoUSD(finalPrice, rate);
       
@@ -90,18 +112,24 @@ export const usePurchaseDialog = () => {
       });
       
       if (result.success && result.orderId) {
-        toast.success('Đặt hàng thành công!');
-        closeDialog();
-        navigate(`/order-success?orderId=${result.orderId}`);
+        const { data: applyKeysResult, error: applyKeysError } = await supabase.functions
+          .invoke('apply-keys', {
+            body: { orderId: result.orderId }
+          });
+        
+        if (applyKeysError) {
+          console.error('Error applying keys:', applyKeysError);
+          toast.error('Order placed but error applying keys. Please contact support.');
+        }
       } else {
-        throw new Error(result.message || 'Không thể tạo đơn hàng');
+        throw new Error(result.message || 'Could not create order');
       }
     } catch (error: any) {
       console.error('Error during purchase:', error);
-      toast.error(error.message || 'Đã xảy ra lỗi khi đặt hàng');
+      toast.error(error.message || 'An error occurred during purchase');
     }
   }, [selectedProduct, verifiedStock, verifiedPrice, createOrder, closeDialog, navigate, currencySettings]);
-  
+
   return {
     open,
     selectedProduct,

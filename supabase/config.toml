@@ -32,13 +32,11 @@ enable_signup = true
 double_confirm_changes = true
 enable_confirmations = true
 
-[auth.external.google]
-enabled = false
-client_id = ""
-secret = ""
-
 [functions]
 [functions.send-email]
 verify_jwt = true
 [functions.auth-cleanup]
 verify_jwt = false
+[functions.apply-keys]
+verify_jwt = true
+
