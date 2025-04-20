@@ -8,12 +8,17 @@ import ProductPage from '@/pages/ProductPage';
 import CategoryPage from '@/pages/CategoryPage';
 import SubcategoryPage from '@/pages/SubcategoryPage';
 import LoginPage from '@/pages/LoginPage';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import ProtectedRoute from '@/components/routing/ProtectedRoute';
 import SupportPage from '@/pages/SupportPage';
 import OrdersPage from './pages/OrdersPage';
 import AccountPage from './pages/AccountPage';
 import NotFound from '@/pages/NotFound';
 import { CategoriesProvider } from '@/context/CategoriesContext';
+
+// Admin Pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+import ApiTesterPage from './pages/admin/ApiTesterPage';
+import ProductManagerPage from './pages/admin/ProductManagerPage';
 
 // Create a single router instance
 const router = createBrowserRouter([
@@ -58,6 +63,31 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <AccountPage />
+      </ProtectedRoute>
+    ),
+  },
+  // Admin routes
+  {
+    path: '/admin',
+    element: (
+      <ProtectedRoute requiredRoles={['admin']}>
+        <AdminDashboard />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/admin/api-tester',
+    element: (
+      <ProtectedRoute requiredRoles={['admin']}>
+        <ApiTesterPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/admin/product-manager',
+    element: (
+      <ProtectedRoute requiredRoles={['admin']}>
+        <ProductManagerPage />
       </ProtectedRoute>
     ),
   },
