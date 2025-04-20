@@ -20,9 +20,24 @@ export const QuantitySelector = ({
   productStock,
 }: QuantitySelectorProps) => {
   const handleQuantityInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value, 10);
-    if (isNaN(value)) return;
-    onQuantityChange(Math.min(Math.max(1, value), maxQuantity));
+    const inputValue = e.target.value;
+    
+    // Empty input handling
+    if (inputValue === '') {
+      return;
+    }
+    
+    // Parse the input to a number
+    const value = parseInt(inputValue, 10);
+    
+    // If not a valid number, do nothing
+    if (isNaN(value)) {
+      return;
+    }
+    
+    // Apply constraints: minimum 1, maximum is maxQuantity
+    const constrainedValue = Math.min(Math.max(1, value), maxQuantity);
+    onQuantityChange(constrainedValue);
   };
 
   return (

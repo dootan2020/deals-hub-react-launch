@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -99,21 +100,30 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
     }
   }, [open]);
 
-  const handleQuantityChange = (amount: number) => {
+  const handleQuantityChange = (newQuantity: number) => {
+    // Make sure newQuantity is valid and within range
     const maxQuantity = verifiedStock ?? product?.stockQuantity ?? 1;
-    const newQuantity = Math.min(Math.max(1, quantity + amount), maxQuantity);
-    setQuantity(newQuantity);
-  };
-
-  const handleQuantityInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value, 10);
-    if (isNaN(value)) return;
+    const validQuantity = Math.min(Math.max(1, newQuantity), maxQuantity);
+    setQuantity(validQuantity);
     
-    const maxQuantity = verifiedStock ?? product?.stockQuantity ?? 1;
-    setQuantity(Math.min(Math.max(1, value), maxQuantity));
+    // Log for debugging
+    console.log(`Quantity changed: ${validQuantity} (max: ${maxQuantity})`);
   };
 
   const handleSubmit = async () => {
+    // Additional validation before submitting
+    const maxQuantity = verifiedStock ?? product?.stockQuantity ?? 1;
+    
+    if (quantity < 1) {
+      toast.error("Số lượng không hợp lệ");
+      return;
+    }
+    
+    if (quantity > maxQuantity) {
+      toast.error(`Số lượng không thể vượt quá ${maxQuantity}`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await onConfirm(quantity, promotionCode);
@@ -174,7 +184,7 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
                   maxQuantity={verifiedStock ?? product.stockQuantity ?? 1}
                   onQuantityChange={handleQuantityChange}
                   verifiedStock={verifiedStock}
-                  productStock={product.stockQuantity}
+                  productStock={product.stockQuantity ?? 0}
                 />
               </div>
               
