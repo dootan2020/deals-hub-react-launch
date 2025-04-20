@@ -50,8 +50,9 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
           setErrorMessage('Cấu hình PayPal chưa được thiết lập.');
         }
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Lỗi khi kết nối với PayPal. Vui lòng thử lại sau.';
         console.error('Failed to fetch PayPal Client ID:', error);
-        setErrorMessage('Lỗi khi kết nối với PayPal. Vui lòng thử lại sau.');
+        setErrorMessage(message);
       }
     };
     
@@ -187,8 +188,8 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
                     }
                   });
                 } catch (error) {
-                  const errorMsg = error instanceof Error ? error.message : "Lỗi không xác định";
-                  handlePaymentFailure(errorMsg);
+                  const message = error instanceof Error ? error.message : "Lỗi không xác định";
+                  handlePaymentFailure(message);
                   throw error;
                 }
               }}
@@ -222,8 +223,8 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
                       }
                     } catch (error) {
                       toast.dismiss(toastId);
-                      const errorMsg = error instanceof Error ? error.message : "Unknown error";
-                      handlePaymentFailure(`Có lỗi xảy ra khi xử lý giao dịch: ${errorMsg}`);
+                      const message = error instanceof Error ? error.message : "Unknown error";
+                      handlePaymentFailure(`Có lỗi xảy ra khi xử lý giao dịch: ${message}`);
                       if (details && details.id) {
                         onSuccess();
                       }
@@ -233,8 +234,8 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
                   });
                 } catch (error) {
                   toast.dismiss();
-                  const errorMsg = error instanceof Error ? error.message : "Unknown error";
-                  handlePaymentFailure(`Lỗi xử lý giao dịch PayPal: ${errorMsg}`);
+                  const message = error instanceof Error ? error.message : "Unknown error";
+                  handlePaymentFailure(`Lỗi xử lý giao dịch PayPal: ${message}`);
                   setIsProcessing(false);
                 }
               }}
@@ -263,3 +264,4 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({
     </div>
   );
 };
+
