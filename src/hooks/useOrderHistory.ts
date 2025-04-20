@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { createInvoiceFromOrder } from '@/components/account/invoice-utils';
 
 interface OrderProduct {
   title: string;
@@ -47,6 +48,22 @@ export const useOrderHistory = (userId: string) => {
               .select('title')
               .eq('id', orderItem.product_id)
               .single();
+
+            // Nếu đơn hàng đã hoàn tất, tạo hóa đơn
+            if (order.status === 'completed') {
+              try {
+                const orderWithProduct = {
+                  ...order,
+                  product_title: product?.title,
+                  qty: 1 // Mặc định là 1 nếu không có thông tin
+                };
+                
+                // Tạo hóa đơn từ đơn hàng
+                await createInvoiceFromOrder(userId, order.id, orderWithProduct);
+              } catch (invoiceError) {
+                console.error("Error creating invoice for order:", invoiceError);
+              }
+            }
 
             return {
               ...order,

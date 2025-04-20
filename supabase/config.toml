@@ -42,3 +42,6 @@ secret = ""
 verify_jwt = true
 [functions.auth-cleanup]
 verify_jwt = false
+[functions.create-invoice]
+verify_jwt = true
+

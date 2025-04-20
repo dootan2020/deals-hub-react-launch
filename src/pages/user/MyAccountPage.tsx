@@ -4,15 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { Wallet, ShoppingBag, Clock, User, Lock, Loader2, RefreshCw } from "lucide-react";
+import { Wallet, ShoppingBag, Clock, User, Lock, Loader2, RefreshCw, FileText } from "lucide-react";
 import Layout from '@/components/layout/Layout';
 import OrderHistoryTab from '@/components/account/OrderHistoryTab';
 import DepositHistoryTab from '@/components/account/DepositHistoryTab';
+import InvoiceHistoryTab from '@/components/account/InvoiceHistoryTab';
 import AccountStats from '@/components/account/AccountStats';
 import AccountProfile from '@/components/account/AccountProfile';
 import ChangePasswordForm from '@/components/account/ChangePasswordForm';
@@ -123,7 +122,7 @@ const MyAccountPage = () => {
             />
 
             <Tabs defaultValue="profile" className="mt-8">
-              <TabsList className="grid grid-cols-4 mb-6">
+              <TabsList className="grid grid-cols-5 mb-6">
                 <TabsTrigger value="profile">
                   <User className="mr-2 h-4 w-4" />
                   Profile
@@ -135,6 +134,10 @@ const MyAccountPage = () => {
                 <TabsTrigger value="deposits">
                   <Wallet className="mr-2 h-4 w-4" />
                   Deposit History
+                </TabsTrigger>
+                <TabsTrigger value="invoices">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Invoices
                 </TabsTrigger>
                 <TabsTrigger value="password">
                   <Lock className="mr-2 h-4 w-4" />
@@ -152,6 +155,10 @@ const MyAccountPage = () => {
               
               <TabsContent value="deposits">
                 <DepositHistoryTab userId={user.id} />
+              </TabsContent>
+              
+              <TabsContent value="invoices">
+                <InvoiceHistoryTab userId={user.id} />
               </TabsContent>
               
               <TabsContent value="password">
