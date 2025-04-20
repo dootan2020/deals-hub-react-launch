@@ -1,3 +1,4 @@
+
 import { TableHTMLAttributes } from 'react';
 
 export interface Product {
@@ -98,4 +99,7 @@ export interface ProductKey {
   status: string;
   created_at: string;
   order_id?: string;
+  product_id?: string;
+  updated_at?: string;
+  used_at?: string | null;
 }

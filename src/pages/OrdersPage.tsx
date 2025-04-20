@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import {
@@ -106,16 +105,15 @@ const OrdersPage = () => {
   const fetchProductKeys = async (orderId: string) => {
     setIsLoadingKeys(true);
     try {
-      // Use raw SQL query with supabase to get around the type issues
-      const { data, error } = await supabase
-        .rpc('get_product_keys_by_order', {
-          order_id_param: orderId
-        });
+      // Use rpc to call the database function
+      const { data, error } = await supabase.rpc('get_product_keys_by_order', {
+        order_id_param: orderId
+      });
 
       if (error) throw error;
       
-      // Type assertion to ensure we get the right type
-      setProductKeys(data as ProductKey[] || []);
+      // Cast the data to the correct type
+      setProductKeys(data as ProductKey[]);
       setSelectedOrder(orderId);
       setDialogOpen(true);
     } catch (err: any) {

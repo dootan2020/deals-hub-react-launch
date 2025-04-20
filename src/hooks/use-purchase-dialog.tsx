@@ -17,6 +17,8 @@ export const usePurchaseDialog = () => {
   const [verifiedStock, setVerifiedStock] = useState<number | null>(null);
   const [verifiedPrice, setVerifiedPrice] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+  const [orderStatus, setOrderStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const navigate = useNavigate();
   const { data: currencySettings } = useCurrencySettings();
   const { proxyConfig } = useProxyConfig();
@@ -29,6 +31,8 @@ export const usePurchaseDialog = () => {
     setVerifiedPrice(null);
     setIsVerifying(false);
     setOrderResult(null);
+    setOrderError(null);
+    setOrderStatus('idle');
   }, []);
 
   const openDialog = useCallback(async (product: Product) => {
@@ -107,13 +111,16 @@ export const usePurchaseDialog = () => {
     }
     
     setIsProcessing(true);
+    setOrderStatus('loading');
+    setOrderError(null);
+    
     try {
       const rate = currencySettings?.vnd_per_usd ?? 24000;
       
       const finalPrice = verifiedPrice || selectedProduct.price;
       const priceUSD = convertVNDtoUSD(finalPrice, rate);
       
-      // Use supabase.rpc to call the database function rather than directly using the function name string
+      // Use the properly typed function with an RPC call
       const { data, error } = await supabase.rpc('create_order_and_deduct_balance', {
         p_user_id: user.id,
         p_product_id: selectedProduct.id,
@@ -132,6 +139,7 @@ export const usePurchaseDialog = () => {
       
       console.log('Order created successfully with ID:', data);
       setOrderResult({ orderId: data });
+      setOrderStatus('success');
       
       toast.success('Order placed! Processing your request...');
       
@@ -146,9 +154,13 @@ export const usePurchaseDialog = () => {
         toast.error('Order placed but error applying keys. Please contact support.');
       }
       
+      return { success: true, orderId: data };
     } catch (error: any) {
       console.error('Error during purchase:', error);
+      setOrderError(error.message || 'An error occurred during purchase');
+      setOrderStatus('error');
       toast.error(error.message || 'An error occurred during purchase');
+      return { success: false, message: error.message || 'An error occurred during purchase' };
     } finally {
       setIsProcessing(false);
     }
@@ -163,6 +175,9 @@ export const usePurchaseDialog = () => {
     isVerifying,
     isProcessing,
     verifiedStock,
-    verifiedPrice
+    verifiedPrice,
+    orderError,
+    orderStatus,
+    orderResult
   };
 };
