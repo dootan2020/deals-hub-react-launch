@@ -12,8 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Product } from '@/types';
-import { convertVNDtoUSD, formatUSD } from '@/utils/currency'; // Added formatUSD import
-import { AlertTriangle, Loader2 } from 'lucide-react'; // Added Loader2 import
+import { convertVNDtoUSD, formatUSD } from '@/utils/currency';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -143,8 +143,9 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
         </DialogHeader>
         
         <div className="space-y-4 py-4">
-          <div className="space-y-2 pb-2 border-b border-border">
-            <h3 className="font-medium text-lg">{product.title}</h3>
+          {/* Product Title */}
+          <div className="space-y-2">
+            <h3 className="font-medium text-lg text-center">{product.title}</h3>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Đơn giá:</span>
               <span className="font-medium text-primary">
@@ -157,7 +158,7 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
               </span>
             </div>
           </div>
-          
+
           {isVerifying ? (
             <div className="flex flex-col items-center py-8 space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -167,13 +168,16 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
             </div>
           ) : (
             <>
-              <QuantitySelector
-                quantity={quantity}
-                maxQuantity={verifiedStock ?? product.stockQuantity ?? 1}
-                onQuantityChange={setQuantity}
-                verifiedStock={verifiedStock}
-                productStock={product.stockQuantity}
-              />
+              {/* Centered Quantity Selector */}
+              <div className="flex flex-col items-center space-y-2 py-4">
+                <QuantitySelector
+                  quantity={quantity}
+                  maxQuantity={verifiedStock ?? product.stockQuantity ?? 1}
+                  onQuantityChange={handleQuantityChange}
+                  verifiedStock={verifiedStock}
+                  productStock={product.stockQuantity}
+                />
+              </div>
               
               <div className="space-y-2">
                 <Label htmlFor="promotionCode">Mã giảm giá (tùy chọn):</Label>

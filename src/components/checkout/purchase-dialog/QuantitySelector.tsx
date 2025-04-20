@@ -2,7 +2,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Plus, Minus } from 'lucide-react';
 
 interface QuantitySelectorProps {
@@ -26,45 +25,42 @@ export const QuantitySelector = ({
     onQuantityChange(Math.min(Math.max(1, value), maxQuantity));
   };
 
-  const handleQuantityChange = (amount: number) => {
-    onQuantityChange(Math.min(Math.max(1, quantity + amount), maxQuantity));
-  };
-
   return (
-    <div className="space-y-2">
-      <Label htmlFor="quantity">Số lượng:</Label>
-      <div className="flex items-center border rounded-md">
+    <div className="space-y-2 w-full">
+      <div className="flex items-center justify-center gap-2">
         <Button 
           type="button" 
-          variant="ghost" 
-          size="sm" 
-          className="rounded-r-none"
-          onClick={() => handleQuantityChange(-1)}
+          variant="outline" 
+          size="sm"
+          onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
           disabled={quantity <= 1}
+          className="h-10 w-10 rounded-full p-0"
         >
           <Minus className="h-4 w-4" />
         </Button>
+        
         <Input
-          id="quantity"
           type="number"
           value={quantity}
           onChange={handleQuantityInput}
           min={1}
           max={maxQuantity}
-          className="border-0 text-center w-16"
+          className="w-20 text-center"
         />
+        
         <Button 
           type="button" 
-          variant="ghost" 
-          size="sm" 
-          className="rounded-l-none"
-          onClick={() => handleQuantityChange(1)}
+          variant="outline"
+          size="sm"
+          onClick={() => onQuantityChange(Math.min(maxQuantity, quantity + 1))}
           disabled={quantity >= maxQuantity}
+          className="h-10 w-10 rounded-full p-0"
         >
           <Plus className="h-4 w-4" />
         </Button>
       </div>
-      <div className="text-xs text-muted-foreground">
+      
+      <div className="text-left text-xs text-muted-foreground mt-1">
         Còn lại: {verifiedStock !== null ? verifiedStock : productStock || 0} sản phẩm
       </div>
     </div>
