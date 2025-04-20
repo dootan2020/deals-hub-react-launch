@@ -12,6 +12,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import SupportPage from '@/pages/SupportPage';
 import OrdersPage from './pages/OrdersPage';
 import NotFound from '@/pages/NotFound';
+import { CategoriesProvider } from '@/context/CategoriesContext';
 
 // Create a single router instance
 const router = createBrowserRouter([
@@ -62,7 +63,11 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <CategoriesProvider>
+      <RouterProvider router={router} />
+    </CategoriesProvider>
+  );
 }
 
 export default App;
