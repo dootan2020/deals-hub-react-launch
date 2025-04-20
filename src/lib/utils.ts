@@ -44,3 +44,31 @@ export const formatDate = (dateString: string) => {
     minute: '2-digit'
   });
 };
+
+export function copyToClipboard(text: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (!navigator.clipboard) {
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand("copy");
+        document.body.removeChild(textArea);
+        resolve(successful);
+      } catch (err) {
+        console.error("Fallback clipboard copy failed:", err);
+        resolve(false);
+      }
+    } else {
+      navigator.clipboard.writeText(text)
+        .then(() => resolve(true))
+        .catch((err) => {
+          console.error("Clipboard API copy failed:", err);
+          resolve(false);
+        });
+    }
+  });
+}

@@ -1,9 +1,10 @@
-import { Product } from '@/types';
+
+import { Product, FilterParams } from '@/types';
 
 /**
  * Filter products based on specified criteria
  */
-export const applyFilters = (products: Product[], filters: any = {}): Product[] => {
+export const applyFilters = (products: Product[], filters: FilterParams = {}): Product[] => {
   let filteredProducts = [...products];
   
   // Filter by price range
@@ -22,16 +23,33 @@ export const applyFilters = (products: Product[], filters: any = {}): Product[] 
     filteredProducts = filteredProducts.filter(p => p.rating >= filters.rating);
   }
   
+  // Filter by search query
+  if (filters.search) {
+    const searchTerms = filters.search.toLowerCase().split(' ').filter(Boolean);
+    filteredProducts = filteredProducts.filter(p => {
+      const titleMatch = searchTerms.some(term => 
+        p.title.toLowerCase().includes(term)
+      );
+      const descMatch = p.description ? searchTerms.some(term => 
+        p.description.toLowerCase().includes(term)
+      ) : false;
+      
+      return titleMatch || descMatch;
+    });
+  }
+  
   // Filter by availability (in stock)
   if (filters.inStock === true) {
-    filteredProducts = filteredProducts.filter(p => p.inStock);
+    filteredProducts = filteredProducts.filter(p => 
+      p.inStock && (p.stockQuantity > 0 || p.stock > 0)
+    );
   }
   
   return filteredProducts;
 };
 
 // Define the sort option type to ensure consistency across the application
-export type SortOption = 'newest' | 'popular' | 'price-low' | 'price-high';
+export type SortOption = 'newest' | 'popular' | 'price-low' | 'price-high' | 'name-asc';
 
 /**
  * Sort products based on specified sort criteria
@@ -54,6 +72,9 @@ export const sortProducts = (products: Product[], sortOption?: string): Product[
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
       });
+      
+    case 'name-asc':
+      return sortedProducts.sort((a, b) => a.title.localeCompare(b.title));
       
     case 'popular':
       // Sort by sales count

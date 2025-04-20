@@ -1,7 +1,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Sparkles, X } from 'lucide-react';
+import { Search, Sparkles, X, ArrowRight } from 'lucide-react';
+import { useDebounce } from '@/hooks/useDebounce';
+import { supabase } from "@/integrations/supabase/client";
+import { Product } from '@/types';
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const popularSearches = [
   "Gmail Accounts",
@@ -12,29 +18,45 @@ const popularSearches = [
   "VPN Software"
 ];
 
-const productSuggestions = [
-  { id: 1, name: "Gmail Account", category: "Email", price: 5.99 },
-  { id: 2, name: "Spotify Premium", category: "Software", price: 9.99 },
-  { id: 3, name: "Netflix Account", category: "Account", price: 14.99 },
-  { id: 4, name: "Microsoft Office 2021", category: "Software", price: 49.99 },
-  { id: 5, name: "Discord Nitro", category: "Software", price: 9.99 },
-  { id: 6, name: "Steam Account", category: "Gaming", price: 12.99 },
-];
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2
-  }).format(amount);
-};
-
 const SearchSection = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [productSuggestions, setProductSuggestions] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const debouncedSearchTerm = useDebounce(searchQuery, 300);
+
+  // Fetch product suggestions when search term changes
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (debouncedSearchTerm.length < 3) {
+        setProductSuggestions([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("products")
+          .select("id, title, price, slug, category_id, categories:category_id(name)")
+          .ilike("title", `%${debouncedSearchTerm}%`)
+          .limit(5);
+          
+        if (error) throw error;
+        
+        setProductSuggestions(data as Product[]);
+      } catch (error) {
+        console.error('Error fetching suggestions:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSuggestions();
+  }, [debouncedSearchTerm]);
 
   useEffect(() => {
     // Load recent searches from localStorage
@@ -70,7 +92,7 @@ const SearchSection = () => {
     localStorage.setItem('recentSearches', JSON.stringify(updatedRecentSearches));
     
     // Navigate to search results
-    navigate(`/category/search?q=${encodeURIComponent(searchQuery)}`);
+    navigate(`/products?search=${encodeURIComponent(searchQuery)}`);
     setShowSuggestions(false);
   };
 
@@ -79,8 +101,8 @@ const SearchSection = () => {
     handleSearch(new Event('submit') as any);
   };
 
-  const handleProductClick = (productId: number) => {
-    navigate(`/product/${productId}`);
+  const handleProductClick = (productSlug: string) => {
+    navigate(`/products/${productSlug}`);
     setShowSuggestions(false);
   };
 
@@ -89,17 +111,13 @@ const SearchSection = () => {
     localStorage.removeItem('recentSearches');
   };
 
-  const filteredSuggestions = productSuggestions.filter(product => 
-    product.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   return (
     <section className="bg-white py-12 border-b border-gray-200">
       <div className="container-custom">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold mb-2">Find Your Perfect Digital Product</h2>
-            <p className="text-text-light">Search through thousands of digital products for your online business</p>
+            <h2 className="text-2xl md:text-3xl font-bold mb-2">Tìm sản phẩm số phù hợp</h2>
+            <p className="text-text-light">Tìm kiếm trong hàng nghìn sản phẩm số cho công việc trực tuyến của bạn</p>
           </div>
 
           <div ref={searchContainerRef} className="relative">
@@ -108,7 +126,7 @@ const SearchSection = () => {
               <div className="relative w-full">
                 <input
                   type="text"
-                  placeholder="Search for email accounts, software keys, gaming accounts..."
+                  placeholder="Tìm tài khoản email, key phần mềm, tài khoản game..."
                   className="w-full px-6 py-4 pr-12 rounded-l-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -129,7 +147,7 @@ const SearchSection = () => {
                 className="bg-primary hover:bg-primary-dark text-white px-8 py-4 rounded-r-lg transition-colors duration-200 flex items-center justify-center"
               >
                 <Search className="h-5 w-5 mr-2" />
-                Search
+                Tìm kiếm
               </button>
             </form>
 
@@ -140,12 +158,12 @@ const SearchSection = () => {
                 {recentSearches.length > 0 && (
                   <div className="p-3 border-b border-gray-100">
                     <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-sm font-medium text-text-light">Recent Searches</h3>
+                      <h3 className="text-sm font-medium text-text-light">Tìm kiếm gần đây</h3>
                       <button 
                         onClick={clearRecentSearches}
                         className="text-xs text-accent hover:text-accent/80"
                       >
-                        Clear All
+                        Xóa tất cả
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -163,31 +181,67 @@ const SearchSection = () => {
                 )}
 
                 {/* Product Suggestions - show when typing */}
-                {searchQuery && filteredSuggestions.length > 0 && (
+                {searchQuery.length >= 3 && (
                   <div className="max-h-64 overflow-y-auto">
-                    <h3 className="px-4 py-2 text-sm font-medium text-text-light bg-gray-50">Product Suggestions</h3>
-                    {filteredSuggestions.map(product => (
+                    <h3 className="px-4 py-2 text-sm font-medium text-text-light bg-gray-50">Gợi ý sản phẩm</h3>
+                    
+                    {isLoading && (
+                      <div className="p-4 space-y-3">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="flex justify-between items-center">
+                            <div>
+                              <Skeleton className="h-4 w-32 mb-1" />
+                              <Skeleton className="h-3 w-20" />
+                            </div>
+                            <Skeleton className="h-4 w-16" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {!isLoading && productSuggestions.length > 0 && productSuggestions.map(product => (
                       <div 
                         key={product.id}
                         className="px-4 py-3 hover:bg-gray-50 cursor-pointer flex justify-between items-center"
-                        onClick={() => handleProductClick(product.id)}
+                        onClick={() => handleProductClick(product.slug)}
                       >
                         <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-sm text-text-light">{product.category}</p>
+                          <p className="font-medium">{product.title}</p>
+                          <p className="text-sm text-text-light">
+                            {product.categories?.name || 'Sản phẩm số'}
+                          </p>
                         </div>
                         <span className="font-medium text-primary">{formatCurrency(product.price)}</span>
                       </div>
                     ))}
+                    
+                    {!isLoading && searchQuery.length >= 3 && productSuggestions.length > 0 && (
+                      <div className="p-3 border-t border-gray-100 flex justify-center">
+                        <button 
+                          className="text-sm text-accent flex items-center hover:text-primary"
+                          onClick={() => navigate(`/products?search=${encodeURIComponent(searchQuery)}`)}
+                        >
+                          Xem tất cả kết quả
+                          <ArrowRight className="ml-1 h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    {!isLoading && searchQuery.length >= 3 && productSuggestions.length === 0 && (
+                      <div className="px-4 py-8 text-center">
+                        <p className="text-text-light mb-1">Không tìm thấy kết quả cho "{searchQuery}"</p>
+                        <p className="text-sm">Thử từ khóa khác hoặc duyệt theo danh mục</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Popular Searches - show when empty */}
-                {!searchQuery && (
+                {/* Popular Searches - show when empty or typing less than 3 chars */}
+                {(!searchQuery || searchQuery.length < 3) && (
                   <div className="p-3">
                     <div className="flex items-center gap-1 mb-2">
                       <Sparkles className="h-4 w-4 text-yellow-500" />
-                      <h3 className="text-sm font-medium text-text-light">Popular Searches</h3>
+                      <h3 className="text-sm font-medium text-text-light">Tìm kiếm phổ biến</h3>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {popularSearches.map((term, index) => (
@@ -202,20 +256,13 @@ const SearchSection = () => {
                     </div>
                   </div>
                 )}
-                
-                {searchQuery && filteredSuggestions.length === 0 && (
-                  <div className="px-4 py-8 text-center">
-                    <p className="text-text-light mb-1">No suggestions found for "{searchQuery}"</p>
-                    <p className="text-sm">Try a different search term or browse categories</p>
-                  </div>
-                )}
               </div>
             )}
           </div>
 
           {/* Search Tags */}
           <div className="mt-5 flex flex-wrap justify-center gap-2">
-            <span className="text-sm text-text-light">Popular:</span>
+            <span className="text-sm text-text-light">Phổ biến:</span>
             <button 
               onClick={() => handleSuggestionClick('Gmail')} 
               className="text-sm text-accent hover:text-primary hover:underline"

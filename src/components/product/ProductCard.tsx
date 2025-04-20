@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import BuyNowButton from '@/components/checkout/BuyNowButton';
 import { ProductLogo } from './ProductLogo';
 import { ArrowRight, ShoppingCart } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatUSD, convertVNDtoUSD } from '@/utils/currency';
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
@@ -15,6 +16,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { ProductStock } from './ProductStock';
+import { formatDistanceToNow, differenceInDays, parseISO } from 'date-fns';
+import { vi } from 'date-fns/locale';
 
 interface ProductCardProps {
   product: Product;
@@ -56,8 +59,10 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
   // Product is in stock if stock > 0
   const isInStock = stock > 0;
 
-  // For debugging
-  console.log(`Product: ${product.title}, Stock: ${stock}, Type: ${typeof stock}, isInStock: ${isInStock}`);
+  // Check if product is new (less than 7 days old)
+  const isNewProduct = product.createdAt 
+    ? differenceInDays(new Date(), parseISO(product.createdAt)) < 7
+    : false;
 
   return (
     <div className={cn(
@@ -95,6 +100,18 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
           {product.shortDescription || product.description}
         </p>
 
+        {/* Product Badges */}
+        {(isNewProduct || !isInStock) && (
+          <div className="flex gap-2 flex-wrap">
+            {!isInStock && (
+              <Badge variant="warning" className="text-xs">Hết hàng</Badge>
+            )}
+            {isNewProduct && (
+              <Badge variant="success" className="text-xs">Mới</Badge>
+            )}
+          </div>
+        )}
+
         {/* Price + Stock */}
         <div className="flex flex-col mt-auto">
           <span className="text-lg font-semibold text-primary">
@@ -111,7 +128,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
             className="flex-1 min-w-[100px] text-sm font-normal border-primary/20 hover:border-primary/40"
             asChild
           >
-            <a href={`/product/${product.slug}`}>
+            <a href={`/products/${product.slug}`}>
               <span>Chi tiết</span>
               <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
             </a>
