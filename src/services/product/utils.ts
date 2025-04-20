@@ -25,6 +25,20 @@ interface DatabaseProduct {
   created_at: string;
 }
 
+export function transformSpecifications(specifications: Json | null): Record<string, any> {
+  if (!specifications) return {};
+  
+  if (typeof specifications === 'string') {
+    try {
+      return JSON.parse(specifications);
+    } catch {
+      return {};
+    }
+  }
+  
+  return specifications as Record<string, any>;
+}
+
 export function mapProductFromDatabase(item: DatabaseProduct) {
   return {
     id: item.id,
@@ -43,7 +57,7 @@ export function mapProductFromDatabase(item: DatabaseProduct) {
     badges: item.badges || [],
     slug: item.slug,
     features: item.features || [],
-    specifications: item.specifications as Record<string, string | number | boolean | object> || {},
+    specifications: transformSpecifications(item.specifications),
     salesCount: item.sales_count || 0,
     sales_count: item.sales_count || 0,
     stock: item.stock || 0,
