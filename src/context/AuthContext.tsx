@@ -1,9 +1,10 @@
 
-import React, { createContext, useContext, useCallback } from 'react';
+import React, { createContext, useContext, useCallback, useMemo } from 'react';
 import { useAuthState } from '@/hooks/use-auth-state';
 import { useAuthActions } from '@/hooks/use-auth-actions';
 import { useBalanceListener } from '@/hooks/use-balance-listener';
 import { AuthContextType } from '@/types/auth.types';
+import { toast } from 'sonner';
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -36,10 +37,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUserBalance,
     fetchUserBalance,
     refreshUserData,
-    isLoadingBalance
+    isLoadingBalance,
+    authError
   } = useAuthState();
 
   const { login, logout, register, resendVerificationEmail } = useAuthActions();
+
+  // Log authentication errors
+  React.useEffect(() => {
+    if (authError) {
+      console.error('Authentication error:', authError);
+      toast.error('Lỗi xác thực: ' + authError.message);
+    }
+  }, [authError]);
 
   // Set up real-time balance updates
   useBalanceListener(user?.id, (newBalance) => {
@@ -53,15 +63,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const refreshUserBalance = useCallback(async () => {
     if (!user?.id) return;
     console.log('Manually refreshing user balance for ID:', user.id);
-    await fetchUserBalance(user.id);
-    return userBalance; // Return current balance after refresh
+    
+    try {
+      await fetchUserBalance(user.id);
+      return userBalance; // Return current balance after refresh
+    } catch (error) {
+      console.error('Error refreshing balance:', error);
+      toast.error('Không thể cập nhật số dư');
+      throw error;
+    }
   }, [user?.id, fetchUserBalance, userBalance]);
 
   // Function to refresh the entire user profile
   const refreshUserProfile = useCallback(async () => {
     if (!user?.id) return;
     console.log('Refreshing full user profile for ID:', user.id);
-    await refreshUserData();
+    
+    try {
+      await refreshUserData();
+    } catch (error) {
+      console.error('Error refreshing user profile:', error);
+      toast.error('Không thể cập nhật thông tin người dùng');
+      throw error;
+    }
   }, [user?.id, refreshUserData]);
 
   // Helper function to check if user has a specific role
@@ -73,7 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isEmailVerified = user?.email_confirmed_at !== null;
 
   // Memoize the context value to prevent unnecessary re-renders
-  const contextValue: AuthContextType = {
+  const contextValue: AuthContextType = useMemo(() => ({
     user,
     session,
     loading,
@@ -91,7 +115,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     checkUserRole,
     isEmailVerified,
     resendVerificationEmail,
-  };
+  }), [
+    user, session, loading, isAdmin, isStaff, userRoles, userBalance,
+    isLoadingBalance, refreshUserBalance, refreshUserProfile, login, 
+    logout, register, checkUserRole, isEmailVerified, resendVerificationEmail
+  ]);
 
   return (
     <AuthContext.Provider value={contextValue}>

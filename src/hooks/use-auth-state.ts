@@ -13,12 +13,14 @@ export const useAuthState = () => {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [userBalance, setUserBalance] = useState(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [authError, setAuthError] = useState<Error | null>(null);
 
   // Function to fetch user roles
   const fetchUserRoles = useCallback(async (userId: string) => {
     try {
       const { data, error } = await (supabase as any)
-        .rpc('get_user_roles', { user_id_param: userId });
+        .rpc('get_user_roles', { user_id_param: userId })
+        .abortSignal(AbortSignal.timeout(3000)); // 3s timeout
 
       if (error) {
         console.error('Error fetching user roles:', error);
@@ -50,24 +52,11 @@ export const useAuthState = () => {
       setIsLoadingBalance(true);
       console.log('Fetching balance for user in useAuthState:', userId);
 
-      // Force refresh the session before fetching balance
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Session refresh error in useAuthState:', sessionError);
-        return;
-      }
-      
-      if (!sessionData.session) {
-        console.error('No active session found in useAuthState');
-        return;
-      }
-
       const { data, error } = await supabase
         .from('profiles')
         .select('balance')
         .eq('id', userId)
-        .abortSignal(AbortSignal.timeout(5000)) // 5s timeout
+        .abortSignal(AbortSignal.timeout(3000)) // 3s timeout
         .single();
 
       if (error) {
@@ -98,9 +87,14 @@ export const useAuthState = () => {
       const authUser = { ...currentSession.user } as AuthUser;
       setUser(authUser);
       
-      // Fetch user data immediately after setting user
-      fetchUserRoles(authUser.id);
-      fetchUserBalance(authUser.id);
+      // When we get a valid session, proceed with fetching additional data
+      // But delay slightly to prevent potential race conditions
+      setTimeout(() => {
+        if (authUser.id) {
+          fetchUserRoles(authUser.id);
+          fetchUserBalance(authUser.id);
+        }
+      }, 10);
     } else {
       setUser(null);
       setIsAdmin(false);
@@ -112,52 +106,78 @@ export const useAuthState = () => {
 
   useEffect(() => {
     let isMounted = true;
-    setLoading(true);
+    let authTimeout: NodeJS.Timeout;
     
-    // First set up the auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
-      if (isMounted) {
-        handleAuthStateChange(event, currentSession);
-      }
-    });
-
-    // Then check for existing session only once on mount
     const initializeAuth = async () => {
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        // Set up the auth state change listener first
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+          if (isMounted) {
+            handleAuthStateChange(event, currentSession);
+          }
+        });
+        
+        // Then check for existing session
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          setAuthError(error);
+          if (isMounted) setLoading(false);
+          return;
+        }
+        
         if (isMounted) {
-          // Only call if component is mounted
-          if (currentSession) {
-            handleAuthStateChange('INITIAL_SESSION', currentSession);
+          if (data.session) {
+            handleAuthStateChange('INITIAL_SESSION', data.session);
           } else {
             console.log('No existing session found');
-            setLoading(false);
           }
-        }
-      } catch (error) {
-        console.error('Error getting session:', error);
-        if (isMounted) {
+          
+          // Always set loading to false regardless of session status
+          // This ensures the app doesn't get stuck in loading state
           setLoading(false);
         }
+        
+        // Cleanup function
+        return () => {
+          isMounted = false;
+          subscription.unsubscribe();
+          if (authTimeout) clearTimeout(authTimeout);
+        };
+      } catch (error) {
+        console.error('Error in initializeAuth:', error);
+        setAuthError(error instanceof Error ? error : new Error('Unknown auth error'));
+        if (isMounted) setLoading(false);
       }
     };
-
+    
+    // Set a safety timeout to prevent infinite loading
+    authTimeout = setTimeout(() => {
+      if (isMounted && loading) {
+        console.error('Auth initialization timeout reached');
+        setLoading(false);
+        setAuthError(new Error('Authentication timed out'));
+      }
+    }, 5000);
+    
     initializeAuth();
-
-    // Clean up function
+    
     return () => {
       isMounted = false;
-      subscription.unsubscribe();
+      clearTimeout(authTimeout);
     };
-  }, [handleAuthStateChange]);
+  }, [handleAuthStateChange, loading]);
 
   // Function to manually refresh user profile data
   const refreshUserData = useCallback(async () => {
     if (!user) return;
     
     try {
-      await fetchUserRoles(user.id);
-      await fetchUserBalance(user.id);
+      await Promise.all([
+        fetchUserRoles(user.id),
+        fetchUserBalance(user.id)
+      ]);
     } catch (error) {
       console.error('Error refreshing user data:', error);
     }
@@ -175,6 +195,7 @@ export const useAuthState = () => {
     fetchUserBalance,
     fetchUserRoles,
     refreshUserData,
-    isLoadingBalance
+    isLoadingBalance,
+    authError
   };
 };
