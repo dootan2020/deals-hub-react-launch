@@ -28,12 +28,14 @@ const SubcategoryPage = () => {
     error,
     currentPage,
     totalPages,
+    totalProducts,
     handlePageChange
   } = useSubcategoryProducts({
     slug: slug || '',
     sortOption,
     priceRange,
-    stockFilter
+    stockFilter,
+    activeSubcategories // Adding the missing activeSubcategories prop
   });
   
   const mockSubcategories = [
@@ -62,6 +64,10 @@ const SubcategoryPage = () => {
           subcategories={mockSubcategories}
           activeSubcategories={activeSubcategories}
           onSubcategoryToggle={handleSubcategoryToggle}
+          totalProducts={totalProducts}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
         />
       </div>
     </Layout>
