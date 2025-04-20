@@ -39,7 +39,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
     : undefined;
 
   const containerClasses = viewMode === "list" 
-    ? "flex gap-6" 
+    ? "flex flex-col md:flex-row gap-4 md:gap-6" 
     : "flex flex-col";
 
   const contentClasses = viewMode === "list"
@@ -64,21 +64,21 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
       "group bg-white rounded-xl border border-primary/20",
       "transition-all duration-300 ease-in-out",
       "hover:shadow-md hover:border-primary/40",
-      "p-6 h-full min-w-[300px]",
+      "p-4 md:p-6 h-full min-w-[280px] md:min-w-[300px]",
       containerClasses
     )}>
-      <div className={cn("flex flex-col gap-4 w-full", contentClasses)}>
+      <div className={cn("flex flex-col gap-3 md:gap-4 w-full", contentClasses)}>
         {/* Header: Logo + Title */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3 md:gap-4">
           <ProductLogo 
             type={getLogoType(product.title)} 
-            size={32}
+            size={28}
           />
           <div className="flex-1 min-w-0">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <h3 className="font-semibold text-[#1E1E1E] text-base leading-tight line-clamp-2">
+                  <h3 className="font-semibold text-[#1E1E1E] text-sm md:text-base leading-tight line-clamp-2">
                     {product.title}
                   </h3>
                 </TooltipTrigger>
@@ -91,13 +91,13 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
         </div>
 
         {/* Description */}
-        <p className="text-sm text-[#4B5563] line-clamp-2 min-h-[40px]">
+        <p className="text-xs md:text-sm text-[#4B5563] line-clamp-2 min-h-[32px] md:min-h-[40px]">
           {product.shortDescription || product.description}
         </p>
 
         {/* Price + Stock */}
         <div className="flex flex-col mt-auto">
-          <span className="text-lg font-semibold text-primary">
+          <span className="text-base md:text-lg font-semibold text-primary">
             {formatUSD(priceUSD)}
           </span>
           <ProductStock stock={stock} soldCount={salesCount} />
@@ -108,12 +108,12 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 min-w-[100px] text-sm font-normal border-primary/20 hover:border-primary/40"
+            className="flex-1 min-w-[90px] md:min-w-[100px] text-xs md:text-sm font-normal border-primary/20 hover:border-primary/40"
             asChild
           >
             <a href={`/product/${product.slug}`}>
               <span>Chi tiết</span>
-              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              <ArrowRight className="ml-1.5 h-3 w-3 md:h-3.5 md:w-3.5" />
             </a>
           </Button>
           
@@ -122,11 +122,11 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
             kioskToken={product.kiosk_token}
             variant="default"
             size="sm"
-            className="flex-1 min-w-[100px] bg-gradient-to-r from-primary to-primary-dark text-sm"
+            className="flex-1 min-w-[90px] md:min-w-[100px] bg-gradient-to-r from-primary to-primary-dark text-xs md:text-sm"
             isInStock={isInStock}
             product={product}
           >
-            <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
+            <ShoppingCart className="mr-1.5 h-3 w-3 md:h-3.5 md:w-3.5" />
             Mua ngay
           </BuyNowButton>
         </div>

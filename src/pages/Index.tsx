@@ -48,9 +48,9 @@ const Index = () => {
       <HeroSection />
       <SearchSection />
       <CategorySection />
-      <div className="bg-section-primary py-16">
+      <div className="bg-section-primary py-8 md:py-16">
         <div className="container-custom">
-          <div className="bg-white p-8 rounded-lg border border-gray-100 shadow-sm">
+          <div className="bg-white p-4 md:p-8 rounded-lg border border-gray-100 shadow-sm">
             <ProductGrid 
               products={products.slice(0, 8)}
               title="Featured Products" 

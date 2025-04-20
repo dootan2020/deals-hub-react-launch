@@ -17,14 +17,14 @@ const Header = () => {
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
-      <div className="container-custom py-4">
-        <div className="flex items-center justify-between">
+      <div className="container-custom py-3 md:py-4">
+        <div className="flex items-center justify-between gap-4">
           <Logo />
           <DesktopNavigation />
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <DepositOptions />
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               <LanguageSelector />
               <UserButton />
             </div>
