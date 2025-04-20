@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import ProductSorter from '@/components/product/ProductSorter';
 import ViewToggle from '@/components/product/ViewToggle';
 import { Category, FilterParams, Product } from '@/types';
+import SubcategoryPills from '@/components/category/SubcategoryPills';
 import { SortOption } from '@/utils/productFilters';
 import { fetchProductsWithFilters } from '@/services/product/productService';
 import { 
@@ -44,7 +45,7 @@ const ProductsPage = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
-  const [perPage] = useState(24);
+  const [perPage] = useState(24); // Increased from default 12
   
   // Filters
   const [filters, setFilters] = useState<FilterParams>({
@@ -56,10 +57,16 @@ const ProductsPage = () => {
     perPage: perPage
   });
 
+  // Active subcategory
+  const [activeSubcategoryId, setActiveSubcategoryId] = useState<string | undefined>(
+    searchParams.get('subcategory') || undefined
+  );
+
   // Handle search param changes
   useEffect(() => {
     const search = searchParams.get('search');
     const category = searchParams.get('category');
+    const subcategory = searchParams.get('subcategory');
     const sort = searchParams.get('sort');
     const inStock = searchParams.get('inStock') === 'true';
     
@@ -71,6 +78,7 @@ const ProductsPage = () => {
       inStock
     }));
 
+    setActiveSubcategoryId(subcategory || undefined);
     setPage(1);
   }, [searchParams]);
 
@@ -86,6 +94,13 @@ const ProductsPage = () => {
           page: 1,
           perPage: perPage
         };
+        
+        // If subcategory is selected, use that instead of category
+        if (activeSubcategoryId) {
+          filterParams.subcategory = activeSubcategoryId;
+          // Remove categoryId to avoid conflicting filters
+          delete filterParams.categoryId;
+        }
         
         const result = await fetchProductsWithFilters(filterParams);
         
@@ -104,7 +119,7 @@ const ProductsPage = () => {
     };
     
     loadProducts();
-  }, [filters.search, filters.categoryId, filters.inStock, filters.sort, filters.priceRange, perPage]);
+  }, [filters.search, filters.categoryId, filters.inStock, filters.sort, filters.priceRange, activeSubcategoryId, perPage]);
 
   const loadMore = async () => {
     if (loadingMore) return;
@@ -118,6 +133,12 @@ const ProductsPage = () => {
         page: nextPage,
         perPage: perPage
       };
+      
+      // If subcategory is selected, use that instead of category
+      if (activeSubcategoryId) {
+        filterParams.subcategory = activeSubcategoryId;
+        delete filterParams.categoryId;
+      }
       
       const result = await fetchProductsWithFilters(filterParams);
       
@@ -153,6 +174,14 @@ const ProductsPage = () => {
   const handleCategoryClick = (category: Category) => {
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set('category', category.id);
+    // Clear subcategory when selecting a new category
+    newSearchParams.delete('subcategory');
+    setSearchParams(newSearchParams);
+  };
+
+  const handleSubcategoryClick = (subcategory: Category) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set('subcategory', subcategory.id);
     setSearchParams(newSearchParams);
   };
 
@@ -184,23 +213,28 @@ const ProductsPage = () => {
     setSearchParams(newSearchParams);
   };
 
-  const hasActiveFilters = Boolean(
-    filters.categoryId || 
-    filters.inStock || 
-    (filters.priceRange && (filters.priceRange[0] > 0 || filters.priceRange[1] < 500))
-  );
+  // Get current category's subcategories
+  const subcategories = filters.categoryId 
+    ? getSubcategoriesByParentId(filters.categoryId)
+    : [];
+
+  const hasActiveFilters = Boolean(filters.categoryId || activeSubcategoryId || filters.inStock || 
+    (filters.priceRange && (filters.priceRange[0] > 0 || filters.priceRange[1] < 500)));
     
   const pageTitle = filters.search 
     ? `Search results: ${filters.search}` 
-    : filters.categoryId
-      ? categories.find(c => c.id === filters.categoryId)?.name || 'Category Products'
-      : 'All Products';
+    : activeSubcategoryId
+      ? categories.find(c => c.id === activeSubcategoryId)?.name || 'Subcategory Products'
+      : filters.categoryId
+        ? categories.find(c => c.id === filters.categoryId)?.name || 'Category Products'
+        : 'All Products';
 
   return (
     <Layout>
       <div className="bg-background py-8 min-h-screen">
         <div className="container-custom">
           <div className="space-y-8">
+            {/* Header */}
             <div>
               <h1 className="text-3xl font-bold mb-4">{pageTitle}</h1>
               <p className="text-muted-foreground">
@@ -211,245 +245,112 @@ const ProductsPage = () => {
               </p>
             </div>
 
-            {/* Mobile Filter Button */}
-            <div className="md:hidden">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" className="w-full flex justify-between items-center">
-                    <span className="flex items-center gap-2">
-                      <Filter className="h-4 w-4" />
-                      Filters & Sort
-                    </span>
-                    {hasActiveFilters && (
-                      <span className="bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                        !
-                      </span>
-                    )}
-                  </Button>
-                </SheetTrigger>
-                
-                <SheetContent side="bottom" className="h-[85vh]">
-                  <SheetHeader className="mb-2">
-                    <SheetTitle>Product Filters</SheetTitle>
-                    <SheetDescription>
-                      Customize results to match your needs
-                    </SheetDescription>
-                  </SheetHeader>
-                  
-                  <div className="space-y-4">
-                    {/* Mobile Sorting */}
-                    <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value="sort">
-                        <AccordionTrigger>Sort by</AccordionTrigger>
-                        <AccordionContent>
-                          <div className="space-y-2">
-                            {[
-                              { label: 'Newest', value: 'newest' },
-                              { label: 'Most Popular', value: 'popular' },
-                              { label: 'Price: Low to High', value: 'price-low' },
-                              { label: 'Price: High to Low', value: 'price-high' },
-                            ].map((option) => (
-                              <div 
-                                key={option.value} 
-                                className={`p-2 rounded-md cursor-pointer ${
-                                  filters.sort === option.value 
-                                    ? 'bg-primary/10 text-primary font-medium' 
-                                    : 'hover:bg-gray-100'
-                                }`}
-                                onClick={() => handleSortChange(option.value)}
-                              >
-                                {option.label}
-                              </div>
-                            ))}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                    
-                    {/* Mobile Categories */}
-                    <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value="categories">
-                        <AccordionTrigger>Categories</AccordionTrigger>
-                        <AccordionContent>
-                          <div className="space-y-2">
-                            {mainCategories.map((category) => (
-                              <div 
-                                key={category.id} 
-                                className={`p-2 rounded-md cursor-pointer ${
-                                  filters.categoryId === category.id 
-                                    ? 'bg-primary/10 text-primary font-medium' 
-                                    : 'hover:bg-gray-100'
-                                }`}
-                                onClick={() => handleCategoryClick(category)}
-                              >
-                                {category.name}
-                              </div>
-                            ))}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                    
-                    {/* Mobile Price Range */}
-                    <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value="price">
-                        <AccordionTrigger>Price Range</AccordionTrigger>
-                        <AccordionContent>
-                          <PriceRangeFilter 
-                            minPrice={0} 
-                            maxPrice={500} 
-                            onPriceChange={handlePriceRangeChange}
-                          />
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                    
-                    {/* Mobile Inventory Filter */}
-                    <div className="flex items-center space-x-2 p-4 border-t">
-                      <Checkbox 
-                        id="mobile-in-stock" 
-                        checked={filters.inStock}
-                        onCheckedChange={handleInStockChange}
-                      />
-                      <Label htmlFor="mobile-in-stock">Show in-stock products only</Label>
-                    </div>
-                    
-                    {/* Clear Filters */}
-                    {hasActiveFilters && (
-                      <div className="p-4 border-t">
-                        <Button 
-                          variant="outline" 
-                          onClick={clearFilters} 
-                          className="w-full"
-                        >
-                          Clear all filters
-                        </Button>
-                      </div>
-                    )}
+            {/* Category Filter Card */}
+            <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
+              {/* Main Categories */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Categories</h3>
+                <div className="flex flex-wrap gap-2">
+                  {mainCategories.map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => handleCategoryClick(category)}
+                      className={cn(
+                        "px-4 py-2 rounded-md text-sm font-medium transition-colors",
+                        filters.categoryId === category.id
+                          ? "bg-primary text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      )}
+                    >
+                      {category.name}
+                      {category.count > 0 && (
+                        <span className="ml-2 text-xs opacity-75">
+                          ({category.count})
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Subcategories (if a category is selected) */}
+              {filters.categoryId && subcategories.length > 0 && (
+                <div className="mt-6 pt-6 border-t">
+                  <h3 className="font-semibold text-lg mb-4">Subcategories</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {subcategories.map((subcategory) => (
+                      <button
+                        key={subcategory.id}
+                        onClick={() => handleSubcategoryClick(subcategory)}
+                        className={cn(
+                          "px-4 py-2 rounded-md text-sm font-medium transition-colors",
+                          activeSubcategoryId === subcategory.id
+                            ? "bg-primary/10 text-primary"
+                            : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                        )}
+                      >
+                        {subcategory.name}
+                        {subcategory.count > 0 && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({subcategory.count})
+                          </span>
+                        )}
+                      </button>
+                    ))}
                   </div>
-                </SheetContent>
-              </Sheet>
+                </div>
+              )}
             </div>
 
             {/* Main Content */}
-            <div className="flex flex-col md:flex-row gap-6">
-              {/* Desktop Sidebar Filters */}
-              <div className="hidden md:block w-64 shrink-0 space-y-6">
-                <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm space-y-6">
-                  <h3 className="font-semibold text-lg mb-4">Filters</h3>
-                  
-                  {/* Categories */}
-                  <div>
-                    <h4 className="font-medium mb-2">Categories</h4>
-                    <div className="space-y-2">
-                      {mainCategories.map((category) => (
-                        <div 
-                          key={category.id} 
-                          className={`flex items-center p-1.5 rounded-md cursor-pointer text-sm ${
-                            filters.categoryId === category.id 
-                              ? 'bg-primary/10 text-primary font-medium' 
-                              : 'hover:bg-gray-100'
-                          }`}
-                          onClick={() => handleCategoryClick(category)}
-                        >
-                          {category.name}
-                          {category.count > 0 && (
-                            <span className="ml-auto text-xs text-text-light">{category.count}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Price Range */}
-                  <div className="border-t pt-4">
-                    <PriceRangeFilter
-                      minPrice={0}
-                      maxPrice={500}
-                      onPriceChange={handlePriceRangeChange}
-                    />
-                  </div>
-                  
-                  {/* Inventory */}
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-2">Availability</h4>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="in-stock" 
-                        checked={filters.inStock}
-                        onCheckedChange={handleInStockChange}
-                      />
-                      <Label htmlFor="in-stock">Show in-stock only</Label>
-                    </div>
-                  </div>
-                  
-                  {/* Clear Filters */}
+            <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm space-y-6">
+              {/* Sort & View Options */}
+              <div className="flex justify-between items-center">
+                <ProductSorter 
+                  currentSort={filters.sort as SortOption} 
+                  onSortChange={handleSortChange} 
+                />
+                <ViewToggle 
+                  currentView={viewMode}
+                  onViewChange={handleViewChange}
+                />
+              </div>
+
+              {/* Product Count Display */}
+              {!isLoading && (
+                <div className="text-sm text-muted-foreground mb-4">
+                  Showing {products.length} of {totalProducts} products
+                </div>
+              )}
+
+              {/* Products Grid */}
+              {isLoading ? (
+                <div className="flex items-center justify-center min-h-[400px]">
+                  <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                </div>
+              ) : products.length > 0 ? (
+                <ProductGrid 
+                  products={products}
+                  viewMode={viewMode}
+                  loadingMore={loadingMore}
+                  hasMore={hasMore}
+                  onLoadMore={loadMore}
+                />
+              ) : (
+                <div className="text-center py-16 space-y-3">
+                  <h3 className="text-lg font-medium">No products found matching your criteria.</h3>
+                  <p className="text-muted-foreground">Try searching with different keywords or adjusting your filters.</p>
                   {hasActiveFilters && (
-                    <div className="border-t pt-4">
-                      <Button 
-                        variant="outline" 
-                        onClick={clearFilters} 
-                        className="w-full"
-                      >
-                        Clear all filters
-                      </Button>
-                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={clearFilters} 
+                      className="mt-4"
+                    >
+                      Clear filters and try again
+                    </Button>
                   )}
                 </div>
-              </div>
-              
-              {/* Product Grid */}
-              <div className="flex-1">
-                <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm space-y-6">
-                  {/* Desktop Sort & View Options */}
-                  <div className="hidden md:flex justify-between items-center">
-                    <ProductSorter 
-                      currentSort={filters.sort as SortOption} 
-                      onSortChange={handleSortChange} 
-                    />
-                    <ViewToggle 
-                      currentView={viewMode}
-                      onViewChange={handleViewChange}
-                    />
-                  </div>
-
-                  {/* Product Count Display */}
-                  {!isLoading && (
-                    <div className="text-sm text-muted-foreground mb-4">
-                      Showing {products.length} of {totalProducts} products
-                    </div>
-                  )}
-
-                  {/* Product Grid */}
-                  {isLoading ? (
-                    <div className="flex items-center justify-center min-h-[400px]">
-                      <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                    </div>
-                  ) : products.length > 0 ? (
-                    <ProductGrid 
-                      products={products}
-                      viewMode={viewMode}
-                      loadingMore={loadingMore}
-                      hasMore={hasMore}
-                      onLoadMore={loadMore}
-                    />
-                  ) : (
-                    <div className="text-center py-16 space-y-3">
-                      <h3 className="text-lg font-medium">No products found matching your criteria.</h3>
-                      <p className="text-muted-foreground">Try searching with different keywords or adjusting your filters.</p>
-                      {hasActiveFilters && (
-                        <Button 
-                          variant="outline" 
-                          onClick={clearFilters} 
-                          className="mt-4"
-                        >
-                          Clear filters and try again
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
