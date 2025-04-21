@@ -6,41 +6,58 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const FAQ = () => {
+interface FAQProps {
+  category?: string;
+  className?: string;
+}
+
+const FAQ: React.FC<FAQProps> = ({ category = 'product', className }) => {
+  const faqs = [
+    {
+      question: `How do I use these ${category} after purchase?`,
+      answer: `After completing your purchase, you'll receive an email with detailed instructions on how to access and use your ${category}. You can also find this information in your account dashboard under "My Orders".`
+    },
+    {
+      question: `What payment methods do you accept?`,
+      answer: `We accept various payment methods including credit/debit cards, PayPal, and account balance. All transactions are secure and encrypted.`
+    },
+    {
+      question: `Can I get a refund if the ${category} doesn't work?`,
+      answer: `Yes, we offer a limited warranty on our ${category}s. If you experience any issues, please contact our support team within 24 hours of your purchase for assistance or a refund.`
+    },
+    {
+      question: `How long does delivery take?`,
+      answer: `As these are digital products, delivery is almost instant. You should receive your ${category} details within minutes of completing your purchase.`
+    },
+    {
+      question: `Do you offer bulk discounts?`,
+      answer: `Yes, we offer special pricing for bulk purchases. Please contact our sales team for more information on bulk orders.`
+    }
+  ];
+
   return (
-    <div className="my-12 bg-card p-6 rounded-lg shadow-sm">
-      <h2 className="text-xl font-semibold mb-6">Câu hỏi thường gặp</h2>
-      
-      <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="item-1">
-          <AccordionTrigger>Tôi có nhận được sản phẩm ngay sau khi mua hàng không?</AccordionTrigger>
-          <AccordionContent>
-            Có, sau khi thanh toán thành công, bạn sẽ nhận được thông tin truy cập sản phẩm ngay lập tức qua email. Hệ thống giao hàng của chúng tôi hoạt động tự động 24/7.
-          </AccordionContent>
-        </AccordionItem>
-        
-        <AccordionItem value="item-2">
-          <AccordionTrigger>Tôi có thể thanh toán bằng những phương thức nào?</AccordionTrigger>
-          <AccordionContent>
-            Hiện tại chúng tôi hỗ trợ thanh toán qua USDT, PayPal, và nhiều phương thức thanh toán phổ biến khác. Bạn có thể xem chi tiết trong quá trình thanh toán.
-          </AccordionContent>
-        </AccordionItem>
-        
-        <AccordionItem value="item-3">
-          <AccordionTrigger>Sản phẩm của bạn có bảo hành không?</AccordionTrigger>
-          <AccordionContent>
-            Chúng tôi cung cấp hỗ trợ kỹ thuật và đảm bảo sản phẩm hoạt động theo mô tả. Nếu có vấn đề, đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng giúp đỡ bạn 24/7.
-          </AccordionContent>
-        </AccordionItem>
-        
-        <AccordionItem value="item-4">
-          <AccordionTrigger>Làm thế nào để liên hệ với bộ phận hỗ trợ?</AccordionTrigger>
-          <AccordionContent>
-            Bạn có thể liên hệ với đội ngũ hỗ trợ qua email support@digitaldealshub.com hoặc qua chat trực tiếp trên website của chúng tôi. Thời gian phản hồi thông thường là trong vòng 24 giờ.
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    </div>
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold">Frequently Asked Questions</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Accordion type="single" collapsible className="w-full">
+          {faqs.map((faq, index) => (
+            <AccordionItem key={index} value={`item-${index}`}>
+              <AccordionTrigger className="text-left">
+                {faq.question}
+              </AccordionTrigger>
+              <AccordionContent className="text-muted-foreground">
+                {faq.answer}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </CardContent>
+    </Card>
   );
 };
+
+export default FAQ;

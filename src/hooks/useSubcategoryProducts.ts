@@ -1,8 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { fetchProductsWithFilters } from '@/services/productService';
-import { Product } from '@/types';
-import { SortOption } from '@/types';
+import { Product, SortOption } from '@/types';
 
 interface UseSubcategoryProductsProps {
   slug: string;
@@ -29,11 +28,15 @@ export const useSubcategoryProducts = ({
       setError(null);
       
       try {
+        // Map our UI sort options to API sort options if they're different
+        let apiSortOption: SortOption = sortOption;
+        if (sortOption === 'price-high') apiSortOption = 'price-desc';
+        if (sortOption === 'price-low') apiSortOption = 'price-asc';
+        
         const result = await fetchProductsWithFilters({
           subcategory: slug,
           page: currentPage,
-          perPage: 12,
-          sort: sortOption,
+          sort: apiSortOption,
           minPrice: priceRange[0],
           maxPrice: priceRange[1],
           inStock: stockFilter === "in-stock" ? true : undefined

@@ -1,9 +1,8 @@
 
 import React from 'react';
-import ProductViewToggle from '@/components/product/ProductViewToggle';
 import ProductSorter from '@/components/product/ProductSorter';
 import { Button } from '@/components/ui/button';
-import { Check, ChevronDown, Filter } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 import { SortOption } from '@/types';
 
 export interface SubcategoryFiltersProps {

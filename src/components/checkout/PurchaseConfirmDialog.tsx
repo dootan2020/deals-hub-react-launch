@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   AlertDialog,
@@ -17,6 +18,7 @@ import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUserBalance } from '@/hooks/useUserBalance';
+import { Product } from '@/types';
 
 interface PurchaseConfirmDialogProps {
   productId: string;
@@ -25,6 +27,18 @@ interface PurchaseConfirmDialogProps {
   onPurchase: (productId: string) => Promise<void>;
 }
 
+// New interface for the updated component
+interface EnhancedPurchaseConfirmDialogProps {
+  product: Product;
+  onConfirm: (quantity: number, code?: string) => Promise<boolean>;
+  isVerifying: boolean;
+  verifiedStock: number | null;
+  verifiedPrice: number | null;
+  open?: boolean;
+  onOpenChange?: () => void;
+}
+
+// Original component kept for backward compatibility
 const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
   productId,
   productTitle,
@@ -53,11 +67,18 @@ const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
       }
 
       await onPurchase(productId);
-      toast.success("Mua hàng thành công!", `Bạn đã mua thành công ${productTitle}.`);
+      toast({
+        title: "Mua hàng thành công!",
+        description: `Bạn đã mua thành công ${productTitle}.`
+      });
       setOpen(false);
     } catch (error: any) {
       console.error("Purchase failed:", error);
-      toast.error("Lỗi", error.message || "Đã có lỗi xảy ra trong quá trình mua hàng.");
+      toast({
+        title: "Lỗi",
+        description: error.message || "Đã có lỗi xảy ra trong quá trình mua hàng.",
+        variant: "destructive"
+      });
     } finally {
       setIsPurchasing(false);
     }
@@ -66,7 +87,7 @@ const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="primary">Mua ngay</Button>
+        <Button variant="default">Mua ngay</Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -95,4 +116,6 @@ const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
   );
 };
 
+// Export both components
+export { PurchaseConfirmDialog as PurchaseConfirmDialogOld };
 export default PurchaseConfirmDialog;

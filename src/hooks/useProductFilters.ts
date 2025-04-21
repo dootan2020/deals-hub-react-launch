@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { SortOption, FilterParams } from '@/types';
 import { useSearchParams } from 'react-router-dom';
@@ -13,9 +14,23 @@ export interface ProductFilters {
 export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
   const [searchParams, setSearchParams] = useSearchParams();
   
+  // Get sort option from URL or default
+  const getSortFromUrl = (): SortOption => {
+    const urlSort = searchParams.get('sort');
+    if (urlSort && isSortOption(urlSort)) {
+      return urlSort;
+    }
+    return initialFilters?.sort || 'newest';
+  };
+  
+  // Helper function to validate SortOption
+  const isSortOption = (value: string): value is SortOption => {
+    return ['newest', 'price-asc', 'price-desc', 'name-asc', 'name-desc', 'popular', 'price-low', 'price-high'].includes(value);
+  };
+
   // Initialize filters from URL or defaults
   const [filters, setFilters] = useState<ProductFilters>({
-    sort: (searchParams.get('sort') as SortOption) || initialFilters?.sort || 'popular',
+    sort: getSortFromUrl(),
     priceRange: [
       Number(searchParams.get('minPrice')) || initialFilters?.priceRange?.[0] || 0,
       Number(searchParams.get('maxPrice')) || initialFilters?.priceRange?.[1] || 500
@@ -76,8 +91,12 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
     switch (sort) {
       case 'newest': return 'Mới nhất';
       case 'popular': return 'Phổ biến nhất';
+      case 'price-asc':
       case 'price-low': return 'Giá tăng dần';
+      case 'price-desc':
       case 'price-high': return 'Giá giảm dần';
+      case 'name-asc': return 'Tên A-Z';
+      case 'name-desc': return 'Tên Z-A';
       default: return 'Mới nhất';
     }
   };
@@ -98,7 +117,9 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
   };
 
   const handleSortChange = (newSort: string) => {
-    updateFilters({ sort: newSort as SortOption });
+    if (isSortOption(newSort)) {
+      updateFilters({ sort: newSort });
+    }
   };
 
   const handlePriceChange = (min: number, max: number) => {
@@ -119,11 +140,12 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
 
   // Convert filters to FilterParams for API requests
   const getFilterParams = (): FilterParams => ({
-    sort: String(filters.sort),
+    sort: filters.sort,
     minPrice: filters.priceRange[0],
     maxPrice: filters.priceRange[1],
     inStock: filters.stockFilter === 'in-stock' ? true : undefined,
     categoryId: filters.activeSubcategories.length > 0 ? filters.activeSubcategories[0] : undefined,
+    subcategories: filters.activeSubcategories.length > 0 ? filters.activeSubcategories : undefined,
   });
 
   return {

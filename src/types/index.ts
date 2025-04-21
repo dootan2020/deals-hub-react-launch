@@ -1,6 +1,5 @@
-
 // Define the SortOption type for product sorting
-export type SortOption = 'newest' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
+export type SortOption = 'newest' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc' | 'popular' | 'price-low' | 'price-high';
 
 // Define other types needed in the application
 export interface Category {

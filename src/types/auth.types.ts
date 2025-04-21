@@ -1,7 +1,7 @@
 
 import { ReactNode } from 'react';
 
-export type UserRole = 'user' | 'admin' | 'staff';
+export type UserRole = 'user' | 'admin' | 'staff' | 'guest';
 
 export interface User {
   id: string;
@@ -42,10 +42,10 @@ export interface AuthContextType {
   isStaff: boolean;
   userRoles: UserRole[];
   userBalance: number;
-  refreshUserBalance: () => Promise<void>; // Changed from Promise<number> to Promise<void>
+  refreshUserBalance: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
-  refreshBalance: () => Promise<void>; // Changed from Promise<number> to Promise<void>
-  login: (email: string, password: string) => Promise<void>;
+  refreshBalance: () => Promise<void>;
+  login: (email: string, password: string) => Promise<any>;
   logout: () => Promise<void>;
   register: (email: string, password: string, options?: any) => Promise<any>;
   checkUserRole: (role: UserRole) => boolean;

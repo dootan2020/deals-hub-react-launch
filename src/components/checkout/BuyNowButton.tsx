@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag } from 'lucide-react';
 import { usePurchaseDialog } from '@/hooks/use-purchase-dialog';
-import PurchaseConfirmDialog from '@/components/checkout/PurchaseConfirmDialog';
+import EnhancedPurchaseDialog from '@/components/checkout/EnhancedPurchaseDialog';
 import { Product } from '@/types';
 import { prepareProductForPurchase } from '@/utils/buyNowUtils';
 import { useRateLimitedAction } from '@/hooks/use-debounce';
@@ -59,16 +60,17 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
     {
       cooldownMs: 2000,
       onRateLimit: (retryAfter) => {
-        toast.info(
-          "Vui lòng chờ",
-          `Bạn đang thực hiện quá nhiều thao tác. Vui lòng thử lại sau ${retryAfter} giây.`
-        );
+        toast({
+          title: "Vui lòng chờ",
+          description: `Bạn đang thực hiện quá nhiều thao tác. Vui lòng thử lại sau ${retryAfter} giây.`
+        });
       },
       onError: (error) => {
-        toast.error(
-          "Lỗi",
-          error?.message || "Đã xảy ra lỗi khi mở hộp thoại mua hàng"
-        );
+        toast({
+          title: "Lỗi",
+          description: error?.message || "Đã xảy ra lỗi khi mở hộp thoại mua hàng",
+          variant: "destructive"
+        });
       }
     }
   );
@@ -83,6 +85,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   const handleConfirmPurchase = async (quantity: number, code?: string) => {
     const success = await handleConfirm(quantity, code);
     if (success && onSuccess) onSuccess();
+    return success;
   };
 
   const buttonDisabled = !isInStock || isDisabled;
@@ -126,9 +129,9 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       </Button>
 
       {selectedProduct && (
-        <PurchaseConfirmDialog
+        <EnhancedPurchaseDialog
           open={open}
-          onOpenChange={closeDialog}
+          onOpenChange={() => closeDialog()}
           product={selectedProduct}
           onConfirm={handleConfirmPurchase}
           isVerifying={isVerifying}

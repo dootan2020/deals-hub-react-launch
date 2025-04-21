@@ -32,17 +32,28 @@ export function useOrderDetails() {
 
         const userValue = normalizeUserField(data.user || null);
         
-        // Ensure product has the required fields or provide defaults
-        const productValue = data.product ? {
-          title: typeof data.product === 'object' ? data.product.title || 'Unknown Product' : 'Unknown Product',
-          images: typeof data.product === 'object' && Array.isArray(data.product.images) ? data.product.images : []
-        } : { title: 'Unknown Product', images: [] };
+        // Handle product data safely
+        let productValue = { title: 'Unknown Product', images: [] as string[] };
+        if (data.product) {
+          if (typeof data.product === 'object') {
+            productValue = {
+              title: data.product.title || 'Unknown Product',
+              images: Array.isArray(data.product.images) ? data.product.images : []
+            };
+          } else if (typeof data.product === 'string') {
+            productValue = {
+              title: data.product,
+              images: []
+            };
+          }
+        }
 
         const orderWithDetails: Order = {
           ...data,
           user: userValue,
           product: productValue,
-          order_items: orderItems || []
+          order_items: orderItems || [],
+          total_amount: data.total_price || 0
         };
 
         setSelectedOrder(orderWithDetails);
@@ -51,7 +62,11 @@ export function useOrderDetails() {
       return null;
     } catch (err) {
       console.error('Error fetching order details:', err);
-      toast.error("Lỗi", "Không thể tải thông tin đơn hàng");
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải thông tin đơn hàng",
+        variant: "destructive"
+      });
       return null;
     } finally {
       setLoading(false);

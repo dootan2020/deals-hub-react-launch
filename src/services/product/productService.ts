@@ -1,7 +1,42 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Product, FilterParams } from '@/types';
 import { applyFilters, sortProducts } from '@/utils/productFilters';
+
+// Helper function to convert database object to Product type
+function mapDbProductToProduct(dbProduct: any): Product {
+  return {
+    id: dbProduct.id,
+    title: dbProduct.title,
+    description: dbProduct.description,
+    price: Number(dbProduct.price),
+    images: dbProduct.images || [],
+    category_id: dbProduct.category_id,
+    rating: Number(dbProduct.rating) || 0,
+    review_count: dbProduct.review_count || 0,
+    in_stock: dbProduct.in_stock === true,
+    stock_quantity: dbProduct.stock_quantity || 0,
+    badges: dbProduct.badges || [],
+    slug: dbProduct.slug,
+    features: dbProduct.features || [],
+    specifications: dbProduct.specifications as Record<string, string | number | boolean | object> || {},
+    stock: dbProduct.stock || 0,
+    kiosk_token: dbProduct.kiosk_token || '',
+    original_price: dbProduct.original_price ? Number(dbProduct.original_price) : undefined,
+    short_description: dbProduct.short_description || dbProduct.description?.substring(0, 100),
+    createdAt: dbProduct.created_at,
+    
+    // Include category if it was joined in the query
+    category: dbProduct.categories ? {
+      id: dbProduct.categories.id,
+      name: dbProduct.categories.name,
+      description: dbProduct.categories.description,
+      image: dbProduct.categories.image,
+      slug: dbProduct.categories.slug,
+      count: dbProduct.categories.count,
+      parent_id: dbProduct.categories.parent_id
+    } : undefined
+  };
+}
 
 export async function fetchProducts() {
   const { data, error } = await supabase
@@ -10,7 +45,9 @@ export async function fetchProducts() {
     .order('title', { ascending: true });
     
   if (error) throw error;
-  return data;
+  
+  // Map DB results to Product type
+  return data.map(mapDbProductToProduct);
 }
 
 export async function fetchProductsWithFilters(filters?: FilterParams) {
@@ -27,39 +64,12 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
       query = query.eq('in_stock', filters.inStock);
     }
     
-    const { data, error } = await query.order('title', { ascending: true });
+    const { data, error } = await query.order('created_at', { ascending: false });
       
     if (error) throw error;
     
-    console.log('Raw products data from API:', data);
-    
-    const products: Product[] = data.map(item => ({
-      id: item.id,
-      title: item.title,
-      description: item.description,
-      shortDescription: item.short_description || item.description.substring(0, 200),
-      price: Number(item.price),
-      originalPrice: item.original_price ? Number(item.original_price) : undefined,
-      images: item.images || [],
-      categoryId: item.category_id,
-      rating: Number(item.rating) || 0,
-      reviewCount: item.review_count || 0,
-      inStock: item.in_stock === true,
-      stockQuantity: item.stock_quantity || 0,
-      badges: item.badges || [],
-      slug: item.slug,
-      features: item.features || [],
-      specifications: item.specifications as Record<string, string | number | boolean | object> || {},
-      salesCount: 0,
-      stock: item.stock || 0,
-      kiosk_token: item.kiosk_token || '',
-      createdAt: item.created_at
-    }));
-    
-    console.log('Mapped products with kiosk_token:', products.map(p => ({
-      title: p.title,
-      kiosk_token: p.kiosk_token ? 'present' : 'missing'
-    })));
+    // Map DB results to Product type
+    const products = data.map(mapDbProductToProduct);
     
     if (!filters) {
       return products;
@@ -75,10 +85,16 @@ export async function fetchProductsWithFilters(filters?: FilterParams) {
     if (filters.page !== undefined) {
       const pageSize = 12;
       const startIndex = (filters.page - 1) * pageSize;
-      return sortedProducts.slice(startIndex, startIndex + pageSize);
+      return {
+        products: sortedProducts.slice(startIndex, startIndex + pageSize),
+        totalPages: Math.ceil(sortedProducts.length / pageSize)
+      };
     }
     
-    return sortedProducts;
+    return {
+      products: sortedProducts,
+      totalPages: 1
+    };
   } catch (error) {
     console.error("Error fetching products with filters:", error);
     throw error;
@@ -96,28 +112,7 @@ export async function fetchProductById(id: string): Promise<Product | null> {
     if (error) throw error;
     if (!data) return null;
     
-    return {
-      id: data.id,
-      title: data.title,
-      description: data.description,
-      shortDescription: data.short_description || data.description.substring(0, 200),
-      price: Number(data.price),
-      originalPrice: data.original_price ? Number(data.original_price) : undefined,
-      images: data.images || [],
-      categoryId: data.category_id,
-      rating: Number(data.rating) || 0,
-      reviewCount: data.review_count || 0,
-      inStock: data.in_stock === true,
-      stockQuantity: data.stock_quantity || 0,
-      badges: data.badges || [],
-      slug: data.slug,
-      features: data.features || [],
-      specifications: data.specifications as Record<string, string | number | boolean | object> || {},
-      salesCount: 0,
-      stock: data.stock || 0,
-      kiosk_token: data.kiosk_token || '', // Added kiosk_token
-      createdAt: data.created_at
-    };
+    return mapDbProductToProduct(data);
   } catch (error) {
     console.error("Error fetching product by id:", error);
     throw error;
@@ -135,28 +130,7 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
     if (error) throw error;
     if (!data) return null;
     
-    return {
-      id: data.id,
-      title: data.title,
-      description: data.description,
-      shortDescription: data.short_description || data.description.substring(0, 200),
-      price: Number(data.price),
-      originalPrice: data.original_price ? Number(data.original_price) : undefined,
-      images: data.images || [],
-      categoryId: data.category_id,
-      rating: Number(data.rating) || 0,
-      reviewCount: data.review_count || 0,
-      inStock: data.in_stock === true,
-      stockQuantity: data.stock_quantity || 0,
-      badges: data.badges || [],
-      slug: data.slug,
-      features: data.features || [],
-      specifications: data.specifications as Record<string, string | number | boolean | object> || {},
-      salesCount: 0,
-      stock: data.stock || 0,
-      kiosk_token: data.kiosk_token || '', // Added kiosk_token
-      createdAt: data.created_at
-    };
+    return mapDbProductToProduct(data);
   } catch (error) {
     console.error("Error fetching product by slug:", error);
     throw error;
