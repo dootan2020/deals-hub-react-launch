@@ -35,6 +35,7 @@ describe('ProtectedRoute', () => {
       userRoles: [],
       userBalance: 0,
       refreshUserBalance: vi.fn(),
+      refreshBalance: vi.fn(), // Add the missing refreshBalance property
       refreshUserProfile: vi.fn(),
       login: vi.fn(),
       logout: vi.fn(),
@@ -70,6 +71,7 @@ describe('ProtectedRoute', () => {
       userRoles: ['user'],
       userBalance: 0,
       refreshUserBalance: vi.fn(),
+      refreshBalance: vi.fn(), // Add the missing refreshBalance property
       refreshUserProfile: vi.fn(),
       login: vi.fn(),
       logout: vi.fn(),
@@ -105,6 +107,7 @@ describe('ProtectedRoute', () => {
       userRoles: ['admin'],
       userBalance: 0,
       refreshUserBalance: vi.fn(),
+      refreshBalance: vi.fn(), // Add the missing refreshBalance property
       refreshUserProfile: vi.fn(),
       login: vi.fn(),
       logout: vi.fn(),

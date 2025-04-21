@@ -12,9 +12,10 @@ import { PayPalStateError } from '../PayPalStateError';
 interface PayPalCheckoutButtonProps {
   amount: number;
   onSuccess: () => void;
+  onError?: (error: string) => void; // Add the onError prop
 }
 
-export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amount, onSuccess }) => {
+export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amount, onSuccess, onError }) => {
   const [{ isPending, isRejected }, paypalDispatch] = usePayPalScriptReducer();
   const [showButtons, setShowButtons] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -50,8 +51,14 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
   };
 
   const handleError = (err: any) => {
-    toast.error('Đã có lỗi xảy ra trong quá trình thanh toán với PayPal.');
+    const errorMessage = err?.message || 'Đã có lỗi xảy ra trong quá trình thanh toán với PayPal.';
+    toast.error(errorMessage);
     console.error('PayPal Checkout error:', err);
+    
+    // Call the onError callback if provided
+    if (onError) {
+      onError(errorMessage);
+    }
   };
 
   const handleCancel = () => {
