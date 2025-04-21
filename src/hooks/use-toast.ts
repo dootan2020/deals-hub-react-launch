@@ -42,7 +42,7 @@ export const toast = {
   dismiss: (toastId?: string) => sonnerToast.dismiss(toastId),
   // For compatibility with the old toast API
   // For components using the object syntax: toast({ title, description, variant })
-  (props: { title?: string; description?: string; variant?: "default" | "destructive" | "success" | "warning" }) {
+  __call: function(props: { title?: string; description?: string; variant?: "default" | "destructive" | "success" | "warning" }) {
     const { title, description, variant } = props;
     
     if (variant === "destructive") {
@@ -56,3 +56,15 @@ export const toast = {
     }
   }
 };
+
+// Add call signature to make toast callable as a function
+Object.defineProperty(toast, "apply", {
+  value: function(_, args) {
+    return this.__call(args[0]);
+  }
+});
+Object.defineProperty(toast, "call", {
+  value: function(_, arg) {
+    return this.__call(arg);
+  }
+});
