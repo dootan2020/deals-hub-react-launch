@@ -1,6 +1,6 @@
 
-import { checkIdempotency } from './idempotencyCheckUtils';
-import { recordIdempotentRequest, updateIdempotentRequestStatus } from './idempotencyRecordUtils';
+import { checkIdempotencyKey } from './idempotencyCheckUtils';
+import { recordIdempotencyResult, updateIdempotencyStatus } from './idempotencyRecordUtils';
 import { IdempotencyResult } from '@/types/fixedTypes';
 
 /**
@@ -14,31 +14,31 @@ export const processWithIdempotency = async <T>(
   requestType: string
 ): Promise<IdempotencyResult<T>> => {
   try {
-    const { exists, data } = await checkIdempotency('transactions', idempotencyKey);
+    const { result, isNew } = await checkIdempotencyKey<T>(idempotencyKey, requestType);
 
-    if (exists && data?.status === 'success') {
+    if (!isNew && result !== null) {
       console.log(`Request with idempotency key ${idempotencyKey} already processed, returning cached result`);
       return {
-        result: data.response_payload as T,
+        result,
         isNew: false
       };
     }
 
-    await recordIdempotentRequest(idempotencyKey, payload, requestType);
+    await recordIdempotencyResult(idempotencyKey, requestType, payload);
 
-    const result = await processFunction();
+    const processResult = await processFunction();
 
-    await updateIdempotentRequestStatus(idempotencyKey, 'success', result);
+    await updateIdempotencyStatus(idempotencyKey, 'success', processResult);
 
     return {
-      result,
+      result: processResult,
       isNew: true
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error(`Error in idempotent processing for key ${idempotencyKey}:`, error);
 
-    await updateIdempotentRequestStatus(idempotencyKey, 'error', null, errorMessage);
+    await updateIdempotencyStatus(idempotencyKey, 'error', null, errorMessage);
 
     return {
       result: null,

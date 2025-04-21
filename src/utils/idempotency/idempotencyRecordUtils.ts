@@ -14,14 +14,12 @@ export async function recordIdempotencyResult<T>(
   try {
     // Store the result for this idempotency key
     const { error } = await supabase
-      .from('idempotency_keys')
-      .upsert({
-        key,
-        key_type: keyType,
-        result,
-        context_data: contextData || {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      .from('transaction_logs')
+      .insert({
+        idempotency_key: key,
+        status: 'success',
+        request_payload: contextData || {},
+        response_payload: result
       });
 
     if (error) {
@@ -37,18 +35,47 @@ export async function recordIdempotencyResult<T>(
 }
 
 /**
- * Delete an idempotency key
+ * Update the status of a request with this idempotency key
  */
-export async function deleteIdempotencyKey(
+export async function updateIdempotencyStatus<T>(
   key: string,
-  keyType: string
+  status: 'success' | 'error',
+  result: T | null,
+  errorMessage?: string
 ): Promise<boolean> {
   try {
     const { error } = await supabase
-      .from('idempotency_keys')
+      .from('transaction_logs')
+      .update({
+        status,
+        response_payload: result,
+        error_message: errorMessage
+      })
+      .eq('idempotency_key', key);
+
+    if (error) {
+      console.error('Error updating idempotency status:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Exception in updateIdempotencyStatus:', err);
+    return false;
+  }
+}
+
+/**
+ * Delete an idempotency key
+ */
+export async function deleteIdempotencyKey(
+  key: string
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('transaction_logs')
       .delete()
-      .eq('key', key)
-      .eq('key_type', keyType);
+      .eq('idempotency_key', key);
 
     if (error) {
       console.error('Error deleting idempotency key:', error);
@@ -73,7 +100,7 @@ export async function processWithIdempotencyHandling<T>(
 ): Promise<IdempotencyResult<T>> {
   try {
     // Check if we already have a result for this key
-    const checkResult = await checkIdempotencyKeyInternal<T>(key, keyType);
+    const checkResult = await checkIdempotencyKeyInternal<T>(key);
     
     if (!checkResult.isNew) {
       // We already have a result, return it
@@ -96,15 +123,13 @@ export async function processWithIdempotencyHandling<T>(
 
 // Internal function to avoid circular dependency
 async function checkIdempotencyKeyInternal<T>(
-  key: string,
-  keyType: string
+  key: string
 ): Promise<IdempotencyResult<T>> {
   try {
     const { data, error } = await supabase
-      .from('idempotency_keys')
+      .from('transaction_logs')
       .select('*')
-      .eq('key', key)
-      .eq('key_type', keyType)
+      .eq('idempotency_key', key)
       .maybeSingle();
 
     if (error) {
@@ -117,7 +142,7 @@ async function checkIdempotencyKeyInternal<T>(
     }
 
     return { 
-      result: data.result as T, 
+      result: data.response_payload as T, 
       isNew: false
     };
   } catch (err) {

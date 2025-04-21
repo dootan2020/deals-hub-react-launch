@@ -37,3 +37,14 @@ export interface DepositStatusRPCResponse {
   processed_today: number;
   failed_today: number;
 }
+
+/**
+ * Response structure for transaction processing
+ */
+export interface TransactionProcessResult {
+  success: boolean;
+  processed: number;
+  failed: number;
+  error?: string;
+  depositIds?: string[];
+}

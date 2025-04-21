@@ -10,12 +10,11 @@ export async function checkIdempotencyKey<T>(
   keyType: string
 ): Promise<IdempotencyResult<T>> {
   try {
-    // Query for existing idempotency record
+    // Query for existing idempotency record in transaction_logs
     const { data, error } = await supabase
-      .from('idempotency_keys')
+      .from('transaction_logs')
       .select('*')
-      .eq('key', key)
-      .eq('key_type', keyType)
+      .eq('idempotency_key', key)
       .maybeSingle();
 
     if (error) {
@@ -30,7 +29,7 @@ export async function checkIdempotencyKey<T>(
 
     // Return the stored result
     return { 
-      result: data.result as T, 
+      result: data.response_payload as T, 
       isNew: false
     };
   } catch (err) {
@@ -42,10 +41,9 @@ export async function checkIdempotencyKey<T>(
 export async function getIdempotencyRecord(key: string, keyType: string) {
   try {
     const { data, error } = await supabase
-      .from('idempotency_keys')
+      .from('transaction_logs')
       .select('*')
-      .eq('key', key)
-      .eq('key_type', keyType)
+      .eq('idempotency_key', key)
       .maybeSingle();
 
     if (error) {

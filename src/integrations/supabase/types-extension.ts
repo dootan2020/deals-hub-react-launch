@@ -50,7 +50,8 @@ export interface TransactionLog {
   created_at: string;
 }
 
-// Extend the original Database type
+// Add transaction_logs to the types to make the type checker happy
+// This will be merged with the original Database type
 export interface Database extends OriginalDatabase {
   public: {
     Tables: {
