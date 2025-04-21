@@ -1,10 +1,10 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, Globe, X, ChevronUp, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCategoriesContext } from '@/context/CategoriesContext';
 import { Category } from '@/types';
+import { useLanguage } from "@/context/LanguageContext";
 
 interface MobileNavigationProps {
   isOpen: boolean;
@@ -16,6 +16,7 @@ const MobileNavigation = ({
   toggleMenu 
 }: MobileNavigationProps) => {
   const { mainCategories, getSubcategoriesByParentId, isLoading } = useCategoriesContext();
+  const { language, setLanguage } = useLanguage();
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
   const toggleCategory = (categoryId: string) => {
@@ -131,9 +132,15 @@ const MobileNavigation = ({
           {/* Language Selector for Mobile */}
           <div className="flex items-center pt-4 border-t border-gray-200 mt-4">
             <Globe className="h-5 w-5 text-text-light" />
-            <select className="ml-2 text-sm text-text-light bg-transparent border-none focus:outline-none">
+            <select
+              className="ml-2 text-sm text-text-light bg-transparent border-none focus:outline-none"
+              value={language}
+              onChange={e => setLanguage(e.target.value as any)}
+              aria-label="Select language"
+            >
               <option value="en">English</option>
               <option value="vi">Vietnamese</option>
+              <option value="es">Spanish</option>
             </select>
           </div>
         </nav>

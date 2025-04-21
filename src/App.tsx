@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +5,7 @@ import { Routes, Route } from "react-router-dom";
 import { CategoriesProvider } from "@/context/CategoriesContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { LanguageProvider } from "@/context/LanguageContext";
 
 // Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
@@ -52,177 +52,179 @@ import MyAccountPage from "./pages/user/MyAccountPage";
 const App = () => {
   return (
     <React.StrictMode>
-      <AuthProvider>
-        <CategoriesProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/unauthorized" element={<UnauthorizedPage />} />
-              <Route path="/verify-email" element={<VerifyEmailPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              
-              {/* Protected User Routes */}
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/account" element={
-                <ProtectedRoute>
-                  <MyAccountPage />
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/deposit-history" element={
-                <ProtectedRoute>
-                  <DepositHistoryPage />
-                </ProtectedRoute>
-              } />
-              
-              {/* Protected Admin Routes */}
-              <Route path="/admin" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/categories" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <CategoryAdmin />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/orders" element={
-                <ProtectedRoute requiredRoles={['admin', 'staff']}>
-                  <OrdersAdmin />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/transactions" element={
-                <ProtectedRoute requiredRoles={['admin', 'staff']}>
-                  <TransactionsAdmin />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/api-config" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <ApiConfigAdmin />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/sync-logs" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <SyncLogsAdmin />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/api-tester" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <ApiTesterPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/product-manager" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <ProductManagerPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/products/create" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <ProductCreatePage />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/products/edit/:id" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <ProductEditPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/product-form-tester" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <ProductFormWithTester />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/proxy-settings" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <ProxySettingsPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/users" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <UsersManagementPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/site-settings" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <SiteSettingsPage />
-                </ProtectedRoute>
-              } />
-              
-              {/* SEO-friendly category routes */}
-              <Route path="/category/:categorySlug" element={<CategoryPage />} />
-              <Route path="/category/:parentCategorySlug/:categorySlug" element={<CategoryPage />} />
-              <Route path="/product/:productSlug" element={<ProductPage />} />
-              <Route path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />
-              <Route path="/products" element={<ProductsPage />} />
-              <Route path="/checkout/:slug" element={
-                <ProtectedRoute>
-                  <CheckoutPage />
-                </ProtectedRoute>
-              } />
-              
-              {/* Static pages with SEO-friendly URLs */}
-              <Route path="/page/support" element={<SupportPage />} />
-              <Route path="/support" element={<SupportPage />} />
-              
-              <Route path="/page/faqs" element={<FaqsPage />} />
-              <Route path="/faqs" element={<FaqsPage />} />
-              
-              <Route path="/page/knowledge" element={<KnowledgeBasePage />} />
-              <Route path="/knowledge" element={<KnowledgeBasePage />} />
-              
-              {/* Deposit Routes */}
-              <Route path="/page/deposit" element={
-                <ProtectedRoute>
-                  <DepositPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/deposit" element={
-                <ProtectedRoute>
-                  <DepositPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/top-up" element={
-                <ProtectedRoute>
-                  <DepositPage />
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/deposit/binance" element={
-                <ProtectedRoute>
-                  <DepositPage method="binance" />
-                </ProtectedRoute>
-              } />
-              <Route path="/deposit/usdt" element={
-                <ProtectedRoute>
-                  <DepositPage method="usdt" />
-                </ProtectedRoute>
-              } />
-              <Route path="/deposit/paypal" element={
-                <ProtectedRoute>
-                  <PayPalDepositPage />
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/order-success" element={
-                <ProtectedRoute>
-                  <OrderSuccessPage />
-                </ProtectedRoute>
-              } />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </TooltipProvider>
-        </CategoriesProvider>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <CategoriesProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/unauthorized" element={<UnauthorizedPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                
+                {/* Protected User Routes */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/account" element={
+                  <ProtectedRoute>
+                    <MyAccountPage />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/deposit-history" element={
+                  <ProtectedRoute>
+                    <DepositHistoryPage />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Protected Admin Routes */}
+                <Route path="/admin" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/categories" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <CategoryAdmin />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/orders" element={
+                  <ProtectedRoute requiredRoles={['admin', 'staff']}>
+                    <OrdersAdmin />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/transactions" element={
+                  <ProtectedRoute requiredRoles={['admin', 'staff']}>
+                    <TransactionsAdmin />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/api-config" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <ApiConfigAdmin />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/sync-logs" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <SyncLogsAdmin />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/api-tester" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <ApiTesterPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/product-manager" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <ProductManagerPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/products/create" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <ProductCreatePage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/products/edit/:id" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <ProductEditPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/product-form-tester" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <ProductFormWithTester />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/proxy-settings" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <ProxySettingsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/users" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <UsersManagementPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/site-settings" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <SiteSettingsPage />
+                  </ProtectedRoute>
+                } />
+                
+                {/* SEO-friendly category routes */}
+                <Route path="/category/:categorySlug" element={<CategoryPage />} />
+                <Route path="/category/:parentCategorySlug/:categorySlug" element={<CategoryPage />} />
+                <Route path="/product/:productSlug" element={<ProductPage />} />
+                <Route path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />
+                <Route path="/products" element={<ProductsPage />} />
+                <Route path="/checkout/:slug" element={
+                  <ProtectedRoute>
+                    <CheckoutPage />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Static pages with SEO-friendly URLs */}
+                <Route path="/page/support" element={<SupportPage />} />
+                <Route path="/support" element={<SupportPage />} />
+                
+                <Route path="/page/faqs" element={<FaqsPage />} />
+                <Route path="/faqs" element={<FaqsPage />} />
+                
+                <Route path="/page/knowledge" element={<KnowledgeBasePage />} />
+                <Route path="/knowledge" element={<KnowledgeBasePage />} />
+                
+                {/* Deposit Routes */}
+                <Route path="/page/deposit" element={
+                  <ProtectedRoute>
+                    <DepositPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/deposit" element={
+                  <ProtectedRoute>
+                    <DepositPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/top-up" element={
+                  <ProtectedRoute>
+                    <DepositPage />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/deposit/binance" element={
+                  <ProtectedRoute>
+                    <DepositPage method="binance" />
+                  </ProtectedRoute>
+                } />
+                <Route path="/deposit/usdt" element={
+                  <ProtectedRoute>
+                    <DepositPage method="usdt" />
+                  </ProtectedRoute>
+                } />
+                <Route path="/deposit/paypal" element={
+                  <ProtectedRoute>
+                    <PayPalDepositPage />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/order-success" element={
+                  <ProtectedRoute>
+                    <OrderSuccessPage />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </TooltipProvider>
+          </CategoriesProvider>
+        </AuthProvider>
+      </LanguageProvider>
     </React.StrictMode>
   );
 };
