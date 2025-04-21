@@ -14,7 +14,7 @@ export interface User {
   role?: UserRole;
   app_metadata: any; // Required to match Supabase's type
   aud: string; // Changed from optional to required
-  created_at?: string;
+  created_at: string; // Changed from optional to required
 }
 
 export interface AuthState {
@@ -52,3 +52,4 @@ export interface AuthContextType {
   resendVerificationEmail: (email: string) => Promise<boolean>;
   isLoadingBalance: boolean;
 }
+
