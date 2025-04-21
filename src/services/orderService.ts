@@ -2,6 +2,15 @@
 import { supabase } from '@/integrations/supabase/client';
 import { fetchViaProxyWithFallback, ProxyConfig } from '@/utils/proxyUtils';
 
+// Helper for consistent error objects
+function apiError(message: string, error?: any) {
+  return {
+    success: false,
+    message,
+    error: error?.message || error || null
+  };
+}
+
 // Create order
 export const createOrder = async (orderData: {
   kioskToken: string;
@@ -18,14 +27,18 @@ export const createOrder = async (orderData: {
     });
 
     if (error) {
-      console.error('Create order error:', error);
-      return { success: false, message: error.message };
+      return apiError('Could not create order', error);
     }
-    
-    return data;
+    if (data?.success === false || data?.success === "false") {
+      return apiError(data?.message || 'Could not create order', data?.error);
+    }
+
+    return {
+      success: true,
+      data
+    };
   } catch (error: any) {
-    console.error('Create order exception:', error);
-    return { success: false, message: "Có lỗi xảy ra: " + error.message };
+    return apiError('Unexpected error while creating order', error);
   }
 };
 
@@ -40,14 +53,18 @@ export const checkOrderStatus = async (orderId: string) => {
     });
 
     if (error) {
-      console.error('Check order status error:', error);
-      return { status: "error", message: error.message };
+      return apiError('Could not check order status', error);
     }
-    
-    return data;
+    if (data?.success === false || data?.status === "error" || data?.success === "false") {
+      return apiError(data?.message || data?.description || 'Could not check order', data?.error);
+    }
+
+    return {
+      success: true,
+      data
+    };
   } catch (error: any) {
-    console.error('Check order status exception:', error);
-    return { status: "error", message: "Không thể kiểm tra đơn hàng: " + error.message };
+    return apiError('Unexpected error while checking order status', error);
   }
 };
 
@@ -62,21 +79,24 @@ export const processOrder = async (orderData: any) => {
     });
 
     if (error) {
-      console.error('Process order error:', error);
-      return { success: false, message: error.message };
+      return apiError('Could not process order', error);
     }
-    
-    return data;
+    if (data?.success === false || data?.success === "false") {
+      return apiError(data?.message || 'Could not process order', data?.error);
+    }
+
+    return {
+      success: true,
+      data
+    };
   } catch (error: any) {
-    console.error('Process order exception:', error);
-    return { success: false, message: "Có lỗi xảy ra: " + error.message };
+    return apiError('Unexpected error while processing order', error);
   }
 };
 
 // Fetch product stock
 export const fetchProductStock = async (kioskToken: string) => {
   try {
-    // First try to get stock info through Supabase edge function
     const { data, error } = await supabase.functions.invoke('order-api', {
       body: {
         action: 'get-stock',
@@ -85,25 +105,42 @@ export const fetchProductStock = async (kioskToken: string) => {
     });
 
     if (error) {
-      console.error('Fetch product stock error:', error);
       // Fallback to mock data
-      return { 
-        success: "true", 
-        stock: 10, 
-        price: 100000, 
-        name: "Sản phẩm (Dữ liệu mô phỏng)" 
-      };
+      return {
+        success: false,
+        message: 'Could not fetch product stock',
+        error: error.message,
+        data: {
+          stock: 10,
+          price: 100000,
+          name: "Sản phẩm (Dữ liệu mô phỏng)"
+        }
+      }
     }
-    
-    return data;
-  } catch (error: any) {
-    console.error('Fetch product stock exception:', error);
-    // Return mock data in case of error
-    return { 
-      success: "true", 
-      stock: 5, 
-      price: 100000, 
-      name: "Sản phẩm (Dữ liệu mô phỏng)" 
+    if (data?.success === false || data?.success === "false") {
+      return {
+        success: false,
+        message: data?.message || data?.description || 'Could not fetch stock',
+        error: data?.error,
+        data: null
+      }
+    }
+
+    return {
+      success: true,
+      data
     };
+  } catch (error: any) {
+    // Return mock data in case of error
+    return {
+      success: false,
+      message: 'Unexpected error while fetching product stock',
+      error: error.message,
+      data: {
+        stock: 5,
+        price: 100000,
+        name: "Sản phẩm (Dữ liệu mô phỏng)"
+      }
+    }
   }
 };
