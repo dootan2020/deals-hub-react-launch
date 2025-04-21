@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -19,8 +20,10 @@ export const useSessionMonitor = (
           if (session.expires_at < currentTime) {
             console.log('Session has expired during app usage, logging out');
             logout().then(() => {
-              toast.error("Phiên đăng nhập đã hết hạn", {
-                description: "Vui lòng đăng nhập lại để tiếp tục" as any
+              toast({
+                title: "Phiên đăng nhập đã hết hạn",
+                description: "Vui lòng đăng nhập lại để tiếp tục",
+                variant: "destructive"
               });
               setTimeout(() => {
                 window.location.replace('/login?expired=1');
