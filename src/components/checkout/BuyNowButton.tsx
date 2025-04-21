@@ -69,10 +69,16 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
 
   // Handle button click - open dialog
   const handleClick = () => {
-    // Ensure product object matches Product type
+    // Ensure product object matches Product type and all required fields
     if (product) {
-      // Cast the product to Partial<Product> before passing to ensureProductFields
-      openDialog(ensureProductFields(product as unknown as Partial<Product>));
+      // Ensure required fields are satisfied as per 'Product' type everywhere
+      openDialog(ensureProductFields({
+        ...product,
+        description: product.description || "", // Make description required (fallback empty string)
+        specifications: product.specifications && Object.keys(product.specifications).length > 0
+          ? product.specifications
+          : {}, // Ensure correct type and not undefined
+      } as unknown as Partial<Product>));
     } else {
       const minimalProduct = ensureProductFields({
         id: productId || '',
@@ -80,7 +86,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
         title: 'Product',
         price: 0,
         stockQuantity: 10,
-        description: '', // Add required description field
+        description: '', // Always set to string
         images: [],
         categoryId: '',
         rating: 0,
@@ -89,8 +95,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
         features: [],
         slug: '',
         inStock: true,
-        // Additional safe defaults
-        specifications: {} as Record<string, string | number | boolean | object>,
+        specifications: {},
         createdAt: new Date().toISOString(),
         stock: 10,
         shortDescription: '',

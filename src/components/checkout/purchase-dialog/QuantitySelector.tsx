@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Minus } from 'lucide-react';
+import { sanitizeHtml } from '@/utils/sanitizeHtml';
 
 interface QuantitySelectorProps {
   quantity: number;
@@ -20,22 +20,11 @@ export const QuantitySelector = ({
   productStock,
 }: QuantitySelectorProps) => {
   const handleQuantityInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    
-    // Empty input handling
-    if (inputValue === '') {
-      return;
-    }
-    
-    // Parse the input to a number
-    const value = parseInt(inputValue, 10);
-    
-    // If not a valid number, do nothing
-    if (isNaN(value)) {
-      return;
-    }
-    
-    // Apply constraints: minimum 1, maximum is maxQuantity
+    const inputValue = sanitizeHtml(e.target.value);
+    const valueStr = inputValue.replace(/[^0-9]/g, '');
+    if (valueStr === '') return;
+    const value = parseInt(valueStr, 10);
+    if (isNaN(value)) return;
     const constrainedValue = Math.min(Math.max(1, value), maxQuantity);
     onQuantityChange(constrainedValue);
   };

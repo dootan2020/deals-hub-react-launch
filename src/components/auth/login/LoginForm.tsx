@@ -9,6 +9,7 @@ import { EmailField } from './fields/EmailField';
 import { PasswordField } from './fields/PasswordField';
 import { SubmitButton } from './fields/SubmitButton';
 import { Button } from '@/components/ui/button';
+import { sanitizeHtml } from '@/utils/sanitizeHtml';
 
 const loginSchema = z.object({
   email: z.string().email('Email không hợp lệ'),
@@ -42,9 +43,18 @@ export const LoginForm = ({
     },
   });
 
+  // Sanitize before submit
+  const handleSanitizedSubmit = async (values: LoginFormValues) => {
+    const sanitized: LoginFormValues = {
+      email: sanitizeHtml(values.email.trim().toLowerCase()),
+      password: sanitizeHtml(values.password),
+    };
+    await onSubmit(sanitized);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(handleSanitizedSubmit)}>
         <div className="space-y-4">
           {serverError && (
             <Alert variant="destructive">
