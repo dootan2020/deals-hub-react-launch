@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
-import { 
-  PayPalButtons, 
-  usePayPalScriptReducer, 
+import {
+  PayPalButtons,
+  usePayPalScriptReducer,
   SCRIPT_LOADING_STATE
 } from '@paypal/react-paypal-js';
 import { toast } from '@/hooks/use-toast';
@@ -15,12 +14,10 @@ interface PayPalCheckoutButtonProps {
 }
 
 export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amount, onSuccess }) => {
-  // Access the PayPal script loading state from the provider
   const [{ isPending, isRejected }, paypalDispatch] = usePayPalScriptReducer();
   const [showButtons, setShowButtons] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Show buttons only when the script is loaded
   useEffect(() => {
     if (!isPending && !isRejected) {
       setShowButtons(true);
@@ -30,44 +27,43 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
     }
   }, [isPending, isRejected]);
 
-  // Create order function with proper types
   const createOrder = (_data: any, actions: any) => {
     return actions.order.create({
-      intent: "CAPTURE",
-      purchase_units: [{
-        amount: {
-          value: amount.toFixed(2),
-          currency_code: 'USD'
+      intent: 'CAPTURE',
+      purchase_units: [
+        {
+          amount: {
+            value: amount.toFixed(2),
+            currency_code: 'USD'
+          }
         }
-      }],
+      ]
     });
   };
 
-  // Handle payment success with proper types
   const handleApprove = (_data: any, actions: any) => {
-    return actions.order.capture().then((details: any) => {
+    return actions.order.capture().then((_details: any) => {
       toast.success('Thanh toán thành công qua PayPal!');
       onSuccess();
     });
   };
 
-  // Handle errors with proper types
   const handleError = (err: any) => {
     toast.error('Đã có lỗi xảy ra trong quá trình thanh toán với PayPal.');
     console.error('PayPal Checkout error:', err);
   };
 
-  // Handle cancel
   const handleCancel = () => {
     toast.warning('Thanh toán bị hủy bỏ bởi người dùng.');
   };
 
-  // Handle retry with correct action type
   const handleRetry = () => {
     paypalDispatch({
       type: 'resetOptions',
       value: {
-        clientId: undefined
+        'client-id': process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
+        currency: 'USD',
+        intent: 'CAPTURE'
       }
     });
   };
