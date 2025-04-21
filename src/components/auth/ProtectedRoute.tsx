@@ -1,12 +1,12 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { UserRole } from '@/types/auth.types';
 import AuthLoadingScreen from './AuthLoadingScreen';
 import { toast } from '@/hooks/use-toast';
 import { EmailVerificationGate } from "./EmailVerificationGate";
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, reloadSession } from '@/integrations/supabase/client';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,7 +14,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteProps) => {
-  const { isAuthenticated, loading, userRoles, user, logout, session } = useAuth();
+  const { isAuthenticated, loading, userRoles, user, logout, session, refreshUserProfile } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [authTimeout, setAuthTimeout] = useState(false);
@@ -22,54 +22,85 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
   const [roleCheckComplete, setRoleCheckComplete] = useState(requiredRoles.length === 0);
   const [refreshingSession, setRefreshingSession] = useState(false);
   const [refreshAttempted, setRefreshAttempted] = useState(false);
+  const [refreshAttempts, setRefreshAttempts] = useState(0);
+  const [showRetryButton, setShowRetryButton] = useState(false);
+
+  // More robust session refresh logic with multiple attempts
+  const attemptSessionRefresh = useCallback(async () => {
+    if (refreshingSession || (refreshAttempts >= 3 && refreshAttempted)) return false;
+    
+    console.log(`Attempting to refresh session (attempt ${refreshAttempts + 1}/3)...`);
+    setRefreshingSession(true);
+    
+    try {
+      const { success, data, error } = await reloadSession();
+      
+      if (success && data?.session) {
+        console.log("Session refreshed successfully");
+        setRefreshAttempted(true);
+        return true;
+      } else {
+        console.error("Session refresh failed:", error?.message || "Unknown error");
+        setRefreshAttempts(prev => prev + 1);
+        
+        if (refreshAttempts >= 2) {
+          setShowRetryButton(true);
+          setSessionInvalid(true);
+        }
+        return false;
+      }
+    } catch (error) {
+      console.error("Error during session refresh:", error);
+      setRefreshAttempts(prev => prev + 1);
+      
+      if (refreshAttempts >= 2) {
+        setShowRetryButton(true);
+        setSessionInvalid(true);
+      }
+      return false;
+    } finally {
+      setRefreshingSession(false);
+      setRefreshAttempted(true);
+    }
+  }, [refreshingSession, refreshAttempts, refreshAttempted]);
 
   // Check if session needs refresh
   useEffect(() => {
+    if (loading) return;
+    
     const checkAndRefreshSession = async () => {
-      if (loading || !session || isAuthenticated || refreshingSession || refreshAttempted) return;
-      
-      // If we have no session but the page requires authentication, try refreshing
-      try {
-        console.log("Attempting to refresh session...");
-        setRefreshingSession(true);
-        
-        // Force session refresh using refresh token
-        const { data, error } = await supabase.auth.refreshSession();
-        
-        if (error) {
-          console.error("Session refresh failed:", error.message);
-          setSessionInvalid(true);
-        } else if (data.session) {
-          console.log("Session refreshed successfully");
-          // Auth context will be updated via onAuthStateChange event
-        } else {
-          console.log("No session available after refresh attempt");
-          setSessionInvalid(true);
-        }
-      } catch (error) {
-        console.error("Error during session refresh:", error);
-        setSessionInvalid(true);
-      } finally {
-        setRefreshingSession(false);
-        setRefreshAttempted(true);
+      // Only try to refresh if we're not authenticated
+      if (!isAuthenticated && !refreshingSession && refreshAttempts < 3) {
+        await attemptSessionRefresh();
       }
     };
     
     checkAndRefreshSession();
-  }, [loading, session, isAuthenticated, refreshingSession, refreshAttempted]);
+  }, [loading, isAuthenticated, refreshingSession, refreshAttempts, attemptSessionRefresh]);
 
-  // Auth timeout handling
+  // Auth timeout handling with progressive feedback
   useEffect(() => {
     if (!loading) return;
     
-    // Set a reasonable timeout for authentication (10 seconds)
+    // First quick timeout to show retry button
+    const quickTimeoutId = setTimeout(() => {
+      if (loading && !isAuthenticated) {
+        setShowRetryButton(true);
+      }
+    }, 3000); // 3 seconds
+    
+    // Real timeout for authentication (10 seconds)
     const timeoutId = setTimeout(() => {
       console.error('Authentication timeout reached. Will redirect to login.');
       setAuthTimeout(true);
-    }, 10000); // 10 seconds
+      toast.warning('Xác thực phiên truy cập thất bại', 'Đang chuyển hướng đến trang đăng nhập...');
+    }, 12000); // 12 seconds
 
-    return () => clearTimeout(timeoutId);
-  }, [loading]);
+    return () => {
+      clearTimeout(quickTimeoutId);
+      clearTimeout(timeoutId);
+    };
+  }, [loading, isAuthenticated]);
 
   // Handle role checking
   useEffect(() => {
@@ -102,6 +133,31 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
       }
     }
   }, [user, session]);
+
+  // Handle manual retry
+  const handleRetry = async () => {
+    setShowRetryButton(false);
+    setAuthTimeout(false);
+    setSessionInvalid(false);
+    setRefreshAttempts(0);
+    setRefreshAttempted(false);
+    
+    const success = await attemptSessionRefresh();
+    if (!success && !isAuthenticated) {
+      toast({
+        title: "Không thể khôi phục phiên",
+        description: "Vui lòng đăng nhập lại để tiếp tục",
+        variant: "destructive"
+      });
+      navigate('/login', { 
+        replace: true, 
+        state: { 
+          from: location.pathname, 
+          authError: 'session_restore_failed' 
+        } 
+      });
+    }
+  };
 
   // Handle invalid session logout and redirect
   useEffect(() => {
@@ -145,8 +201,10 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
   if (loading || refreshingSession) {
     return (
       <AuthLoadingScreen 
-        onRetry={() => window.location.reload()}
+        onRetry={showRetryButton ? handleRetry : undefined}
         onCancel={() => navigate('/')}
+        message={refreshingSession ? "Đang khôi phục phiên đăng nhập..." : "Đang xác minh phiên đăng nhập..."}
+        attempts={refreshAttempts}
       />
     );
   }

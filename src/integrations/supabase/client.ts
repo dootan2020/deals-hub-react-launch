@@ -20,10 +20,23 @@ export const supabase = createClient<Database>(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      storage: localStorage
+      storage: localStorage,
+      flowType: 'implicit',
+      debug: true
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
+    },
+    global: {
+      fetch: (...args) => {
+        console.debug('Supabase fetch:', args[0]);
+        return fetch(...args);
+      }
     }
   }
-)
+);
 
 // Test connection and log status
 supabase.auth.getSession().then(({ data, error }) => {
@@ -36,3 +49,30 @@ supabase.auth.getSession().then(({ data, error }) => {
       : 'No active session');
   }
 });
+
+// Export a utility to reload session explicitly
+export const reloadSession = async () => {
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) {
+      console.error('Failed to reload session:', error.message);
+      return { success: false, error };
+    }
+    console.log('Session reloaded successfully, new expiry:', 
+      data.session ? new Date(data.session.expires_at * 1000).toLocaleString() : 'No session');
+    return { success: !!data.session, data };
+  } catch (err) {
+    console.error('Error reloading session:', err);
+    return { success: false, error: err };
+  }
+};
+
+// Add heartbeat to check connection
+setInterval(() => {
+  supabase.functions.invoke('heartbeat', { body: { ping: true } })
+    .catch(err => {
+      // Silent catch - just for connection testing
+      console.debug('Supabase heartbeat failed:', err?.message || 'Unknown error');
+    });
+}, 30000); // Check every 30 seconds
+

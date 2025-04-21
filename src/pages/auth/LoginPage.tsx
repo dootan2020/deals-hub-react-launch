@@ -29,10 +29,14 @@ export default function LoginPage() {
       setServerError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
     } else if (authError === 'timeout') {
       setServerError('Xác thực đã hết thời gian chờ. Vui lòng đăng nhập lại.');
+    } else if (authError === 'session_restore_failed') {
+      setServerError('Không thể khôi phục phiên đăng nhập. Vui lòng đăng nhập lại.');
     } else if (location.search.includes('expired=1')) {
       setServerError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
     } else if (location.search.includes('timeout=1')) {
       setServerError('Phiên đã hết thời gian do không hoạt động. Vui lòng đăng nhập lại.');
+    } else if (location.search.includes('network=1')) {
+      setServerError('Lỗi kết nối mạng. Vui lòng kiểm tra kết nối và thử lại.');
     }
   }, [authError, location.search]);
   
@@ -40,6 +44,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (isAuthenticated) {
       const redirectTo = returnUrl || from;
+      console.log('User authenticated, redirecting to:', redirectTo);
       navigate(redirectTo, { replace: true });
     }
   }, [isAuthenticated, navigate, from, returnUrl]);
