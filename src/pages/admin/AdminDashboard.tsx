@@ -6,7 +6,7 @@ import { StatCard } from '@/components/admin/dashboard/StatCard';
 import { RevenueChart } from '@/components/admin/dashboard/RevenueChart';
 import { OrdersChart } from '@/components/admin/dashboard/OrdersChart';
 import { TopProductsTable } from '@/components/admin/dashboard/TopProductsTable';
-import { Button } from '@/components/ui/card';
+import { Button } from '@/components/ui/button'; // Fix: import Button from the correct location
 import { toast } from 'sonner';
 import { TrendingUp, TrendingDown, CircleDollarSign, ShoppingCart, Package, PackageOpen, FileBarChart, RefreshCw, BarChart3, ChartPie } from 'lucide-react';
 import { cn } from '@/lib/utils';

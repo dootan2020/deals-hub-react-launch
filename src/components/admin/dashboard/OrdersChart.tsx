@@ -37,7 +37,9 @@ const statusColors: Record<string, string> = {
 export const OrdersChart = ({ data, isLoading = false }: OrdersChartProps) => {
   const translatedData = data.map(item => ({
     ...item,
-    status: statusTranslations[item.status] || item.status
+    status: statusTranslations[item.status] || item.status,
+    // Add the color to each data item so we can use it directly
+    color: statusColors[item.status] || '#000'
   }));
 
   return (
@@ -91,12 +93,10 @@ export const OrdersChart = ({ data, isLoading = false }: OrdersChartProps) => {
                   dataKey="count" 
                   name="Số lượng" 
                   radius={[4, 4, 0, 0]}
-                  fill={(data) => {
-                    const status = Object.keys(statusTranslations).find(
-                      key => statusTranslations[key] === data.status
-                    );
-                    return status ? statusColors[status] : '#000';
-                  }}
+                  fill="#2ECC71" // Use a default fill color
+                  // Use the fill prop function to get the color from data item
+                  fillOpacity={0.9}
+                  stroke="none"
                 />
               </BarChart>
             </ResponsiveContainer>
