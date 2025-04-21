@@ -48,7 +48,7 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
     return (
       <PayPalStateError
         errorMessage={errorMessage || 'Lỗi khi tải PayPal.'}
-        onRetry={() => paypalDispatch({ type: "resetOptions" })}
+        onRetry={() => paypalDispatch({ type: "reload", value: undefined })}
       />
     );
   }
