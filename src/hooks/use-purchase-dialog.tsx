@@ -8,7 +8,7 @@ import { sanitizeHtml } from '@/utils/sanitizeHtml';
 import { useProductVerification } from './useProductVerification';
 import { useOrderIdempotencyKey } from './useOrderIdempotencyKey';
 import { logOrderActivity, checkFraudAndReport } from './usePurchaseActivity';
-import { Product } from '@/types'; // Import the standard Product type
+import { Product } from '@/types';
 
 export const usePurchaseDialog = () => {
   const [open, setOpen] = useState(false);
