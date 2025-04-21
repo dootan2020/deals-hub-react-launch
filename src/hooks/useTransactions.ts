@@ -16,7 +16,7 @@ export interface Transaction {
   user?: {
     email: string;
     display_name?: string;
-  };
+  } | null; // Made nullable to handle potential missing user data
 }
 
 export interface Deposit {
@@ -34,7 +34,7 @@ export interface Deposit {
   user?: {
     email: string;
     display_name?: string;
-  };
+  } | null; // Made nullable to handle potential missing user data
 }
 
 export function useTransactions() {
@@ -63,7 +63,20 @@ export function useTransactions() {
 
       if (transactionsError) throw transactionsError;
 
-      setTransactions(data || []);
+      // Type casting to ensure compatibility with Transaction interface
+      const typedTransactions = (data || []).map(item => {
+        // Handle potentially missing user data
+        const userValue = item.user && !('error' in item.user) 
+          ? item.user 
+          : { email: 'N/A' };
+          
+        return {
+          ...item,
+          user: userValue
+        } as Transaction;
+      });
+
+      setTransactions(typedTransactions);
     } catch (err) {
       console.error('Error fetching transactions:', err);
       setError('Không thể tải danh sách giao dịch');
@@ -88,7 +101,20 @@ export function useTransactions() {
 
       if (depositsError) throw depositsError;
 
-      setDeposits(data || []);
+      // Type casting to ensure compatibility with Deposit interface
+      const typedDeposits = (data || []).map(item => {
+        // Handle potentially missing user data
+        const userValue = item.user && !('error' in item.user) 
+          ? item.user 
+          : { email: 'N/A' };
+          
+        return {
+          ...item,
+          user: userValue
+        } as Deposit;
+      });
+
+      setDeposits(typedDeposits);
     } catch (err) {
       console.error('Error fetching deposits:', err);
       setError('Không thể tải danh sách nạp tiền');

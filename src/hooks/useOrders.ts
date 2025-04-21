@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { Json } from '@/integrations/supabase/types';
 
 interface OrderItem {
   id: string;
@@ -21,7 +22,7 @@ export interface Order {
   updated_at: string;
   product_id?: string;
   qty: number;
-  keys?: any[];
+  keys?: Json; // Updated to match the database Json type
   promotion_code?: string;
   external_order_id?: string;
   user?: { 
@@ -70,10 +71,11 @@ export function useOrders() {
             .select('*')
             .eq('order_id', order.id);
 
+          // Type casting to ensure compatibility with Order interface
           return {
             ...order,
             order_items: orderItems || []
-          };
+          } as Order;
         })
       );
 
@@ -108,8 +110,14 @@ export function useOrders() {
           .select('*')
           .eq('order_id', data.id);
 
-        setSelectedOrder({ ...data, order_items: orderItems || [] });
-        return { ...data, order_items: orderItems || [] };
+        // Type casting to ensure compatibility with Order interface
+        const orderWithDetails = {
+          ...data,
+          order_items: orderItems || []
+        } as Order;
+
+        setSelectedOrder(orderWithDetails);
+        return orderWithDetails;
       }
       
       return null;
