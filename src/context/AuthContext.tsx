@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (authError) {
       console.error('Authentication error:', authError);
-      toast.error('Lỗi xác thực', { description: authError.message });
+      toast.error('Lỗi xác thực', authError.message);
     }
   }, [authError]);
 
@@ -71,13 +71,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const refreshUserBalance = useCallback(async () => {
     if (!user?.id) return;
     console.log('Manually refreshing user balance for ID:', user.id);
-    
+
     try {
       await fetchUserBalance(user.id);
       return userBalance; // Return current balance after refresh
     } catch (error) {
       console.error('Error refreshing balance:', error);
-      toast.error('Không thể cập nhật số dư', { description: 'Vui lòng thử lại sau' });
+      toast.error('Không thể cập nhật số dư', 'Vui lòng thử lại sau');
       throw error;
     }
   }, [user?.id, fetchUserBalance, userBalance]);
@@ -89,12 +89,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const refreshUserProfile = useCallback(async () => {
     if (!user?.id) return;
     console.log('Refreshing full user profile for ID:', user.id);
-    
+
     try {
       await refreshUserData();
     } catch (error) {
       console.error('Error refreshing user profile:', error);
-      toast.error('Không thể cập nhật thông tin người dùng', { description: 'Vui lòng thử lại sau' });
+      toast.error('Không thể cập nhật thông tin người dùng', 'Vui lòng thử lại sau');
       throw error;
     }
   }, [user?.id, refreshUserData]);
@@ -144,5 +144,5 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     </AuthContext.Provider>
   );
 };
-
 export const useAuth = () => useContext(AuthContext);
+

@@ -18,7 +18,7 @@ export interface AuthContextType {
   userBalance: number;
   isLoadingBalance?: boolean;
   refreshUserBalance: () => Promise<number | void>;
-  refreshBalance: () => Promise<number | void>; // Alias for backward compatibility
+  refreshBalance: () => Promise<number | void>; // Alias for backward compatibility, required!
   refreshUserProfile: () => Promise<void>;
   login: (email: string, password: string) => Promise<any>;
   logout: () => Promise<void>;

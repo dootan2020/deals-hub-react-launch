@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -23,7 +22,7 @@ const PayPalDepositPage = () => {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'completed' | 'failed' | null>(null);
-  const { user, userBalance, refreshUserBalance } = useAuth();
+  const { user, userBalance, refreshUserBalance, refreshBalance } = useAuth();
   const navigate = useNavigate();
   const { isVerifying, verifyPayment } = usePayPalVerification();
 
@@ -31,7 +30,7 @@ const PayPalDepositPage = () => {
 
   // Parse amount as number for calculations
   const numAmount = parseFloat(amount);
-  
+
   // Check if amount is valid (is a number and >= 1)
   const isValidAmount = !isNaN(numAmount) && numAmount >= 1;
 
@@ -57,13 +56,18 @@ const PayPalDepositPage = () => {
 
   const handleVerifyTransaction = async () => {
     if (!transactionId) return;
-    
+
     const result = await verifyPayment(transactionId);
     if (result?.success) {
       setPaymentStatus(result.status as any);
       if (result.status === 'completed') {
         refreshUserBalance();
+      } else if (result.status === 'failed') {
+        setPaymentError(result.error || "Giao dịch thất bại.");
       }
+    } else if (result && result.error) {
+      setPaymentStatus('failed');
+      setPaymentError(result.error || "Xác minh giao dịch thất bại.");
     }
   };
 
@@ -93,7 +97,7 @@ const PayPalDepositPage = () => {
   // Save transaction to session storage when created
   useEffect(() => {
     if (transactionId) {
-      sessionStorage.setItem('pendingPayPalTransaction', JSON.stringify({ 
+      sessionStorage.setItem('pendingPayPalTransaction', JSON.stringify({
         id: transactionId,
         timestamp: new Date().toISOString()
       }));

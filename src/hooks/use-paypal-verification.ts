@@ -14,9 +14,7 @@ export const usePayPalVerification = () => {
 
   const verifyPayment = async (transactionId: string) => {
     if (!transactionId) {
-      toast.error("Lỗi xác minh", {
-        description: "Không tìm thấy mã giao dịch"
-      });
+      toast.error("Lỗi xác minh", "Không tìm thấy mã giao dịch");
       return null;
     }
 
@@ -37,22 +35,14 @@ export const usePayPalVerification = () => {
 
       if (result.success) {
         if (result.status === 'completed') {
-          toast.success("Xác minh thành công", {
-            description: "Giao dịch đã được xác nhận và số dư đã được cập nhật"
-          });
+          toast.success("Xác minh thành công", "Giao dịch đã được xác nhận và số dư đã được cập nhật");
         } else if (result.status === 'pending') {
-          toast.info("Đang xử lý", {
-            description: "Giao dịch đang chờ xử lý từ PayPal"
-          });
+          toast("Đang xử lý", "Giao dịch đang chờ xử lý từ PayPal");
         } else {
-          toast.warning("Cần kiểm tra", {
-            description: result.message || "Trạng thái giao dịch không xác định"
-          });
+          toast.warning("Cần kiểm tra", result.message || "Trạng thái giao dịch không xác định");
         }
       } else {
-        toast.error("Lỗi xác minh", {
-          description: result.error || "Không thể xác minh giao dịch"
-        });
+        toast.error("Lỗi xác minh", result.error || "Không thể xác minh giao dịch");
       }
 
       return result;
@@ -66,9 +56,7 @@ export const usePayPalVerification = () => {
         error: errorMessage
       });
       
-      toast.error("Lỗi xác minh", {
-        description: errorMessage
-      });
+      toast.error("Lỗi xác minh", errorMessage);
       return null;
     } finally {
       setIsVerifying(false);

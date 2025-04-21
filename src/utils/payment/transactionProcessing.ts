@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { processDepositBalance } from './balanceProcessing';
 import { toast } from 'sonner';
@@ -201,7 +200,7 @@ export const processPendingTransactions = async (): Promise<{
       .select('id, transaction_id')
       .eq('status', 'pending')
       .not('transaction_id', 'is', null);
-    
+
     if (error) {
       console.error("Error fetching pending deposits:", error);
       return {
@@ -211,7 +210,7 @@ export const processPendingTransactions = async (): Promise<{
         error: error.message
       };
     }
-    
+
     if (!data || data.length === 0) {
       console.log("No pending transactions found");
       return {
@@ -220,33 +219,29 @@ export const processPendingTransactions = async (): Promise<{
         failed: 0
       };
     }
-    
+
     console.log(`Found ${data.length} pending transactions to process`);
     let processed = 0;
     let failed = 0;
-    
+
     // Xử lý từng giao dịch
     for (const deposit of data) {
       if (!deposit.transaction_id) continue;
-      
+
       console.log(`Processing deposit ${deposit.id} with transaction ${deposit.transaction_id}`);
       const result = await processSpecificTransaction(deposit.transaction_id);
-      
+
       if (result.success) {
         processed++;
         console.log(`Successfully processed deposit ${deposit.id}`);
-        toast.success("Xử lý giao dịch", {
-          description: `Xử lý thành công giao dịch #${deposit.transaction_id}`
-        });
+        toast.success("Xử lý giao dịch", `Xử lý thành công giao dịch #${deposit.transaction_id}`);
       } else {
         failed++;
         console.error(`Failed to process deposit ${deposit.id}:`, result.error);
-        toast.error("Lỗi xử lý giao dịch", {
-          description: result.error || "Không thể xử lý giao dịch"
-        });
+        toast.error("Lỗi xử lý giao dịch", result.error || "Không thể xử lý giao dịch");
       }
     }
-    
+
     console.log(`Processing complete: ${processed} succeeded, ${failed} failed`);
     return {
       success: true,
