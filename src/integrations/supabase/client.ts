@@ -30,11 +30,10 @@ export const supabase = createClient<Database>(
       }
     },
     global: {
-      fetch: (...args) => {
-        // Fixed: Properly type the args parameter to avoid spread operator issue
-        const [url, options, ...rest] = args;
+      fetch: (url, options) => {
+        // Fixed: Properly call fetch without spread operator issues
         console.debug('Supabase fetch:', url);
-        return fetch(url, options, ...rest);
+        return fetch(url, options);
       }
     }
   }
