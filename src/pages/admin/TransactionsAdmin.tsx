@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InfoIcon, RefreshCw, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useTransactions, Transaction, Deposit } from '@/hooks/useTransactions';
+import { useTransactions } from '@/hooks/useTransactions';
+import { Transaction, Deposit } from '@/hooks/transactionUtils';
 import TransactionsTable from '@/components/admin/transactions/TransactionsTable';
 
 const TransactionsAdmin = () => {

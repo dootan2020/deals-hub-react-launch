@@ -2,13 +2,16 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Order, normalizeUserField, OrderItem } from './orderUtils';
+import { Order, normalizeUserField } from './orderUtils';
+import { useOrderAdminActions } from './useOrderAdminActions';
 
 // Core hook for order list and basic updating
 export function useOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const adminActions = useOrderAdminActions(orders, setOrders);
 
   useEffect(() => {
     fetchOrders();
@@ -38,7 +41,7 @@ export function useOrders() {
             .select('*')
             .eq('order_id', order.id);
           // handle nulls for user
-          const userValue = normalizeUserField(order.user);
+          const userValue = normalizeUserField(order.user || null);
           return {
             ...order,
             user: userValue,
@@ -63,6 +66,8 @@ export function useOrders() {
     error,
     setOrders,
     fetchOrders,
+    ...adminActions
   };
 }
 
+export { Order } from './orderUtils';

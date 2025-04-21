@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InfoIcon, Package, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useOrders, Order } from '@/hooks/useOrders';
+import { useOrders } from '@/hooks/useOrders';
+import { Order } from '@/hooks/orderUtils';
 import OrdersTable from '@/components/admin/orders/OrdersTable';
 
 const OrdersAdmin = () => {

@@ -3,13 +3,27 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Transaction, normalizeUserField } from './transactionUtils';
+import { useDeposits } from './useDeposits';
 
 // Hook for list of transactions (not deposits)
 export function useTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  
+  // Get deposits functionality
+  const { 
+    deposits, 
+    loading: depositsLoading, 
+    error: depositsError,
+    fetchDeposits,
+    updateDepositStatus,
+    setDeposits
+  } = useDeposits();
+  
+  // Combined loading state
+  const isLoading = loading || depositsLoading;
+  
   useEffect(() => {
     fetchTransactions();
   }, []);
@@ -30,7 +44,7 @@ export function useTransactions() {
       if (transactionsError) throw transactionsError;
 
       const typedTransactions = (data || []).map((item: any) => {
-        const userValue = normalizeUserField(item.user);
+        const userValue = normalizeUserField(item.user || null);
         return { ...item, user: userValue } as Transaction;
       });
 
@@ -44,5 +58,16 @@ export function useTransactions() {
     }
   };
 
-  return { transactions, loading, error, fetchTransactions, setTransactions };
+  return { 
+    transactions, 
+    loading: isLoading, 
+    error: error || depositsError,
+    fetchTransactions,
+    setTransactions,
+    deposits,
+    fetchDeposits,
+    updateDepositStatus
+  };
 }
+
+export { Transaction, Deposit } from './transactionUtils';

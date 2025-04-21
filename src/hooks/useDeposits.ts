@@ -30,7 +30,7 @@ export function useDeposits() {
       if (depositsError) throw depositsError;
 
       const typedDeposits = (data || []).map((item: any) => {
-        const userValue = normalizeUserField(item.user);
+        const userValue = normalizeUserField(item.user || null);
         return { ...item, user: userValue } as Deposit;
       });
 
@@ -117,3 +117,4 @@ export function useDeposits() {
   };
 }
 
+export { Deposit } from './transactionUtils';

@@ -48,4 +48,3 @@ export function normalizeUserField(user: any): { email: string; display_name?: s
   }
   return { email: 'N/A' };
 }
-
