@@ -9,6 +9,7 @@ import { DialogFooterButtons } from './purchase-dialog/DialogFooterButtons';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { sanitizeHtml } from '@/utils/sanitizeHtml';
 
 interface PurchaseConfirmDialogProps {
   open: boolean;
@@ -111,7 +112,9 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
 
     setIsSubmitting(true);
     try {
-      await onConfirm(quantity, promotionCode);
+      const sanitizedPromotionCode = promotionCode ? sanitizeHtml(promotionCode.trim()) : '';
+      
+      await onConfirm(quantity, sanitizedPromotionCode);
     } catch (error) {
       console.error("Error during purchase confirmation:", error);
       toast.error("Có lỗi xảy ra khi xác nhận mua hàng");

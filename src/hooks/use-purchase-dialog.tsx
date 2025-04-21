@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useOrderApi } from '@/hooks/use-order-api';
 import { supabase } from '@/integrations/supabase/client';
 import { recordPurchaseActivity, checkUserBehaviorAnomaly } from '@/utils/fraud-detection';
+import { sanitizeHtml } from '@/utils/sanitizeHtml';
 
 interface Product {
   id: string;
@@ -199,6 +200,8 @@ export const usePurchaseDialog = () => {
       return false;
     }
 
+    const sanitizedPromoCode = promotionCode ? sanitizeHtml(promotionCode.trim()) : undefined;
+
     let latestStock = null;
     let latestPrice = null;
     try {
@@ -256,7 +259,7 @@ export const usePurchaseDialog = () => {
         kioskToken: selectedProduct.kiosk_token,
         productId: selectedProduct.id,
         quantity: quantity,
-        promotionCode: promotionCode,
+        promotionCode: sanitizedPromoCode,
         priceUSD: totalAmount / 24000
       });
 

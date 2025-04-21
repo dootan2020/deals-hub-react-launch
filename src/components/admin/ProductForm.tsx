@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -28,19 +27,28 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw } from 'lucide-react';
+import { sanitizeHtml } from '@/utils/sanitizeHtml';
 
 const productSchema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters.'),
-  description: z.string().min(10, 'Description must be at least 10 characters.'),
+  title: z.string()
+    .min(3, 'Title must be at least 3 characters.')
+    .transform((v) => sanitizeHtml(v)),
+  description: z.string()
+    .min(10, 'Description must be at least 10 characters.')
+    .transform((v) => sanitizeHtml(v)),
   price: z.coerce.number().min(0, 'Price must be a positive number.'),
   originalPrice: z.coerce.number().min(0, 'Original price must be positive').optional(),
   inStock: z.boolean().default(true),
-  slug: z.string().min(3, 'Slug must be at least 3 characters.')
-    .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens.'),
-  externalId: z.string().optional(),
+  slug: z.string()
+    .min(3, 'Slug must be at least 3 characters.')
+    .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens.')
+    .transform((v) => sanitizeHtml(v)),
+  externalId: z.string().optional().transform((v) => v ? sanitizeHtml(v) : v),
   categoryId: z.string().min(1, 'Category is required'),
-  images: z.string().optional(),
-  kioskToken: z.string().min(1, 'Kiosk Token is required'),
+  images: z.string().optional().transform((v) => v ? sanitizeHtml(v) : v),
+  kioskToken: z.string()
+    .min(1, 'Kiosk Token is required')
+    .transform((v) => sanitizeHtml(v)),
   stock: z.number().int().min(0, 'Stock must be a positive number'),
 });
 
@@ -173,11 +181,9 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       };
 
       if (productId) {
-        // Fixed: Pass the data directly without converting to a promise
         updateProduct({ id: productId, ...productData } as any);
         toast.success('Product updated successfully');
       } else {
-        // Fixed: Pass the data directly without converting to a promise
         createProduct(productData as any);
         toast.success('Product created successfully');
       }

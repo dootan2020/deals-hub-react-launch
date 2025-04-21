@@ -7,67 +7,62 @@ import { Label } from "@/components/ui/label";
 import { Lock, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { sanitizeHtml } from '@/utils/sanitizeHtml';
+
+// Define schema with validation rules
+const passwordSchema = z.object({
+  currentPassword: z.string()
+    .min(1, 'Current password is required')
+    .transform(val => sanitizeHtml(val)),
+  newPassword: z.string()
+    .min(6, 'Password must be at least 6 characters')
+    .transform(val => sanitizeHtml(val)),
+  confirmPassword: z.string()
+    .transform(val => sanitizeHtml(val))
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+});
+
+type PasswordFormValues = z.infer<typeof passwordSchema>;
 
 const ChangePasswordForm = () => {
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{
-    currentPassword?: string;
-    newPassword?: string;
-    confirmPassword?: string;
-  }>({});
 
-  const validateForm = () => {
-    const newErrors: {
-      currentPassword?: string;
-      newPassword?: string;
-      confirmPassword?: string;
-    } = {};
-    
-    if (!currentPassword) {
-      newErrors.currentPassword = 'Current password is required';
-    }
-    
-    if (!newPassword) {
-      newErrors.newPassword = 'New password is required';
-    } else if (newPassword.length < 6) {
-      newErrors.newPassword = 'Password must be at least 6 characters';
-    }
-    
-    if (!confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your new password';
-    } else if (confirmPassword !== newPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const form = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
+  const onSubmit = async (values: PasswordFormValues) => {
     setIsSubmitting(true);
     try {
       // First verify the current password by attempting to sign in
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: (await supabase.auth.getUser()).data.user?.email || '',
-        password: currentPassword
+        password: values.currentPassword
       });
       
       if (signInError) {
-        setErrors({ currentPassword: 'Current password is incorrect' });
+        form.setError('currentPassword', { 
+          type: 'manual', 
+          message: 'Current password is incorrect' 
+        });
         toast.error('Current password is incorrect');
         return;
       }
       
       // Update the password
       const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword
+        password: values.newPassword
       });
       
       if (updateError) throw updateError;
@@ -75,10 +70,7 @@ const ChangePasswordForm = () => {
       toast.success('Password updated successfully');
       
       // Clear the form
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setErrors({});
+      form.reset();
     } catch (error: any) {
       toast.error(`Failed to update password: ${error.message || 'Unknown error'}`);
       console.error('Password update error:', error);
@@ -94,73 +86,81 @@ const ChangePasswordForm = () => {
         <CardDescription>Update your account password</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="currentPassword">
-              Current Password
-            </Label>
-            <Input
-              id="currentPassword"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className={errors.currentPassword ? "border-red-500" : ""}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="currentPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Current Password</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="password" 
+                      placeholder="Enter current password" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            {errors.currentPassword && (
-              <p className="text-red-500 text-sm">{errors.currentPassword}</p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="newPassword">
-              New Password
-            </Label>
-            <Input
-              id="newPassword"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className={errors.newPassword ? "border-red-500" : ""}
+            
+            <FormField
+              control={form.control}
+              name="newPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>New Password</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="password" 
+                      placeholder="Enter new password" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            {errors.newPassword && (
-              <p className="text-red-500 text-sm">{errors.newPassword}</p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">
-              Confirm New Password
-            </Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className={errors.confirmPassword ? "border-red-500" : ""}
+            
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm New Password</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="password" 
+                      placeholder="Confirm new password" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            {errors.confirmPassword && (
-              <p className="text-red-500 text-sm">{errors.confirmPassword}</p>
-            )}
-          </div>
-          
-          <Button 
-            type="submit" 
-            className="w-full"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Updating...
-              </>
-            ) : (
-              <>
-                <Lock className="mr-2 h-4 w-4" />
-                Update Password
-              </>
-            )}
-          </Button>
-        </form>
+            
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <Lock className="mr-2 h-4 w-4" />
+                  Update Password
+                </>
+              )}
+            </Button>
+          </form>
+        </Form>
       </CardContent>
     </Card>
   );
