@@ -2,7 +2,7 @@
 import React, { ReactNode } from "react";
 import { toast as sonnerToast, type ExternalToast } from "sonner";
 
-// Define toast function types that match what we need
+// Toast kiểu này chỉ gồm title, description, variant (không có open)
 export interface Toast {
   title?: ReactNode;
   description?: ReactNode;
@@ -29,14 +29,10 @@ export interface ToastFunction {
   ) => Promise<T>;
 }
 
-// Create the toast function
 const createToast = (): ToastFunction => {
-  // Create the base function with both overload signatures
   const toastFn = ((titleOrOptions: any, description?: ReactNode) => {
     if (typeof titleOrOptions === 'object' && titleOrOptions !== null && !React.isValidElement(titleOrOptions)) {
-      // Handle object format with variant property
       const { title, description, variant } = titleOrOptions as Toast;
-      
       if (variant === 'destructive') {
         return sonnerToast.error(title as ReactNode, { description });
       } else if (variant === 'success') {
@@ -47,12 +43,10 @@ const createToast = (): ToastFunction => {
         return sonnerToast(title as ReactNode, { description });
       }
     } else {
-      // Handle title, description format
       return sonnerToast(titleOrOptions, { description });
     }
   }) as ToastFunction;
 
-  // Add all the required methods
   toastFn.success = (title: ReactNode, description?: ReactNode) => {
     return sonnerToast.success(title, { description });
   };
@@ -98,15 +92,11 @@ const createToast = (): ToastFunction => {
   return toastFn;
 };
 
-// Create and export the single toast instance and hook
 export const toast = createToast();
 
-// Create a hook that's compatible with the shadcn pattern
 export const useToast = () => {
   return {
     toast,
-    // Add a dummy "toasts" array to be compatible with shadcn/ui toast usage
     toasts: []
   };
 };
-
