@@ -4,17 +4,18 @@ import { Button } from '@/components/ui/button';
 import { ShoppingBag, Loader2 } from 'lucide-react';
 import { usePurchaseDialog } from '@/hooks/use-purchase-dialog';
 import PurchaseConfirmDialog from './PurchaseConfirmDialog';
+import { ensureProductFields } from '@/utils/productUtils';
 
 interface BuyNowButtonProps {
   product?: any;
   kioskToken?: string;
   productId?: string;
-  quantity?: number;  // Added back the quantity prop
+  quantity?: number;
   className?: string;
   variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link' | 'destructive';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   isInStock?: boolean;
-  promotionCode?: string;  // Added back the promotionCode prop
+  promotionCode?: string;
   onSuccess?: () => void;
   children?: React.ReactNode;
 }
@@ -47,14 +48,13 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   const handleClick = () => {
     // Make sure we have a complete product object
     // If product is directly provided, use it. Otherwise construct minimal product
-    const productData = product || {
-      id: productId,
-      kiosk_token: kioskToken,
-      // Add minimal required fields for the dialog
+    const productData = product || ensureProductFields({
+      id: productId || '',
+      kiosk_token: kioskToken || '',
       title: 'Product',
       price: 0,
-      stockQuantity: 10
-    };
+      stockQuantity: 10,
+    });
     
     // Open the purchase dialog
     openDialog(productData);
