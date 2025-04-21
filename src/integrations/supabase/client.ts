@@ -31,8 +31,10 @@ export const supabase = createClient<Database>(
     },
     global: {
       fetch: (...args) => {
-        console.debug('Supabase fetch:', args[0]);
-        return fetch(...args);
+        // Fixed: Properly type the args parameter to avoid spread operator issue
+        const [url, options, ...rest] = args;
+        console.debug('Supabase fetch:', url);
+        return fetch(url, options, ...rest);
       }
     }
   }
@@ -75,4 +77,3 @@ setInterval(() => {
       console.debug('Supabase heartbeat failed:', err?.message || 'Unknown error');
     });
 }, 30000); // Check every 30 seconds
-
