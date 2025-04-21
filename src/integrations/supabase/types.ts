@@ -166,6 +166,33 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          admin_only: boolean
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          type: string
+        }
+        Insert: {
+          admin_only?: boolean
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          type?: string
+        }
+        Update: {
+          admin_only?: boolean
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          type?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string | null
