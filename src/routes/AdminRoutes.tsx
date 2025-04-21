@@ -20,79 +20,80 @@ import SiteSettingsPage from '@/pages/admin/SiteSettingsPage';
 
 const AdminRoutes = () => {
   return (
-    <>
-      {/* Protected Admin Routes */}
-      <Route path="/admin" element={
+    // Return an array of Route elements
+    [
+      /* Protected Admin Routes */
+      <Route key="/admin" path="/admin" element={
         <ProtectedRoute requiredRoles={['admin']}>
           <AdminDashboard />
         </ProtectedRoute>
-      } />
-      <Route path="/admin/categories" element={
+      } />,
+      <Route key="/admin/categories" path="/admin/categories" element={
         <ProtectedRoute requiredRoles={['admin']}>
           <CategoryAdmin />
         </ProtectedRoute>
-      } />
-      <Route path="/admin/orders" element={
+      } />,
+      <Route key="/admin/orders" path="/admin/orders" element={
         <ProtectedRoute requiredRoles={['admin', 'staff']}>
           <OrdersAdmin />
         </ProtectedRoute>
-      } />
-      <Route path="/admin/transactions" element={
+      } />,
+      <Route key="/admin/transactions" path="/admin/transactions" element={
         <ProtectedRoute requiredRoles={['admin', 'staff']}>
           <TransactionsAdmin />
         </ProtectedRoute>
-      } />
-      <Route path="/admin/api-config" element={
+      } />,
+      <Route key="/admin/api-config" path="/admin/api-config" element={
         <ProtectedRoute requiredRoles={['admin']}>
           <ApiConfigAdmin />
         </ProtectedRoute>
-      } />
-      <Route path="/admin/sync-logs" element={
+      } />,
+      <Route key="/admin/sync-logs" path="/admin/sync-logs" element={
         <ProtectedRoute requiredRoles={['admin']}>
           <SyncLogsAdmin />
         </ProtectedRoute>
-      } />
-      <Route path="/admin/api-tester" element={
+      } />,
+      <Route key="/admin/api-tester" path="/admin/api-tester" element={
         <ProtectedRoute requiredRoles={['admin']}>
           <ApiTesterPage />
         </ProtectedRoute>
-      } />
-      <Route path="/admin/product-manager" element={
+      } />,
+      <Route key="/admin/product-manager" path="/admin/product-manager" element={
         <ProtectedRoute requiredRoles={['admin']}>
           <ProductManagerPage />
         </ProtectedRoute>
-      } />
-      <Route path="/admin/products/create" element={
+      } />,
+      <Route key="/admin/products/create" path="/admin/products/create" element={
         <ProtectedRoute requiredRoles={['admin']}>
           <ProductCreatePage />
         </ProtectedRoute>
-      } />
-      <Route path="/admin/products/edit/:id" element={
+      } />,
+      <Route key="/admin/products/edit/:id" path="/admin/products/edit/:id" element={
         <ProtectedRoute requiredRoles={['admin']}>
           <ProductEditPage />
         </ProtectedRoute>
-      } />
-      <Route path="/admin/product-form-tester" element={
+      } />,
+      <Route key="/admin/product-form-tester" path="/admin/product-form-tester" element={
         <ProtectedRoute requiredRoles={['admin']}>
           <ProductFormWithTester />
         </ProtectedRoute>
-      } />
-      <Route path="/admin/proxy-settings" element={
+      } />,
+      <Route key="/admin/proxy-settings" path="/admin/proxy-settings" element={
         <ProtectedRoute requiredRoles={['admin']}>
           <ProxySettingsPage />
         </ProtectedRoute>
-      } />
-      <Route path="/admin/users" element={
+      } />,
+      <Route key="/admin/users" path="/admin/users" element={
         <ProtectedRoute requiredRoles={['admin']}>
           <UsersManagementPage />
         </ProtectedRoute>
-      } />
-      <Route path="/admin/site-settings" element={
+      } />,
+      <Route key="/admin/site-settings" path="/admin/site-settings" element={
         <ProtectedRoute requiredRoles={['admin']}>
           <SiteSettingsPage />
         </ProtectedRoute>
       } />
-    </>
+    ]
   );
 };
 

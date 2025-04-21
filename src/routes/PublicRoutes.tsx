@@ -16,33 +16,34 @@ import KnowledgeBasePage from "@/pages/KnowledgeBasePage";
 
 const PublicRoutes = () => {
   return (
-    <>
-      {/* Public routes */}
-      <Route path="/" element={<Index />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/unauthorized" element={<UnauthorizedPage />} />
-      <Route path="/verify-email" element={<VerifyEmailPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
+    // Return an array of Route elements instead of a fragment
+    [
+      /* Public routes */
+      <Route key="/" path="/" element={<Index />} />,
+      <Route key="/login" path="/login" element={<LoginPage />} />,
+      <Route key="/register" path="/register" element={<RegisterPage />} />,
+      <Route key="/unauthorized" path="/unauthorized" element={<UnauthorizedPage />} />,
+      <Route key="/verify-email" path="/verify-email" element={<VerifyEmailPage />} />,
+      <Route key="/forgot-password" path="/forgot-password" element={<ForgotPasswordPage />} />,
+      <Route key="/reset-password" path="/reset-password" element={<ResetPasswordPage />} />,
       
-      {/* SEO-friendly category routes */}
-      <Route path="/category/:categorySlug" element={<CategoryPage />} />
-      <Route path="/category/:parentCategorySlug/:categorySlug" element={<CategoryPage />} />
-      <Route path="/product/:productSlug" element={<ProductPage />} />
-      <Route path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />
-      <Route path="/products" element={<ProductsPage />} />
+      /* SEO-friendly category routes */
+      <Route key="/category/:categorySlug" path="/category/:categorySlug" element={<CategoryPage />} />,
+      <Route key="/category/:parentCategorySlug/:categorySlug" path="/category/:parentCategorySlug/:categorySlug" element={<CategoryPage />} />,
+      <Route key="/product/:productSlug" path="/product/:productSlug" element={<ProductPage />} />,
+      <Route key="/:parentCategorySlug/:categorySlug/:productSlug" path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />,
+      <Route key="/products" path="/products" element={<ProductsPage />} />,
       
-      {/* Static pages with SEO-friendly URLs */}
-      <Route path="/page/support" element={<SupportPage />} />
-      <Route path="/support" element={<SupportPage />} />
+      /* Static pages with SEO-friendly URLs */
+      <Route key="/page/support" path="/page/support" element={<SupportPage />} />,
+      <Route key="/support" path="/support" element={<SupportPage />} />,
       
-      <Route path="/page/faqs" element={<FaqsPage />} />
-      <Route path="/faqs" element={<FaqsPage />} />
+      <Route key="/page/faqs" path="/page/faqs" element={<FaqsPage />} />,
+      <Route key="/faqs" path="/faqs" element={<FaqsPage />} />,
       
-      <Route path="/page/knowledge" element={<KnowledgeBasePage />} />
-      <Route path="/knowledge" element={<KnowledgeBasePage />} />
-    </>
+      <Route key="/page/knowledge" path="/page/knowledge" element={<KnowledgeBasePage />} />,
+      <Route key="/knowledge" path="/knowledge" element={<KnowledgeBasePage />} />
+    ]
   );
 };
 

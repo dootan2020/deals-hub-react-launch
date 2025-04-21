@@ -13,71 +13,72 @@ import CheckoutPage from "@/pages/CheckoutPage";
 
 const UserRoutes = () => {
   return (
-    <>
-      {/* Protected User Routes */}
-      <Route path="/dashboard" element={
+    // Return an array of Route elements
+    [
+      /* Protected User Routes */
+      <Route key="/dashboard" path="/dashboard" element={
         <ProtectedRoute>
           <DashboardPage />
         </ProtectedRoute>
-      } />
+      } />,
       
-      <Route path="/account" element={
+      <Route key="/account" path="/account" element={
         <ProtectedRoute>
           <MyAccountPage />
         </ProtectedRoute>
-      } />
+      } />,
       
-      <Route path="/deposit-history" element={
+      <Route key="/deposit-history" path="/deposit-history" element={
         <ProtectedRoute>
           <DepositHistoryPage />
         </ProtectedRoute>
-      } />
+      } />,
       
-      <Route path="/checkout/:slug" element={
+      <Route key="/checkout/:slug" path="/checkout/:slug" element={
         <ProtectedRoute>
           <CheckoutPage />
         </ProtectedRoute>
-      } />
+      } />,
       
-      {/* Deposit Routes */}
-      <Route path="/page/deposit" element={
+      /* Deposit Routes */
+      <Route key="/page/deposit" path="/page/deposit" element={
         <ProtectedRoute>
           <DepositPage />
         </ProtectedRoute>
-      } />
-      <Route path="/deposit" element={
+      } />,
+      <Route key="/deposit" path="/deposit" element={
         <ProtectedRoute>
           <DepositPage />
         </ProtectedRoute>
-      } />
-      <Route path="/top-up" element={
+      } />,
+      <Route key="/top-up" path="/top-up" element={
         <ProtectedRoute>
           <DepositPage />
         </ProtectedRoute>
-      } />
+      } />,
       
-      <Route path="/deposit/binance" element={
+      <Route key="/deposit/binance" path="/deposit/binance" element={
         <ProtectedRoute>
           <DepositPage method="binance" />
         </ProtectedRoute>
-      } />
-      <Route path="/deposit/usdt" element={
+      } />,
+      <Route key="/deposit/usdt" path="/deposit/usdt" element={
         <ProtectedRoute>
           <DepositPage method="usdt" />
         </ProtectedRoute>
-      } />
-      <Route path="/deposit/paypal" element={
+      } />,
+      <Route key="/deposit/paypal" path="/deposit/paypal" element={
         <ProtectedRoute>
           <PayPalDepositPage />
         </ProtectedRoute>
-      } />
+      } />,
       
-      <Route path="/order-success" element={
+      <Route key="/order-success" path="/order-success" element={
         <ProtectedRoute>
           <OrderSuccessPage />
         </ProtectedRoute>
       } />
-    </>
+    ]
   );
 };
 

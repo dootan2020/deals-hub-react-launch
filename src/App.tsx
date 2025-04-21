@@ -22,10 +22,10 @@ const App = () => {
               <Toaster />
               <ErrorBoundary>
                 <Routes>
-                  {/* Import route groups from separate files */}
-                  <PublicRoutes />
-                  <UserRoutes />
-                  <AdminRoutes />
+                  {/* Spread route elements from separate files */}
+                  {PublicRoutes()}
+                  {UserRoutes()}
+                  {AdminRoutes()}
                   
                   {/* 404 catch-all */}
                   <Route path="*" element={<NotFound />} />
