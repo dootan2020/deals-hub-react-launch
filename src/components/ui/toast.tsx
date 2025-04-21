@@ -1,9 +1,10 @@
+
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
-
 import { cn } from "@/lib/utils"
+import { useToast, toast, type ToastActionElement, type VariantType } from "./toast-store"
 
 const ToastProvider = ToastPrimitives.Provider
 
@@ -112,164 +113,8 @@ const ToastDescription = React.forwardRef<
 ))
 ToastDescription.displayName = ToastPrimitives.Description.displayName
 
-type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
-
-type ToastActionElement = React.ReactElement<typeof ToastAction>
-
-// Add useToast hook implementation here
-type ToastActionType = {
-  id: string
-  open: boolean
-  title?: React.ReactNode
-  description?: React.ReactNode
-  action?: ToastActionElement
-  type?: "default" | "destructive" | "success" | "warning"
-  onOpenChange?: (open: boolean) => void
-}
-
-const TOAST_LIMIT = 5
-const TOAST_REMOVE_DELAY = 1000000
-
-type ToasterToast = ToastActionType & {
-  id: string
-  title?: React.ReactNode
-  description?: React.ReactNode
-  action?: ToastActionElement
-  open: boolean
-  onOpenChange?: (open: boolean) => void
-}
-
-const actionTypes = {
-  ADD_TOAST: "ADD_TOAST",
-  UPDATE_TOAST: "UPDATE_TOAST",
-  DISMISS_TOAST: "DISMISS_TOAST",
-  REMOVE_TOAST: "REMOVE_TOAST",
-} as const
-
-let count = 0
-
-function genId() {
-  count = (count + 1) % Number.MAX_VALUE
-  return count.toString()
-}
-
-type ActionType = {
-  type: typeof actionTypes[keyof typeof actionTypes]
-  toast: ToasterToast
-}
-
-const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
-
-const toastReducer = (state: ToasterToast[], action: ActionType) => {
-  switch (action.type) {
-    case actionTypes.ADD_TOAST:
-      return [action.toast, ...state].slice(0, TOAST_LIMIT)
-
-    case actionTypes.UPDATE_TOAST:
-      return state.map((t) =>
-        t.id === action.toast.id ? { ...t, ...action.toast } : t
-      )
-
-    case actionTypes.DISMISS_TOAST: {
-      const { id } = action.toast
-
-      if (toastTimeouts.has(id)) {
-        clearTimeout(toastTimeouts.get(id))
-        toastTimeouts.delete(id)
-      }
-
-      return state.map((t) =>
-        t.id === id ? { ...t, open: false } : t
-      )
-    }
-
-    case actionTypes.REMOVE_TOAST:
-      if (toastTimeouts.has(action.toast.id)) {
-        clearTimeout(toastTimeouts.get(action.toast.id))
-        toastTimeouts.delete(action.toast.id)
-      }
-
-      return state.filter((t) => t.id !== action.toast.id)
-
-    default:
-      return state
-  }
-}
-
-const listeners: Array<(state: ToasterToast[]) => void> = []
-
-let memoryState: ToasterToast[] = []
-
-function dispatch(action: ActionType) {
-  memoryState = toastReducer(memoryState, action)
-  listeners.forEach((listener) => {
-    listener(memoryState)
-  })
-}
-
-interface Toast extends Omit<ToasterToast, "id"> {
-  id?: string
-  onOpenChange?: (open: boolean) => void
-}
-
-function toast({ ...props }: Toast) {
-  const id = props.id || genId()
-
-  const update = (props: Toast) =>
-    dispatch({
-      type: actionTypes.UPDATE_TOAST,
-      toast: { ...props, id },
-    })
-
-  const dismiss = () => dispatch({ type: actionTypes.DISMISS_TOAST, toast: { id } as ToasterToast })
-
-  dispatch({
-    type: actionTypes.ADD_TOAST,
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open: boolean) => {
-        if (!open) dismiss()
-        props.onOpenChange?.(open)
-      },
-    },
-  })
-
-  return {
-    id,
-    dismiss,
-    update,
-  }
-}
-
-function useToast() {
-  const [state, setState] = React.useState<ToasterToast[]>(memoryState)
-
-  React.useEffect(() => {
-    listeners.push(setState)
-    return () => {
-      const index = listeners.indexOf(setState)
-      if (index > -1) {
-        listeners.splice(index, 1)
-      }
-    }
-  }, [state])
-
-  return {
-    toasts: state,
-    toast,
-    dismiss: (toastId?: string) => {
-      if (toastId) {
-        dispatch({ type: actionTypes.DISMISS_TOAST, toast: { id: toastId } as ToasterToast })
-      }
-    },
-  }
-}
-
+export type { ToastActionElement, VariantType }
 export {
-  type ToastProps,
-  type ToastActionElement,
   ToastProvider,
   ToastViewport,
   Toast,
