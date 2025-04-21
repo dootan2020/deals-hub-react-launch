@@ -42,10 +42,11 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
 
   const handleRetry = () => {
     // Reset the PayPal script loading state to trigger a reload
+    // Using the correct dispatch type "resetOptions" which is valid for DISPATCH_ACTION
     paypalDispatch({
-      type: 'reload',
+      type: "resetOptions",
       value: {
-        'data-client-id': undefined
+        clientId: undefined
       }
     });
   };
