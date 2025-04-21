@@ -1,5 +1,5 @@
 
-import { ReactNode } from "react";
+import React, { ReactNode } from "react";
 import { toast as sonnerToast, type ExternalToast } from "sonner";
 
 // Define toast function types that match what we need
@@ -109,3 +109,4 @@ export const useToast = () => {
     toasts: []
   };
 };
+
