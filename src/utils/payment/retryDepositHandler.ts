@@ -59,7 +59,7 @@ export const checkAndRetryPendingDeposits = async (): Promise<{
  */
 export const getPendingDepositsStatus = async (): Promise<PendingDepositsStatus> => {
   try {
-    // Use the correct RPC function call for getting pending deposits status
+    // Convert the result to the correct type
     const { data, error } = await supabase
       .rpc<PendingDepositsStatus>('get_pending_deposits_status');
     
@@ -73,12 +73,15 @@ export const getPendingDepositsStatus = async (): Promise<PendingDepositsStatus>
       };
     }
     
-    return {
-      total_pending: data?.total_pending || 0,
-      needs_retry: data?.needs_retry || 0,
-      processed_today: data?.processed_today || 0,
-      failed_today: data?.failed_today || 0
+    // Safely handle the response data with type checking
+    const result: PendingDepositsStatus = {
+      total_pending: data?.total_pending ?? 0,
+      needs_retry: data?.needs_retry ?? 0,
+      processed_today: data?.processed_today ?? 0,
+      failed_today: data?.failed_today ?? 0
     };
+    
+    return result;
   } catch (err) {
     console.error("Exception in getPendingDepositsStatus:", err);
     return {

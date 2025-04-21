@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -21,16 +21,28 @@ export default function VerifyRequiredPage() {
     try {
       await resendVerificationEmail(user.email);
       toast.success("Đã gửi lại email xác nhận", "Vui lòng kiểm tra hộp thư của bạn.");
-      setCooldown(60);
-    } catch (e) {
-      toast.error("Không thể gửi lại email xác nhận", (e as any)?.message || "");
+      setCooldown(30); // Increase cooldown to 30 seconds to prevent abuse
+    } catch (e: any) {
+      const errorMsg = e?.message || "";
+      
+      // Handle rate limiting errors
+      if (errorMsg.includes('Too Many Requests') || e?.status === 429) {
+        const retryAfter = e?.retryAfter || 60;
+        toast.error(
+          "Yêu cầu quá nhiều",
+          `Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau ${retryAfter} giây.`
+        );
+        setCooldown(retryAfter);
+      } else {
+        toast.error("Không thể gửi lại email xác nhận", errorMsg);
+      }
     } finally {
       setResending(false);
     }
   };
 
   // Cooldown logic
-  React.useEffect(() => {
+  useEffect(() => {
     if (cooldown > 0) {
       const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
       return () => clearTimeout(timer);
@@ -53,7 +65,12 @@ export default function VerifyRequiredPage() {
                 Vui lòng kiểm tra hộp thư (<b>{user?.email}</b>), tìm email xác nhận và làm theo hướng dẫn để kích hoạt tài khoản.
               </AlertDescription>
             </Alert>
-            <Button disabled={resending || cooldown > 0} className="w-full" variant="outline" onClick={handleResend}>
+            <Button 
+              disabled={resending || cooldown > 0} 
+              className="w-full relative" 
+              variant="outline" 
+              onClick={handleResend}
+            >
               {resending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

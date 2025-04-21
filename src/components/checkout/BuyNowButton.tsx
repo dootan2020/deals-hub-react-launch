@@ -1,10 +1,13 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag } from 'lucide-react';
 import { usePurchaseDialog } from '@/hooks/use-purchase-dialog';
 import PurchaseConfirmDialog from './PurchaseConfirmDialog';
-import { Product as ProductType } from '@/types';
+import { Product } from '@/types';
 import { prepareProductForPurchase } from '@/utils/buyNowUtils';
+import { useRateLimitedAction } from '@/hooks/use-debounce';
+import { toast } from '@/hooks/use-toast';
 
 interface BuyNowButtonProps {
   product?: any;
@@ -44,10 +47,38 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
     verifiedPrice
   } = usePurchaseDialog();
 
+  // Use our rate-limited action hook
+  const {
+    execute: executeOpenDialog,
+    isExecuting,
+    isDisabled,
+    cooldown,
+    cooldownText
+  } = useRateLimitedAction(
+    async (productToOpen: Product) => {
+      return openDialog(productToOpen);
+    },
+    {
+      cooldownMs: 2000, // 2 seconds cooldown between button clicks
+      onRateLimit: (retryAfter) => {
+        toast.info(
+          "Vui lòng chờ",
+          `Bạn đang thực hiện quá nhiều thao tác. Vui lòng thử lại sau ${retryAfter} giây.`
+        );
+      },
+      onError: (error) => {
+        toast.error(
+          "Lỗi",
+          error?.message || "Đã xảy ra lỗi khi mở hộp thoại mua hàng"
+        );
+      }
+    }
+  );
+
   const handleClick = () => {
     const preparedProduct = prepareProductForPurchase(product, productId, kioskToken);
     if (preparedProduct) {
-      openDialog(preparedProduct as ProductType);
+      executeOpenDialog(preparedProduct as Product);
     }
   };
 
@@ -56,21 +87,44 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
     if (success && onSuccess) onSuccess();
   };
 
+  const buttonDisabled = !isInStock || isDisabled;
+  
+  let buttonLabel = children;
+  if (!buttonLabel) {
+    if (!isInStock) {
+      buttonLabel = (
+        <>
+          <ShoppingBag className="w-4 h-4 mr-2" />
+          Hết Hàng
+        </>
+      );
+    } else if (cooldown > 0) {
+      buttonLabel = (
+        <>
+          <ShoppingBag className="w-4 h-4 mr-2" />
+          Mua Ngay {cooldownText && `(${cooldownText})`}
+        </>
+      );
+    } else {
+      buttonLabel = (
+        <>
+          <ShoppingBag className="w-4 h-4 mr-2" />
+          Mua Ngay
+        </>
+      );
+    }
+  }
+
   return (
     <>
       <Button 
         variant={variant} 
         size={size}
         className={className}
-        disabled={!isInStock}
+        disabled={buttonDisabled}
         onClick={handleClick}
       >
-        {children || (
-          <>
-            <ShoppingBag className="w-4 h-4 mr-2" />
-            {!isInStock ? 'Hết Hàng' : 'Mua Ngay'}
-          </>
-        )}
+        {buttonLabel}
       </Button>
 
       <PurchaseConfirmDialog
