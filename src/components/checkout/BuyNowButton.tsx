@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { ShoppingBag } from 'lucide-react';
 import { usePurchaseDialog } from '@/hooks/use-purchase-dialog';
 import PurchaseConfirmDialog from './PurchaseConfirmDialog';
-import { ensureProductFields } from '@/utils/productUtils';
 import { Product } from '@/types';
+import { prepareProductForPurchase } from '@/utils/buyNowUtils';
 
 // Define a local Product interface that matches the expected structure
 interface BuyNowButtonProduct {
@@ -69,50 +69,9 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
 
   // Handle button click - open dialog
   const handleClick = () => {
-    // Ensure product object matches Product type and all required fields
-    if (product) {
-      // Ensure required fields are satisfied as per 'Product' type everywhere
-      const productWithRequiredFields = {
-        ...product,
-        description: product.description || "", // ensure description is always a string
-        shortDescription: product.shortDescription || product.description?.substring(0, 200) || "",
-        images: product.images || [],
-        categoryId: product.categoryId || "",
-        rating: product.rating || 0,
-        reviewCount: product.reviewCount || 0,
-        inStock: product.inStock !== undefined ? product.inStock : true,
-        badges: product.badges || [],
-        features: product.features || [],
-        specifications: product.specifications || {},
-        createdAt: product.createdAt || new Date().toISOString()
-      };
-      
-      // Use type assertion to ensure compatibility with the Product type
-      openDialog(ensureProductFields(productWithRequiredFields) as unknown as Product);
-    } else {
-      const minimalProduct = ensureProductFields({
-        id: productId || '',
-        kiosk_token: kioskToken || '',
-        title: 'Product',
-        price: 0,
-        stockQuantity: 10,
-        description: '', // Always set to string
-        images: [],
-        categoryId: '',
-        rating: 0,
-        reviewCount: 0,
-        badges: [],
-        features: [],
-        slug: '',
-        inStock: true,
-        specifications: {},
-        createdAt: new Date().toISOString(),
-        stock: 10,
-        shortDescription: '',
-      }) as unknown as Product;
-      
-      openDialog(minimalProduct);
-    }
+    // Prepare product for dialog using extracted utility function
+    const preparedProduct = prepareProductForPurchase(product, productId, kioskToken);
+    openDialog(preparedProduct);
   };
 
   const handleConfirmPurchase = async (quantity: number, code?: string) => {
