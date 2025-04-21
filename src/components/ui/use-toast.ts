@@ -1,6 +1,8 @@
 
-// Import from the actual toast component file
+// Re-export from the proper location to avoid circular references
+import { useToast, toast } from "@/components/ui/toast";
+
 export { 
-  useToast as useToast,
-  toast as toast
-} from "@radix-ui/react-toast";
+  useToast,
+  toast
+};

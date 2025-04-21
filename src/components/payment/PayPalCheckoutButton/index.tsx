@@ -59,11 +59,11 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
   };
 
   const handleRetry = () => {
-    // Fix the PayPal dispatch action to use the proper format
+    // Fix the PayPal dispatch action to use the proper format according to SDK
     paypalDispatch({
       type: 'resetOptions',
       value: {
-        'client-id': process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
+        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
         currency: 'USD',
         intent: 'capture'
       }

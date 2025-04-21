@@ -1,6 +1,6 @@
 
-import { useToast as useShadcnToast } from "@/components/ui/use-toast";
-import { toast as shadcnToast } from "@/components/ui/use-toast";
+import { useToast as useShadcnToast } from "@/components/ui/toast";
+import { toast as shadcnToast } from "@/components/ui/toast";
 
 // Define a local type to avoid circular reference
 export const useToast = useShadcnToast;
