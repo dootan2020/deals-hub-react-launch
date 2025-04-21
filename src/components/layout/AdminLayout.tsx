@@ -12,7 +12,8 @@ import {
   Users2,
   CreditCard,
   DollarSign,
-  Database
+  Database,
+  Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +37,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
     { label: 'Products', path: '/admin/products', icon: <Package className="w-5 h-5" /> },
     { label: 'Product Manager', path: '/admin/product-manager', icon: <Database className="w-5 h-5" /> },
     { label: 'Orders', path: '/admin/orders', icon: <ShoppingCart className="w-5 h-5" /> },
+    { label: 'Transactions', path: '/admin/transactions', icon: <Wallet className="w-5 h-5" /> },
     { label: 'Users', path: '/admin/users', icon: <Users2 className="w-5 h-5" /> },
     { label: 'Site Settings', path: '/admin/settings', icon: <Settings className="w-5 h-5" /> },
     { label: 'Currency Settings', path: '/admin/currency', icon: <DollarSign className="w-5 h-5" /> },

@@ -33,6 +33,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import CategoryAdmin from "./pages/admin/CategoryAdmin";
 import OrdersAdmin from "./pages/admin/OrdersAdmin";
+import TransactionsAdmin from "./pages/admin/TransactionsAdmin";
 import ApiConfigAdmin from "./pages/admin/ApiConfigAdmin";
 import SyncLogsAdmin from "./pages/admin/SyncLogsAdmin";
 import ApiTesterPage from './pages/admin/ApiTesterPage';
@@ -98,6 +99,11 @@ const App = () => {
               <Route path="/admin/orders" element={
                 <ProtectedRoute requiredRoles={['admin', 'staff']}>
                   <OrdersAdmin />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/transactions" element={
+                <ProtectedRoute requiredRoles={['admin', 'staff']}>
+                  <TransactionsAdmin />
                 </ProtectedRoute>
               } />
               <Route path="/admin/api-config" element={
