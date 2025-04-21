@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { processDepositBalance } from './balanceProcessing';
 import { toast } from 'sonner';

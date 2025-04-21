@@ -14,7 +14,7 @@ interface BuyNowButtonProduct {
   title: string;
   price: number;
   stockQuantity: number;
-  description?: string; // Optional description
+  description?: string;
   images?: string[];
   categoryId?: string;
   rating?: number;
@@ -23,7 +23,7 @@ interface BuyNowButtonProduct {
   features?: string[];
   slug?: string;
   inStock?: boolean;
-  specifications?: Record<string, string | number | boolean | object>; // Fixed type
+  specifications?: Record<string, string | number | boolean | object>;
   createdAt?: string;
   stock?: number;
   shortDescription?: string;
@@ -71,6 +71,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   const handleClick = () => {
     // Ensure product object matches Product type
     if (product) {
+      // Cast the product to Partial<Product> before passing to ensureProductFields
       openDialog(ensureProductFields(product as unknown as Partial<Product>));
     } else {
       const minimalProduct = ensureProductFields({
