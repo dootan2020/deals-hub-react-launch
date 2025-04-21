@@ -4,26 +4,27 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Transaction, normalizeUserField } from './transactionUtils';
 import { useDeposits } from './useDeposits';
+import { fetchTransactionsData } from './useTransactionsFetch';
 
 // Hook for list of transactions (not deposits)
 export function useTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Get deposits functionality
-  const { 
-    deposits, 
-    loading: depositsLoading, 
+  const {
+    deposits,
+    loading: depositsLoading,
     error: depositsError,
     fetchDeposits,
     updateDepositStatus,
     setDeposits
   } = useDeposits();
-  
+
   // Combined loading state
   const isLoading = loading || depositsLoading;
-  
+
   useEffect(() => {
     fetchTransactions();
   }, []);
@@ -32,22 +33,7 @@ export function useTransactions() {
     try {
       setLoading(true);
       setError(null);
-
-      const { data, error: transactionsError } = await supabase
-        .from('transactions')
-        .select(`
-          *,
-          user:user_id(email)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (transactionsError) throw transactionsError;
-
-      const typedTransactions = (data || []).map((item: any) => {
-        const userValue = normalizeUserField(item.user || null);
-        return { ...item, user: userValue } as Transaction;
-      });
-
+      const typedTransactions = await fetchTransactionsData();
       setTransactions(typedTransactions);
     } catch (err) {
       console.error('Error fetching transactions:', err);
@@ -58,9 +44,9 @@ export function useTransactions() {
     }
   };
 
-  return { 
-    transactions, 
-    loading: isLoading, 
+  return {
+    transactions,
+    loading: isLoading,
     error: error || depositsError,
     fetchTransactions,
     setTransactions,
@@ -70,4 +56,5 @@ export function useTransactions() {
   };
 }
 
-export { Transaction, Deposit } from './transactionUtils';
+export type { Transaction, Deposit } from './transactionUtils';
+

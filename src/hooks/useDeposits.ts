@@ -117,4 +117,5 @@ export function useDeposits() {
   };
 }
 
-export { Deposit } from './transactionUtils';
+export type { Deposit } from './transactionUtils';
+
