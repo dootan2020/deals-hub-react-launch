@@ -62,4 +62,3 @@ export const getSoldDisplay = (salesCount: number = 0): number => {
   // Generate a random number between 45 and 200 and add it to salesCount
   return salesCount + Math.floor(Math.random() * (200 - 45 + 1) + 45);
 };
-

@@ -32,8 +32,8 @@ export const prepareProductForPurchase = (
       kiosk_token: product.kiosk_token || ""
     };
 
-    // Use type assertion to ensure compatibility with the Product type
-    return ensureProductFields(productWithRequiredFields) as Product;
+    // Use ensureProductFields to guarantee the product matches the required Product type
+    return ensureProductFields(productWithRequiredFields);
   } else {
     // Create minimal product with required fields
     return ensureProductFields({
@@ -55,6 +55,6 @@ export const prepareProductForPurchase = (
       createdAt: new Date().toISOString(),
       stock: 10,
       shortDescription: '',
-    }) as Product;
+    });
   }
 };

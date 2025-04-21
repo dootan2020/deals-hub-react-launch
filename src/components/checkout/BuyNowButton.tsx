@@ -14,7 +14,7 @@ interface BuyNowButtonProduct {
   title: string;
   price: number;
   stockQuantity: number;
-  description?: string; // Make description optional to match the error
+  description?: string; // This is optional here but required in the main Product type
   images?: string[];
   categoryId?: string;
   rating?: number;
@@ -70,7 +70,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   // Handle button click - open dialog
   const handleClick = () => {
     // Prepare product for dialog using extracted utility function
-    const preparedProduct = prepareProductForPurchase(product as any, productId, kioskToken) as Product;
+    const preparedProduct = prepareProductForPurchase(product as any, productId, kioskToken);
     openDialog(preparedProduct);
   };
 
