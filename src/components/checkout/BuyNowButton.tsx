@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Loader2 } from 'lucide-react';
 import { usePurchaseDialog } from '@/hooks/use-purchase-dialog';
 import EnhancedPurchaseDialog from '@/components/checkout/EnhancedPurchaseDialog';
 import { Product } from '@/types';
@@ -25,7 +26,7 @@ interface BuyNowButtonProps {
 }
 
 export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
-  className, 
+  className,
   variant = 'default',
   size = 'default',
   isInStock = true,
@@ -37,11 +38,11 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   promotionCode,
   children,
 }) => {
-  const { 
-    open, 
-    selectedProduct, 
-    openDialog, 
-    closeDialog, 
+  const {
+    open,
+    selectedProduct,
+    openDialog,
+    closeDialog,
     handleConfirm,
     isVerifying,
     verifiedStock,
@@ -108,7 +109,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   };
 
   const buttonDisabled = !isInStock || isDisabled || isConfirming;
-  
+
   let buttonLabel = children;
   if (!buttonLabel) {
     if (isConfirming) {
