@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -52,8 +51,8 @@ export const processDepositBalance = async (
     if (deposit.status === 'completed' || deposit.transaction_id) {
       console.log(`Calling update_user_balance for user ${deposit.user_id} with amount ${deposit.net_amount}`);
       
-      // Fix: Avoid passing result directly in type instantiation
-      const { data, error: balanceError } = await supabase.rpc<boolean>(
+      // NOTE: supabase.rpc should NOT use <T> generic as it caused the "excessively deep" error
+      const { data, error: balanceError } = await supabase.rpc(
         'update_user_balance',
         {
           user_id_param: deposit.user_id,

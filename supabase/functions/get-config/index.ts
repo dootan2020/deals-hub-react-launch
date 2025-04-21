@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 // Define CORS headers
@@ -8,7 +7,6 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders, status: 204 });
   }
@@ -20,40 +18,41 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing environment variables');
-    }
-
-    // Get request body
-    const { key } = await req.json();
-
-    if (!key) {
       return new Response(
-        JSON.stringify({ error: 'Missing key parameter' }),
+        JSON.stringify({ error: "Missing required environment variables" }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    let body: { key?: string } = {};
+    try {
+      body = await req.json();
+    } catch (err) {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON body" }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    // Get the config value from environment
+    const { key } = body;
+    if (!key) {
+      return new Response(
+        JSON.stringify({ error: "Missing key parameter" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     const configValue = Deno.env.get(key);
-
     if (!configValue) {
       return new Response(
         JSON.stringify({ error: `Config key ${key} not found` }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
     return new Response(
-      JSON.stringify({ 
-        value: configValue,
-        domain: req.headers.get('origin') || req.headers.get('host') // Return domain for debugging
-      }),
+      JSON.stringify({ value: configValue }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
-    console.error("Error in get-config function:", error);
+  } catch (error: any) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
