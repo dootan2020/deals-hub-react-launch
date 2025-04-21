@@ -1,7 +1,7 @@
 
 import { UserStatsData } from '@/integrations/supabase/types-extension';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, UserPlus, UserX, RefreshCw } from 'lucide-react';
+import { Users, UserPlus, UserX } from 'lucide-react';
 
 interface UserStatsCardsProps {
   stats: UserStatsData;
