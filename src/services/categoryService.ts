@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Category } from "@/types";
 
@@ -9,10 +10,10 @@ export const fetchAllCategories = async (): Promise<Category[]> => {
   try {
     console.log('Fetching all categories - Starting request');
     
-    // Only select essential fields instead of *
+    // Include count in the selection
     const { data, error } = await supabase
       .from('categories')
-      .select('id, name, description, slug, image, parent_id')
+      .select('id, name, description, slug, image, parent_id, count')
       .order('name');
       
     if (error) {
