@@ -93,7 +93,7 @@ export const ProductFormComponent = () => {
     console.log("Form values", values);
     try {
       // Create a product object with all required fields
-      await syncProduct({
+      const productData = {
         id: 'new',
         title: values.title,
         description: values.description,
@@ -115,7 +115,9 @@ export const ProductFormComponent = () => {
         createdAt: new Date().toISOString(),
         stock: 10,
         shortDescription: values.description.substring(0, 100)
-      });
+      };
+      
+      await syncProduct(productData as any);
       toast.success('Product created successfully!');
       navigate('/admin/product-manager');
     } catch (error: any) {

@@ -8,7 +8,7 @@ export const ensureProductFields = (product: Partial<Product>): Product => {
   return {
     id: product.id || '',
     title: product.title || '',
-    description: product.description || '',
+    description: product.description || '', // Ensure this is always a string
     shortDescription: product.shortDescription || product.description?.substring(0, 200) || '',
     price: product.price || 0,
     originalPrice: product.originalPrice,
@@ -25,7 +25,7 @@ export const ensureProductFields = (product: Partial<Product>): Product => {
     specifications: product.specifications || {},
     salesCount: product.salesCount || 0,
     createdAt: product.createdAt || new Date().toISOString(),
-    kiosk_token: product.kiosk_token || '', // Added default empty string for kiosk_token
+    kiosk_token: product.kiosk_token || '', 
     stock: product.stock !== undefined ? product.stock : 0
   };
 };
