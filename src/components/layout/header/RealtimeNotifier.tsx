@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 // Nâng cao realtime notifier: toast đa ngữ, toast thân thiện mobile, phân quyền chuẩn
 const RealtimeNotifier = () => {
   const { t } = useTranslation();
-  const { userRoles } = useAuth();
+  const { userRoles, user } = useAuth();
   const isAdmin = userRoles.includes('admin');
 
   useEffect(() => {
@@ -49,6 +49,31 @@ const RealtimeNotifier = () => {
       })
       .subscribe();
 
+    // Listen to deposit status changes
+    let depositsChannel;
+    if (user?.id) {
+      depositsChannel = supabase.channel('user:deposits')
+        .on("postgres_changes", 
+            { event: "UPDATE", schema: "public", table: "deposits", filter: `user_id=eq.${user.id}` },
+            (payload) => {
+              const deposit = payload.new as { status: string; amount: number; transaction_id: string };
+              console.log("Deposit status update:", deposit);
+              
+              if (deposit.status === 'completed') {
+                toast.success(
+                  t("payment_successful"),
+                  t("deposit_completed", { amount: deposit.amount })
+                );
+              } else if (deposit.status === 'failed') {
+                toast.error(
+                  t("payment_failed"), 
+                  t("deposit_failed", { id: deposit.transaction_id })
+                );
+              }
+            })
+        .subscribe();
+    }
+
     // Nếu là admin, lắng nghe thêm hệ thống sync_logs
     let syncLogsChannel;
     if (isAdmin) {
@@ -72,14 +97,16 @@ const RealtimeNotifier = () => {
 
     return () => {
       supabase.removeChannel(notificationsChannel);
+      if (depositsChannel) {
+        supabase.removeChannel(depositsChannel);
+      }
       if (syncLogsChannel) {
         supabase.removeChannel(syncLogsChannel);
       }
     };
-  }, [t, isAdmin]);
+  }, [t, isAdmin, user]);
 
   return null;
 };
 
 export default RealtimeNotifier;
-

@@ -1,13 +1,14 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { processDepositBalance } from './balanceProcessing';
+import { toast } from 'sonner';
 
 /**
  * Force process a specific PayPal transaction to update user balance
  */
 export const processSpecificTransaction = async (
   transactionId: string
-): Promise<{ success: boolean, error?: string }> => {
+): Promise<{ success: boolean, error?: string, message?: string }> => {
   try {
     console.log(`Manually processing specific transaction: ${transactionId}`);
     
@@ -15,54 +16,72 @@ export const processSpecificTransaction = async (
       return { success: false, error: "Transaction ID is required" };
     }
     
-    try {
-      // Đầu tiên, thử gọi hàm check-payment mới
-      const { data: checkData, error: checkError } = await supabase.functions.invoke('check-payment', {
-        body: { transaction_id: transactionId }
-      });
-      
-      if (!checkError && checkData?.success) {
-        console.log("Transaction checked successfully:", checkData);
-        return {
-          success: true,
-          error: checkData.message
-        };
-      }
-      
-      // Nếu không có check-payment hoặc failed, tiếp tục với webhook cũ
-      const { data, error } = await supabase.functions.invoke('paypal-webhook', {
-        body: { transaction_id: transactionId }
-      });
-
-      if (error) {
-        console.error("Error processing transaction:", error);
-        const { data: orderData, error: orderError } = await supabase.functions.invoke('paypal-webhook', {
-          body: { order_id: transactionId }
+    // Added retry logic for better reliability
+    let retryCount = 0;
+    const maxRetries = 2;
+    let lastError = null;
+    
+    while (retryCount <= maxRetries) {
+      try {
+        // First, try the new check-payment function
+        const { data: checkData, error: checkError } = await supabase.functions.invoke('check-payment', {
+          body: { transaction_id: transactionId }
         });
         
-        if (orderError) {
-          console.error("Error processing order:", orderError);
-          return { success: false, error: `Failed to process: ${error.message}, ${orderError.message}` };
+        if (!checkError && checkData?.success) {
+          console.log("Transaction checked successfully:", checkData);
+          return {
+            success: true,
+            message: checkData.message
+          };
         }
         
-        console.log("Order processing result:", orderData);
+        // If check-payment fails or doesn't exist, try the paypal-webhook function
+        const { data, error } = await supabase.functions.invoke('paypal-webhook', {
+          body: { transaction_id: transactionId }
+        });
+
+        if (error) {
+          console.error("Error processing transaction:", error);
+          // Try as order_id instead of transaction_id
+          const { data: orderData, error: orderError } = await supabase.functions.invoke('paypal-webhook', {
+            body: { order_id: transactionId }
+          });
+          
+          if (orderError) {
+            console.error("Error processing order:", orderError);
+            throw new Error(`Failed to process: ${error.message}, ${orderError.message}`);
+          }
+          
+          console.log("Order processing result:", orderData);
+          return { 
+            success: orderData?.success || false, 
+            message: orderData?.message,
+            error: orderData?.error 
+          };
+        }
+        
+        console.log("Transaction processing result:", data);
         return { 
-          success: orderData?.success || false, 
-          error: orderData?.error || orderData?.message
+          success: data?.success || false, 
+          message: data?.message,
+          error: data?.error 
         };
+      } catch (retryError) {
+        lastError = retryError;
+        retryCount++;
+        console.log(`Retry ${retryCount}/${maxRetries} failed, retrying...`, retryError);
+        // Wait before retrying (exponential backoff)
+        if (retryCount <= maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
       }
-      
-      console.log("Transaction processing result:", data);
-      return { 
-        success: data?.success || false, 
-        error: data?.error || data?.message
-      };
-    } catch (innerError) {
-      console.error("Exception in API calls:", innerError);
-      
-      // Fallback to direct database operation if APIs fail
-      return await processDepositBalance(transactionId);
     }
+    
+    // If we've exhausted retries, try direct database approach
+    console.log("API calls exhausted, trying direct database operation");
+    return await processDepositBalance(transactionId);
+    
   } catch (error) {
     console.error("Exception in processSpecificTransaction:", error);
     return { 
@@ -77,7 +96,7 @@ export const processSpecificTransaction = async (
  */
 export const checkDepositStatus = async (
   id: string
-): Promise<{ success: boolean, status?: string, deposit?: any, error?: string }> => {
+): Promise<{ success: boolean, status?: string, deposit?: any, error?: string, message?: string }> => {
   try {
     console.log(`Checking deposit status for ID: ${id}`);
     
@@ -85,24 +104,28 @@ export const checkDepositStatus = async (
       return { success: false, error: "ID is required" };
     }
     
-    // Đầu tiên, thử gọi hàm check-payment mới
+    // First, try the check-payment function
     try {
       const { data: checkData, error: checkError } = await supabase.functions.invoke('check-payment', {
         body: { transaction_id: id }
       });
       
       if (!checkError && checkData?.success) {
+        console.log("Successfully used check-payment function:", checkData);
         return {
           success: true,
           status: checkData.status,
-          deposit: checkData.deposit
+          deposit: checkData.deposit,
+          message: checkData.message
         };
+      } else if (checkError) {
+        console.log("check-payment function error:", checkError);
       }
     } catch (error) {
-      console.log("check-payment function not yet available or error:", error);
-      // Continue with existing logic if check-payment is not available
+      console.log("check-payment function not available or error:", error);
     }
     
+    // Search for deposit in database
     let { data: deposit, error } = await supabase
       .from('deposits')
       .select('*')
@@ -115,32 +138,42 @@ export const checkDepositStatus = async (
     }
     
     if (deposit) {
+      console.log(`Found deposit with transaction_id ${id}, status: ${deposit.status}`);
+      
       if (deposit.status !== 'completed') {
-        await processDepositBalance(deposit.id);
+        console.log(`Deposit ${deposit.id} has status ${deposit.status}, attempting to process...`);
+        const processResult = await processDepositBalance(deposit.id);
+        console.log("Processing result:", processResult);
         
-        const { data: updatedDeposit } = await supabase
-          .from('deposits')
-          .select('*')
-          .eq('id', deposit.id)
-          .single();
-          
-        if (updatedDeposit) {
-          deposit = updatedDeposit;
+        if (processResult.success) {
+          const { data: updatedDeposit } = await supabase
+            .from('deposits')
+            .select('*')
+            .eq('id', deposit.id)
+            .single();
+            
+          if (updatedDeposit) {
+            deposit = updatedDeposit;
+            console.log("Updated deposit after processing:", deposit);
+          }
         }
       }
       
       return { 
         success: true, 
         status: deposit.status,
-        deposit
+        deposit,
+        message: `Deposit found with status: ${deposit.status}`
       };
     }
     
+    console.log(`No deposit found with transaction_id ${id}, trying to process it directly`);
     const result = await processSpecificTransaction(id);
     return {
       success: result.success,
-      status: "processed",
-      error: result.error
+      status: result.success ? "processed" : "failed",
+      error: result.error,
+      message: result.message || `Transaction ${result.success ? 'processed' : 'failed to process'}`
     };
   } catch (error) {
     console.error("Exception in checkDepositStatus:", error);
@@ -161,6 +194,7 @@ export const processPendingTransactions = async (): Promise<{
   error?: string 
 }> => {
   try {
+    console.log("Starting to process all pending transactions");
     // Lấy danh sách các giao dịch pending có transaction_id
     const { data, error } = await supabase
       .from('deposits')
@@ -169,6 +203,7 @@ export const processPendingTransactions = async (): Promise<{
       .not('transaction_id', 'is', null);
     
     if (error) {
+      console.error("Error fetching pending deposits:", error);
       return {
         success: false,
         processed: 0,
@@ -178,6 +213,7 @@ export const processPendingTransactions = async (): Promise<{
     }
     
     if (!data || data.length === 0) {
+      console.log("No pending transactions found");
       return {
         success: true,
         processed: 0,
@@ -185,6 +221,7 @@ export const processPendingTransactions = async (): Promise<{
       };
     }
     
+    console.log(`Found ${data.length} pending transactions to process`);
     let processed = 0;
     let failed = 0;
     
@@ -192,21 +229,28 @@ export const processPendingTransactions = async (): Promise<{
     for (const deposit of data) {
       if (!deposit.transaction_id) continue;
       
+      console.log(`Processing deposit ${deposit.id} with transaction ${deposit.transaction_id}`);
       const result = await processSpecificTransaction(deposit.transaction_id);
       
       if (result.success) {
         processed++;
+        console.log(`Successfully processed deposit ${deposit.id}`);
+        toast.success("Xử lý giao dịch", `Xử lý thành công giao dịch #${deposit.transaction_id}`);
       } else {
         failed++;
+        console.error(`Failed to process deposit ${deposit.id}:`, result.error);
+        toast.error("Lỗi xử lý giao dịch", result.error || "Không thể xử lý giao dịch");
       }
     }
     
+    console.log(`Processing complete: ${processed} succeeded, ${failed} failed`);
     return {
       success: true,
       processed,
       failed
     };
   } catch (error) {
+    console.error("Exception in processPendingTransactions:", error);
     return {
       success: false,
       processed: 0,

@@ -13,12 +13,19 @@ import { Wallet, AlertCircle, CheckCircle2, DollarSign } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { PayPalDetails } from '@/components/payment/PayPalDetails';
 import { PayPalCheckoutButton } from '@/components/payment/PayPalCheckoutButton';
+import { PayPalTransactionResult } from '@/components/payment/PayPalTransactionResult';
+import { PayPalStateError } from '@/components/payment/PayPalStateError';
+import { usePayPalVerification } from '@/hooks/use-paypal-verification';
 
 const PayPalDepositPage = () => {
   const [amount, setAmount] = useState<string>('');
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
-  const { user, userBalance } = useAuth();
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'completed' | 'failed' | null>(null);
+  const { user, userBalance, refreshBalance } = useAuth();
   const navigate = useNavigate();
+  const { isVerifying, verifyPayment } = usePayPalVerification();
 
   const predefinedAmounts = [10, 25, 50, 100];
 
@@ -35,9 +42,70 @@ const PayPalDepositPage = () => {
     }
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = (data: any) => {
+    console.log("Payment successful:", data);
+    setTransactionId(data.orderID || data.id);
+    setPaymentStatus('pending');
     setIsSuccess(true);
+    refreshBalance();
   };
+
+  const handlePaymentError = (error: string) => {
+    console.error("Payment error:", error);
+    setPaymentError(error);
+  };
+
+  const handleVerifyTransaction = async () => {
+    if (!transactionId) return;
+    
+    const result = await verifyPayment(transactionId);
+    if (result?.success) {
+      setPaymentStatus(result.status as any);
+      if (result.status === 'completed') {
+        refreshBalance();
+      }
+    }
+  };
+
+  const handleCloseError = () => {
+    setPaymentError(null);
+  };
+
+  // Check session storage for pending PayPal transaction
+  useEffect(() => {
+    const savedTransaction = sessionStorage.getItem('pendingPayPalTransaction');
+    if (savedTransaction) {
+      try {
+        const txData = JSON.parse(savedTransaction);
+        if (txData.id) {
+          console.log("Found pending transaction:", txData);
+          setTransactionId(txData.id);
+          setPaymentStatus('pending');
+          handleVerifyTransaction();
+        }
+      } catch (e) {
+        console.error("Error parsing saved transaction:", e);
+        sessionStorage.removeItem('pendingPayPalTransaction');
+      }
+    }
+  }, []);
+
+  // Save transaction to session storage when created
+  useEffect(() => {
+    if (transactionId) {
+      sessionStorage.setItem('pendingPayPalTransaction', JSON.stringify({ 
+        id: transactionId,
+        timestamp: new Date().toISOString()
+      }));
+    }
+  }, [transactionId]);
+
+  // Clear transaction from session storage when completed
+  useEffect(() => {
+    if (paymentStatus === 'completed') {
+      sessionStorage.removeItem('pendingPayPalTransaction');
+    }
+  }, [paymentStatus]);
 
   return (
     <Layout>
@@ -61,7 +129,21 @@ const PayPalDepositPage = () => {
               </CardHeader>
               <CardContent className="text-center text-lg pt-4">
                 <p>Số dư hiện tại: <span className="font-bold">{formatCurrency(userBalance)}</span></p>
-                <p className="mt-2 text-sm text-gray-600">Mã giao dịch đã được ghi nhận. Chúng tôi sẽ xác nhận và cập nhật số dư cho bạn ngay sau khi nhận được thông báo từ PayPal.</p>
+                <p className="mt-2 text-sm text-gray-600">
+                  Mã giao dịch đã được ghi nhận. Chúng tôi sẽ xác nhận và cập nhật số dư cho bạn ngay sau khi nhận được thông báo từ PayPal.
+                </p>
+
+                <div className="mt-6">
+                  <PayPalTransactionResult 
+                    paymentError={paymentError}
+                    transactionId={transactionId}
+                    isShowPayPal={false}
+                    onCloseError={handleCloseError}
+                    onVerify={handleVerifyTransaction}
+                    isVerifying={isVerifying}
+                    paymentStatus={paymentStatus}
+                  />
+                </div>
               </CardContent>
               <CardFooter className="flex justify-center gap-4 pt-4">
                 <Button onClick={() => navigate('/deposit')}>Quay lại Nạp tiền</Button>
@@ -74,6 +156,16 @@ const PayPalDepositPage = () => {
                 <Wallet className="mr-3 h-8 w-8 text-primary" />
                 Nạp tiền qua PayPal
               </h1>
+              
+              <PayPalTransactionResult 
+                paymentError={paymentError}
+                transactionId={transactionId}
+                isShowPayPal={!isSuccess}
+                onCloseError={handleCloseError}
+                onVerify={handleVerifyTransaction}
+                isVerifying={isVerifying}
+                paymentStatus={paymentStatus}
+              />
               
               <Card>
                 <CardHeader>
@@ -134,6 +226,7 @@ const PayPalDepositPage = () => {
                       <PayPalCheckoutButton 
                         amount={numAmount} 
                         onSuccess={handlePaymentSuccess}
+                        onError={handlePaymentError}
                       />
                       
                       <div className="mt-4 text-center">
