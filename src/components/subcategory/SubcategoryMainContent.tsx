@@ -1,9 +1,12 @@
+
 import React from 'react';
-import { ProductGrid } from '@/components/product/ProductGrid';
+import ProductGrid from '@/components/product/ProductGrid';
 import { ProductList } from '@/components/product/ProductList';
 import { Product, SortOption } from '@/types';
 import { sortProducts } from '@/utils/productFilters';
 import { SubcategoryFilters } from '@/components/category/SubcategoryFilters';
+import SupportSection from './SupportSection';
+import FAQ from './FAQ';
 
 interface SubcategoryMainContentProps {
   products: Product[];

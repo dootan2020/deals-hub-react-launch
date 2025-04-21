@@ -1,111 +1,43 @@
-import { useEffect, useState } from "react";
+
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@supabase/supabase-js';
+import { User, UserRole } from '@/types/auth.types';
 
-interface AuthState {
-  user: User | null;
-  session: any | null;
-  isInitialized: boolean;
-  isLoading: boolean;
-  isAdmin: boolean;
-  balance: number;
-  userRoles: string[];
-}
+export const useAuthState = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
+  const [userBalance, setUserBalance] = useState<number>(0);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [authError, setAuthError] = useState<Error | null>(null);
 
-export function useAuthState() {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    session: null,
-    isInitialized: false,
-    isLoading: true,
-    isAdmin: false,
-    balance: 0,
-    userRoles: [],
-  });
+  // Computed properties
+  const isAdmin = userRoles.includes('admin');
+  const isStaff = userRoles.includes('staff');
 
-  useEffect(() => {
-    const fetchAuthState = async () => {
-      setAuthState(prevState => ({ ...prevState, isLoading: true }));
+  // Fetch roles for the current user
+  const fetchUserRoles = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('get_user_roles', {
+        user_id_param: userId
+      });
       
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session) {
-          const userId = session.user.id;
-          const { roles, isAdmin } = await getUserRoles(userId);
-          const balance = await getUserBalance(userId);
-          
-          setAuthState(prevState => ({
-            ...prevState,
-            user: session.user,
-            session: session,
-            isAdmin: isAdmin,
-            balance: balance,
-            userRoles: roles,
-          }));
-        }
-      } catch (error) {
-        console.error("Error fetching auth state:", error);
-      } finally {
-        setAuthState(prevState => ({
-          ...prevState,
-          isInitialized: true,
-          isLoading: false,
-        }));
+      if (error) {
+        console.error('Error fetching user roles:', error);
+        return [];
       }
-    };
-
-    fetchAuthState();
-
-    const { subscription } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session) {
-          const userId = session.user.id;
-          const { roles, isAdmin } = await getUserRoles(userId);
-          const balance = await getUserBalance(userId);
-          
-          setAuthState(prevState => ({
-            ...prevState,
-            user: session.user,
-            session: session,
-            isAdmin: isAdmin,
-            balance: balance,
-            userRoles: roles,
-          }));
-        } else {
-          setAuthState(prevState => ({
-            ...prevState,
-            user: null,
-            session: null,
-            isAdmin: false,
-            balance: 0,
-            userRoles: [],
-          }));
-        }
-      }
-    );
-
-    return () => {
-      subscription?.unsubscribe();
-    };
+      
+      return data as UserRole[];
+    } catch (error) {
+      console.error('Error in fetchUserRoles:', error);
+      return [];
+    }
   }, []);
 
-  const getUserRoles = async (userId: string) => {
-    try {
-      const { data: roles, error } = await supabase.rpc('get_user_roles', { user_id_param: userId });
-      
-      if (error) throw error;
-      
-      const isAdmin = (roles || []).includes('admin');
-      
-      return { roles: roles || [], isAdmin };
-    } catch (error) {
-      console.error('Error getting user roles:', error);
-      return { roles: [], isAdmin: false };
-    }
-  };
-
-  const getUserBalance = async (userId: string) => {
+  // Fetch user balance
+  const fetchUserBalance = useCallback(async (userId: string) => {
+    setIsLoadingBalance(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -113,14 +45,100 @@ export function useAuthState() {
         .eq('id', userId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching user balance:', error);
+        return 0;
+      }
       
-      return data?.balance || 0;
+      const balance = data?.balance || 0;
+      setUserBalance(balance);
+      return balance;
     } catch (error) {
-      console.error('Error getting user balance:', error);
+      console.error('Error in fetchUserBalance:', error);
       return 0;
+    } finally {
+      setIsLoadingBalance(false);
     }
-  };
+  }, []);
 
-  return authState;
-}
+  // Refresh user data (roles, balance, etc)
+  const refreshUserData = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      const roles = await fetchUserRoles(user.id);
+      setUserRoles(roles);
+      
+      await fetchUserBalance(user.id);
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+    }
+  }, [user?.id, fetchUserRoles, fetchUserBalance]);
+
+  // Initial auth state check
+  useEffect(() => {
+    const fetchInitialSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error fetching session:', error);
+          setAuthError(error);
+        }
+        
+        setSession(data.session);
+        
+        if (data.session?.user) {
+          setUser(data.session.user as User);
+          const roles = await fetchUserRoles(data.session.user.id);
+          setUserRoles(roles);
+          await fetchUserBalance(data.session.user.id);
+        }
+      } catch (error: any) {
+        console.error('Error in initial session check:', error);
+        setAuthError(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchInitialSession();
+    
+    // Listen for auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          setUser(session.user as User);
+          const roles = await fetchUserRoles(session.user.id);
+          setUserRoles(roles);
+          await fetchUserBalance(session.user.id);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setUserRoles([]);
+          setUserBalance(0);
+        }
+      }
+    );
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [fetchUserRoles, fetchUserBalance]);
+
+  return {
+    user,
+    session,
+    loading,
+    isAdmin,
+    isStaff,
+    userRoles,
+    userBalance,
+    setUserBalance,
+    fetchUserBalance,
+    refreshUserData,
+    isLoadingBalance,
+    authError
+  };
+};

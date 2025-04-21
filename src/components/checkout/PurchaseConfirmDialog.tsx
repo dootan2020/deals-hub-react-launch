@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   AlertDialog,
@@ -18,78 +19,58 @@ import { DialogContent as DialogContentComponent } from './purchase-dialog/Dialo
 import { useUserBalance } from '@/hooks/useUserBalance';
 
 interface PurchaseConfirmDialogProps {
-  product: Product;
-  onPurchase: (productId: string, quantity: number, promotionCode: string) => Promise<void>;
-  onClose: () => void;
-  isOpen: boolean;
+  product?: Product;
+  onConfirm: (quantity: number, promotionCode?: string) => Promise<void>;
+  open: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  isVerifying: boolean;
+  verifiedStock: number | null;
+  verifiedPrice: number | null;
 }
 
-export const PurchaseConfirmDialog = ({ product, onPurchase, onClose, isOpen }: PurchaseConfirmDialogProps) => {
+export const PurchaseConfirmDialog = ({
+  product,
+  onConfirm,
+  open,
+  onOpenChange,
+  isVerifying,
+  verifiedStock,
+  verifiedPrice
+}: PurchaseConfirmDialogProps) => {
   const [quantity, setQuantity] = useState(1);
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verifiedStock, setVerifiedStock] = useState<number | null>(null);
-  const [verifiedPrice, setVerifiedPrice] = useState<number | null>(null);
   const [promotionCode, setPromotionCode] = useState('');
   const { data: currencySettings } = useCurrencySettings();
   const { userBalance, isLoading: isLoadingBalance } = useUserBalance();
+  
+  if (!product) return null;
+  
   const vndToUsdRate = currencySettings?.vnd_per_usd || 24000;
   const priceUSD = product.price / vndToUsdRate;
   const totalPriceUSD = priceUSD * quantity;
   const hasEnoughBalance = userBalance !== null && userBalance >= totalPriceUSD;
 
   useEffect(() => {
-    const verifyProductDetails = async () => {
-      setIsVerifying(true);
-      try {
-        // Simulate API verification (replace with actual API call)
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Simulate fetching updated stock and price from an API
-        const updatedStock = Math.floor(Math.random() * (product.stock_quantity || product.stock || 100));
-        const updatedPrice = product.price;
-
-        setVerifiedStock(updatedStock);
-        setVerifiedPrice(updatedPrice);
-      } catch (error) {
-        console.error("Error verifying product details:", error);
-        toast({
-          title: "Error",
-          description: "Failed to verify product details. Please try again.",
-          type: "destructive",
-        });
-      } finally {
-        setIsVerifying(false);
-      }
-    };
-
-    if (isOpen) {
-      verifyProductDetails();
+    if (open && product) {
+      setQuantity(1);
+      setPromotionCode('');
     }
-  }, [isOpen, product.price, product.stock, product.stock_quantity]);
+  }, [open, product]);
 
   const handlePurchase = async () => {
     setIsPurchasing(true);
     try {
-      if (!product.id) {
-        throw new Error("Product ID is missing.");
-      }
-      await onPurchase(product.id, quantity, promotionCode);
+      await onConfirm(quantity, promotionCode);
       toast.success("Purchase successful!");
-      onClose();
     } catch (error: any) {
       console.error("Purchase failed:", error);
-      toast.error(error?.message || "Purchase failed. Please try again.");
+      toast.error("Purchase failed", error?.message || "Please try again");
     } finally {
       setIsPurchasing(false);
     }
   };
 
-  const handleDialogClose = () => {
-    onClose();
-  };
-
-  // Update the references to stockQuantity to stock_quantity
+  // Update the references to stock_quantity to use the getter if needed
   const handleQuantityChange = (newQuantity: number) => {
     if (newQuantity >= 1 && newQuantity <= (verifiedStock ?? product.stock_quantity ?? 1)) {
       setQuantity(newQuantity);
@@ -97,7 +78,7 @@ export const PurchaseConfirmDialog = ({ product, onPurchase, onClose, isOpen }: 
   };
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onClose}>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle>Purchase Confirmation</AlertDialogTitle>
@@ -124,7 +105,7 @@ export const PurchaseConfirmDialog = ({ product, onPurchase, onClose, isOpen }: 
         <AlertDialogFooter>
           <Button
             variant="outline"
-            onClick={handleDialogClose}
+            onClick={() => onOpenChange(false)}
             className="w-full"
             disabled={isPurchasing}
           >

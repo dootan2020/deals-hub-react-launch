@@ -2,78 +2,91 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-interface EmailStatus {
-  exists: boolean;
+export interface EmailStatus {
+  emailExists: boolean;
   status: string | null;
   lastVerificationSent: string | null;
 }
 
-interface RateLimit {
-  isLimited: boolean;
-  remainingAttempts: number | null;
+export interface RateLimit {
+  isRateLimited: boolean;
+  remainingAttempts: number;
   unlockTime: string | null;
 }
 
 export const useEmailValidation = () => {
   const [isChecking, setIsChecking] = useState(false);
-  
+
   const checkEmailStatus = async (email: string): Promise<EmailStatus> => {
-    setIsChecking(true);
     try {
-      const { data: statusData, error: statusError } = await supabase.rpc('check_email_status', { email_param: email });
+      const { data, error } = await supabase.rpc('check_email_status', { email_param: email });
       
-      if (statusError) throw statusError;
-      
-      // Default values if no data returned
-      const defaultResponse = { exists: false, status: null, lastVerificationSent: null };
-      
-      if (!statusData || statusData.length === 0) {
-        return defaultResponse;
-      }
+      if (error) throw new Error(error.message);
       
       return {
-        exists: statusData[0].email_exists || false,
-        status: statusData[0].status || null,
-        lastVerificationSent: statusData[0].last_verification_sent || null
+        emailExists: data?.email_exists || false,
+        status: data?.status || null,
+        lastVerificationSent: data?.last_verification_sent || null
       };
     } catch (error) {
       console.error('Error checking email status:', error);
-      return { exists: false, status: null, lastVerificationSent: null };
-    } finally {
-      setIsChecking(false);
+      return { emailExists: false, status: null, lastVerificationSent: null };
     }
   };
-  
+
   const checkRateLimit = async (email: string): Promise<RateLimit> => {
-    setIsChecking(true);
     try {
-      const { data: rateLimit, error: rateLimitError } = await supabase.rpc('check_registration_rate_limit', { email_param: email });
+      const { data, error } = await supabase.rpc('check_registration_rate_limit', { email_param: email });
       
-      if (rateLimitError) throw rateLimitError;
-      
-      // Default values if no data returned
-      const defaultResponse = { isLimited: false, remainingAttempts: null, unlockTime: null };
-      
-      if (!rateLimit || rateLimit.length === 0) {
-        return defaultResponse;
-      }
+      if (error) throw new Error(error.message);
       
       return {
-        isLimited: rateLimit[0].is_limited || false,
-        remainingAttempts: rateLimit[0].remaining_attempts,
-        unlockTime: rateLimit[0].unlock_time || null
+        isRateLimited: data?.is_limited || false,
+        remainingAttempts: data?.remaining_attempts || 0,
+        unlockTime: data?.unlock_time || null
       };
     } catch (error) {
       console.error('Error checking rate limit:', error);
-      return { isLimited: false, remainingAttempts: null, unlockTime: null };
+      return { isRateLimited: false, remainingAttempts: 0, unlockTime: null };
+    }
+  };
+
+  // Combine the two checks into one function for the UI to use
+  const checkEmail = async (email: string) => {
+    setIsChecking(true);
+    try {
+      const [statusData, rateLimit] = await Promise.all([
+        checkEmailStatus(email),
+        checkRateLimit(email)
+      ]);
+      
+      return {
+        emailExists: statusData.emailExists,
+        status: statusData.status,
+        lastVerificationSent: statusData.lastVerificationSent,
+        isRateLimited: rateLimit.isRateLimited,
+        remainingAttempts: rateLimit.remainingAttempts,
+        unlockTime: rateLimit.unlockTime
+      };
+    } catch (error) {
+      console.error('Error in checkEmail:', error);
+      return {
+        emailExists: false,
+        status: null,
+        lastVerificationSent: null,
+        isRateLimited: false,
+        remainingAttempts: 0,
+        unlockTime: null
+      };
     } finally {
       setIsChecking(false);
     }
   };
-  
+
   return {
     isChecking,
     checkEmailStatus,
-    checkRateLimit
+    checkRateLimit,
+    checkEmail
   };
 };

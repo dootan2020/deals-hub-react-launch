@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag } from 'lucide-react';
 import { usePurchaseDialog } from '@/hooks/use-purchase-dialog';
-import PurchaseConfirmDialog from './PurchaseConfirmDialog';
+import { PurchaseConfirmDialog } from './PurchaseConfirmDialog';
 import { Product } from '@/types';
 import { prepareProductForPurchase } from '@/utils/buyNowUtils';
 import { useRateLimitedAction } from '@/hooks/use-debounce';
@@ -127,15 +126,17 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
         {buttonLabel}
       </Button>
 
-      <PurchaseConfirmDialog
-        open={open}
-        onOpenChange={closeDialog}
-        product={selectedProduct ?? undefined}
-        onConfirm={handleConfirmPurchase}
-        isVerifying={isVerifying}
-        verifiedStock={verifiedStock}
-        verifiedPrice={verifiedPrice}
-      />
+      {selectedProduct && (
+        <PurchaseConfirmDialog
+          open={open}
+          onOpenChange={closeDialog}
+          product={selectedProduct}
+          onConfirm={handleConfirmPurchase}
+          isVerifying={isVerifying}
+          verifiedStock={verifiedStock}
+          verifiedPrice={verifiedPrice}
+        />
+      )}
     </>
   );
 };
