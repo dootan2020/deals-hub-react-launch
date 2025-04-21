@@ -39,15 +39,23 @@ export const CategoriesProvider = ({ children }: CategoriesProviderProps) => {
     setError(null);
     
     try {
-      const data = await fetchAllCategories();
-      setCategories(data);
+      // Thêm timeout để tránh loading mãi mãi
+      const categoryPromise = fetchAllCategories();
+      const timeoutPromise = new Promise<Category[]>((_, reject) => 
+        setTimeout(() => reject(new Error('Quá thời gian tải danh mục')), 10000)
+      );
       
-      // Filter main categories (those without parent_id)
+      const data = await Promise.race([categoryPromise, timeoutPromise]);
+      
+      setCategories(data || []);
+      
+      // Lọc danh mục chính (những danh mục không có parent_id)
       const main = data.filter(category => !category.parent_id);
       setMainCategories(main);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch categories'));
-      toast.error("Error", "There was a problem loading the menu structure. Please try refreshing the page.");
+      setError(err instanceof Error ? err : new Error('Không thể tải danh mục'));
+      console.error('Lỗi tải danh mục:', err);
+      toast.error('Lỗi tải dữ liệu', 'Không thể tải cấu trúc menu. Vui lòng thử lại sau.');
     } finally {
       setIsLoading(false);
     }

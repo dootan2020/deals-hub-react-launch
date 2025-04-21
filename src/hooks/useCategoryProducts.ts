@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { fetchProductsWithFilters } from '@/services/productService';
 import { Product, SortOption } from '@/types';
+import { toast } from '@/hooks/use-toast';
 
 interface UseCategoryProductsProps {
   categoryId?: string | null;
@@ -26,14 +27,20 @@ export const useCategoryProducts = ({ categoryId, sort = 'newest', isProductsPag
       }
 
       setLoading(true);
+      setError(null);
+      
       try {
-        // Map our UI sort options to API sort options if they're different
-        let apiSortOption = sort;
-        
-        const result = await fetchProductsWithFilters({
-          category: categoryId, // Using category instead of categoryId
-          sort: apiSortOption
+        // Thêm timeout để tránh loading mãi
+        const productPromise = fetchProductsWithFilters({
+          category: categoryId,
+          sort: sort
         });
+        
+        const timeoutPromise = new Promise<null>((_, reject) => 
+          setTimeout(() => reject(new Error('Quá thời gian tải dữ liệu')), 10000)
+        );
+        
+        const result = await Promise.race([productPromise, timeoutPromise]);
         
         if (result && Array.isArray(result.products)) {
           setProducts(result.products);
@@ -45,11 +52,10 @@ export const useCategoryProducts = ({ categoryId, sort = 'newest', isProductsPag
           setProducts([]);
           setHasMore(false);
         }
-        
-        setError(null);
       } catch (err) {
-        console.error('Error fetching products:', err);
-        setError('Failed to load products');
+        console.error('Lỗi tải sản phẩm:', err);
+        setError('Không thể tải sản phẩm. Vui lòng thử lại sau.');
+        toast.error('Lỗi tải dữ liệu', 'Không thể tải sản phẩm. Vui lòng thử lại sau.');
       } finally {
         setLoading(false);
       }
@@ -68,12 +74,18 @@ export const useCategoryProducts = ({ categoryId, sort = 'newest', isProductsPag
     console.log('Selected category:', categoryId);
   };
 
-  const loadMore = () => {
+  const loadMore = async () => {
     setLoadingMore(true);
-    // Simulating loading more products
-    setTimeout(() => {
+    try {
+      // Thêm logic tải thêm sản phẩm ở đây
+      setTimeout(() => {
+        setLoadingMore(false);
+      }, 500);
+    } catch (err) {
+      console.error('Lỗi tải thêm sản phẩm:', err);
+      toast.error('Lỗi tải dữ liệu', 'Không thể tải thêm sản phẩm.');
       setLoadingMore(false);
-    }, 500);
+    }
   };
 
   return { 
