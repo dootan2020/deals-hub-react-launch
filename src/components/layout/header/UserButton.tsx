@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -6,7 +5,8 @@ import {
   LogOut,
   User,
   CreditCard,
-  FileText
+  FileText,
+  RefreshCw
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -21,6 +21,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
 
 export const UserButton = () => {
   const { user, logout, isAuthenticated, userBalance, refreshUserBalance, isLoadingBalance } = useAuth();
@@ -47,8 +48,21 @@ export const UserButton = () => {
     setIsRefreshing(true);
     try {
       await refreshUserBalance();
-      toast.success("Số dư đã được cập nhật");
+      
+      const { data, error } = await supabase.functions.invoke('refresh-balance', {
+        method: 'POST',
+      });
+      
+      if (error) {
+        console.error("Error refreshing balance via function:", error);
+      } else if (data?.reconciled) {
+        await refreshUserBalance();
+        toast.success("Số dư đã được đồng bộ lại từ lịch sử giao dịch");
+      } else {
+        toast.success("Số dư đã được cập nhật");
+      }
     } catch (error) {
+      console.error("Error refreshing balance:", error);
       toast.error("Không thể cập nhật số dư");
     } finally {
       setIsRefreshing(false);
@@ -91,7 +105,7 @@ export const UserButton = () => {
               className="h-4 w-4 p-0" 
               onClick={handleRefreshBalance}
             >
-              <CreditCard className={`h-3 w-3 text-gray-500 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3 w-3 text-gray-500 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </DropdownMenuItem>

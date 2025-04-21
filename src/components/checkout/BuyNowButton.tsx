@@ -49,16 +49,31 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   const handleClick = () => {
     // Make sure we have a complete product object
     // If product is directly provided, use it. Otherwise construct minimal product
-    const productData = product || ensureProductFields({
-      id: productId || '',
-      kiosk_token: kioskToken || '',
-      title: 'Product',
-      price: 0,
-      stockQuantity: 10,
-    });
-    
-    // Open the purchase dialog
-    openDialog(productData as Product);
+    if (product) {
+      // Use the provided product directly
+      openDialog(product);
+    } else {
+      // Construct a minimal product with required fields
+      const minimalProduct: Product = {
+        id: productId || '',
+        kiosk_token: kioskToken || '',
+        title: 'Product',
+        price: 0,
+        stockQuantity: 10,
+        description: '',
+        images: [],
+        categoryId: '',
+        rating: 0,
+        reviewCount: 0,
+        badges: [],
+        features: [],
+        slug: '',
+        inStock: true
+      };
+      
+      // Open the purchase dialog with the minimal product
+      openDialog(minimalProduct);
+    }
   };
 
   // Handle confirmation with callback
