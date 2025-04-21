@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { processDepositBalance } from './balanceProcessing';
 import { toast } from 'sonner';
+import { generateIdempotencyKey } from '@/utils/idempotencyUtils';
 
 /**
  * Force process a specific PayPal transaction to update user balance
@@ -16,6 +17,12 @@ export const processSpecificTransaction = async (
       return { success: false, error: "Transaction ID is required" };
     }
     
+    // Generate idempotency key for this transaction processing
+    const idempotencyKey = generateIdempotencyKey('process', { 
+      transaction_id: transactionId,
+      timestamp: new Date().toISOString().split('T')[0] // Daily idempotency
+    });
+    
     // Added retry logic for better reliability
     let retryCount = 0;
     const maxRetries = 2;
@@ -25,7 +32,10 @@ export const processSpecificTransaction = async (
       try {
         // First, try the new check-payment function
         const { data: checkData, error: checkError } = await supabase.functions.invoke('check-payment', {
-          body: { transaction_id: transactionId }
+          body: { 
+            transaction_id: transactionId,
+            idempotency_key: idempotencyKey
+          }
         });
         
         if (!checkError && checkData?.success) {
@@ -38,14 +48,20 @@ export const processSpecificTransaction = async (
         
         // Use the improved paypal-webhook endpoint
         const { data, error } = await supabase.functions.invoke('paypal-webhook', {
-          body: { transaction_id: transactionId }
+          body: { 
+            transaction_id: transactionId,
+            idempotency_key: idempotencyKey
+          }
         });
 
         if (error) {
           console.error("Error processing transaction:", error);
           // Try as order_id instead of transaction_id
           const { data: orderData, error: orderError } = await supabase.functions.invoke('paypal-webhook', {
-            body: { order_id: transactionId }
+            body: { 
+              order_id: transactionId,
+              idempotency_key: idempotencyKey
+            }
           });
           
           if (orderError) {
@@ -104,10 +120,19 @@ export const checkDepositStatus = async (
       return { success: false, error: "ID is required" };
     }
     
+    // Generate idempotency key for this status check (this is less critical since it's a read operation)
+    const idempotencyKey = generateIdempotencyKey('status', { 
+      id,
+      timestamp: new Date().toISOString()
+    });
+    
     // First, try the check-payment function
     try {
       const { data: checkData, error: checkError } = await supabase.functions.invoke('check-payment', {
-        body: { transaction_id: id }
+        body: { 
+          transaction_id: id,
+          idempotency_key: idempotencyKey
+        }
       });
       
       if (!checkError && checkData?.success) {
@@ -146,7 +171,14 @@ export const checkDepositStatus = async (
         
         // Use the new paypal-webhook function
         const { data: retryData, error: retryError } = await supabase.functions.invoke('paypal-webhook', {
-          body: { transaction_id: deposit.transaction_id }
+          body: { 
+            transaction_id: deposit.transaction_id,
+            idempotency_key: generateIdempotencyKey('retry', {
+              deposit_id: deposit.id,
+              transaction_id: deposit.transaction_id,
+              timestamp: new Date().toISOString()
+            })
+          }
         });
         
         if (retryError) {
@@ -205,8 +237,20 @@ export const processPendingTransactions = async (): Promise<{
   try {
     console.log("Starting to process all pending transactions");
     
+    // Create an idempotency key for this batch operation with current date
+    // This ensures we only run one batch per hour max
+    const currentHour = new Date();
+    currentHour.setMinutes(0, 0, 0);
+    
+    const idempotencyKey = generateIdempotencyKey('batch', { 
+      hour: currentHour.toISOString(),
+      type: 'pending-transactions'
+    });
+    
     // Use the new retry-pending-deposits function
-    const { data, error } = await supabase.functions.invoke('retry-pending-deposits');
+    const { data, error } = await supabase.functions.invoke('retry-pending-deposits', {
+      body: { idempotencyKey }
+    });
     
     if (error) {
       console.error("Error invoking retry-pending-deposits:", error);

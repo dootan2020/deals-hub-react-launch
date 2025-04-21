@@ -60,6 +60,13 @@ async function logOrderActivity({
   }
 }
 
+function generateOrderIdempotencyKey(userId: string | undefined, productId: string, quantity: number): string {
+  const timestamp = new Date().getTime();
+  const userPart = userId || 'anonymous';
+  // Create a deterministic string
+  return `order_${userPart}_${productId}_${quantity}_${timestamp}`;
+}
+
 export const usePurchaseDialog = () => {
   const [open, setOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -227,6 +234,13 @@ export const usePurchaseDialog = () => {
 
     try {
       const totalAmount = (latestPrice || selectedProduct.price) * quantity;
+      
+      // Generate idempotency key for this order
+      const idempotencyKey = generateOrderIdempotencyKey(
+        user?.id,
+        selectedProduct.id,
+        quantity
+      );
 
       if (user?.id) {
         const isSuspicious = await recordPurchaseActivity(user.id, totalAmount, selectedProduct.id);
@@ -260,7 +274,8 @@ export const usePurchaseDialog = () => {
         productId: selectedProduct.id,
         quantity: quantity,
         promotionCode: sanitizedPromoCode,
-        priceUSD: totalAmount / 24000
+        priceUSD: totalAmount / 24000,
+        idempotencyKey: idempotencyKey // Pass the idempotency key to the order API
       });
 
       if (orderResult?.success && orderResult.orderId) {
@@ -274,6 +289,7 @@ export const usePurchaseDialog = () => {
             price: latestPrice,
             totalAmount,
             productId: selectedProduct.id,
+            idempotencyKey // Log the idempotency key for tracking
           }
         });
 

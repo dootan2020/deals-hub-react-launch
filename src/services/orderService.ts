@@ -17,6 +17,7 @@ export const createOrder = async (orderData: {
   productId: string;
   quantity: number;
   promotionCode?: string;
+  idempotencyKey?: string; // Added idempotency key parameter
 }) => {
   try {
     const { data, error } = await supabase.functions.invoke('order-api', {
@@ -46,13 +47,14 @@ export const createOrder = async (orderData: {
 };
 
 // Check order status
-export const checkOrderStatus = async (orderId: string) => {
+export const checkOrderStatus = async (orderId: string, idempotencyKey?: string) => {
   try {
     console.log(`Checking status for order: ${orderId}`);
     const { data, error } = await supabase.functions.invoke('order-api', {
       body: {
         action: 'check-order',
-        orderId
+        orderId,
+        idempotencyKey
       }
     });
 

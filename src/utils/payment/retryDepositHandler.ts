@@ -64,8 +64,9 @@ export const getPendingDepositsStatus = async (): Promise<{
   failedToday: number;
 }> => {
   try {
-    // Use the correct type casting to handle the response from the RPC function
-    const { data, error } = await supabase.rpc<PendingDepositsStatus>('get_pending_deposits_status');
+    // Use the correct RPC function call for getting pending deposits status
+    const { data, error } = await supabase
+      .rpc<PendingDepositsStatus>('get_pending_deposits_status');
     
     if (error) {
       console.error("Error getting pending deposits status:", error);
