@@ -17,6 +17,7 @@ const AuthContext = createContext<AuthContextType>({
   userBalance: 0,
   refreshUserBalance: async () => {},
   refreshUserProfile: async () => {},
+  refreshBalance: async () => {},
   login: async () => {},
   logout: async () => {},
   register: async () => {},
@@ -54,7 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (authError) {
       console.error('Authentication error:', authError);
-      toast.error('Lỗi xác thực', authError.message);
+      toast.error('Lỗi xác thực', { description: authError.message });
     }
   }, [authError]);
 
@@ -76,10 +77,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return userBalance; // Return current balance after refresh
     } catch (error) {
       console.error('Error refreshing balance:', error);
-      toast.error('Không thể cập nhật số dư', 'Vui lòng thử lại sau');
+      toast.error('Không thể cập nhật số dư', { description: 'Vui lòng thử lại sau' });
       throw error;
     }
   }, [user?.id, fetchUserBalance, userBalance]);
+
+  // Alias for refreshUserBalance for backward compatibility
+  const refreshBalance = refreshUserBalance;
 
   // Function to refresh the entire user profile
   const refreshUserProfile = useCallback(async () => {
@@ -90,7 +94,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await refreshUserData();
     } catch (error) {
       console.error('Error refreshing user profile:', error);
-      toast.error('Không thể cập nhật thông tin người dùng', 'Vui lòng thử lại sau');
+      toast.error('Không thể cập nhật thông tin người dùng', { description: 'Vui lòng thử lại sau' });
       throw error;
     }
   }, [user?.id, refreshUserData]);
@@ -116,6 +120,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isLoadingBalance,
     refreshUserBalance,
     refreshUserProfile,
+    refreshBalance,
     login,
     logout,
     register,
@@ -124,7 +129,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     resendVerificationEmail,
   }), [
     user, session, loading, isAdmin, isStaff, userRoles, userBalance,
-    isLoadingBalance, refreshUserBalance, refreshUserProfile, login, 
+    isLoadingBalance, refreshUserBalance, refreshUserProfile, refreshBalance, login, 
     logout, register, checkUserRole, isEmailVerified, resendVerificationEmail
   ]);
 

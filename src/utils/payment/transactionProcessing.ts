@@ -235,11 +235,15 @@ export const processPendingTransactions = async (): Promise<{
       if (result.success) {
         processed++;
         console.log(`Successfully processed deposit ${deposit.id}`);
-        toast.success("Xử lý giao dịch", `Xử lý thành công giao dịch #${deposit.transaction_id}`);
+        toast.success("Xử lý giao dịch", {
+          description: `Xử lý thành công giao dịch #${deposit.transaction_id}`
+        });
       } else {
         failed++;
         console.error(`Failed to process deposit ${deposit.id}:`, result.error);
-        toast.error("Lỗi xử lý giao dịch", result.error || "Không thể xử lý giao dịch");
+        toast.error("Lỗi xử lý giao dịch", {
+          description: result.error || "Không thể xử lý giao dịch"
+        });
       }
     }
     

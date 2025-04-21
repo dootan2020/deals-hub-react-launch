@@ -23,7 +23,7 @@ const PayPalDepositPage = () => {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'completed' | 'failed' | null>(null);
-  const { user, userBalance, refreshBalance } = useAuth();
+  const { user, userBalance, refreshUserBalance } = useAuth();
   const navigate = useNavigate();
   const { isVerifying, verifyPayment } = usePayPalVerification();
 
@@ -47,7 +47,7 @@ const PayPalDepositPage = () => {
     setTransactionId(data.orderID || data.id);
     setPaymentStatus('pending');
     setIsSuccess(true);
-    refreshBalance();
+    refreshUserBalance();
   };
 
   const handlePaymentError = (error: string) => {
@@ -62,7 +62,7 @@ const PayPalDepositPage = () => {
     if (result?.success) {
       setPaymentStatus(result.status as any);
       if (result.status === 'completed') {
-        refreshBalance();
+        refreshUserBalance();
       }
     }
   };

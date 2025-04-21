@@ -1,5 +1,4 @@
 
-
 import { User, Session } from '@supabase/supabase-js';
 
 export type UserRole = 'admin' | 'staff' | 'user' | 'guest';
@@ -19,6 +18,7 @@ export interface AuthContextType {
   userBalance: number;
   isLoadingBalance?: boolean;
   refreshUserBalance: () => Promise<number | void>;
+  refreshBalance: () => Promise<number | void>; // Alias for backward compatibility
   refreshUserProfile: () => Promise<void>;
   login: (email: string, password: string) => Promise<any>;
   logout: () => Promise<void>;
@@ -27,4 +27,3 @@ export interface AuthContextType {
   isEmailVerified: boolean;
   resendVerificationEmail: (email: string) => Promise<boolean>;
 }
-

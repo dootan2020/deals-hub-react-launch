@@ -32,19 +32,19 @@ const RealtimeNotifier = () => {
         // Hiển thị toast thân thiện mobile, có đa ngữ
         switch (notification.type) {
           case 'info':
-            toast.info(title, notification.message);
+            toast.info(title, { description: notification.message });
             break;
           case 'warning':
-            toast.warning(title, notification.message);
+            toast.warning(title, { description: notification.message });
             break;
           case 'error':
-            toast.error(title, notification.message);
+            toast.error(title, { description: notification.message });
             break;
           case 'success':
-            toast.success(title, notification.message);
+            toast.success(title, { description: notification.message });
             break;
           default:
-            toast.info(title, notification.message);
+            toast.info(title, { description: notification.message });
         }
       })
       .subscribe();
@@ -60,15 +60,13 @@ const RealtimeNotifier = () => {
               console.log("Deposit status update:", deposit);
               
               if (deposit.status === 'completed') {
-                toast.success(
-                  t("payment_successful"),
-                  t("deposit_completed", { amount: deposit.amount })
-                );
+                toast.success(t("success"), { 
+                  description: `Nạp tiền ${deposit.amount} đã hoàn tất` 
+                });
               } else if (deposit.status === 'failed') {
-                toast.error(
-                  t("payment_failed"), 
-                  t("deposit_failed", { id: deposit.transaction_id })
-                );
+                toast.error(t("error"), { 
+                  description: `Nạp tiền ${deposit.transaction_id} thất bại` 
+                });
               }
             })
         .subscribe();
@@ -87,9 +85,9 @@ const RealtimeNotifier = () => {
           else title = log.action;
 
           if (log.status === 'error') {
-            toast.error(title, log.message);
+            toast.error(title, { description: log.message });
           } else if (log.status === 'warning') {
-            toast.warning(title, log.message);
+            toast.warning(title, { description: log.message });
           }
         })
         .subscribe();
