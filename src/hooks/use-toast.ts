@@ -1,15 +1,14 @@
 
-import { useToast as useShadcnToast } from "@/components/ui/toast";
-import { toast as shadcnToast } from "@/components/ui/toast";
+import { useToast as useShadcnToast, toast as shadcnToast } from "@/components/ui/toast";
 
-// Define a local type to avoid circular reference
+// Re-export toast utility with additional methods
 export const useToast = useShadcnToast;
 
 // Re-export toast utility with additional methods
 export const toast = {
   ...shadcnToast,
-  success: (message: string) => shadcnToast({ description: message, variant: "success" }),
-  error: (message: string) => shadcnToast({ description: message, variant: "destructive" }),
-  warning: (message: string) => shadcnToast({ description: message, variant: "warning" }),
+  success: (message: string) => shadcnToast({ description: message, variant: "success", type: "success" }),
+  error: (message: string) => shadcnToast({ description: message, variant: "destructive", type: "destructive" }),
+  warning: (message: string) => shadcnToast({ description: message, variant: "warning", type: "warning" }),
   info: (message: string) => shadcnToast({ description: message })
 };

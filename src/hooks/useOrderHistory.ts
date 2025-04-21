@@ -61,10 +61,9 @@ export const useOrderHistory = (userId: string) => {
         }
         
         // Map the database fields to the Order interface
-        // Using total_price as total_amount to match the Order interface
         return {
           ...order,
-          total_amount: order.total_price,
+          total_amount: order.total_price || 0, // Map total_price to total_amount
           product_title: productTitle
         } as Order;
       }) || [];
