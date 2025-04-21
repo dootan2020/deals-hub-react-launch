@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableCell, TableHead } from '@/components/ui/table';
 import { useOrders } from '@/hooks/useOrders';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { ArrowDownUp, ArrowUpDown, FileText, Trash2, Banknote } from 'lucide-react';
+import { ArrowDownUp, FileText, Trash2, Banknote } from 'lucide-react';
 import { useAdminActions } from '@/hooks/admin/useAdminActions';
 import { normalizeUserField } from '@/hooks/orderUtils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
