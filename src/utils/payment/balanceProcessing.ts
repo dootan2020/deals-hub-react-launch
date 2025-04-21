@@ -50,7 +50,7 @@ export const processDepositBalance = async (
     // regardless of whether we just updated the status
     if (deposit.status === 'completed' || deposit.transaction_id) {
       console.log(`Calling update_user_balance for user ${deposit.user_id} with amount ${deposit.net_amount}`);
-      
+
       // NOTE: supabase.rpc should NOT use <T> generic as it caused the "excessively deep" error
       const { data, error: balanceError } = await supabase.rpc(
         'update_user_balance',
@@ -59,7 +59,7 @@ export const processDepositBalance = async (
           amount_param: deposit.net_amount
         }
       );
-      
+
       if (balanceError) {
         console.error("Error updating user balance:", balanceError);
         return { success: false, error: balanceError.message, updated: false };

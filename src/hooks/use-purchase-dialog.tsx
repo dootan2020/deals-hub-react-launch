@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -52,6 +53,7 @@ export const usePurchaseDialog = () => {
     setPromotionCode(value);
   };
 
+  // Strengthen product stock validation: ensure stock is verified and not outdated
   const verifyProduct = useCallback(async () => {
     if (!selectedProduct) return;
 
@@ -71,15 +73,19 @@ export const usePurchaseDialog = () => {
           description: error.message || 'Có lỗi xảy ra khi xác minh sản phẩm',
           variant: 'destructive',
         });
+        setVerifiedStock(null);
+        setVerifiedPrice(null);
         return;
       }
 
-      if (data?.success === false) {
+      if (data?.success === false || typeof data?.data?.stock !== 'number') {
         toast({
           title: 'Không thể xác minh sản phẩm',
-          description: data.message || 'Có lỗi xảy ra khi xác minh sản phẩm',
+          description: data?.message || 'Có lỗi xảy ra khi xác minh sản phẩm',
           variant: 'destructive',
         });
+        setVerifiedStock(null);
+        setVerifiedPrice(null);
         return;
       }
 
@@ -92,6 +98,8 @@ export const usePurchaseDialog = () => {
         description: err.message || 'Có lỗi xảy ra khi xác minh sản phẩm',
         variant: 'destructive',
       });
+      setVerifiedStock(null);
+      setVerifiedPrice(null);
     } finally {
       setIsVerifying(false);
     }
@@ -122,10 +130,11 @@ export const usePurchaseDialog = () => {
       return false;
     }
 
-    if (verifiedStock === null) {
+    // New: Always require verifiedStock and use that for quantity validation
+    if (verifiedStock === null || typeof verifiedStock !== 'number') {
       toast({
         title: 'Không thể tạo đơn hàng',
-        description: 'Không thể xác minh số lượng sản phẩm',
+        description: 'Không thể xác minh số lượng sản phẩm. Vui lòng thử lại.',
         variant: 'destructive',
       });
       return false;
@@ -149,7 +158,6 @@ export const usePurchaseDialog = () => {
         const isSuspicious = await recordPurchaseActivity(user.id, totalAmount, selectedProduct.id);
         
         if (isSuspicious) {
-          // Also check for broader user behavior anomalies
           const behaviorAnomaly = await checkUserBehaviorAnomaly(user.id);
           
           if (behaviorAnomaly) {
@@ -159,7 +167,6 @@ export const usePurchaseDialog = () => {
               "Hoạt động đáng ngờ được phát hiện. Vui lòng liên hệ hỗ trợ."
             );
             
-            // Log the suspicious activity
             await supabase.functions.invoke("fraud-detection", {
               body: {
                 action: "report-suspicious",
@@ -177,7 +184,7 @@ export const usePurchaseDialog = () => {
           }
         }
       }
-      
+
       // Continue with normal order processing
       const orderResult = await createOrder({
         kioskToken: selectedProduct.kiosk_token,
@@ -232,3 +239,5 @@ export const usePurchaseDialog = () => {
     verifyProduct
   };
 };
+
+// End of file

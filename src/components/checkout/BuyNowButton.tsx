@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, Loader2 } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 import { usePurchaseDialog } from '@/hooks/use-purchase-dialog';
 import PurchaseConfirmDialog from './PurchaseConfirmDialog';
 import { ensureProductFields } from '@/utils/productUtils';
@@ -49,10 +49,8 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   const handleClick = () => {
     // Ensure product object matches Product type
     if (product) {
-      // Use the provided product directly
       openDialog(ensureProductFields(product));
     } else {
-      // Ensure all required fields are present
       const minimalProduct = ensureProductFields({
         id: productId || '',
         kiosk_token: kioskToken || '',
@@ -68,17 +66,11 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
         features: [],
         slug: '',
         inStock: true,
-        // Add additional missing Product fields with safe defaults
+        // Additional safe defaults
         specifications: {},
         createdAt: new Date().toISOString(),
         stock: 10,
-        api_stock: 10,
-        api_price: 0,
-        original_price: 0,
-        last_synced_at: new Date().toISOString(),
-        short_description: '',
-        external_id: '',
-        api_name: '',
+        shortDescription: '',
       });
       openDialog(minimalProduct);
     }
@@ -109,7 +101,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       <PurchaseConfirmDialog
         open={open}
         onOpenChange={closeDialog}
-        product={selectedProduct}
+        product={selectedProduct ?? undefined}
         onConfirm={handleConfirmPurchase}
         isVerifying={isVerifying}
         verifiedStock={verifiedStock}
