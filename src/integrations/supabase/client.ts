@@ -31,7 +31,6 @@ export const supabase = createClient<Database>(
     },
     global: {
       fetch: (url, options) => {
-        // Fixed: Properly call fetch without spread operator issues
         console.debug('Supabase fetch:', url);
         return fetch(url, options);
       }
@@ -54,6 +53,7 @@ supabase.auth.getSession().then(({ data, error }) => {
 // Export a utility to reload session explicitly
 export const reloadSession = async () => {
   try {
+    console.log('Attempting to reload session...');
     const { data, error } = await supabase.auth.refreshSession();
     if (error) {
       console.error('Failed to reload session:', error.message);

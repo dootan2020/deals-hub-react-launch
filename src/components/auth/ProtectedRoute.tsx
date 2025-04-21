@@ -91,10 +91,12 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
     
     // Real timeout for authentication (10 seconds)
     const timeoutId = setTimeout(() => {
-      console.error('Authentication timeout reached. Will redirect to login.');
-      setAuthTimeout(true);
-      toast.warning('Xác thực phiên truy cập thất bại', 'Đang chuyển hướng đến trang đăng nhập...');
-    }, 12000); // 12 seconds
+      if (loading && !isAuthenticated) {
+        console.error('Authentication timeout reached. Will redirect to login.');
+        setAuthTimeout(true);
+        toast.warning('Xác thực phiên truy cập thất bại', 'Đang chuyển hướng đến trang đăng nhập...');
+      }
+    }, 8000); // 8 seconds instead of 12 to reduce waiting time
 
     return () => {
       clearTimeout(quickTimeoutId);
@@ -109,18 +111,6 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
       setRoleCheckComplete(true);
     }
   }, [requiredRoles, userRoles]);
-
-  // Handle auth timeout toasts
-  useEffect(() => {
-    if (authTimeout) {
-      console.log('Authentication timeout triggered - redirecting to login');
-      toast({
-        title: "Phiên đăng nhập hết hạn",
-        description: "Vui lòng đăng nhập lại",
-        variant: "destructive"
-      });
-    }
-  }, [authTimeout]);
 
   // Handle session expiration
   useEffect(() => {
