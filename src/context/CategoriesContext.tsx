@@ -4,6 +4,7 @@ import { Category } from '@/types';
 import { fetchAllCategories } from '@/services/categoryService';
 import { toast } from '@/hooks/use-toast';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
+import { ErrorBoundary } from '@/components/util/ErrorBoundary';
 
 interface CategoryContextType {
   categories: Category[];
@@ -44,10 +45,10 @@ export const CategoriesProvider = ({ children }: CategoriesProviderProps) => {
     try {
       console.log(`Attempting to load categories (attempt: ${retryCount + 1}/${maxRetries + 1})`);
       
-      // Use our updated fetchWithTimeout utility
+      // Use our updated fetchWithTimeout utility with 30 second timeout for initial debugging
       const data = await fetchWithTimeout(
         fetchAllCategories(),
-        15000, // Increased timeout to 15 seconds
+        30000, // Increased timeout to 30 seconds for debugging
         'Quá thời gian tải danh mục'
       );
       
@@ -95,18 +96,20 @@ export const CategoriesProvider = ({ children }: CategoriesProviderProps) => {
   };
 
   return (
-    <CategoriesContext.Provider
-      value={{
-        categories,
-        mainCategories,
-        getCategoryById,
-        getSubcategoriesByParentId,
-        isLoading,
-        error,
-        refreshCategories
-      }}
-    >
-      {children}
-    </CategoriesContext.Provider>
+    <ErrorBoundary>
+      <CategoriesContext.Provider
+        value={{
+          categories,
+          mainCategories,
+          getCategoryById,
+          getSubcategoriesByParentId,
+          isLoading,
+          error,
+          refreshCategories
+        }}
+      >
+        {children}
+      </CategoriesContext.Provider>
+    </ErrorBoundary>
   );
 };

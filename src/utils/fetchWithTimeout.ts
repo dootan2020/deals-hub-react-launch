@@ -8,10 +8,23 @@
  */
 export const fetchWithTimeout = <T>(
   promise: Promise<T>, 
-  timeoutMs: number = 15000, // Increased from 7000ms to 15000ms
+  timeoutMs: number = 30000, // Increased from 15000ms to 30000ms for initial debugging
   errorMessage: string = 'Quá thời gian xử lý yêu cầu'
 ): Promise<T> => {
   console.log(`Starting request with ${timeoutMs}ms timeout`);
+  
+  // Add more detailed logging to track promise execution
+  const wrappedPromise = new Promise<T>((resolve, reject) => {
+    promise
+      .then(result => {
+        console.log('Promise resolved successfully');
+        resolve(result);
+      })
+      .catch(error => {
+        console.error('Promise rejected with error:', error?.message || error);
+        reject(error);
+      });
+  });
   
   const timeoutPromise = new Promise<never>((_, reject) => {
     const timeoutId = setTimeout(() => {
@@ -21,5 +34,5 @@ export const fetchWithTimeout = <T>(
     }, timeoutMs);
   });
 
-  return Promise.race([promise, timeoutPromise]);
+  return Promise.race([wrappedPromise, timeoutPromise]);
 };

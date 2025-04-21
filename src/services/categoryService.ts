@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Category } from "@/types";
 
@@ -10,6 +9,22 @@ export const fetchAllCategories = async (): Promise<Category[]> => {
   try {
     console.log('Fetching all categories - Starting request');
     
+    // Check if categories table is accessible
+    const { error: checkError } = await supabase
+      .from('categories')
+      .select('count(*)', { count: 'exact', head: true });
+      
+    if (checkError) {
+      console.error('Error checking categories access:', checkError.message, checkError.code, checkError.details);
+      
+      // Check if this is an RLS error
+      if (checkError.message?.includes('permission denied') || checkError.code === 'PGRST301') {
+        console.error('RLS ERROR: It appears Row Level Security is enabled on the categories table without proper policies for the anon role');
+      }
+    } else {
+      console.log('Categories table is accessible');
+    }
+    
     // Only select essential fields and limit results to 100
     const { data, error } = await supabase
       .from('categories')
@@ -18,7 +33,7 @@ export const fetchAllCategories = async (): Promise<Category[]> => {
       .order('name');
       
     if (error) {
-      console.error('Error in fetchAllCategories:', error.message || error);
+      console.error('Error in fetchAllCategories:', error.message, error.code, error.details);
       throw error;
     }
     
@@ -28,7 +43,7 @@ export const fetchAllCategories = async (): Promise<Category[]> => {
     // Add count property with default value 0 to match Category type
     return data?.map(item => ({ ...item, count: 0 })) || [];
   } catch (error: any) {
-    console.error('Error fetching categories:', error?.message || error);
+    console.error('Error fetching categories:', error?.message || error, error?.code, error?.details);
     return [];
   }
 };
