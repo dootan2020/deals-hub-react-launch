@@ -1,7 +1,7 @@
 
 import { Database as OriginalDatabase } from './types';
 import { UserRole } from '@/types/auth.types';
-import { Deposit } from '@/types/deposits';
+import { Deposit, PendingDepositsStatus } from '@/types/deposits';
 import { Json } from './types';
 
 // Define the Invoice interface
@@ -63,6 +63,10 @@ export interface Database extends OriginalDatabase {
       remove_role: {
         Args: { user_id_param: string; role_param: UserRole };
         Returns: undefined;
+      };
+      get_pending_deposits_status: {
+        Args: Record<string, never>;
+        Returns: PendingDepositsStatus;
       };
     };
     Enums: OriginalDatabase['public']['Enums'];

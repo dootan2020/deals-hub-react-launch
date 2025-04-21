@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Deposit } from '@/types/deposits';
+import { Deposit, PendingDepositsStatus } from '@/types/deposits';
 
 /**
  * Kiểm tra và xử lý lại các giao dịch đang chờ xử lý
@@ -64,7 +64,8 @@ export const getPendingDepositsStatus = async (): Promise<{
   failedToday: number;
 }> => {
   try {
-    const { data, error } = await supabase.rpc('get_pending_deposits_status');
+    // Use the correct type casting to handle the response from the RPC function
+    const { data, error } = await supabase.rpc<PendingDepositsStatus>('get_pending_deposits_status');
     
     if (error) {
       console.error("Error getting pending deposits status:", error);
@@ -77,10 +78,10 @@ export const getPendingDepositsStatus = async (): Promise<{
     }
     
     return {
-      total: data.total_pending || 0,
-      needsRetry: data.needs_retry || 0,
-      processedToday: data.processed_today || 0,
-      failedToday: data.failed_today || 0
+      total: data?.total_pending || 0,
+      needsRetry: data?.needs_retry || 0,
+      processedToday: data?.processed_today || 0,
+      failedToday: data?.failed_today || 0
     };
   } catch (err) {
     console.error("Exception in getPendingDepositsStatus:", err);

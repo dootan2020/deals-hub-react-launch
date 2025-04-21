@@ -16,9 +16,9 @@ export const prepareProductForPurchase = (
       ...product,
       id: product.id || "",
       title: product.title || "",
+      description: product.description || "", // Ensure description is always a string
       price: product.price || 0,
       stockQuantity: product.stockQuantity || 0,
-      description: product.description || "", // Always ensure description is a string
       shortDescription: product.shortDescription || product.description?.substring(0, 200) || "",
       images: product.images || [],
       categoryId: product.categoryId || "",
@@ -30,7 +30,8 @@ export const prepareProductForPurchase = (
       specifications: product.specifications || {},
       createdAt: product.createdAt || new Date().toISOString(),
       kiosk_token: product.kiosk_token || "",
-      stock: product.stock || 0
+      stock: product.stock || 0,
+      slug: product.slug || ""
     };
 
     // Use ensureProductFields to guarantee the product matches the required Product type
