@@ -1,72 +1,76 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Category, Product } from '@/types';
-import { SubcategoryDisplay } from '@/types/category.types';
+import { Product } from '@/types';
 
-export const useSubcategories = (categoryId?: string) => {
-  const [subcategories, setSubcategories] = useState<Category[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+export const useSubcategories = (subcategoryId: string | null) => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchSubcategories = async () => {
-      if (!categoryId) return;
+    const fetchProducts = async () => {
+      if (!subcategoryId) {
+        setProducts([]);
+        setLoading(false);
+        return;
+      }
       
-      const { data } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('parent_id', categoryId);
-        
-      if (data) {
-        const mappedSubcategories: Category[] = data.map(sub => ({
-          id: sub.id,
-          name: sub.name,
-          slug: sub.slug,
-          description: sub.description,
-          image: sub.image,
-          count: sub.count || 0,
-          parent_id: sub.parent_id
-        }));
-        
-        setSubcategories(mappedSubcategories);
-
-        const { data: featuredData } = await supabase
+      setLoading(true);
+      
+      try {
+        const { data, error } = await supabase
           .from('products')
           .select('*')
-          .in('category_id', data.map(sub => sub.id))
-          .limit(4);
+          .eq('category_id', subcategoryId)
+          .order('created_at', { ascending: false });
           
-        if (featuredData) {
-          const mappedProducts: Product[] = featuredData.map(p => ({
-            id: p.id,
-            title: p.title,
-            description: p.description,
-            shortDescription: p.short_description || '',
-            price: Number(p.price),
-            originalPrice: p.original_price ? Number(p.original_price) : undefined,
-            images: p.images || [],
-            categoryId: p.category_id,
-            rating: Number(p.rating || 0),
-            reviewCount: p.review_count || 0,
-            inStock: p.in_stock || false,
-            stockQuantity: p.stock_quantity || 0,
-            badges: p.badges || [],
-            slug: p.slug,
-            features: p.features || [],
-            specifications: p.specifications as Record<string, string | number | boolean | object>,
-            stock: p.stock || 0,
-            kiosk_token: p.kiosk_token || '', // Ensure kiosk_token is set
-            salesCount: p.stock_quantity || 0, // Use stock_quantity instead of sales_count which doesn't exist
-            createdAt: p.created_at
-          }));
+        if (error) throw error;
+        
+        // Map the database results to the Product type
+        const productList: Product[] = data.map(item => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          price: Number(item.price),
+          original_price: item.original_price ? Number(item.original_price) : undefined,
+          images: item.images || [],
+          category_id: item.category_id,
+          rating: Number(item.rating) || 0,
+          review_count: item.review_count || 0,
+          in_stock: item.in_stock === true,
+          stock_quantity: item.stock_quantity || 0,
+          badges: item.badges || [],
+          slug: item.slug,
+          features: item.features || [],
+          specifications: item.specifications || {},
+          stock: item.stock || 0,
+          kiosk_token: item.kiosk_token || '',
+          short_description: item.short_description || '',
+          createdAt: item.created_at,
           
-          setFeaturedProducts(mappedProducts);
-        }
+          // Computed properties
+          get originalPrice() { return this.original_price; },
+          get shortDescription() { return this.short_description || this.description.substring(0, 100); },
+          get categoryId() { return this.category_id; },
+          get inStock() { return this.in_stock; },
+          get stockQuantity() { return this.stock_quantity || 0; },
+          get reviewCount() { return this.review_count || 0; },
+          get salesCount() { return 0; }
+        }));
+        
+        setProducts(productList);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching subcategory products:', err);
+        setError('Failed to load products');
+      } finally {
+        setLoading(false);
       }
     };
-
-    fetchSubcategories();
-  }, [categoryId]);
-
-  return { subcategories, featuredProducts };
+    
+    fetchProducts();
+  }, [subcategoryId]);
+  
+  return { products, loading, error };
 };

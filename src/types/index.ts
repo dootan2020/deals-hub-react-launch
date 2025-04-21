@@ -52,6 +52,7 @@ export interface Product {
 
 export interface FilterParams {
   sort: SortOption;
+  category?: string;
   categoryId?: string;
   search?: string;
   inStock?: boolean;

@@ -12,8 +12,7 @@ export interface User {
     avatar_url?: string;
   };
   role?: UserRole;
-  // Make these properties optional to fix the type error in MyAccountPage.tsx
-  app_metadata?: any;
+  app_metadata: any; // Make this required to match Supabase's type
   aud?: string;
   created_at?: string;
 }

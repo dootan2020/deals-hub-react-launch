@@ -14,7 +14,7 @@ export const ensureProductFields = (product: Partial<Product>): Product => {
     originalPrice: product.originalPrice,
     images: product.images || [],
     categoryId: product.categoryId || '',
-    categories: product.categories,
+    category: product.category,
     rating: product.rating || 0,
     reviewCount: product.reviewCount || 0,
     inStock: product.inStock !== undefined ? product.inStock : true,
@@ -26,7 +26,11 @@ export const ensureProductFields = (product: Partial<Product>): Product => {
     salesCount: product.salesCount || 0,
     createdAt: product.createdAt || new Date().toISOString(),
     kiosk_token: product.kiosk_token || '', 
-    stock: product.stock !== undefined ? product.stock : 0
+    stock: product.stock !== undefined ? product.stock : 0,
+    category_id: product.category_id || product.categoryId || '',
+    review_count: product.review_count || product.reviewCount || 0,
+    in_stock: product.in_stock !== undefined ? product.in_stock : product.inStock !== undefined ? product.inStock : true,
+    short_description: product.short_description || product.shortDescription || ''
   };
 };
 

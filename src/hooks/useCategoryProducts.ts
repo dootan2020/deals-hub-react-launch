@@ -7,6 +7,7 @@ interface UseCategoryProductsProps {
   categoryId?: string | null;
   sort?: SortOption;
   isProductsPage?: boolean;
+  slug?: string;
 }
 
 export const useCategoryProducts = ({ categoryId, sort = 'newest', isProductsPage = false }: UseCategoryProductsProps) => {
@@ -30,7 +31,7 @@ export const useCategoryProducts = ({ categoryId, sort = 'newest', isProductsPag
         let apiSortOption = sort;
         
         const result = await fetchProductsWithFilters({
-          categoryId,
+          category: categoryId, // Using category instead of categoryId
           sort: apiSortOption
         });
         

@@ -1,3 +1,4 @@
+
 import { Product, SortOption, FilterParams } from '@/types';
 
 export const sortProducts = (products: Product[], sort: SortOption): Product[] => {
@@ -12,8 +13,8 @@ export const sortProducts = (products: Product[], sort: SortOption): Product[] =
       break;
     case 'newest':
       sorted.sort((a, b) => {
-        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
       });
       break;

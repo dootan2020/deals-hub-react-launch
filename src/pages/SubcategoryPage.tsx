@@ -53,11 +53,10 @@ const SubcategoryPage = () => {
           currentPage={currentPage}
           totalPages={totalPages}
           activeSort={filters.sort}
-          handleSortChange={handleSortChange}
+          onSortChange={handleSortChange}
           subcategories={mockSubcategories}
           activeSubcategories={filters.activeSubcategories}
           onSubcategoryToggle={handleSubcategoryToggle}
-          onSortChange={handleSortChange}
           onPageChange={handlePageChange}
           onPriceChange={handlePriceChange}
           onStockFilterChange={handleStockFilterChange}

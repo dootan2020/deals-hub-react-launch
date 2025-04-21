@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Product, FilterParams } from '@/types';
 import { applyFilters, sortProducts } from '@/utils/productFilters';
@@ -34,7 +35,16 @@ function mapDbProductToProduct(dbProduct: any): Product {
       slug: dbProduct.categories.slug,
       count: dbProduct.categories.count,
       parent_id: dbProduct.categories.parent_id
-    } : undefined
+    } : undefined,
+    
+    // Computed properties for compatibility
+    get originalPrice() { return this.original_price; },
+    get shortDescription() { return this.short_description || this.description.substring(0, 100); },
+    get categoryId() { return this.category_id; },
+    get inStock() { return this.in_stock; },
+    get stockQuantity() { return this.stock_quantity || this.stock || 0; },
+    get reviewCount() { return this.review_count; },
+    get salesCount() { return 0; }
   };
 }
 

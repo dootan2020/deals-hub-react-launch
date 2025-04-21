@@ -5,8 +5,8 @@ import { Helmet } from 'react-helmet';
 import Layout from '@/components/layout/Layout';
 import EnhancedProductGrid from '@/components/product/EnhancedProductGrid';
 import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
-import ViewToggle from '@/components/category/ViewToggle';
-import { FilterParams, Product } from '@/types';
+import ViewToggle from '@/components/product/ViewToggle';
+import { FilterParams, Product, SortOption } from '@/types';
 import { fetchProductsWithFilters } from '@/services/product';
 import { toast } from "@/hooks/use-toast";
 import { 
@@ -28,7 +28,7 @@ const EnhancedProductsPage = () => {
   
   // Active filters from URL search params or defaults
   const [activeFilters, setActiveFilters] = useState<FilterParams>({
-    sort: searchParams.get('sort') || 'recommended',
+    sort: (searchParams.get('sort') as SortOption) || 'newest',
   });
 
   // Fetch products based on active filters
@@ -73,7 +73,10 @@ const EnhancedProductsPage = () => {
   }, [activeFilters, setSearchParams, searchParams]);
 
   const handleSortChange = (sort: string) => {
-    setActiveFilters(prev => ({ ...prev, sort }));
+    setActiveFilters(prev => ({ 
+      ...prev, 
+      sort: sort as SortOption 
+    }));
   };
 
   const handleViewChange = (view: 'grid' | 'list') => {
@@ -122,7 +125,7 @@ const EnhancedProductsPage = () => {
         <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
           <SimplifiedCategoryFilters
             onSortChange={handleSortChange}
-            activeSort={activeFilters.sort || 'recommended'}
+            activeSort={activeFilters.sort || 'newest'}
           />
           <ViewToggle
             currentView={currentView}
