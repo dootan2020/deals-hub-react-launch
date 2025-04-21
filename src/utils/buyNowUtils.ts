@@ -29,7 +29,8 @@ export const prepareProductForPurchase = (
       features: product.features || [],
       specifications: product.specifications || {},
       createdAt: product.createdAt || new Date().toISOString(),
-      kiosk_token: product.kiosk_token || ""
+      kiosk_token: product.kiosk_token || "",
+      stock: product.stock || 0
     };
 
     // Use ensureProductFields to guarantee the product matches the required Product type
