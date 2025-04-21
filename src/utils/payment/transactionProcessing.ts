@@ -203,6 +203,7 @@ export const processPendingTransactions = async (): Promise<{
 
     if (error) {
       console.error("Error fetching pending deposits:", error);
+      toast.error("Không thể lấy danh sách giao dịch chờ xử lý");
       return {
         success: false,
         processed: 0,
@@ -213,6 +214,7 @@ export const processPendingTransactions = async (): Promise<{
 
     if (!data || data.length === 0) {
       console.log("No pending transactions found");
+      toast("Không có giao dịch nào đang chờ xử lý");
       return {
         success: true,
         processed: 0,
@@ -234,11 +236,11 @@ export const processPendingTransactions = async (): Promise<{
       if (result.success) {
         processed++;
         console.log(`Successfully processed deposit ${deposit.id}`);
-        toast.success("Xử lý giao dịch", `Xử lý thành công giao dịch #${deposit.transaction_id}`);
+        toast.success(`Xử lý thành công giao dịch #${deposit.transaction_id}`);
       } else {
         failed++;
         console.error(`Failed to process deposit ${deposit.id}:`, result.error);
-        toast.error("Lỗi xử lý giao dịch", result.error || "Không thể xử lý giao dịch");
+        toast.error(result.error || "Không thể xử lý giao dịch");
       }
     }
 
@@ -250,6 +252,7 @@ export const processPendingTransactions = async (): Promise<{
     };
   } catch (error) {
     console.error("Exception in processPendingTransactions:", error);
+    toast.error(error instanceof Error ? error.message : "Lỗi không xác định khi xử lý giao dịch");
     return {
       success: false,
       processed: 0,

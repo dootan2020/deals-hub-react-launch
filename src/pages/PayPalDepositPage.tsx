@@ -22,16 +22,14 @@ const PayPalDepositPage = () => {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'completed' | 'failed' | null>(null);
-  const { user, userBalance, refreshUserBalance, refreshBalance } = useAuth();
+  const { user, userBalance, refreshUserBalance } = useAuth();
   const navigate = useNavigate();
   const { isVerifying, verifyPayment } = usePayPalVerification();
 
   const predefinedAmounts = [10, 25, 50, 100];
 
-  // Parse amount as number for calculations
   const numAmount = parseFloat(amount);
 
-  // Check if amount is valid (is a number and >= 1)
   const isValidAmount = !isNaN(numAmount) && numAmount >= 1;
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,11 +39,10 @@ const PayPalDepositPage = () => {
     }
   };
 
-  const handlePaymentSuccess = (data: any) => {
-    console.log("Payment successful:", data);
-    setTransactionId(data.orderID || data.id);
-    setPaymentStatus('pending');
+  const handlePaymentSuccess = () => {
     setIsSuccess(true);
+    setPaymentStatus('pending');
+    setTransactionId(null);
     refreshUserBalance();
   };
 
@@ -75,7 +72,6 @@ const PayPalDepositPage = () => {
     setPaymentError(null);
   };
 
-  // Check session storage for pending PayPal transaction
   useEffect(() => {
     const savedTransaction = sessionStorage.getItem('pendingPayPalTransaction');
     if (savedTransaction) {
@@ -94,7 +90,6 @@ const PayPalDepositPage = () => {
     }
   }, []);
 
-  // Save transaction to session storage when created
   useEffect(() => {
     if (transactionId) {
       sessionStorage.setItem('pendingPayPalTransaction', JSON.stringify({
@@ -104,7 +99,6 @@ const PayPalDepositPage = () => {
     }
   }, [transactionId]);
 
-  // Clear transaction from session storage when completed
   useEffect(() => {
     if (paymentStatus === 'completed') {
       sessionStorage.removeItem('pendingPayPalTransaction');

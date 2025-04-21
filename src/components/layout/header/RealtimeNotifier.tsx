@@ -1,11 +1,9 @@
-
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAuth } from "@/context/AuthContext";
 
-// Nâng cao realtime notifier: toast đa ngữ, toast thân thiện mobile, phân quyền chuẩn
 const RealtimeNotifier = () => {
   const { t } = useTranslation();
   const { userRoles, user } = useAuth();
@@ -32,19 +30,19 @@ const RealtimeNotifier = () => {
         // Hiển thị toast thân thiện mobile, có đa ngữ
         switch (notification.type) {
           case 'info':
-            toast(title, notification.message);
+            toast(notification.message);
             break;
           case 'warning':
-            toast.warning(title, notification.message);
+            toast.warning(notification.message);
             break;
           case 'error':
-            toast.error(title, notification.message);
+            toast.error(notification.message);
             break;
           case 'success':
-            toast.success(title, notification.message);
+            toast.success(notification.message);
             break;
           default:
-            toast(title, notification.message);
+            toast(notification.message);
         }
       })
       .subscribe();
@@ -81,9 +79,9 @@ const RealtimeNotifier = () => {
           else title = log.action;
 
           if (log.status === 'error') {
-            toast.error(title, log.message);
+            toast.error(log.message);
           } else if (log.status === 'warning') {
-            toast.warning(title, log.message);
+            toast.warning(log.message);
           }
         })
         .subscribe();
