@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import AdminDashboard from "./AdminDashboard";
 import { useAuth } from "@/context/AuthContext";
+import { describe, it, vi, expect, beforeEach } from 'vitest';
 
 vi.mock("@/context/AuthContext", () => ({
   useAuth: vi.fn(),
