@@ -66,7 +66,7 @@ export function useTransactions() {
       // Type casting to ensure compatibility with Transaction interface
       const typedTransactions = (data || []).map(item => {
         // Handle potentially missing user data
-        const userValue = item.user && !('error' in item.user) 
+        const userValue = item.user && typeof item.user === 'object' && !('error' in item.user) 
           ? item.user 
           : { email: 'N/A' };
           
@@ -104,7 +104,7 @@ export function useTransactions() {
       // Type casting to ensure compatibility with Deposit interface
       const typedDeposits = (data || []).map(item => {
         // Handle potentially missing user data
-        const userValue = item.user && !('error' in item.user) 
+        const userValue = item.user && typeof item.user === 'object' && !('error' in item.user) 
           ? item.user 
           : { email: 'N/A' };
           

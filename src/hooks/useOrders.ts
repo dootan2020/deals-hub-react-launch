@@ -28,7 +28,7 @@ export interface Order {
   user?: { 
     email: string;
     display_name?: string;
-  };
+  } | null; // Made nullable to handle error cases
   product?: {
     title: string;
     images?: string[];
@@ -71,9 +71,15 @@ export function useOrders() {
             .select('*')
             .eq('order_id', order.id);
 
+          // Handle potentially missing or error user data
+          const userValue = order.user && typeof order.user === 'object' && !('error' in order.user)
+            ? order.user
+            : { email: 'N/A' };
+
           // Type casting to ensure compatibility with Order interface
           return {
             ...order,
+            user: userValue,
             order_items: orderItems || []
           } as Order;
         })
@@ -110,9 +116,15 @@ export function useOrders() {
           .select('*')
           .eq('order_id', data.id);
 
+        // Handle potentially missing or error user data
+        const userValue = data.user && typeof data.user === 'object' && !('error' in data.user)
+          ? data.user
+          : { email: 'N/A' };
+
         // Type casting to ensure compatibility with Order interface
         const orderWithDetails = {
           ...data,
+          user: userValue,
           order_items: orderItems || []
         } as Order;
 
