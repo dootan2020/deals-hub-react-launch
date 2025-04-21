@@ -12,24 +12,23 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteProps) => {
-  const { isAuthenticated, loading, userRoles, user } = useAuth();
+  const { isAuthenticated, loading, userRoles, user, logout, session } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [authTimeout, setAuthTimeout] = useState(false);
-  
-  // Handle timeout logic
+  const [sessionInvalid, setSessionInvalid] = useState(false);
+
+  // Handle timeout logic (fallback for stuck loading)
   useEffect(() => {
     if (!loading) return;
-    
-    // Set timeout to handle potential infinite loading state
     const timeoutId = setTimeout(() => {
       console.error('Authentication timeout reached. Force fallback to login.');
       setAuthTimeout(true);
-    }, 8000); // 8-second max wait time before force fallback
-    
+    }, 8000);
+
     return () => clearTimeout(timeoutId);
   }, [loading]);
-  
+
   // Force redirect to login if timeout occurs
   useEffect(() => {
     if (authTimeout) {
@@ -37,13 +36,35 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
       toast.error("Phiên đăng nhập hết hạn", "Vui lòng đăng nhập lại");
     }
   }, [authTimeout, navigate]);
-  
-  // If auth timed out, redirect to login
+
+  // Edge case: if session is invalid (expired, undefined tokens), force logout for security
+  useEffect(() => {
+    if (user && session && session.expires_at) {
+      const now = Math.floor(Date.now() / 1000);
+      if (session.expires_at < now) {
+        setSessionInvalid(true);
+      }
+    }
+  }, [user, session]);
+
+  useEffect(() => {
+    if (sessionInvalid && logout) {
+      logout().finally(() => {
+        toast.error("Phiên của bạn đã hết hạn. Đăng nhập lại.");
+        navigate('/login', { replace: true, state: { from: location, authError: 'expired' } });
+      });
+    }
+    // eslint-disable-next-line
+  }, [sessionInvalid]);
+
   if (authTimeout) {
     return <Navigate to="/login" state={{ from: location, authError: 'timeout' }} replace />;
   }
-  
-  // Show enhanced loading screen while checking authentication
+
+  if (sessionInvalid) {
+    return null; // Loading until effect above fires logout + redirect
+  }
+
   if (loading) {
     return (
       <AuthLoadingScreen 
@@ -52,24 +73,20 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
       />
     );
   }
-  
-  // Redirect to login if not authenticated
+
   if (!isAuthenticated || !user) {
     console.log('User not authenticated - redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
-  
-  // Check for required roles if any
+
   const hasRequiredRole = requiredRoles.length === 0 || 
                           requiredRoles.some(role => userRoles.includes(role));
-  
-  // Redirect to unauthorized if doesn't have required role
+
   if (!hasRequiredRole) {
     console.log('User lacks required role - redirecting to unauthorized');
     return <Navigate to="/unauthorized" state={{ from: location }} replace />;
   }
-  
-  // Render children if authenticated and has required roles
+
   return <>{children}</>;
 };
 

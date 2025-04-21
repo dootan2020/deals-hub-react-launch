@@ -35,7 +35,7 @@ describe('ProtectedRoute', () => {
       userRoles: [],
       userBalance: 0,
       refreshUserBalance: vi.fn(),
-      refreshBalance: vi.fn(), // Add the missing refreshBalance property
+      refreshBalance: vi.fn(), // Fixed
       refreshUserProfile: vi.fn(),
       login: vi.fn(),
       logout: vi.fn(),
@@ -71,7 +71,7 @@ describe('ProtectedRoute', () => {
       userRoles: ['user'],
       userBalance: 0,
       refreshUserBalance: vi.fn(),
-      refreshBalance: vi.fn(), // Add the missing refreshBalance property
+      refreshBalance: vi.fn(), // Fixed
       refreshUserProfile: vi.fn(),
       login: vi.fn(),
       logout: vi.fn(),
@@ -107,7 +107,7 @@ describe('ProtectedRoute', () => {
       userRoles: ['admin'],
       userBalance: 0,
       refreshUserBalance: vi.fn(),
-      refreshBalance: vi.fn(), // Add the missing refreshBalance property
+      refreshBalance: vi.fn(), // Fixed
       refreshUserProfile: vi.fn(),
       login: vi.fn(),
       logout: vi.fn(),
@@ -131,3 +131,5 @@ describe('ProtectedRoute', () => {
     expect(screen.getByText('Admin Content')).toBeInTheDocument();
   });
 });
+
+// END FILE

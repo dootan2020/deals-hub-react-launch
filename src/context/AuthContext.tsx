@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
+import React, { createContext, useContext, useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { useAuthState } from '@/hooks/use-auth-state';
 import { useAuthActions } from '@/hooks/auth/use-auth-actions';
 import { useBalanceListener } from '@/hooks/use-balance-listener';
@@ -46,12 +45,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const { login, logout, register, resendVerificationEmail } = useAuthActions();
 
-  // Handle hydration (prevent SSR/CSR mismatch)
+  const sessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     setHydrated(true);
   }, []);
 
-  // Log authentication errors
   useEffect(() => {
     if (authError) {
       console.error('Authentication error:', authError);
@@ -59,7 +58,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [authError]);
 
-  // Set up real-time balance updates
+  useEffect(() => {
+    if (user && session) {
+      if (sessionTimeoutRef.current) clearTimeout(sessionTimeoutRef.current);
+      sessionTimeoutRef.current = setTimeout(() => {
+        console.warn('Session timeout reached, logging out user for security.');
+        logout().finally(() => {
+          window.location.replace('/login?timeout=1');
+        });
+      }, 3 * 60 * 60 * 1000);
+    } else {
+      if (sessionTimeoutRef.current) {
+        clearTimeout(sessionTimeoutRef.current);
+        sessionTimeoutRef.current = null;
+      }
+    }
+    return () => {
+      if (sessionTimeoutRef.current) {
+        clearTimeout(sessionTimeoutRef.current);
+        sessionTimeoutRef.current = null;
+      }
+    };
+  }, [user?.id, session?.access_token]);
+
+  useEffect(() => {
+    if (session && session.expires_at) {
+      const now = Math.floor(Date.now() / 1000);
+      if (session.expires_at < now) {
+        console.error('Session expired! Forcing logout.');
+        logout().finally(() => {
+          window.location.replace('/login?expired=1');
+        });
+      }
+    }
+  }, [session]);
+
   useBalanceListener(user?.id, (newBalance) => {
     if (typeof newBalance === 'number') {
       console.log('Balance updated via listener:', newBalance);
@@ -67,14 +100,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   });
 
-  // Function to refresh user balance
   const refreshUserBalance = useCallback(async () => {
     if (!user?.id) return;
     console.log('Manually refreshing user balance for ID:', user.id);
 
     try {
       await fetchUserBalance(user.id);
-      return userBalance; // Return current balance after refresh
+      return userBalance;
     } catch (error) {
       console.error('Error refreshing balance:', error);
       toast.error('Không thể cập nhật số dư', 'Vui lòng thử lại sau');
@@ -82,10 +114,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [user?.id, fetchUserBalance, userBalance]);
 
-  // Alias for refreshUserBalance for backward compatibility
   const refreshBalance = refreshUserBalance;
 
-  // Function to refresh the entire user profile
   const refreshUserProfile = useCallback(async () => {
     if (!user?.id) return;
     console.log('Refreshing full user profile for ID:', user.id);
@@ -99,15 +129,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [user?.id, refreshUserData]);
 
-  // Helper function to check if user has a specific role
   const checkUserRole = useCallback((role: typeof userRoles[number]): boolean => {
     return userRoles.includes(role);
   }, [userRoles]);
 
-  // Check if email is verified
   const isEmailVerified = user?.email_confirmed_at !== null;
 
-  // Memoize the context value to prevent unnecessary re-renders
   const contextValue: AuthContextType = useMemo(() => ({
     user,
     session,
@@ -133,7 +160,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     logout, register, checkUserRole, isEmailVerified, resendVerificationEmail
   ]);
 
-  // Return null during SSR to prevent hydration mismatch
   if (!hydrated) {
     return null;
   }
@@ -145,4 +171,3 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 export const useAuth = () => useContext(AuthContext);
-
