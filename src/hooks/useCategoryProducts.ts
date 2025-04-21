@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
-import { Product } from '@/types';
-import { sortProducts, SortOption } from '@/utils/productFilters';
+import { Product, SortOption } from '@/types';
+import { sortProducts } from '@/utils/productFilters';
 
 interface UseCategoryProductsProps {
   categoryId?: string;
@@ -15,7 +15,7 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [currentSort, setCurrentSort] = useState(sort);
+  const [currentSort, setCurrentSort] = useState<SortOption>(sort);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
@@ -64,28 +64,29 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
       
       console.log('Fetched products data:', allProducts);
       
-      const mappedProducts: Product[] = allProducts.map(p => ({
+      const mappedProducts = allProducts.map(p => ({
         id: p.id,
         title: p.title,
         description: p.description,
-        shortDescription: p.short_description,
+        short_description: p.short_description,
         price: Number(p.price),
-        originalPrice: p.original_price ? Number(p.original_price) : undefined,
+        original_price: p.original_price ? Number(p.original_price) : undefined,
         images: p.images || [],
-        categoryId: p.category_id,
-        rating: Number(p.rating),
-        reviewCount: p.review_count || 0,
-        inStock: p.in_stock || false,
-        stockQuantity: p.stock_quantity || 0,
+        category_id: p.category_id || '',
+        rating: Number(p.rating) || 0,
+        review_count: p.review_count || 0,
+        in_stock: p.in_stock || false,
+        stock_quantity: p.stock_quantity || 0,
         badges: p.badges || [],
         slug: p.slug,
         features: p.features || [],
         specifications: p.specifications as Record<string, string | number | boolean | object> || {},
-        salesCount: p.stock_quantity || 0,
         stock: p.stock || 0,
         kiosk_token: p.kiosk_token || '',
-        createdAt: p.created_at
-      }));
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+        last_synced_at: p.last_synced_at
+      })) as Product[];
 
       console.log('Mapped products with kiosk_token:', mappedProducts.map(p => ({
         title: p.title, 

@@ -24,8 +24,8 @@ export const ProductPurchaseSection = ({ product }: ProductPurchaseSectionProps)
     <div className="bg-card rounded-lg p-6 shadow-sm transition-all duration-300 ease-in-out hover:shadow-md hover:border-primary/40 hover:scale-[1.01] hover:translate-y-[-4px]">
       {/* Stock and Sales Info */}
       <ProductStock 
-        stock={product.stockQuantity || product.stock || 0}
-        soldCount={product.salesCount || 0}
+        stock={product.stock_quantity || product.stock || 0}
+        soldCount={product.stock_quantity || 0}
         className="mb-4"
       />
       
@@ -36,7 +36,7 @@ export const ProductPurchaseSection = ({ product }: ProductPurchaseSectionProps)
 
       {/* Short Description */}
       <div className="text-text-light mb-6">
-        <p>{product.shortDescription || product.description?.substring(0, 150)}</p>
+        <p>{product.short_description || product.description?.substring(0, 150)}</p>
       </div>
 
       {/* Purchase Actions */}
@@ -68,7 +68,7 @@ export const ProductPurchaseSection = ({ product }: ProductPurchaseSectionProps)
           kioskToken={product.kiosk_token}
           productId={product.id}
           quantity={quantity}
-          isInStock={product.inStock}
+          isInStock={product.in_stock}
           className="w-full py-3"
           product={product}
         />

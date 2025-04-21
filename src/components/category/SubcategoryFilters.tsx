@@ -1,129 +1,90 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Filter, X } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Separator } from '@/components/ui/separator';
-import PriceRangeFilter from './PriceRangeFilter';
-import StockFilter from './StockFilter';
-import { Category } from '@/types';
-import ProductSorter from '@/components/product/ProductSorter';
-import { SortOption } from '@/types';
+import { Badge } from '@/components/ui/badge';
+import { Check, X } from 'lucide-react';
+import { ProductViewToggle } from '../product/ProductViewToggle';
+import { ProductSorter } from '../product/ProductSorter';
+import { Category, SortOption } from '@/types';
 
 interface SubcategoryFiltersProps {
-  subcategories: Category[];
-  activeSubcategories: string[];
-  onSubcategoryToggle: (id: string) => void;
-  onSortChange: (value: string) => void;
-  activeSort: SortOption;
-  onPriceChange: (min: number, max: number) => void;
-  onStockFilterChange: (value: string) => void;
-  stockFilter: string;
-  minPrice: number;
-  maxPrice: number;
+  category?: Category;
+  children?: React.ReactNode;
+  activeFilter?: string | null;
+  onFilterChange: (categoryId: string | null) => void;
+  currentSort: SortOption;
+  onSortChange: (sort: string) => void;
+  view: 'grid' | 'list';
+  onViewChange: (view: 'grid' | 'list') => void;
+  subcategories?: Category[];
 }
 
-const SubcategoryFilters = ({
-  subcategories,
-  activeSubcategories,
-  onSubcategoryToggle,
+export const SubcategoryFilters: React.FC<SubcategoryFiltersProps> = ({
+  category,
+  children,
+  activeFilter,
+  onFilterChange,
+  currentSort,
   onSortChange,
-  activeSort,
-  onPriceChange,
-  onStockFilterChange,
-  stockFilter,
-  minPrice,
-  maxPrice
-}: SubcategoryFiltersProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-
+  view,
+  onViewChange,
+  subcategories = []
+}) => {
   return (
-    <div className="flex items-center justify-between mb-6">
-      {/* Mobile filters */}
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetTrigger asChild>
-          <Button 
-            variant="outline" 
-            className="md:hidden flex items-center gap-2"
-            size="sm"
-          >
-            <Filter className="h-4 w-4" />
-            Filters
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-[85vw] max-w-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-semibold text-lg">Filters</h2>
-            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex-1">
+          <h2 className="text-lg font-medium mb-2">{category?.name || 'All Products'}</h2>
           
-          {subcategories.length > 0 && (
-            <>
-              <div className="mb-4">
-                <h3 className="font-semibold text-sm mb-2">Subcategories</h3>
-                <div className="space-y-2">
-                  {subcategories.map((subcategory) => (
-                    <button
-                      key={subcategory.id}
-                      onClick={() => onSubcategoryToggle(subcategory.id)}
-                      className={`flex items-center justify-between w-full p-2 rounded-md text-left text-sm ${
-                        activeSubcategories.includes(subcategory.id) 
-                          ? 'bg-primary/10 text-primary' 
-                          : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <span>{subcategory.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <Separator className="my-4" />
-            </>
+          {subcategories && subcategories.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4 md:mb-0">
+              <Button
+                variant={activeFilter === null ? "default" : "outline"}
+                size="sm"
+                onClick={() => onFilterChange(null)}
+                className="h-8"
+              >
+                All
+                {activeFilter === null && <Check className="ml-1 h-4 w-4" />}
+              </Button>
+              
+              {subcategories.map(subcat => (
+                <Button
+                  key={subcat.id}
+                  variant={activeFilter === subcat.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => onFilterChange(subcat.id)}
+                  className="h-8"
+                >
+                  {subcat.name}
+                  {activeFilter === subcat.id && <Check className="ml-1 h-4 w-4" />}
+                </Button>
+              ))}
+            </div>
           )}
           
-          <PriceRangeFilter 
-            minPrice={minPrice} 
-            maxPrice={maxPrice} 
-            onPriceChange={onPriceChange} 
-          />
-          
-          <Separator className="my-4" />
-          
-          <StockFilter 
-            stockFilter={stockFilter} 
-            onStockFilterChange={onStockFilterChange} 
-          />
-          
-          <div className="absolute bottom-4 left-4 right-4">
-            <Button 
-              className="w-full" 
-              onClick={() => setIsOpen(false)}
-            >
-              Apply Filters
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Desktop sort & filter */}
-      <div className="hidden md:flex items-center gap-2">
-        <Button 
-          variant="outline" 
-          className="flex items-center gap-2"
-          size="sm"
-        >
-          <Filter className="h-4 w-4" />
-          Filters
-        </Button>
+          {activeFilter && (
+            <div className="mt-2">
+              <Badge variant="outline" className="flex items-center gap-1 bg-muted">
+                {subcategories.find(cat => cat.id === activeFilter)?.name || 'Filter'}
+                <button
+                  onClick={() => onFilterChange(null)}
+                  className="text-muted-foreground hover:text-foreground ml-1"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            </div>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <ProductSorter currentSort={currentSort} onSortChange={onSortChange} />
+          <ProductViewToggle view={view} onViewChange={onViewChange} />
+        </div>
       </div>
       
-      <ProductSorter 
-        currentSort={activeSort}
-        onSortChange={onSortChange}
-      />
+      {children}
     </div>
   );
 };
-
-export default SubcategoryFilters;

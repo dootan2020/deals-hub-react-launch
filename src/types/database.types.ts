@@ -280,6 +280,96 @@ export interface Database {
         };
         Relationships: [];
       };
+      site_settings: {
+        Row: {
+          key: string;
+          value: Json;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          key: string;
+          value: Json;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          key?: string;
+          value?: Json;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      transactions: {
+        Row: {
+          id: string;
+          user_id: string;
+          amount: number;
+          status: string;
+          type: string;
+          payment_method?: string | null;
+          transaction_id?: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          amount: number;
+          status?: string;
+          type?: string;
+          payment_method?: string | null;
+          transaction_id?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          amount?: number;
+          status?: string;
+          type?: string;
+          payment_method?: string | null;
+          transaction_id?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      invoices: {
+        Row: {
+          id: string;
+          invoice_number: string;
+          user_id: string;
+          order_id: string;
+          amount: number;
+          details: Json;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          invoice_number: string;
+          user_id: string;
+          order_id: string;
+          amount: number;
+          details: Json;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          invoice_number?: string;
+          user_id?: string;
+          order_id?: string;
+          amount?: number;
+          details?: Json;
+          status?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -312,6 +402,10 @@ export interface Database {
           remaining_attempts: number | null;
           unlock_time: string | null;
         }[];
+      };
+      update_user_balance: {
+        Args: { user_id_param: string; amount_param: number };
+        Returns: boolean;
       };
     };
     Enums: {

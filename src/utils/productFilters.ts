@@ -1,72 +1,56 @@
 
-import { Product } from '@/types';
+import { Product, SortOption, FilterParams } from '@/types';
 
-/**
- * Filter products based on specified criteria
- */
-export const applyFilters = (products: Product[], filters: any = {}): Product[] => {
-  let filteredProducts = [...products];
+export const sortProducts = (products: Product[], sort: SortOption): Product[] => {
+  const sorted = [...products];
   
-  // Filter by price range
-  if (filters.priceRange) {
-    const [min, max] = filters.priceRange;
-    if (min !== undefined) {
-      filteredProducts = filteredProducts.filter(p => p.price >= min);
-    }
-    if (max !== undefined) {
-      filteredProducts = filteredProducts.filter(p => p.price <= max);
-    }
+  switch (sort) {
+    case 'price-high':
+      sorted.sort((a, b) => b.price - a.price);
+      break;
+    case 'price-low':
+      sorted.sort((a, b) => a.price - b.price);
+      break;
+    case 'newest':
+      sorted.sort((a, b) => {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA;
+      });
+      break;
+    case 'popular':
+      // Sort by review_count or some other popularity metric
+      sorted.sort((a, b) => (b.review_count || 0) - (a.review_count || 0));
+      break;
+    default:
+      // Leave in original order
+      break;
   }
   
-  // Filter by rating
-  if (filters.rating !== undefined) {
-    filteredProducts = filteredProducts.filter(p => p.rating >= filters.rating);
-  }
-  
-  // Filter by availability (in stock)
-  if (filters.inStock === true) {
-    filteredProducts = filteredProducts.filter(p => p.inStock);
-  }
-  
-  return filteredProducts;
+  return sorted;
 };
 
-// Define the sort option type using the same type from the main types file
-import { SortOption } from '@/types';
-export type { SortOption };
-
-/**
- * Sort products based on specified sort criteria
- */
-export const sortProducts = (products: Product[], sortOption?: string): Product[] => {
-  if (!sortOption) return products;
-  
-  const sortedProducts = [...products];
-  
-  switch (sortOption) {
-    case 'price-low':
-      return sortedProducts.sort((a, b) => a.price - b.price);
-      
-    case 'price-high':
-      return sortedProducts.sort((a, b) => b.price - a.price);
-      
-    case 'newest':
-      return sortedProducts.sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return dateB - dateA;
-      });
-      
-    case 'popular':
-      // Sort by sales count
-      return sortedProducts.sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
-      
-    default:
-      // Default to newest if unknown sort option is provided
-      return sortedProducts.sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return dateB - dateA;
-      });
-  }
+export const applyFilters = (products: Product[], filters: Partial<FilterParams>): Product[] => {
+  return products.filter(product => {
+    // Filter by search term
+    if (filters.search && !product.title.toLowerCase().includes(filters.search.toLowerCase())) {
+      return false;
+    }
+    
+    // Filter by in-stock status
+    if (filters.inStock !== undefined && product.in_stock !== filters.inStock) {
+      return false;
+    }
+    
+    // Filter by price range
+    if (filters.priceMin !== undefined && product.price < filters.priceMin) {
+      return false;
+    }
+    
+    if (filters.priceMax !== undefined && product.price > filters.priceMax) {
+      return false;
+    }
+    
+    return true;
+  });
 };

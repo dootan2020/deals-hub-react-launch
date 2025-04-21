@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Category } from '@/types';
+import { Category, Product } from '@/types';
 import { Edit, Trash2, RefreshCcw, Loader2, Search, Filter } from 'lucide-react';
 import {
   AlertDialog,
@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { deleteProduct } from '@/services/product/productService';
 
-interface Product {
+interface ProductWithCategory {
   id: string;
   title: string;
   price: number;
@@ -52,8 +52,8 @@ interface Product {
 }
 
 interface ProductListViewProps {
-  onEdit: (product: Product) => void;
-  onSync?: (product: Product) => Promise<void>;
+  onEdit: (product: ProductWithCategory) => void;
+  onSync?: (product: ProductWithCategory) => Promise<void>;
   onSyncAll?: () => Promise<void>;
   categories: Category[];
 }
@@ -64,10 +64,10 @@ export function ProductListView({
   onSyncAll,
   categories 
 }: ProductListViewProps) {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductWithCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [productToDelete, setProductToDelete] = useState<ProductWithCategory | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [syncingProduct, setSyncingProduct] = useState<string | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
@@ -82,7 +82,6 @@ export function ProductListView({
 
       if (error) throw error;
 
-      // Mở rộng sản phẩm với thông tin danh mục
       const productsWithCategory = data?.map(product => {
         const category = categories.find(c => c.id === product.category_id);
         return {
@@ -119,7 +118,7 @@ export function ProductListView({
     }
   };
 
-  const handleSyncProduct = async (product: Product) => {
+  const handleSyncProduct = async (product: ProductWithCategory) => {
     if (onSync) {
       setSyncingProduct(product.id);
       try {
@@ -151,7 +150,6 @@ export function ProductListView({
     }
   };
 
-  // Lọc sản phẩm
   const filteredProducts = products.filter(product => {
     const matchesSearch = searchQuery 
       ? product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -267,37 +265,44 @@ export function ProductListView({
                     <TableCell>{product.stock}</TableCell>
                     <TableCell className="text-center">
                       {product.in_stock ? (
-                        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900">In Stock</Badge>
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">In Stock</Badge>
                       ) : (
-                        <Badge variant="destructive">Out of Stock</Badge>
+                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Out of Stock</Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      {product.last_synced_at 
-                        ? new Date(product.last_synced_at).toLocaleString('vi-VN', {
-                            day: '2-digit', 
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })
-                        : 'Never'
-                      }
+                      {product.last_synced_at ? (
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(product.last_synced_at).toLocaleDateString()}
+                          <br />
+                          {new Date(product.last_synced_at).toLocaleTimeString()}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Never</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button 
-                          size="icon" 
-                          variant="outline" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => onEdit(product)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setProductToDelete(product)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        
                         {onSync && (
-                          <Button 
-                            size="icon" 
-                            variant="outline" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleSyncProduct(product)}
                             disabled={syncingProduct === product.id}
                           >
@@ -308,14 +313,6 @@ export function ProductListView({
                             )}
                           </Button>
                         )}
-                        
-                        <Button 
-                          size="icon" 
-                          variant="destructive" 
-                          onClick={() => setProductToDelete(product)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -323,30 +320,30 @@ export function ProductListView({
               </TableBody>
             </Table>
           ) : (
-            <div className="flex justify-center items-center p-8">
-              <p className="text-muted-foreground">No products found</p>
+            <div className="flex justify-center items-center p-8 text-muted-foreground">
+              No products found
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Delete Confirmation */}
       <AlertDialog 
-        open={!!productToDelete} 
+        open={productToDelete !== null} 
         onOpenChange={(open) => !open && setProductToDelete(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the product "{productToDelete?.title}". This action cannot be undone.
+              This will permanently delete the product &quot;{productToDelete?.title}&quot; and all its data.
+              This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteProduct}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-red-500 hover:bg-red-600"
             >
               Delete
             </AlertDialogAction>

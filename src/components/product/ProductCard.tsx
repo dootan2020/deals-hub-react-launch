@@ -34,8 +34,8 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
   const rate = currencySettings?.vnd_per_usd ?? 24000;
   
   const priceUSD = convertVNDtoUSD(product.price, rate);
-  const originalPriceUSD = product.originalPrice 
-    ? convertVNDtoUSD(product.originalPrice, rate)
+  const originalPriceUSD = product.original_price 
+    ? convertVNDtoUSD(product.original_price, rate)
     : undefined;
 
   const containerClasses = viewMode === "list" 
@@ -47,14 +47,14 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
     : "";
 
   // Make sure stock value is properly set and converted to number
-  const stock = Number(product.stockQuantity || product.stock || 0);
-  const salesCount = Number(product.salesCount || product.sales_count || 0);
+  const stock = Number(product.stock_quantity || product.stock || 0);
+  const salesCount = Number(product.stock_quantity || 0);
   
   // Ensure we have a valid kiosk_token
   const hasKioskToken = Boolean(product.kiosk_token);
   
   // Product is in stock if stock > 0
-  const isInStock = stock > 0;
+  const isInStock = product.in_stock;
 
   // For debugging
   console.log(`Product: ${product.title}, Stock: ${stock}, Type: ${typeof stock}, isInStock: ${isInStock}`);
@@ -92,7 +92,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
 
         {/* Description */}
         <p className="text-xs md:text-sm text-[#4B5563] line-clamp-2 min-h-[32px] md:min-h-[40px]">
-          {product.shortDescription || product.description}
+          {product.short_description || product.description}
         </p>
 
         {/* Price + Stock */}
