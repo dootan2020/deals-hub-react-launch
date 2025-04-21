@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/layout/AdminLayout';
@@ -16,7 +17,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2, RefreshCw, AlertCircle, Info, CheckCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { buildProxyUrl, ProxyType } from '@/utils/proxyUtils';
+import { buildProxyUrl } from '@/utils/proxyUtils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
@@ -25,6 +26,13 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { sanitizeHtml } from '@/utils/sanitizeHtml';
+
+// Explicitly define the enum here since we're using it as a value
+enum ProxyTypeEnum {
+  Mobile = 'Mobile',
+  Residential = 'Residential',
+  Dedicated = 'Dedicated'
+}
 
 const productSchema = z.object({
   title: z.string().min(1, 'Title is required').transform((v) => sanitizeHtml(v)),
@@ -43,7 +51,7 @@ type ProductFormValues = z.infer<typeof productSchema>;
 const ProductFormWithTester = () => {
   const [categories, setCategories] = useState<{ id: string; name: string; }[]>([]);
   const [loading, setLoading] = useState(false);
-  const [proxyType, setProxyType] = useState<ProxyType>(ProxyType.Mobile);
+  const [proxyType, setProxyType] = useState<ProxyTypeEnum>(ProxyTypeEnum.Mobile);
   const [proxyUrl, setProxyUrl] = useState('');
   const [testResult, setTestResult] = useState<any>(null);
   const [isTesting, setIsTesting] = useState(false);
@@ -97,7 +105,7 @@ const ProductFormWithTester = () => {
     fetchCategories();
   }, [form]);
 
-  const handleProxyTypeChange = (type: ProxyType) => {
+  const handleProxyTypeChange = (type: ProxyTypeEnum) => {
     setProxyType(type);
   };
 
@@ -106,7 +114,9 @@ const ProductFormWithTester = () => {
     setTestResult(null);
 
     try {
-      const url = buildProxyUrl(proxyType);
+      // Fix: Pass both arguments to buildProxyUrl and extract just the url property
+      const proxyResult = buildProxyUrl(proxyType.toString(), { type: proxyType.toString() });
+      const url = proxyResult.url;
       setProxyUrl(url);
 
       const response = await fetch(url, {
@@ -135,12 +145,29 @@ const ProductFormWithTester = () => {
   const onSubmit = async (values: ProductFormValues) => {
     console.log("Form values", values);
     try {
+      // Fix: Pass proper product data object instead of string
       await syncProduct({
-        ...values,
         id: 'new',
+        title: values.title,
+        description: values.description,
+        price: values.price,
+        originalPrice: values.originalPrice,
+        inStock: values.inStock,
+        slug: values.slug,
+        category_id: values.category_id,
         stockQuantity: 10,
-        images: [],
-        specifications: {}
+        images: values.images || [],
+        specifications: {},
+        kiosk_token: values.kioskToken || '',
+        // Add all required fields for Product type
+        categoryId: values.category_id,
+        rating: 0,
+        reviewCount: 0,
+        badges: [],
+        features: [],
+        createdAt: new Date().toISOString(),
+        stock: 10,
+        shortDescription: ''
       });
       toast.success('Product created successfully!');
       navigate('/admin/product-manager');
@@ -151,7 +178,7 @@ const ProductFormWithTester = () => {
   };
 
   return (
-    <AdminLayout>
+    <AdminLayout title="Create Product with Tester">
       <div className="container mx-auto py-10">
         <h1 className="text-2xl font-bold mb-4">Create Product with Tester</h1>
 
@@ -314,9 +341,9 @@ const ProductFormWithTester = () => {
                       <SelectValue placeholder="Select Proxy Type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={ProxyType.Mobile}>Mobile</SelectItem>
-                      <SelectItem value={ProxyType.Residential}>Residential</SelectItem>
-                      <SelectItem value={ProxyType.Dedicated}>Dedicated</SelectItem>
+                      <SelectItem value={ProxyTypeEnum.Mobile}>Mobile</SelectItem>
+                      <SelectItem value={ProxyTypeEnum.Residential}>Residential</SelectItem>
+                      <SelectItem value={ProxyTypeEnum.Dedicated}>Dedicated</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

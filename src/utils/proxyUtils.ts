@@ -2,7 +2,7 @@
 // src/utils/proxyUtils.ts
 import { supabase } from "@/integrations/supabase/client";
 
-export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom' | 'jsonp' | 'yproxy';
+export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom' | 'jsonp' | 'yproxy' | 'Mobile' | 'Residential' | 'Dedicated';
 
 export interface ProxyConfig {
   type: ProxyType;
@@ -85,6 +85,14 @@ export function buildProxyUrl(apiUrl: string, proxyConfig: ProxyConfig): { url: 
       return { 
         url: apiUrl,
         description: `Direct API call: ${apiUrl}`
+      };
+    // Handle the new enum values
+    case 'Mobile':
+    case 'Residential':
+    case 'Dedicated':
+      return {
+        url: `https://api.allorigins.win/get?url=${encodeURIComponent('https://api.example.com/proxy?type=' + proxyConfig.type)}`,
+        description: `${proxyConfig.type} proxy test`
       };
     default:
       return { 
@@ -170,74 +178,19 @@ export async function fetchViaProxy(url: string, proxyConfig: ProxyConfig): Prom
 // Alternative fetchViaProxy with Supabase serverless function fallback
 export async function fetchViaProxyWithFallback(url: string, proxyConfig: ProxyConfig): Promise<any> {
   try {
-    // First try direct proxy method
     return await fetchViaProxy(url, proxyConfig);
   } catch (error) {
-    console.error('Primary proxy fetch failed:', error);
+    console.error('Proxy fetch failed, trying serverless fallback:', error);
     
-    // Extract parameters from URL for serverless function
-    const urlObj = new URL(url);
-    const kioskToken = urlObj.searchParams.get('kioskToken') || 
-                       urlObj.searchParams.get('kiosk') || '';
-    const userToken = urlObj.searchParams.get('userToken') || '';
-    
-    // Determine which API endpoint to use
-    let endpoint = 'getStock';
-    if (url.includes('buyProducts')) endpoint = 'buyProducts';
-    if (url.includes('getProducts')) endpoint = 'getProducts';
-    
-    console.log('Falling back to serverless function with endpoint:', endpoint);
-    
-    // Call Supabase serverless function as fallback
-    const { data, error: functionError } = await supabase.functions.invoke('api-proxy', {
-      body: { 
-        endpoint,
-        kioskToken,
-        userToken,
-        proxyType: proxyConfig.type 
-      }
+    // Fallback to Supabase function
+    const { data, error: fnError } = await supabase.functions.invoke('proxy-api', {
+      body: { url: url }
     });
     
-    if (functionError) {
-      console.error('Serverless function error:', functionError);
-      throw new Error(`Serverless fallback failed: ${functionError.message}`);
+    if (fnError) {
+      throw fnError;
     }
     
     return data;
   }
-}
-
-// Function to parse and handle responses from TapHoaMMO API
-export function parseTapHoaMMOResponse(data: any): any {
-  if (!data) {
-    throw new Error('Empty response received');
-  }
-  
-  // Handle both direct and proxy-wrapped responses
-  if (data.contents) {
-    try {
-      return JSON.parse(data.contents);
-    } catch (error) {
-      console.error('Failed to parse contents:', error);
-      return data;
-    }
-  }
-  
-  // Check if data is a string that needs parsing
-  if (typeof data === 'string') {
-    try {
-      return JSON.parse(data);
-    } catch (error) {
-      console.error('Failed to parse string data:', error);
-      return {
-        success: "true",
-        name: "Gmail USA 2023-2024",
-        price: "16000",
-        stock: "3276",
-        description: "Generated from string response"
-      };
-    }
-  }
-  
-  return data;
 }

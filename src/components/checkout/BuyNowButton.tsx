@@ -72,13 +72,22 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
     // Ensure product object matches Product type and all required fields
     if (product) {
       // Ensure required fields are satisfied as per 'Product' type everywhere
-      openDialog(ensureProductFields({
+      const productWithRequiredFields = {
         ...product,
-        description: product.description ?? "", // forcibly provide description as string
-        specifications: product.specifications && Object.keys(product.specifications).length > 0
-          ? product.specifications
-          : {}, // Ensure correct type and not undefined
-      } as unknown as Partial<Product>));
+        description: product.description || "", // ensure description is always a string
+        shortDescription: product.shortDescription || product.description?.substring(0, 200) || "",
+        images: product.images || [],
+        categoryId: product.categoryId || "",
+        rating: product.rating || 0,
+        reviewCount: product.reviewCount || 0,
+        inStock: product.inStock !== undefined ? product.inStock : true,
+        badges: product.badges || [],
+        features: product.features || [],
+        specifications: product.specifications || {},
+        createdAt: product.createdAt || new Date().toISOString()
+      };
+      
+      openDialog(ensureProductFields(productWithRequiredFields as unknown as Partial<Product>));
     } else {
       const minimalProduct = ensureProductFields({
         id: productId || '',
