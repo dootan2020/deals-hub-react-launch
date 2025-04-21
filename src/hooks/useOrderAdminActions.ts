@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -98,4 +97,3 @@ export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) =>
 
   return { loading, updateOrderStatus, processRefund };
 }
-

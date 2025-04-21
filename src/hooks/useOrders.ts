@@ -43,5 +43,5 @@ export function useOrders() {
   };
 }
 
+// Use export type for re-exports when isolatedModules is enabled
 export type { Order } from './orderUtils';
-

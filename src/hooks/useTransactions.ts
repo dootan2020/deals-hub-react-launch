@@ -56,5 +56,6 @@ export function useTransactions() {
   };
 }
 
-export type { Transaction, Deposit } from './transactionUtils';
-
+// Use export type for re-exports when isolatedModules is enabled
+export type { Transaction } from './transactionUtils';
+export type { Deposit } from './transactionUtils';

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -117,5 +116,5 @@ export function useDeposits() {
   };
 }
 
+// Use export type for re-exports when isolatedModules is enabled
 export type { Deposit } from './transactionUtils';
-
