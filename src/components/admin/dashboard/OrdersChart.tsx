@@ -93,8 +93,7 @@ export const OrdersChart = ({ data, isLoading = false }: OrdersChartProps) => {
                   dataKey="count" 
                   name="Số lượng" 
                   radius={[4, 4, 0, 0]}
-                  fill="#2ECC71" // Use a default fill color
-                  // Use the fill prop function to get the color from data item
+                  fill="#2ECC71"
                   fillOpacity={0.9}
                   stroke="none"
                 />

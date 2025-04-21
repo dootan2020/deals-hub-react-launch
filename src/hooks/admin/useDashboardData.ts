@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { calculateOrderStats, DashboardStats } from '@/utils/admin/statsUtils';
+import { calculateOrderStats, DashboardStats, Order } from '@/utils/admin/statsUtils';
 import { generateRevenueData, RevenueData } from '@/utils/admin/revenueUtils';
 import { calculateProductSales, ProductSales, OrderItem } from '@/utils/admin/productSalesUtils';
 
@@ -26,11 +26,14 @@ export const useDashboardData = () => {
     
     try {
       // Fetch orders
-      const { data: orders, error: ordersError } = await supabase
+      const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('id, created_at, total_price, status');
+        .select('*');
       
       if (ordersError) throw ordersError;
+      
+      // Convert to the correct Order type
+      const orders = ordersData as Order[];
       
       // Calculate stats
       const statsData = calculateOrderStats(orders);
@@ -58,13 +61,10 @@ export const useDashboardData = () => {
       setOrdersByStatus(orderStatusData);
       
       // Fetch and calculate top products
-      const { data: orderItems, error: itemsError } = await supabase
+      const { data: orderItemsData, error: itemsError } = await supabase
         .from('order_items')
         .select(`
-          id, 
-          quantity, 
-          price, 
-          product_id, 
+          *,
           product:product_id (
             title,
             images
@@ -72,6 +72,15 @@ export const useDashboardData = () => {
         `);
       
       if (itemsError) throw itemsError;
+
+      // Make sure we cast the data to the correct type
+      const orderItems = orderItemsData.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        price: item.price,
+        product_id: item.product_id as string,
+        product: item.product as { title?: string; images?: string[] }
+      })) as OrderItem[];
       
       const topProductsList = calculateProductSales(orderItems);
       setTopProducts(topProductsList);
