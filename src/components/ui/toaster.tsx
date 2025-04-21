@@ -16,18 +16,18 @@ export function Toaster() {
   return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
-        const variant = props.type === "error" ? "destructive" : "default"
+        // Handle destructive type as variant
+        let variant = props.variant;
+        if (props.type === "destructive") {
+          variant = "destructive";
+        } else if (props.type === "success") {
+          variant = "success";
+        } else if (props.type === "warning") {
+          variant = "warning";
+        }
         
-        const { 
-          type, 
-          icon, 
-          jsx, 
-          richColors, 
-          invert, 
-          closeButton, 
-          dismissible,
-          ...compatibleProps 
-        } = props
+        // Filter out properties that don't belong in Toast props
+        const { type, ...compatibleProps } = props;
 
         return (
           <Toast key={id} {...compatibleProps} variant={variant}>

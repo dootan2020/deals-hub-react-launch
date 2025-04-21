@@ -12,16 +12,13 @@ const NewsletterSection = () => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Show loading toast
-    const loadingToast = toast.loading("Đang đăng ký...");
+    // Simulate API call with toast notifications
+    const toastId = toast.loading("Đang đăng ký...");
     
     // Simulate API call
     setTimeout(() => {
-      toast.dismiss(loadingToast);
-      toast.success(
-        "Đăng ký thành công",
-        "Cảm ơn bạn đã đăng ký nhận thông báo!"
-      );
+      toast.dismiss(toastId);
+      toast.success("Đăng ký thành công", "Cảm ơn bạn đã đăng ký nhận thông báo!");
       setIsSubmitting(false);
       setSubscribed(true);
       setEmail('');

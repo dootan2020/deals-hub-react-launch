@@ -15,19 +15,17 @@ export const useVerification = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Gửi lại email thành công",
-        description: "Vui lòng kiểm tra hộp thư của bạn để xác nhận tài khoản.",
-        variant: "default",
-      });
+      toast.success(
+        "Gửi lại email thành công",
+        "Vui lòng kiểm tra hộp thư của bạn để xác nhận tài khoản."
+      );
 
       return true;
     } catch (error: any) {
-      toast({
-        title: "Gửi lại email thất bại",
-        description: error.message || 'Không thể gửi lại email xác nhận',
-        variant: "destructive",
-      });
+      toast.error(
+        "Gửi lại email thất bại",
+        error.message || 'Không thể gửi lại email xác nhận'
+      );
       
       throw error;
     }

@@ -1,6 +1,6 @@
 
-// Re-export from the proper location to avoid circular references
-import { useToast, toast } from "@/components/ui/toast";
+// Re-export from hooks to avoid circular references
+import { useToast, toast } from "@/hooks/use-toast";
 
 export { 
   useToast,

@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -125,6 +124,7 @@ type ToastActionType = {
   description?: React.ReactNode
   action?: ToastActionElement
   type?: "default" | "destructive" | "success" | "warning"
+  onOpenChange?: (open: boolean) => void
 }
 
 const TOAST_LIMIT = 5
@@ -136,6 +136,7 @@ type ToasterToast = ToastActionType & {
   description?: React.ReactNode
   action?: ToastActionElement
   open: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 const actionTypes = {
@@ -208,6 +209,7 @@ function dispatch(action: ActionType) {
 
 interface Toast extends Omit<ToasterToast, "id"> {
   id?: string
+  onOpenChange?: (open: boolean) => void
 }
 
 function toast({ ...props }: Toast) {
@@ -229,6 +231,7 @@ function toast({ ...props }: Toast) {
       open: true,
       onOpenChange: (open: boolean) => {
         if (!open) dismiss()
+        props.onOpenChange?.(open)
       },
     },
   })

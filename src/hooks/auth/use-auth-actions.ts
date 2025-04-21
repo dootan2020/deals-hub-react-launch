@@ -7,7 +7,7 @@ export const useAuthActions = () => {
   const login = async (email: string, password: string) => {
     try {
       // Start loading toast
-      const loadingToast = toast.loading("Đang đăng nhập...");
+      const loadingToastId = toast.loading("Đang đăng nhập...");
       
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
@@ -15,14 +15,11 @@ export const useAuthActions = () => {
       });
       
       // Dismiss loading toast
-      toast.dismiss(loadingToast);
+      toast.dismiss(loadingToastId);
       
       if (error) throw error;
       
-      toast.success(
-        "Đăng nhập thành công", 
-        "Chào mừng bạn quay trở lại!"
-      );
+      toast.success("Đăng nhập thành công", "Chào mừng bạn quay trở lại!");
       
       return data;
     } catch (error: any) {
@@ -35,10 +32,7 @@ export const useAuthActions = () => {
         message = 'Vui lòng xác nhận email trước khi đăng nhập';
       }
       
-      toast.error(
-        "Đăng nhập thất bại", 
-        message
-      );
+      toast.error("Đăng nhập thất bại", message);
       
       throw error;
     }
@@ -47,7 +41,7 @@ export const useAuthActions = () => {
   const logout = async () => {
     try {
       // Show loading toast
-      const loadingToast = toast.loading("Đang đăng xuất...");
+      const loadingToastId = toast.loading("Đang đăng xuất...");
       
       const { error } = await supabase.auth.signOut({
         // Ensure we're removing the cookie as well
@@ -55,19 +49,13 @@ export const useAuthActions = () => {
       });
       
       // Dismiss loading toast
-      toast.dismiss(loadingToast);
+      toast.dismiss(loadingToastId);
       
       if (error) throw error;
       
-      toast.success(
-        "Đăng xuất thành công", 
-        "Hẹn gặp lại bạn!"
-      );
+      toast.success("Đăng xuất thành công", "Hẹn gặp lại bạn!");
     } catch (error: any) {
-      toast.error(
-        "Đăng xuất thất bại", 
-        error.message || 'Lỗi khi đăng xuất'
-      );
+      toast.error("Đăng xuất thất bại", error.message || 'Lỗi khi đăng xuất');
       
       throw error;
     }
@@ -81,7 +69,7 @@ export const useAuthActions = () => {
       }
 
       // Show loading toast
-      const loadingToast = toast.loading("Đang đăng ký tài khoản...");
+      const loadingToastId = toast.loading("Đang đăng ký tài khoản...");
 
       const { data, error } = await supabase.auth.signUp({ 
         email, 
@@ -99,14 +87,11 @@ export const useAuthActions = () => {
       });
       
       // Dismiss loading toast
-      toast.dismiss(loadingToast);
+      toast.dismiss(loadingToastId);
       
       if (error) throw error;
       
-      toast.success(
-        "Đăng ký thành công",
-        "Vui lòng kiểm tra email của bạn để xác nhận tài khoản."
-      );
+      toast.success("Đăng ký thành công", "Vui lòng kiểm tra email của bạn để xác nhận tài khoản.");
       
       return { ...data, registrationSuccess: true };
     } catch (error: any) {
@@ -120,10 +105,7 @@ export const useAuthActions = () => {
         message = 'Không chấp nhận email tạm thời. Vui lòng sử dụng địa chỉ email chính thức';
       }
       
-      toast.error(
-        "Đăng ký thất bại",
-        message
-      );
+      toast.error("Đăng ký thất bại", message);
       
       throw error;
     }
@@ -136,7 +118,7 @@ export const useAuthActions = () => {
     resendVerificationEmail: async (email: string) => {
       try {
         // Show loading toast
-        const loadingToast = toast.loading("Đang gửi lại email xác nhận...");
+        const loadingToastId = toast.loading("Đang gửi lại email xác nhận...");
 
         const { error } = await supabase.auth.resend({
           type: 'signup',
@@ -147,21 +129,15 @@ export const useAuthActions = () => {
         });
 
         // Dismiss loading toast
-        toast.dismiss(loadingToast);
+        toast.dismiss(loadingToastId);
 
         if (error) throw error;
 
-        toast.success(
-          "Gửi lại email thành công",
-          "Vui lòng kiểm tra hộp thư của bạn để xác nhận tài khoản."
-        );
+        toast.success("Gửi lại email thành công", "Vui lòng kiểm tra hộp thư của bạn để xác nhận tài khoản.");
 
         return true;
       } catch (error: any) {
-        toast.error(
-          "Gửi lại email thất bại",
-          error.message || 'Không thể gửi lại email xác nhận'
-        );
+        toast.error("Gửi lại email thất bại", error.message || 'Không thể gửi lại email xác nhận');
         
         throw error;
       }
@@ -169,28 +145,22 @@ export const useAuthActions = () => {
     resetPassword: async (email: string) => {
       try {
         // Show loading toast
-        const loadingToast = toast.loading("Đang gửi yêu cầu đặt lại mật khẩu...");
+        const loadingToastId = toast.loading("Đang gửi yêu cầu đặt lại mật khẩu...");
 
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
 
         // Dismiss loading toast
-        toast.dismiss(loadingToast);
+        toast.dismiss(loadingToastId);
 
         if (error) throw error;
 
-        toast.success(
-          "Yêu cầu đặt lại mật khẩu đã được gửi",
-          "Vui lòng kiểm tra email của bạn để tiếp tục."
-        );
+        toast.success("Yêu cầu đặt lại mật khẩu đã được gửi", "Vui lòng kiểm tra email của bạn để tiếp tục.");
 
         return true;
       } catch (error: any) {
-        toast.error(
-          "Đặt lại mật khẩu thất bại",
-          error.message || 'Không thể gửi yêu cầu đặt lại mật khẩu'
-        );
+        toast.error("Đặt lại mật khẩu thất bại", error.message || 'Không thể gửi yêu cầu đặt lại mật khẩu');
         
         throw error;
       }

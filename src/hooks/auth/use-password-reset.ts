@@ -11,19 +11,17 @@ export const usePasswordReset = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Yêu cầu đặt lại mật khẩu đã được gửi",
-        description: "Vui lòng kiểm tra email của bạn để tiếp tục.",
-        variant: "default",
-      });
+      toast.success(
+        "Yêu cầu đặt lại mật khẩu đã được gửi",
+        "Vui lòng kiểm tra email của bạn để tiếp tục."
+      );
 
       return true;
     } catch (error: any) {
-      toast({
-        title: "Đặt lại mật khẩu thất bại",
-        description: error.message || 'Không thể gửi yêu cầu đặt lại mật khẩu',
-        variant: "destructive",
-      });
+      toast.error(
+        "Đặt lại mật khẩu thất bại",
+        error.message || 'Không thể gửi yêu cầu đặt lại mật khẩu'
+      );
       
       throw error;
     }

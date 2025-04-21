@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Product } from '@/types';
 import { ProductStock } from './ProductStock';
@@ -15,10 +16,7 @@ export const ProductPurchaseSection = ({ product }: ProductPurchaseSectionProps)
     const newQuantity = quantity + amount;
     if (newQuantity >= 1) {
       setQuantity(newQuantity);
-      toast({
-        title: "Số lượng đã được cập nhật",
-        description: `Số lượng: ${newQuantity}`,
-      });
+      toast.success("Số lượng đã được cập nhật", `Số lượng: ${newQuantity}`);
     }
   };
 
@@ -38,7 +36,7 @@ export const ProductPurchaseSection = ({ product }: ProductPurchaseSectionProps)
 
       {/* Short Description */}
       <div className="text-text-light mb-6">
-        <p>{product.shortDescription || product.description.substring(0, 150)}</p>
+        <p>{product.shortDescription || product.description?.substring(0, 150)}</p>
       </div>
 
       {/* Purchase Actions */}

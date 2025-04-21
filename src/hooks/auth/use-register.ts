@@ -27,11 +27,10 @@ export const useRegister = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Đăng ký thành công",
-        description: "Vui lòng kiểm tra email của bạn để xác nhận tài khoản.",
-        variant: "default",
-      });
+      toast.success(
+        "Đăng ký thành công",
+        "Vui lòng kiểm tra email của bạn để xác nhận tài khoản."
+      );
       
       return { ...data, registrationSuccess: true };
     } catch (error: any) {
@@ -45,11 +44,7 @@ export const useRegister = () => {
         message = 'Không chấp nhận email tạm thời. Vui lòng sử dụng địa chỉ email chính thức';
       }
       
-      toast({
-        title: "Đăng ký thất bại",
-        description: message,
-        variant: "destructive",
-      });
+      toast.error("Đăng ký thất bại", message);
       
       throw error;
     }
