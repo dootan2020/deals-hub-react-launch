@@ -1,116 +1,81 @@
 
 import React from 'react';
 import { Product } from '@/types';
-import ProductCard from './ProductCard';
+import { Card, CardContent } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ShoppingCart } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-export interface ProductListProps {
-  products?: Product[];
-  showSort?: boolean;
-  isLoading?: boolean;
-  loadingMore?: boolean;
-  viewMode?: "grid" | "list";
-  title?: string;
-  description?: string;
-  activeSort?: string;
-  onSortChange?: (value: string) => void;
-  limit?: number;
-  showViewAll?: boolean;
-  viewAllLink?: string;
-  viewAllLabel?: string;
-  hasMore?: boolean;
-  onLoadMore?: () => void;
+interface ProductListProps {
+  products: Product[];
 }
 
-export const ProductList: React.FC<ProductListProps> = ({ 
-  products = [], 
-  viewMode = "list",
-  title,
-  description,
-  isLoading,
-  loadingMore,
-  hasMore,
-  onLoadMore,
-  showViewAll,
-  viewAllLink,
-  viewAllLabel
-}) => {
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[200px]">
-        <Loader2 className="h-8 w-8 md:h-10 md:w-10 text-primary animate-spin" />
-      </div>
-    );
-  }
-
+const ProductList: React.FC<ProductListProps> = ({ products }) => {
   return (
-    <div className="space-y-4 md:space-y-6">
-      {title && (
-        <h2 className="text-xl md:text-2xl font-bold px-4 md:px-0">{title}</h2>
-      )}
-      {description && (
-        <p className="text-sm md:text-base text-muted-foreground px-4 md:px-0">
-          {description}
-        </p>
-      )}
-      
-      {products.length > 0 ? (
-        <>
-          <div className="space-y-4">
-            {products.map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product}
-                viewMode={viewMode}
-              />
-            ))}
+    <div className="space-y-4">
+      {products.map((product) => (
+        <Card key={product.id} className="overflow-hidden">
+          <div className="flex flex-col md:flex-row">
+            <div className="relative w-full md:w-1/4 aspect-square md:aspect-auto">
+              <Link to={`/product/${product.slug}`}>
+                <img 
+                  src={product.images[0] || '/placeholder.png'} 
+                  alt={product.title}
+                  className="w-full h-full object-cover"
+                />
+              </Link>
+              {product.badges && product.badges.length > 0 && (
+                <div className="absolute top-2 left-2">
+                  <Badge variant="secondary">{product.badges[0]}</Badge>
+                </div>
+              )}
+            </div>
+            
+            <CardContent className="flex-1 p-4">
+              <div className="flex flex-col h-full justify-between">
+                <div>
+                  <Link to={`/product/${product.slug}`} className="hover:underline">
+                    <h3 className="text-lg font-semibold">{product.title}</h3>
+                  </Link>
+                  
+                  <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+                    {product.shortDescription || product.description.substring(0, 100)}...
+                  </p>
+                  
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="font-semibold text-lg text-primary">
+                      {formatCurrency(product.price)}
+                    </div>
+                    {product.originalPrice && (
+                      <div className="text-sm text-gray-500 line-through">
+                        {formatCurrency(product.originalPrice)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between mt-4">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-3 h-3 rounded-full ${product.inStock ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                    <span className="text-sm">{product.inStock ? 'In Stock' : 'Out of Stock'}</span>
+                  </div>
+                  
+                  <Link to={`/product/${product.slug}`}>
+                    <Button size="sm">
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      View Details
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
           </div>
-          
-          {/* Load More Button */}
-          {hasMore && (
-            <div className="flex justify-center mt-6 md:mt-8">
-              <Button
-                variant="outline"
-                size="lg"
-                className="rounded-full px-6 md:px-8 text-sm transition-all duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-50"
-                onClick={onLoadMore}
-                disabled={loadingMore}
-              >
-                {loadingMore ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  'Load More'
-                )}
-              </Button>
-            </div>
-          )}
-          
-          {showViewAll && viewAllLink && (
-            <div className="flex justify-center mt-6 md:mt-8 px-4 md:px-0">
-              <Button
-                asChild
-                size="lg"
-                className="w-full sm:w-auto transition-all duration-300 ease-in-out"
-              >
-                <a href={viewAllLink} className="flex items-center gap-2">
-                  {viewAllLabel || "View All"}
-                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5 transition-transform duration-200" />
-                </a>
-              </Button>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="text-center py-8 md:py-12">
-          <p className="text-sm md:text-base text-muted-foreground">
-            No products found
-          </p>
-        </div>
-      )}
+        </Card>
+      ))}
     </div>
   );
 };
+
+export default ProductList;

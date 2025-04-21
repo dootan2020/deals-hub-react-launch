@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,129 +8,91 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from '@/components/ui/button';
-import { Product } from '@/types';
-import { Loader2 } from 'lucide-react';
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button";
+import { formatCurrency } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { useCurrencySettings } from '@/hooks/useCurrencySettings';
-import { DialogContent as DialogContentComponent } from './purchase-dialog/DialogContent';
+import { Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useUserBalance } from '@/hooks/useUserBalance';
 
 interface PurchaseConfirmDialogProps {
-  product?: Product;
-  onConfirm: (quantity: number, promotionCode?: string) => Promise<void>;
-  open: boolean;
-  onOpenChange: (isOpen: boolean) => void;
-  isVerifying: boolean;
-  verifiedStock: number | null;
-  verifiedPrice: number | null;
+  productId: string;
+  productTitle: string;
+  productPrice: number;
+  onPurchase: (productId: string) => Promise<void>;
 }
 
-export const PurchaseConfirmDialog = ({
-  product,
-  onConfirm,
-  open,
-  onOpenChange,
-  isVerifying,
-  verifiedStock,
-  verifiedPrice
-}: PurchaseConfirmDialogProps) => {
-  const [quantity, setQuantity] = useState(1);
+const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
+  productId,
+  productTitle,
+  productPrice,
+  onPurchase
+}) => {
+  const [open, setOpen] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const [promotionCode, setPromotionCode] = useState('');
-  const { data: currencySettings } = useCurrencySettings();
-  const { userBalance, isLoading: isLoadingBalance } = useUserBalance();
-  
-  if (!product) return null;
-  
-  const vndToUsdRate = currencySettings?.vnd_per_usd || 24000;
-  const priceUSD = product.price / vndToUsdRate;
-  const totalPriceUSD = priceUSD * quantity;
-  const hasEnoughBalance = userBalance !== null && userBalance >= totalPriceUSD;
-
-  useEffect(() => {
-    if (open && product) {
-      setQuantity(1);
-      setPromotionCode('');
-    }
-  }, [open, product]);
+  const { user } = useAuth();
+  const { userBalance } = useUserBalance();
+  const navigate = useNavigate();
 
   const handlePurchase = async () => {
     setIsPurchasing(true);
     try {
-      await onConfirm(quantity, promotionCode);
-      toast.success("Purchase successful!");
+      if (!user) {
+        toast.error("Bạn cần đăng nhập để mua sản phẩm này.");
+        navigate('/login');
+        return;
+      }
+
+      if (userBalance < productPrice) {
+        toast.error("Số dư không đủ", "Vui lòng nạp thêm tiền vào tài khoản.");
+        navigate('/account');
+        return;
+      }
+
+      await onPurchase(productId);
+      toast.success("Mua hàng thành công!", `Bạn đã mua thành công ${productTitle}.`);
+      setOpen(false);
     } catch (error: any) {
       console.error("Purchase failed:", error);
-      toast.error("Purchase failed", error?.message || "Please try again");
+      toast.error("Lỗi", error.message || "Đã có lỗi xảy ra trong quá trình mua hàng.");
     } finally {
       setIsPurchasing(false);
     }
   };
 
-  // Update the references to stock_quantity to use the getter if needed
-  const handleQuantityChange = (newQuantity: number) => {
-    if (newQuantity >= 1 && newQuantity <= (verifiedStock ?? product.stock_quantity ?? 1)) {
-      setQuantity(newQuantity);
-    }
-  };
-
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-md">
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <Button variant="primary">Mua ngay</Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Purchase Confirmation</AlertDialogTitle>
+          <AlertDialogTitle>Xác nhận mua hàng</AlertDialogTitle>
           <AlertDialogDescription>
-            You are about to purchase {product.title}
+            Bạn có chắc chắn muốn mua sản phẩm <b>{productTitle}</b> với giá <b>{formatCurrency(productPrice)}</b>?
+            <br />
+            Số dư hiện tại của bạn là <b>{formatCurrency(userBalance || 0)}</b>.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        
-        <DialogContentComponent
-          product={product}
-          isVerifying={isVerifying}
-          quantity={quantity}
-          verifiedStock={verifiedStock}
-          verifiedPrice={verifiedPrice}
-          priceUSD={priceUSD}
-          totalPriceUSD={totalPriceUSD}
-          promotionCode={promotionCode}
-          onQuantityChange={handleQuantityChange}
-          onPromotionCodeChange={setPromotionCode}
-          isLoadingBalance={isLoadingBalance}
-          userBalance={userBalance}
-        />
-        
         <AlertDialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="w-full"
-            disabled={isPurchasing}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handlePurchase}
-            className="w-full"
-            disabled={
-              isPurchasing || 
-              isVerifying || 
-              (verifiedStock !== null && verifiedStock < 1) || 
-              !hasEnoughBalance
-            }
-          >
+          <AlertDialogCancel disabled={isPurchasing}>Hủy</AlertDialogCancel>
+          <AlertDialogAction onClick={handlePurchase} disabled={isPurchasing}>
             {isPurchasing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
+                Đang xử lý...
               </>
             ) : (
-              'Purchase Now'
+              "Xác nhận"
             )}
-          </Button>
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 };
+
+export default PurchaseConfirmDialog;

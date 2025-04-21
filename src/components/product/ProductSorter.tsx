@@ -1,33 +1,40 @@
 
 import React from 'react';
-import {
+import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue
+} from '@/components/ui/select';
 import { SortOption } from '@/types';
 
 interface ProductSorterProps {
   currentSort: SortOption;
-  onSortChange: (sort: string) => void;
+  onSortChange: (value: string) => void;
 }
 
-export function ProductSorter({ currentSort, onSortChange }: ProductSorterProps) {
+const ProductSorter: React.FC<ProductSorterProps> = ({ currentSort, onSortChange }) => {
   return (
-    <Select value={currentSort} onValueChange={onSortChange}>
-      <SelectTrigger className="w-[180px] focus:ring-primary">
-        <SelectValue placeholder="Sort By" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="newest">Newest</SelectItem>
-        <SelectItem value="popular">Most Popular</SelectItem>
-        <SelectItem value="price-low">Price: Low to High</SelectItem>
-        <SelectItem value="price-high">Price: High to Low</SelectItem>
-      </SelectContent>
-    </Select>
+    <div className="flex items-center gap-2">
+      <span className="text-sm text-muted-foreground whitespace-nowrap">Sort by:</span>
+      <Select
+        value={currentSort}
+        onValueChange={onSortChange}
+      >
+        <SelectTrigger className="w-[150px]">
+          <SelectValue placeholder="Sort by" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="newest">Newest First</SelectItem>
+          <SelectItem value="price-asc">Price: Low to High</SelectItem>
+          <SelectItem value="price-desc">Price: High to Low</SelectItem>
+          <SelectItem value="name-asc">Name: A-Z</SelectItem>
+          <SelectItem value="name-desc">Name: Z-A</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
   );
-}
+};
 
 export default ProductSorter;

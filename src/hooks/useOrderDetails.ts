@@ -31,10 +31,17 @@ export function useOrderDetails() {
           .eq('order_id', data.id);
 
         const userValue = normalizeUserField(data.user || null);
+        
+        // Ensure product has the required fields or provide defaults
+        const productValue = data.product ? {
+          title: typeof data.product === 'object' ? data.product.title || 'Unknown Product' : 'Unknown Product',
+          images: typeof data.product === 'object' && Array.isArray(data.product.images) ? data.product.images : []
+        } : { title: 'Unknown Product', images: [] };
 
         const orderWithDetails: Order = {
           ...data,
           user: userValue,
+          product: productValue,
           order_items: orderItems || []
         };
 

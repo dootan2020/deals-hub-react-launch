@@ -12,6 +12,10 @@ export interface User {
     avatar_url?: string;
   };
   role?: UserRole;
+  // Add these properties to fix the type error in MyAccountPage.tsx
+  app_metadata?: any;
+  aud?: string;
+  created_at?: string;
 }
 
 export interface AuthState {
@@ -38,9 +42,9 @@ export interface AuthContextType {
   isStaff: boolean;
   userRoles: UserRole[];
   userBalance: number;
-  refreshUserBalance: () => Promise<number>;
+  refreshUserBalance: () => Promise<void>; // Changed from Promise<number> to Promise<void>
   refreshUserProfile: () => Promise<void>;
-  refreshBalance: () => Promise<number>;
+  refreshBalance: () => Promise<void>; // Changed from Promise<number> to Promise<void>
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (email: string, password: string, options?: any) => Promise<any>;

@@ -1,8 +1,9 @@
+
 import React, { createContext, useContext, useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { useAuthState } from '@/hooks/use-auth-state';
 import { useAuthActions } from '@/hooks/auth/use-auth-actions';
 import { useBalanceListener } from '@/hooks/use-balance-listener';
-import { AuthContextType } from '@/types/auth.types';
+import { AuthContextType, UserRole } from '@/types/auth.types';
 import { toast } from 'sonner';
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,10 +20,11 @@ const AuthContext = createContext<AuthContextType>({
   refreshBalance: async () => {},
   login: async () => {},
   logout: async () => {},
-  register: async () => {},
+  register: async () => ({}),
   checkUserRole: () => false,
   isEmailVerified: false,
   resendVerificationEmail: async () => false,
+  isLoadingBalance: false,
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -43,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     authError
   } = useAuthState();
 
-  const { login, logout, register, resendVerificationEmail } = useAuthActions();
+  const { login: authLogin, logout, register, resendVerificationEmail } = useAuthActions();
 
   const sessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -100,21 +102,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
-  const refreshUserBalance = useCallback(async () => {
+  const refreshUserBalance = useCallback(async (): Promise<void> => {
     if (!user?.id) return;
     console.log('Manually refreshing user balance for ID:', user.id);
 
     try {
-      await fetchUserBalance(user.id);
-      return userBalance;
+      const balance = await fetchUserBalance(user.id);
+      setUserBalance(balance);
     } catch (error) {
       console.error('Error refreshing balance:', error);
       toast.error('Could not update balance', { description: 'Please try again later' });
       throw error;
     }
-  }, [user?.id, fetchUserBalance, userBalance]);
+  }, [user?.id, fetchUserBalance, setUserBalance]);
 
-  const refreshBalance = refreshUserBalance;
+  const refreshBalance = useCallback(async (): Promise<void> => {
+    await refreshUserBalance();
+  }, [refreshUserBalance]);
 
   const refreshUserProfile = useCallback(async () => {
     if (!user?.id) return;
@@ -129,7 +133,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user?.id, refreshUserData]);
 
-  const checkUserRole = useCallback((role: typeof userRoles[number]): boolean => {
+  const login = async (email: string, password: string): Promise<void> => {
+    await authLogin(email, password);
+  };
+
+  const checkUserRole = useCallback((role: UserRole): boolean => {
     return userRoles.includes(role);
   }, [userRoles]);
 
@@ -156,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resendVerificationEmail,
   }), [
     user, session, loading, isAdmin, isStaff, userRoles, userBalance,
-    isLoadingBalance, refreshUserBalance, refreshUserProfile, refreshBalance, login, 
+    isLoadingBalance, refreshUserBalance, refreshUserProfile, refreshBalance, 
     logout, register, checkUserRole, isEmailVerified, resendVerificationEmail
   ]);
 

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ProductViewToggle } from '@/components/product/ProductViewToggle';
+import ProductViewToggle from '@/components/product/ProductViewToggle';
 import ProductSorter from '@/components/product/ProductSorter';
 import { Button } from '@/components/ui/button';
 import { Check, ChevronDown, Filter } from 'lucide-react';
@@ -54,3 +54,5 @@ export const SubcategoryFilters: React.FC<SubcategoryFiltersProps> = ({
     </div>
   );
 };
+
+export default SubcategoryFilters;

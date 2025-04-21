@@ -1,6 +1,6 @@
 import { Product } from '@/types';
 
-// Mock products data - make sure to fix type errors
+// Mock products data with compatible structure
 export const mockProducts: Product[] = [
   {
     id: "1",
@@ -30,9 +30,16 @@ export const mockProducts: Product[] = [
       delivery: "Instant",
       warranty: "6 months"
     },
-    created_at: "2023-01-15T10:30:00Z",
-    updated_at: "2023-04-10T14:20:00Z",
-    kiosk_token: "gmail-pack-token"
+    kiosk_token: "gmail-pack-token",
+    createdAt: "2023-01-15T10:30:00Z",
+    get originalPrice() { return this.original_price; },
+    get shortDescription() { return this.short_description || this.description.substring(0, 100); },
+    get categoryId() { return this.category_id; },
+    get inStock() { return this.in_stock; },
+    get stockQuantity() { return this.stock_quantity || this.stock || 0; },
+    get reviewCount() { return this.review_count; },
+    get salesCount() { return 0; },
+    get category() { return undefined; }
   },
   {
     id: "2",
@@ -62,9 +69,16 @@ export const mockProducts: Product[] = [
       delivery: "Instant",
       warranty: "30 days"
     },
-    created_at: "2023-02-20T09:15:00Z",
-    updated_at: "2023-04-15T11:45:00Z",
-    kiosk_token: "fb-ad-token"
+    kiosk_token: "fb-ad-token",
+    createdAt: "2023-02-20T09:15:00Z",
+    get originalPrice() { return this.original_price; },
+    get shortDescription() { return this.short_description || this.description.substring(0, 100); },
+    get categoryId() { return this.category_id; },
+    get inStock() { return this.in_stock; },
+    get stockQuantity() { return this.stock_quantity || this.stock || 0; },
+    get reviewCount() { return this.review_count; },
+    get salesCount() { return 0; },
+    get category() { return undefined; }
   },
   {
     id: "3",
@@ -94,10 +108,15 @@ export const mockProducts: Product[] = [
       delivery: "12 hours",
       warranty: "14 days"
     },
-    created_at: "2023-03-05T14:20:00Z",
-    updated_at: "2023-04-12T16:30:00Z",
-    kiosk_token: "insta-pack-token"
+    kiosk_token: "insta-pack-token",
+    createdAt: "2023-03-05T14:20:00Z",
+    get originalPrice() { return this.original_price; },
+    get shortDescription() { return this.short_description || this.description.substring(0, 100); },
+    get categoryId() { return this.category_id; },
+    get inStock() { return this.in_stock; },
+    get stockQuantity() { return this.stock_quantity || this.stock || 0; },
+    get reviewCount() { return this.review_count; },
+    get salesCount() { return 0; },
+    get category() { return undefined; }
   }
 ] as unknown as Product[];
-
-// Additional mock data as needed...

@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag } from 'lucide-react';
 import { usePurchaseDialog } from '@/hooks/use-purchase-dialog';
-import { PurchaseConfirmDialog } from './PurchaseConfirmDialog';
+import PurchaseConfirmDialog from '@/components/checkout/PurchaseConfirmDialog';
 import { Product } from '@/types';
 import { prepareProductForPurchase } from '@/utils/buyNowUtils';
 import { useRateLimitedAction } from '@/hooks/use-debounce';
@@ -46,7 +46,6 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
     verifiedPrice
   } = usePurchaseDialog();
 
-  // Use our rate-limited action hook
   const {
     execute: executeOpenDialog,
     isExecuting,
@@ -58,7 +57,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       return openDialog(productToOpen);
     },
     {
-      cooldownMs: 2000, // 2 seconds cooldown between button clicks
+      cooldownMs: 2000,
       onRateLimit: (retryAfter) => {
         toast.info(
           "Vui lòng chờ",

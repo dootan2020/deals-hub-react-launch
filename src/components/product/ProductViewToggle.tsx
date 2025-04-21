@@ -1,33 +1,34 @@
 
 import React from 'react';
-import { Toggle } from '@/components/ui/toggle';
-import { LayoutGrid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Grid2X2, List } from 'lucide-react';
 
 interface ProductViewToggleProps {
   view: 'grid' | 'list';
   onViewChange: (view: 'grid' | 'list') => void;
 }
 
-export function ProductViewToggle({ view, onViewChange }: ProductViewToggleProps) {
+export const ProductViewToggle: React.FC<ProductViewToggleProps> = ({ view, onViewChange }) => {
   return (
-    <div className="flex items-center gap-1 border rounded-md">
+    <div className="flex items-center gap-1">
       <Button
-        variant={view === 'grid' ? 'default' : 'ghost'}
-        size="icon"
-        className="h-9 w-9"
+        variant={view === 'grid' ? 'default' : 'outline'}
+        size="sm"
         onClick={() => onViewChange('grid')}
+        className="w-8 h-8 p-0"
       >
-        <LayoutGrid className="h-4 w-4" />
+        <Grid2X2 className="h-4 w-4" />
       </Button>
       <Button
-        variant={view === 'list' ? 'default' : 'ghost'}
-        size="icon"
-        className="h-9 w-9"
+        variant={view === 'list' ? 'default' : 'outline'}
+        size="sm"
         onClick={() => onViewChange('list')}
+        className="w-8 h-8 p-0"
       >
         <List className="h-4 w-4" />
       </Button>
     </div>
   );
-}
+};
+
+export default ProductViewToggle;
