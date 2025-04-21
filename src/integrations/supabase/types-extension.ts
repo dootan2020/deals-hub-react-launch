@@ -36,6 +36,20 @@ export interface UserWithRolesRow {
   roles: UserRole[];
 }
 
+// Define the TransactionLog interface
+export interface TransactionLog {
+  id: string;
+  transaction_id: string | null;
+  deposit_id: string | null;
+  status: string;
+  error_message: string | null;
+  request_payload: Json | null;
+  response_payload: Json | null;
+  processing_time: string | null;
+  idempotency_key: string | null;
+  created_at: string;
+}
+
 // Extend the original Database type
 export interface Database extends OriginalDatabase {
   public: {
@@ -44,6 +58,11 @@ export interface Database extends OriginalDatabase {
         Row: Invoice;
         Insert: Omit<Invoice, 'id' | 'created_at'>;
         Update: Partial<Omit<Invoice, 'id' | 'created_at'>>;
+      };
+      transaction_logs: {
+        Row: TransactionLog;
+        Insert: Omit<TransactionLog, 'id' | 'created_at'>;
+        Update: Partial<Omit<TransactionLog, 'id' | 'created_at'>>;
       };
     } & OriginalDatabase['public']['Tables'];
     Views: OriginalDatabase['public']['Views'] & {

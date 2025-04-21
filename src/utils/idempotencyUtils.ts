@@ -1,6 +1,6 @@
 
-import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Generates a deterministic idempotency key based on provided parameters
@@ -39,7 +39,7 @@ export const generateRandomIdempotencyKey = (prefix: string): string => {
  * Checks if a transaction with the given idempotency key has already been processed
  */
 export const checkIdempotency = async (
-  table: 'deposits' | 'orders' | 'transactions' | 'transaction_logs',
+  table: 'deposits' | 'orders' | 'transactions' | string,
   idempotencyKey: string
 ): Promise<{ exists: boolean; data?: any }> => {
   try {
@@ -74,13 +74,14 @@ export const recordIdempotentRequest = async (
 ): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('transaction_logs')
+      .from('transactions')
       .insert({
         idempotency_key: idempotencyKey,
-        request_payload: payload,
+        payment_method: 'api',
         status: 'processing',
-        transaction_id: payload.transaction_id || payload.order_id || null,
-        deposit_id: payload.deposit_id || null
+        amount: 0,
+        user_id: payload.user_id || null,
+        transaction_id: payload.transaction_id || payload.order_id || null
       });
       
     if (error) {
@@ -106,21 +107,29 @@ export const updateIdempotentRequestStatus = async (
 ): Promise<boolean> => {
   try {
     const updateData: Record<string, any> = {
-      status: status,
-      response_payload: responseData || null
+      status: status
     };
     
-    if (errorMessage) {
-      updateData.error_message = errorMessage;
+    // Find the transaction record with this idempotency key
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('idempotency_key', idempotencyKey)
+      .maybeSingle();
+      
+    if (error || !data) {
+      console.error('Error finding transaction for status update:', error);
+      return false;
     }
     
-    const { error } = await supabase
-      .from('transaction_logs')
+    // Update the transaction status
+    const { error: updateError } = await supabase
+      .from('transactions')
       .update(updateData)
       .eq('idempotency_key', idempotencyKey);
       
-    if (error) {
-      console.error('Error updating idempotent request status:', error);
+    if (updateError) {
+      console.error('Error updating idempotent request status:', updateError);
       return false;
     }
     
@@ -142,7 +151,7 @@ export const processWithIdempotency = async<T>(
 ): Promise<{ result: T | null; isNew: boolean; error?: string }> => {
   try {
     // First check if this request has already been processed
-    const { exists, data } = await checkIdempotency('transaction_logs', idempotencyKey);
+    const { exists, data } = await checkIdempotency('transactions', idempotencyKey);
     
     if (exists && data?.status === 'success') {
       console.log(`Request with idempotency key ${idempotencyKey} already processed, returning cached result`);

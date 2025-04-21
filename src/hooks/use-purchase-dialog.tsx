@@ -5,6 +5,7 @@ import { useOrderApi } from '@/hooks/use-order-api';
 import { supabase } from '@/integrations/supabase/client';
 import { recordPurchaseActivity, checkUserBehaviorAnomaly } from '@/utils/fraud-detection';
 import { sanitizeHtml } from '@/utils/sanitizeHtml';
+import { generateIdempotencyKey } from '@/utils/idempotencyUtils';
 
 interface Product {
   id: string;
@@ -61,10 +62,12 @@ async function logOrderActivity({
 }
 
 function generateOrderIdempotencyKey(userId: string | undefined, productId: string, quantity: number): string {
-  const timestamp = new Date().getTime();
-  const userPart = userId || 'anonymous';
-  // Create a deterministic string
-  return `order_${userPart}_${productId}_${quantity}_${timestamp}`;
+  return generateIdempotencyKey('order', { 
+    user_id: userId || 'anonymous',
+    product_id: productId,
+    quantity: quantity,
+    timestamp: new Date().getTime()
+  });
 }
 
 export const usePurchaseDialog = () => {
@@ -235,7 +238,6 @@ export const usePurchaseDialog = () => {
     try {
       const totalAmount = (latestPrice || selectedProduct.price) * quantity;
       
-      // Generate idempotency key for this order
       const idempotencyKey = generateOrderIdempotencyKey(
         user?.id,
         selectedProduct.id,
@@ -275,7 +277,7 @@ export const usePurchaseDialog = () => {
         quantity: quantity,
         promotionCode: sanitizedPromoCode,
         priceUSD: totalAmount / 24000,
-        idempotencyKey: idempotencyKey // Pass the idempotency key to the order API
+        idempotencyKey: idempotencyKey
       });
 
       if (orderResult?.success && orderResult.orderId) {
@@ -289,7 +291,7 @@ export const usePurchaseDialog = () => {
             price: latestPrice,
             totalAmount,
             productId: selectedProduct.id,
-            idempotencyKey // Log the idempotency key for tracking
+            idempotencyKey
           }
         });
 

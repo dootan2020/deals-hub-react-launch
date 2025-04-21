@@ -1,62 +1,46 @@
 
 import { Product } from '@/types';
-import { ensureProductFields } from '@/utils/productUtils';
 
-/**
- * Prepares a product for the purchase dialog by ensuring all required fields are present
- */
-export const prepareProductForPurchase = (
-  product: Partial<Product> | undefined,
-  fallbackId?: string,
-  fallbackKioskToken?: string
-): Product => {
+export function prepareProductForPurchase(
+  product?: any, 
+  productId?: string, 
+  kioskToken?: string
+): Product | null {
+  if (!product && !productId && !kioskToken) {
+    return null;
+  }
+
+  // If we have a complete product, just ensure required fields are present
   if (product) {
-    // Ensure required fields are satisfied as per 'Product' type everywhere
-    const productWithRequiredFields = {
-      ...product,
-      id: product.id || "",
-      title: product.title || "",
-      description: product.description || "", // Ensure description is always a string
+    return {
+      id: product.id || productId || '',
+      kiosk_token: product.kiosk_token || kioskToken || '',
+      title: product.title || 'Unknown Product',
       price: product.price || 0,
-      stockQuantity: product.stockQuantity || 0,
-      shortDescription: product.shortDescription || product.description?.substring(0, 200) || "",
+      stockQuantity: product.stockQuantity || product.stock || 0,
+      description: product.description || product.shortDescription || 'No description available', // Ensure description is always set
       images: product.images || [],
-      categoryId: product.categoryId || "",
+      categoryId: product.categoryId || '',
       rating: product.rating || 0,
       reviewCount: product.reviewCount || 0,
-      inStock: product.inStock !== undefined ? product.inStock : true,
       badges: product.badges || [],
       features: product.features || [],
+      slug: product.slug || '',
+      inStock: product.inStock !== undefined ? product.inStock : true,
       specifications: product.specifications || {},
-      createdAt: product.createdAt || new Date().toISOString(),
-      kiosk_token: product.kiosk_token || "",
-      stock: product.stock || 0,
-      slug: product.slug || ""
+      createdAt: product.createdAt || product.created_at || new Date().toISOString(),
+      shortDescription: product.shortDescription || ''
     };
-
-    // Use ensureProductFields to guarantee the product matches the required Product type
-    return ensureProductFields(productWithRequiredFields);
-  } else {
-    // Create minimal product with required fields
-    return ensureProductFields({
-      id: fallbackId || '',
-      kiosk_token: fallbackKioskToken || '',
-      title: 'Product',
-      price: 0,
-      stockQuantity: 10,
-      description: '', // Always set to string
-      images: [],
-      categoryId: '',
-      rating: 0,
-      reviewCount: 0,
-      badges: [],
-      features: [],
-      slug: '',
-      inStock: true,
-      specifications: {},
-      createdAt: new Date().toISOString(),
-      stock: 10,
-      shortDescription: '',
-    });
   }
-};
+
+  // Create a minimal product with the provided IDs
+  return {
+    id: productId || '',
+    kiosk_token: kioskToken || '',
+    title: 'Quick Purchase',
+    price: 0,
+    stockQuantity: 1,
+    description: 'Quick purchase product', // This field is now always set
+    inStock: true
+  };
+}
