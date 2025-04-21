@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Category } from '@/types';
 import { fetchAllCategories } from '@/services/categoryService';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 interface CategoryContextType {
   categories: Category[];
@@ -33,7 +33,6 @@ export const CategoriesProvider = ({ children }: CategoriesProviderProps) => {
   const [mainCategories, setMainCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const { toast } = useToast();
 
   const loadCategories = async () => {
     setIsLoading(true);
@@ -48,11 +47,7 @@ export const CategoriesProvider = ({ children }: CategoriesProviderProps) => {
       setMainCategories(main);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch categories'));
-      toast({
-        title: "Error",
-        description: "There was a problem loading the menu structure. Please try refreshing the page.",
-        variant: "destructive"
-      });
+      toast.error("Error", "There was a problem loading the menu structure. Please try refreshing the page.");
     } finally {
       setIsLoading(false);
     }

@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from '@/hooks/use-toast';
 import ProductSorter from '@/components/product/ProductSorter';
 import ViewToggle from '@/components/product/ViewToggle';
 import { useCategoryProducts } from '@/hooks/useCategoryProducts';
@@ -13,7 +14,6 @@ import { SortOption } from '@/types';
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { toast } = useToast();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const initialSort = (searchParams.get('sort') || 'newest') as SortOption;
   const { categories } = useCategoriesContext();
@@ -46,10 +46,7 @@ const ProductsPage = () => {
 
   const handleSubcategoryClick = (category: Category) => {
     setSelectedCategory(category.id);
-    toast({
-      title: "Category Filter Applied",
-      description: `Showing products from ${category.name}`,
-    });
+    toast.success("Category Filter Applied", `Showing products from ${category.name}`);
   };
 
   return (

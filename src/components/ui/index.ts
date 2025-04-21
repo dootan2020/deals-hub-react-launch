@@ -1,3 +1,4 @@
+
 // Export all UI components from a single entry point
 export * from "./accordion";
 export * from "./alert";
@@ -38,13 +39,15 @@ export * from "./sidebar/index";
 export * from "./skeleton";
 export * from "./slider";
 // Export sonner with renamed toast to avoid conflict
-export { Toaster, toast as sonnerToast } from "./sonner";
+export { Toaster as SonnerToaster, toast as sonnerToast } from "./sonner";
 export * from "./switch";
 export * from "./table";
 export * from "./tabs";
 export * from "./textarea";
-export * from "./toast";
+// Export our custom toast components but not the hooks
+export { Toast, ToastAction, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport, Toaster } from "./toast";
 export * from "./toggle";
 export * from "./toggle-group";
 export * from "./tooltip";
-export * from "./use-toast";
+// Export the toast hooks from our custom implementation
+export { useToast, toast } from "./use-toast";
