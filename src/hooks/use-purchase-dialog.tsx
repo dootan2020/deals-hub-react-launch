@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -7,6 +6,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { recordPurchaseActivity, checkUserBehaviorAnomaly } from '@/utils/fraud-detection';
 import { sanitizeHtml } from '@/utils/sanitizeHtml';
 import { generateIdempotencyKey } from '@/utils/idempotencyUtils';
+import { useProductVerification } from './useProductVerification';
+import { useOrderIdempotencyKey } from './useOrderIdempotencyKey';
+import { logOrderActivity, checkFraudAndReport } from './usePurchaseActivity';
 
 interface Product {
   id: string;
@@ -76,12 +78,19 @@ export const usePurchaseDialog = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [promotionCode, setPromotionCode] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verifiedStock, setVerifiedStock] = useState<number | null>(null);
-  const [verifiedPrice, setVerifiedPrice] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { user } = useAuth();
   const { createOrder } = useOrderApi();
+
+  const {
+    isVerifying,
+    verifiedStock,
+    verifiedPrice,
+    verifyProduct,
+    setVerifiedStock,
+    setVerifiedPrice,
+    getLatestStock,
+  } = useProductVerification(selectedProduct, open);
 
   const openDialog = (product: Product) => {
     setSelectedProduct(product);
@@ -109,71 +118,11 @@ export const usePurchaseDialog = () => {
     setPromotionCode(value);
   };
 
-  const verifyProduct = useCallback(async () => {
-    if (!selectedProduct) return;
-
-    setIsVerifying(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('order-api', {
-        body: {
-          action: 'get-stock',
-          kioskToken: selectedProduct.kiosk_token
-        }
-      });
-
-      if (error) {
-        console.error('Stock verification error:', error);
-        toast.error('Không thể xác minh sản phẩm', { description: error.message || 'Có lỗi xảy ra khi xác minh sản phẩm' });
-        setVerifiedStock(null);
-        setVerifiedPrice(null);
-        return;
-      }
-
-      if (data?.success === false || typeof data?.data?.stock !== 'number') {
-        toast.error('Không thể xác minh sản phẩm', { description: data?.message || 'Có lỗi xảy ra khi xác minh sản phẩm' });
-        setVerifiedStock(null);
-        setVerifiedPrice(null);
-        return;
-      }
-
-      setVerifiedStock(data.data.stock);
-      setVerifiedPrice(data.data.price);
-    } catch (err: any) {
-      console.error('Stock verification failed:', err);
-      toast.error('Không thể xác minh sản phẩm', { description: err.message || 'Có lỗi xảy ra khi xác minh sản phẩm' });
-      setVerifiedStock(null);
-      setVerifiedPrice(null);
-    } finally {
-      setIsVerifying(false);
-    }
-  }, [selectedProduct]);
-
   useEffect(() => {
     if (open && selectedProduct) {
       verifyProduct();
     }
   }, [open, selectedProduct, verifyProduct]);
-
-  const getLatestStock = async (kiosk_token: string) => {
-    setIsVerifying(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('order-api', {
-        body: {
-          action: 'get-stock',
-          kioskToken: kiosk_token
-        }
-      });
-      if (error || data?.success === false || typeof data?.data?.stock !== 'number') {
-        throw new Error(error?.message || data?.message || 'Could not get stock');
-      }
-      return { stock: data.data.stock, price: data.data.price };
-    } catch (e) {
-      toast.error('Không thể xác minh số lượng sản phẩm', { description: (e as any).message || 'Có lỗi xảy ra khi xác minh số lượng' });
-      throw e;
-    } finally {
-      setIsVerifying(false);
-    }
-  };
 
   const handleConfirm = useCallback(async (quantity: number, promotionCode?: string) => {
     if (!selectedProduct) {
@@ -209,36 +158,33 @@ export const usePurchaseDialog = () => {
 
     try {
       const totalAmount = (latestPrice || selectedProduct.price) * quantity;
-      
-      const idempotencyKey = generateOrderIdempotencyKey(
+
+      const idempotencyKey = useOrderIdempotencyKey(
         user?.id,
         selectedProduct.id,
         quantity
       );
 
       if (user?.id) {
-        const isSuspicious = await recordPurchaseActivity(user.id, totalAmount, selectedProduct.id);
-        if (isSuspicious) {
-          const behaviorAnomaly = await checkUserBehaviorAnomaly(user.id);
-          if (behaviorAnomaly) {
-            setSubmitting(false);
-            toast.error("Không thể xử lý giao dịch", {
-              description: "Hoạt động đáng ngờ được phát hiện. Vui lòng liên hệ hỗ trợ."
-            });
-            await supabase.functions.invoke("fraud-detection", {
-              body: {
-                action: "report-suspicious",
-                data: {
-                  type: 'purchase',
-                  user_id: user.id,
-                  product_id: selectedProduct.id,
-                  amount: totalAmount,
-                  details: 'Multiple fraud indicators triggered'
-                }
+        const isFraud = await checkFraudAndReport(user.id, totalAmount, selectedProduct.id);
+        if (isFraud) {
+          setSubmitting(false);
+          toast.error("Không thể xử lý giao dịch", {
+            description: "Hoạt động đáng ngờ được phát hiện. Vui lòng liên hệ hỗ trợ."
+          });
+          await supabase.functions.invoke("fraud-detection", {
+            body: {
+              action: "report-suspicious",
+              data: {
+                type: 'purchase',
+                user_id: user.id,
+                product_id: selectedProduct.id,
+                amount: totalAmount,
+                details: 'Multiple fraud indicators triggered'
               }
-            });
-            return false;
-          }
+            }
+          });
+          return false;
         }
       }
 
@@ -278,7 +224,6 @@ export const usePurchaseDialog = () => {
         return false;
       }
     } catch (err: any) {
-      console.error('Order creation failed:', err);
       toast.error('Không thể tạo đơn hàng', {
         description: err.message || 'Có lỗi xảy ra khi tạo đơn hàng'
       });
@@ -286,7 +231,7 @@ export const usePurchaseDialog = () => {
     } finally {
       setSubmitting(false);
     }
-  }, [selectedProduct, user?.id, createOrder]);
+  }, [selectedProduct, user?.id, createOrder, setVerifiedStock, setVerifiedPrice, getLatestStock]);
 
   return {
     open,
