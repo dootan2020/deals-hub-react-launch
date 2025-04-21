@@ -12,11 +12,7 @@ export const useAuthActions = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Đăng nhập thành công",
-        description: "Chào mừng bạn quay trở lại!",
-        variant: "default",
-      });
+      toast.success("Đăng nhập thành công", "Chào mừng bạn quay trở lại!");
       
       return data;
     } catch (error: any) {
@@ -29,11 +25,7 @@ export const useAuthActions = () => {
         message = 'Vui lòng xác nhận email trước khi đăng nhập';
       }
       
-      toast({
-        title: "Đăng nhập thất bại",
-        description: message,
-        variant: "destructive",
-      });
+      toast.error("Đăng nhập thất bại", message);
       
       throw error;
     }
@@ -44,17 +36,9 @@ export const useAuthActions = () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      toast({
-        title: "Đăng xuất thành công",
-        description: "Hẹn gặp lại bạn!",
-        variant: "default",
-      });
+      toast.success("Đăng xuất thành công", "Hẹn gặp lại bạn!");
     } catch (error: any) {
-      toast({
-        title: "Đăng xuất thất bại",
-        description: error.message || 'Lỗi khi đăng xuất',
-        variant: "destructive",
-      });
+      toast.error("Đăng xuất thất bại", error.message || 'Lỗi khi đăng xuất');
       
       throw error;
     }
@@ -84,11 +68,7 @@ export const useAuthActions = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Đăng ký thành công",
-        description: "Vui lòng kiểm tra email của bạn để xác nhận tài khoản.",
-        variant: "default",
-      });
+      toast.success("Đăng ký thành công", "Vui lòng kiểm tra email của bạn để xác nhận tài khoản.");
       
       return { ...data, registrationSuccess: true };
     } catch (error: any) {
@@ -102,11 +82,7 @@ export const useAuthActions = () => {
         message = 'Không chấp nhận email tạm thời. Vui lòng sử dụng địa chỉ email chính thức';
       }
       
-      toast({
-        title: "Đăng ký thất bại",
-        description: message,
-        variant: "destructive",
-      });
+      toast.error("Đăng ký thất bại", message);
       
       throw error;
     }
@@ -124,19 +100,11 @@ export const useAuthActions = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Gửi lại email thành công",
-        description: "Vui lòng kiểm tra hộp thư của bạn để xác nhận tài khoản.",
-        variant: "default",
-      });
+      toast.success("Gửi lại email thành công", "Vui lòng kiểm tra hộp thư của bạn để xác nhận tài khoản.");
 
       return true;
     } catch (error: any) {
-      toast({
-        title: "Gửi lại email thất bại",
-        description: error.message || 'Không thể gửi lại email xác nhận',
-        variant: "destructive",
-      });
+      toast.error("Gửi lại email thất bại", error.message || 'Không thể gửi lại email xác nhận');
       
       throw error;
     }
@@ -150,19 +118,11 @@ export const useAuthActions = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Yêu cầu đặt lại mật khẩu đã được gửi",
-        description: "Vui lòng kiểm tra email của bạn để tiếp tục.",
-        variant: "default",
-      });
+      toast.success("Yêu cầu đặt lại mật khẩu đã được gửi", "Vui lòng kiểm tra email của bạn để tiếp tục.");
 
       return true;
     } catch (error: any) {
-      toast({
-        title: "Đặt lại mật khẩu thất bại",
-        description: error.message || 'Không thể gửi yêu cầu đặt lại mật khẩu',
-        variant: "destructive",
-      });
+      toast.error("Đặt lại mật khẩu thất bại", error.message || 'Không thể gửi yêu cầu đặt lại mật khẩu');
       
       throw error;
     }
