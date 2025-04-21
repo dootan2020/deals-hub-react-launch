@@ -2,7 +2,7 @@
 import { useToast as useShadcnToast } from "@/components/ui/use-toast";
 import { toast as shadcnToast } from "@/components/ui/use-toast";
 
-// Re-export toast from shadcn with consistent interface
+// Define a local type to avoid circular reference
 export const useToast = useShadcnToast;
 
 // Re-export toast utility with additional methods

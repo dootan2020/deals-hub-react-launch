@@ -7,7 +7,7 @@ interface Order {
   user_id: string;
   external_order_id: string | null;
   status: string;
-  total_amount: number;
+  total_amount: number; // This field is required by the Order interface
   created_at: string;
   updated_at: string;
   product_title?: string;
@@ -60,10 +60,13 @@ export const useOrderHistory = (userId: string) => {
           productTitle = order.order_items[0].product.title;
         }
         
+        // Map the database fields to the Order interface
+        // Using total_price as total_amount to match the Order interface
         return {
           ...order,
+          total_amount: order.total_price,
           product_title: productTitle
-        };
+        } as Order;
       }) || [];
 
       setOrders(ordersWithProductTitle);

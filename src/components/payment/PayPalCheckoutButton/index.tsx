@@ -59,13 +59,13 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
   };
 
   const handleRetry = () => {
-    // Sửa lỗi TypeScript bằng cách sử dụng cấu trúc được hỗ trợ bởi PayPal SDK
+    // Fix the PayPal dispatch action to use the proper format
     paypalDispatch({
       type: 'resetOptions',
       value: {
-        'clientId': process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
+        'client-id': process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
         currency: 'USD',
-        intent: 'CAPTURE'
+        intent: 'capture'
       }
     });
   };
