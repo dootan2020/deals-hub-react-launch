@@ -78,7 +78,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   const handleClick = () => {
     const preparedProduct = prepareProductForPurchase(product, productId, kioskToken);
     if (preparedProduct) {
-      executeOpenDialog(preparedProduct as Product);
+      executeOpenDialog(preparedProduct);
     }
   };
 

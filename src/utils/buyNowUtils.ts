@@ -1,4 +1,6 @@
+
 import { Product } from '@/types';
+import { MinimalProduct } from '@/types/fixedTypes';
 
 /**
  * Prepares a product for purchase by ensuring all required fields are set
@@ -31,7 +33,19 @@ export function prepareProductForPurchase(
     price: product?.price || 0,
     description: product?.description || product?.short_description || '',
     stock: product?.stock || 0,
-    kiosk_token: product?.kiosk_token || kioskToken || ''
+    kiosk_token: product?.kiosk_token || kioskToken || '',
+    // Add required fields with default values
+    images: product?.images || [],
+    categoryId: product?.categoryId || 'default',
+    rating: product?.rating || 0,
+    reviewCount: product?.reviewCount || 0,
+    inStock: product?.inStock !== undefined ? product?.inStock : true,
+    stockQuantity: product?.stockQuantity || 0,
+    badges: product?.badges || [],
+    slug: product?.slug || 'product',
+    features: product?.features || [],
+    specifications: product?.specifications || {},
+    createdAt: product?.createdAt || new Date().toISOString()
   };
 
   return minimalProduct;

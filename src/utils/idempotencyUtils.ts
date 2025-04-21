@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
+import { IdempotencyResult } from '@/types/fixedTypes';
 
 /**
  * Generates a deterministic idempotency key based on provided parameters
@@ -143,13 +144,14 @@ export const updateIdempotentRequestStatus = async (
 
 /**
  * Complete idempotency flow helper that checks, records, and handles a request
+ * Fixed version that avoids recursive type issues
  */
 export const processWithIdempotency = async<T>(
   idempotencyKey: string,
   processFunction: () => Promise<T>,
   payload: any,
   requestType: string
-): Promise<{ result: T | null; isNew: boolean; error?: string }> => {
+): Promise<IdempotencyResult<T>> => {
   try {
     // First check if this request has already been processed
     const { exists, data } = await checkIdempotency('transactions', idempotencyKey);
@@ -157,7 +159,7 @@ export const processWithIdempotency = async<T>(
     if (exists && data?.status === 'success') {
       console.log(`Request with idempotency key ${idempotencyKey} already processed, returning cached result`);
       return { 
-        result: data.response_payload,
+        result: data.response_payload as T,
         isNew: false
       };
     }
