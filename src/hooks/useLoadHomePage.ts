@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { fetchProductsWithFilters } from '@/services/product/productService';
 import { fetchAllCategories, fetchSubcategoriesByParentId } from '@/services/categoryService';
-import { Product, SortOption, Category, SubcategoryItem } from '@/types';
+import { Product, SortOption, Category } from '@/types';
+import { SubcategoryItem } from '@/types/category.types';
 import { toast } from '@/hooks/use-toast';
 
 // Extend the category type for this hook usage to include topSubcategories and totalSubcategories
