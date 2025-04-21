@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { toast } from '@/hooks/use-toast';
 
@@ -18,7 +17,7 @@ export const useSessionTimeout = (
         console.warn('Session timeout reached, logging out user for security.');
         logout().finally(() => {
           toast.warning('Phiên làm việc hết hạn do không hoạt động', {
-            description: 'Vui lòng đăng nhập lại để tiếp tục'
+            description: "Vui lòng đăng nhập lại để tiếp tục" as any
           });
           window.location.replace('/login?timeout=1');
         });

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useSessionTimeout } from '@/hooks/auth/use-session-timeout';
 import { useSessionMonitor } from '@/hooks/auth/use-session-monitor';
 import { useSessionRefresh } from '@/hooks/auth/use-session-refresh';
+import { UserRole } from '@/types/auth.types';
 
 const AuthContext = createContext<AuthContextType>({
   user: null,

@@ -8,56 +8,90 @@ export const useAuthRefresh = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [showRetry, setShowRetry] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  const resetState = useCallback(() => {
+    setAttempts(0);
+    setShowRetry(false);
+    setLastError(null);
+  }, []);
+
   const attemptRefresh = useCallback(async () => {
-    if (refreshing || attempts >= 3) return false;
+    if (refreshing || attempts >= 3) {
+      console.log('Refresh blocked:', refreshing ? 'already refreshing' : 'max attempts reached');
+      return false;
+    }
     
     setRefreshing(true);
-    console.log(`Attempting session refresh (attempt ${attempts + 1}/3)...`);
+    const currentAttempt = attempts + 1;
+    console.log(`Starting session refresh (attempt ${currentAttempt}/3)`);
     
     try {
-      const { success, error } = await reloadSession();
+      const { success, error, data } = await reloadSession();
       
-      if (success) {
-        console.log("Session refreshed successfully");
+      if (success && data?.session) {
+        console.log('Session refreshed successfully', {
+          expiresAt: new Date(data.session.expires_at * 1000).toLocaleString(),
+          userId: data.session.user.id
+        });
+        resetState();
         return true;
       } else {
-        console.error("Session refresh failed:", error?.message || "Unknown error");
-        setAttempts(prev => prev + 1);
+        const errorMessage = error?.message || 'Unknown error';
+        console.error('Session refresh failed:', {
+          attempt: currentAttempt,
+          error: errorMessage,
+          timestamp: new Date().toISOString()
+        });
         
-        if (attempts >= 2) {
+        setLastError(errorMessage);
+        setAttempts(currentAttempt);
+        
+        if (currentAttempt >= 3) {
+          console.warn('Maximum refresh attempts reached');
           setShowRetry(true);
         }
         return false;
       }
     } catch (error) {
-      console.error("Error during session refresh:", error);
-      setAttempts(prev => prev + 1);
+      const errorMessage = error instanceof Error ? error.message : 'Unexpected error during refresh';
+      console.error('Session refresh error:', {
+        attempt: currentAttempt,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+      });
       
-      if (attempts >= 2) {
+      setLastError(errorMessage);
+      setAttempts(currentAttempt);
+      
+      if (currentAttempt >= 3) {
         setShowRetry(true);
       }
       return false;
     } finally {
       setRefreshing(false);
     }
-  }, [refreshing, attempts]);
+  }, [refreshing, attempts, resetState]);
 
   const handleRetry = async () => {
-    setShowRetry(false);
-    setAttempts(0);
+    console.log('Initiating manual refresh retry');
+    resetState();
     
     const success = await attemptRefresh();
     if (!success) {
+      console.error('Manual refresh attempt failed, redirecting to login');
       toast({
         title: "Không thể khôi phục phiên",
         description: "Vui lòng đăng nhập lại để tiếp tục",
         variant: "destructive"
       });
+      
       navigate('/login', { 
         state: { 
-          authError: 'session_restore_failed' 
+          authError: 'session_restore_failed',
+          lastError: lastError || undefined
         },
         replace: true
       });
@@ -68,6 +102,7 @@ export const useAuthRefresh = () => {
     refreshing,
     attempts,
     showRetry,
+    lastError,
     attemptRefresh,
     handleRetry
   };
