@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { fetchProductsWithFilters } from '@/services/productService';
 import { Product, SortOption } from '@/types';
 import { toast } from '@/hooks/use-toast';
+import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 
 interface UseCategoryProductsProps {
   categoryId?: string | null;
@@ -30,17 +31,14 @@ export const useCategoryProducts = ({ categoryId, sort = 'newest', isProductsPag
       setError(null);
       
       try {
-        // Thêm timeout để tránh loading mãi
-        const productPromise = fetchProductsWithFilters({
-          category: categoryId,
-          sort: sort
-        });
-        
-        const timeoutPromise = new Promise<null>((_, reject) => 
-          setTimeout(() => reject(new Error('Quá thời gian tải dữ liệu')), 10000)
+        const result = await fetchWithTimeout(
+          fetchProductsWithFilters({
+            category: categoryId,
+            sort: sort
+          }),
+          7000,
+          'Quá thời gian tải dữ liệu sản phẩm'
         );
-        
-        const result = await Promise.race([productPromise, timeoutPromise]);
         
         if (result && Array.isArray(result.products)) {
           setProducts(result.products);

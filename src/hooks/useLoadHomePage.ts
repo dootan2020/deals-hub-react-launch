@@ -5,6 +5,7 @@ import { fetchAllCategories, fetchSubcategoriesByParentId } from '@/services/cat
 import { Product, SortOption, Category } from '@/types';
 import { SubcategoryItem } from '@/types/category.types';
 import { toast } from '@/hooks/use-toast';
+import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 
 // Extend the category type for this hook usage to include topSubcategories and totalSubcategories
 interface CategoryWithSubs extends Category {
@@ -38,12 +39,11 @@ export function useLoadHomePage(): UseLoadHomePageResult {
     setProductsError(null);
     
     try {
-      const productPromise = fetchProductsWithFilters({ sort: activeSort });
-      const timeoutPromise = new Promise<null>((_, reject) => 
-        setTimeout(() => reject(new Error('Quá thời gian tải dữ liệu sản phẩm')), 10000)
+      const result = await fetchWithTimeout(
+        fetchProductsWithFilters({ sort: activeSort }),
+        7000,
+        'Quá thời gian tải dữ liệu sản phẩm'
       );
-      
-      const result = await Promise.race([productPromise, timeoutPromise]);
       
       if (Array.isArray(result)) {
         setProducts(result);
@@ -55,7 +55,7 @@ export function useLoadHomePage(): UseLoadHomePageResult {
       }
     } catch (error) {
       console.error('Lỗi khi tải sản phẩm:', error);
-      setProductsError('Không thể tải dữ liệu sản phẩm');
+      setProductsError('Không thể tải dữ liệu sản phẩm. Vui lòng thử lại sau');
       toast.error('Lỗi tải dữ liệu', 'Không thể tải danh sách sản phẩm. Vui lòng thử lại sau');
     } finally {
       setIsLoadingProducts(false);
@@ -67,34 +67,55 @@ export function useLoadHomePage(): UseLoadHomePageResult {
     setCategoriesError(null);
     
     try {
-      const categoryPromise = fetchAllCategories();
-      const timeoutPromise = new Promise<Category[]>((_, reject) => 
-        setTimeout(() => reject(new Error('Quá thời gian tải danh mục')), 10000)
+      // Fetch all categories first
+      const allCategories = await fetchWithTimeout(
+        fetchAllCategories(),
+        7000,
+        'Quá thời gian tải danh mục'
       );
       
-      const result = await Promise.race([categoryPromise, timeoutPromise]);
-      
-      if (Array.isArray(result) && result.length > 0) {
+      if (Array.isArray(allCategories) && allCategories.length > 0) {
         // Filter main categories (no parent_id)
-        const mainCategories = result.filter(cat => !cat.parent_id);
+        const mainCategories = allCategories.filter(cat => !cat.parent_id);
         
-        // For each main category, fetch top 4 subcategories and total count
-        const categoriesWithSubs: CategoryWithSubs[] = await Promise.all(
-          mainCategories.map(async (cat) => {
-            const subs = await fetchSubcategoriesByParentId(cat.id);
-            // Only take top 4 subs
-            const topSubcategories: SubcategoryItem[] = subs.slice(0, 4).map(s => ({
-              id: s.id,
-              name: s.name,
-              slug: s.slug,
-            }));
-            return {
-              ...cat,
-              topSubcategories,
-              totalSubcategories: subs.length,
-            };
+        // Use Promise.allSettled to fetch subcategories for all main categories
+        const subcategoryPromises = mainCategories.map(cat => 
+          fetchWithTimeout(
+            fetchSubcategoriesByParentId(cat.id),
+            5000,
+            `Quá thời gian tải danh mục con cho ${cat.name || "danh mục"}`
+          ).catch(err => {
+            console.error(`Lỗi tải danh mục con cho ${cat.name}:`, err);
+            return []; // Return empty array on error for this category
           })
         );
+        
+        const results = await Promise.allSettled(subcategoryPromises);
+        
+        // Process results and create categories with subcategories
+        const categoriesWithSubs: CategoryWithSubs[] = mainCategories.map((cat, index) => {
+          const result = results[index];
+          let subs: Category[] = [];
+          
+          if (result.status === 'fulfilled') {
+            subs = result.value;
+          } else {
+            console.error(`Không thể tải danh mục con cho ${cat.name}:`, result.reason);
+          }
+          
+          // Only take top 4 subs
+          const topSubcategories: SubcategoryItem[] = subs.slice(0, 4).map(s => ({
+            id: s.id,
+            name: s.name,
+            slug: s.slug,
+          }));
+          
+          return {
+            ...cat,
+            topSubcategories,
+            totalSubcategories: subs.length,
+          };
+        });
 
         setCategories(categoriesWithSubs);
         setCategoriesError(null);
@@ -104,7 +125,7 @@ export function useLoadHomePage(): UseLoadHomePageResult {
       }
     } catch (error) {
       console.error('Lỗi khi tải danh mục:', error);
-      setCategoriesError('Không thể tải danh mục');
+      setCategoriesError('Không thể tải danh mục. Vui lòng thử lại sau');
       toast.error('Lỗi tải dữ liệu', 'Không thể tải danh mục. Vui lòng thử lại sau');
     } finally {
       setIsLoadingCategories(false);
@@ -112,7 +133,15 @@ export function useLoadHomePage(): UseLoadHomePageResult {
   };
 
   const refreshData = async () => {
-    await Promise.allSettled([loadProducts(), loadCategories()]);
+    // Using Promise.allSettled to prevent one failure from blocking the other
+    const results = await Promise.allSettled([loadProducts(), loadCategories()]);
+    
+    // Log any errors for debugging
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error(`Lỗi khi tải dữ liệu ${index === 0 ? 'sản phẩm' : 'danh mục'}:`, result.reason);
+      }
+    });
   };
 
   useEffect(() => {

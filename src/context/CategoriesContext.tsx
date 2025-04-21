@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { Category } from '@/types';
 import { fetchAllCategories } from '@/services/categoryService';
 import { toast } from '@/hooks/use-toast';
+import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 
 interface CategoryContextType {
   categories: Category[];
@@ -39,13 +40,12 @@ export const CategoriesProvider = ({ children }: CategoriesProviderProps) => {
     setError(null);
     
     try {
-      // Thêm timeout để tránh loading mãi mãi
-      const categoryPromise = fetchAllCategories();
-      const timeoutPromise = new Promise<Category[]>((_, reject) => 
-        setTimeout(() => reject(new Error('Quá thời gian tải danh mục')), 10000)
+      // Use our new fetchWithTimeout utility
+      const data = await fetchWithTimeout(
+        fetchAllCategories(),
+        7000,
+        'Quá thời gian tải danh mục'
       );
-      
-      const data = await Promise.race([categoryPromise, timeoutPromise]);
       
       setCategories(data || []);
       
@@ -53,7 +53,8 @@ export const CategoriesProvider = ({ children }: CategoriesProviderProps) => {
       const main = data.filter(category => !category.parent_id);
       setMainCategories(main);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Không thể tải danh mục'));
+      const errorMessage = err instanceof Error ? err : new Error('Không thể tải danh mục');
+      setError(errorMessage);
       console.error('Lỗi tải danh mục:', err);
       toast.error('Lỗi tải dữ liệu', 'Không thể tải cấu trúc menu. Vui lòng thử lại sau.');
     } finally {
