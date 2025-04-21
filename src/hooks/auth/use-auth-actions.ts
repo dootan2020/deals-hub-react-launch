@@ -2,12 +2,22 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { isTemporaryEmail, fetchClientIP } from './auth-utils';
+import { recordLoginAttempt } from '@/utils/fraud-detection';
 
 export const useAuthActions = () => {
   const login = async (email: string, password: string) => {
     try {
       // Start loading toast
       const loadingToastId = toast.loading("Đang đăng nhập...");
+      
+      // Record login attempt (before success/failure)
+      const isSuspicious = await recordLoginAttempt(email, false);
+      
+      if (isSuspicious) {
+        // Add slight delay for security reasons
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        throw new Error('Suspicious login activity detected');
+      }
       
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
@@ -18,6 +28,9 @@ export const useAuthActions = () => {
       toast.dismiss(loadingToastId);
       
       if (error) throw error;
+      
+      // Record successful login
+      await recordLoginAttempt(email, true, data.user?.id);
       
       toast.success("Đăng nhập thành công", "Chào mừng bạn quay trở lại!");
       
@@ -30,6 +43,8 @@ export const useAuthActions = () => {
         message = 'Email hoặc mật khẩu không đúng';
       } else if (error.message.includes('Email not confirmed')) {
         message = 'Vui lòng xác nhận email trước khi đăng nhập';
+      } else if (error.message.includes('Suspicious login activity')) {
+        message = 'Hoạt động đăng nhập đáng ngờ được phát hiện. Vui lòng thử lại sau.';
       }
       
       toast.error("Đăng nhập thất bại", message);

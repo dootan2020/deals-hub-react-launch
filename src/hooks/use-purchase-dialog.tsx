@@ -1,115 +1,234 @@
-
-import { useState, useCallback } from 'react';
-import { Product } from '@/types';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { useState, useCallback, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { useOrderApi } from '@/hooks/use-order-api';
-import { useCurrencySettings } from '@/hooks/useCurrencySettings';
-import { convertVNDtoUSD } from '@/utils/currency';
-import { fetchProductInfoByKioskToken } from '@/services/product/mockProductService';
-import { useProxyConfig } from '@/hooks/useProxyConfig';
+import { supabase } from '@/integrations/supabase/client';
+import { recordPurchaseActivity, checkUserBehaviorAnomaly } from '@/utils/fraud-detection';
+
+interface Product {
+  id: string;
+  kiosk_token: string;
+  title: string;
+  price: number;
+  stockQuantity: number;
+}
 
 export const usePurchaseDialog = () => {
   const [open, setOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | undefined>(undefined);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [promotionCode, setPromotionCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifiedStock, setVerifiedStock] = useState<number | null>(null);
   const [verifiedPrice, setVerifiedPrice] = useState<number | null>(null);
-  const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
   const { createOrder } = useOrderApi();
-  const { data: currencySettings } = useCurrencySettings();
-  const { proxyConfig } = useProxyConfig();
-  
-  // Reset state when dialog closes
-  const closeDialog = useCallback(() => {
-    setOpen(false);
-    setVerifiedStock(null);
-    setVerifiedPrice(null);
-    setIsVerifying(false);
-  }, []);
-  
-  // Verify stock before opening dialog
-  const openDialog = useCallback(async (product: Product) => {
+
+  const openDialog = (product: Product) => {
     setSelectedProduct(product);
     setOpen(true);
+    setQuantity(1);
+    setPromotionCode('');
+    setVerifiedStock(null);
+    setVerifiedPrice(null);
+  };
 
-    // Start stock verification only if we have a kiosk token
-    if (product.kiosk_token) {
-      setIsVerifying(true);
-      try {
-        const result = await fetchProductInfoByKioskToken(
-          product.kiosk_token,
-          null,
-          proxyConfig
-        );
+  const closeDialog = () => {
+    setOpen(false);
+    setSelectedProduct(null);
+    setQuantity(1);
+    setPromotionCode('');
+    setVerifiedStock(null);
+    setVerifiedPrice(null);
+  };
 
-        if (result.success === "true") {
-          setVerifiedStock(Number(result.stock) || 0);
-          setVerifiedPrice(Number(result.price) || product.price);
-        } else {
-          toast.error('Không thể xác minh tồn kho sản phẩm');
-          closeDialog();
+  const handleQuantityChange = (value: number) => {
+    setQuantity(value);
+  };
+
+  const handlePromotionCodeChange = (value: string) => {
+    setPromotionCode(value);
+  };
+
+  const verifyProduct = useCallback(async () => {
+    if (!selectedProduct) return;
+
+    setIsVerifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('order-api', {
+        body: {
+          action: 'get-stock',
+          kioskToken: selectedProduct.kiosk_token
         }
-      } catch (error: any) {
-        console.error('Error verifying stock:', error);
-        toast.error('Lỗi khi kiểm tra tồn kho');
-        closeDialog();
-      } finally {
-        setIsVerifying(false);
+      });
+
+      if (error) {
+        console.error('Stock verification error:', error);
+        toast({
+          title: 'Không thể xác minh sản phẩm',
+          description: error.message || 'Có lỗi xảy ra khi xác minh sản phẩm',
+          variant: 'destructive',
+        });
+        return;
       }
+
+      if (data?.success === false) {
+        toast({
+          title: 'Không thể xác minh sản phẩm',
+          description: data.message || 'Có lỗi xảy ra khi xác minh sản phẩm',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      setVerifiedStock(data.data.stock);
+      setVerifiedPrice(data.data.price);
+    } catch (err: any) {
+      console.error('Stock verification failed:', err);
+      toast({
+        title: 'Không thể xác minh sản phẩm',
+        description: err.message || 'Có lỗi xảy ra khi xác minh sản phẩm',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsVerifying(false);
     }
-  }, [closeDialog, proxyConfig]);
-  
-  // Handle purchase confirmation
+  }, [selectedProduct, toast]);
+
+  useEffect(() => {
+    if (open && selectedProduct) {
+      verifyProduct();
+    }
+  }, [open, selectedProduct, verifyProduct]);
+
   const handleConfirm = useCallback(async (quantity: number, promotionCode?: string) => {
     if (!selectedProduct) {
-      toast.error('Không tìm thấy thông tin sản phẩm');
-      return;
+      toast({
+        title: 'Không thể tạo đơn hàng',
+        description: 'Không có sản phẩm nào được chọn',
+        variant: 'destructive',
+      });
+      return false;
     }
 
-    // Check if we have verified stock data
-    if (verifiedStock !== null && quantity > verifiedStock) {
-      toast.error('Số lượng vượt quá tồn kho hiện có');
-      return;
-    }
-    
-    try {
-      // Get the exchange rate
-      const rate = currencySettings?.vnd_per_usd ?? 24000;
-      
-      // Use verified price if available, otherwise use product price
-      const finalPrice = verifiedPrice || selectedProduct.price;
-      const priceUSD = convertVNDtoUSD(finalPrice, rate);
-      
-      const result = await createOrder({
-        kioskToken: selectedProduct.kiosk_token || '',
-        productId: selectedProduct.id,
-        quantity,
-        promotionCode,
-        priceUSD
+    if (quantity <= 0) {
+      toast({
+        title: 'Không thể tạo đơn hàng',
+        description: 'Số lượng phải lớn hơn 0',
+        variant: 'destructive',
       });
-      
-      if (result.success && result.orderId) {
-        toast.success('Đặt hàng thành công!');
-        closeDialog();
-        navigate(`/order-success?orderId=${result.orderId}`);
-      } else {
-        throw new Error(result.message || 'Không thể tạo đơn hàng');
-      }
-    } catch (error: any) {
-      console.error('Error during purchase:', error);
-      toast.error(error.message || 'Đã xảy ra lỗi khi đặt hàng');
+      return false;
     }
-  }, [selectedProduct, verifiedStock, verifiedPrice, createOrder, closeDialog, navigate, currencySettings]);
-  
+
+    if (verifiedStock === null) {
+      toast({
+        title: 'Không thể tạo đơn hàng',
+        description: 'Không thể xác minh số lượng sản phẩm',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    if (quantity > verifiedStock) {
+      toast({
+        title: 'Không thể tạo đơn hàng',
+        description: 'Số lượng vượt quá số lượng sản phẩm hiện có',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    setSubmitting(true);
+    try {
+      const totalAmount = (verifiedPrice || selectedProduct.price) * quantity;
+
+      // Check if this is suspicious activity
+      if (user?.id) {
+        const isSuspicious = await recordPurchaseActivity(user.id, totalAmount, selectedProduct.id);
+        
+        if (isSuspicious) {
+          // Also check for broader user behavior anomalies
+          const behaviorAnomaly = await checkUserBehaviorAnomaly(user.id);
+          
+          if (behaviorAnomaly) {
+            setSubmitting(false);
+            toast.error(
+              "Không thể xử lý giao dịch", 
+              "Hoạt động đáng ngờ được phát hiện. Vui lòng liên hệ hỗ trợ."
+            );
+            
+            // Log the suspicious activity
+            await supabase.functions.invoke("fraud-detection", {
+              body: {
+                action: "report-suspicious",
+                data: {
+                  type: 'purchase',
+                  user_id: user.id,
+                  product_id: selectedProduct.id,
+                  amount: totalAmount,
+                  details: 'Multiple fraud indicators triggered'
+                }
+              }
+            });
+            
+            return false;
+          }
+        }
+      }
+      
+      // Continue with normal order processing
+      const orderResult = await createOrder({
+        kioskToken: selectedProduct.kiosk_token,
+        productId: selectedProduct.id,
+        quantity: quantity,
+        promotionCode: promotionCode,
+        priceUSD: totalAmount / 24000 // Convert VND to USD (approximate rate)
+      });
+
+      if (orderResult?.success) {
+        toast({
+          title: 'Đặt hàng thành công',
+          description: orderResult.message || 'Đơn hàng đã được tạo thành công',
+        });
+        setOpen(false);
+        return true;
+      } else {
+        toast({
+          title: 'Không thể tạo đơn hàng',
+          description: orderResult?.message || 'Có lỗi xảy ra khi tạo đơn hàng',
+          variant: 'destructive',
+        });
+        return false;
+      }
+    } catch (err: any) {
+      console.error('Order creation failed:', err);
+      toast({
+        title: 'Không thể tạo đơn hàng',
+        description: err.message || 'Có lỗi xảy ra khi tạo đơn hàng',
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }, [selectedProduct, toast, quantity, promotionCode, verifiedPrice, verifiedStock, createOrder, user?.id]);
+
   return {
     open,
     selectedProduct,
-    openDialog,
-    closeDialog,
-    handleConfirm,
+    quantity,
+    promotionCode,
     isVerifying,
     verifiedStock,
-    verifiedPrice
+    verifiedPrice,
+    submitting,
+    openDialog,
+    closeDialog,
+    handleQuantityChange,
+    handlePromotionCodeChange,
+    handleConfirm,
+    verifyProduct
   };
 };
