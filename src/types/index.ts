@@ -1,34 +1,5 @@
-import { TableHTMLAttributes } from 'react';
 
-export interface Product {
-  id: string;
-  title: string;
-  description: string;
-  shortDescription?: string;
-  price: number;
-  originalPrice?: number;
-  images: string[];
-  categoryId: string;
-  categories?: {
-    id: string;
-    name: string;
-    slug: string;
-    [key: string]: any;
-  };
-  rating: number;
-  reviewCount: number;
-  inStock: boolean;
-  stockQuantity: number;
-  badges: string[];
-  slug: string;
-  features: string[];
-  specifications: Record<string, string | number | boolean | object>;
-  salesCount?: number;
-  sales_count?: number;
-  createdAt: string;
-  kiosk_token: string;
-  stock: number;
-}
+import { Json } from './database.types';
 
 export interface Category {
   id: string;
@@ -38,53 +9,35 @@ export interface Category {
   image: string;
   count: number;
   parent_id?: string | null;
-  subcategories?: Category[];
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
-export type SortOption = 'newest' | 'popular' | 'price-low' | 'price-high';
-
-export interface FilterParams {
-  categoryId?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  ratings?: number[];
-  search?: string;
-  tags?: string[];
-  inStock?: boolean;
-  sort?: string;
-  page?: number;
-  limit?: number;
-  priceRange?: [number, number];
-}
-
-export interface CategoryPageParams extends Record<string, string> {
-  categorySlug?: string;
-  parentCategorySlug?: string;
-}
-
-export interface SubcategoryPageParams extends Record<string, string> {
-  categorySlug?: string;
-  parentCategorySlug?: string;
-}
-
-export interface ProductPageParams extends Record<string, string> {
-  productSlug?: string;
-  categorySlug?: string;
-  parentCategorySlug?: string;
-}
-
-export interface ProductWithCategory extends Product {
-  category: Category;
-}
-
-export interface TableColumn<T> {
-  header: string;
-  accessorKey: keyof T | string;
-  cell?: (info: { row: { original: T } }) => React.ReactNode;
-}
-
-export interface TableProps<T> extends TableHTMLAttributes<HTMLTableElement> {
-  data: T[];
-  columns: TableColumn<T>[];
-  isLoading?: boolean;
+export interface Product {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  original_price?: number | null;
+  in_stock: boolean;
+  slug: string;
+  external_id?: string | null;
+  category_id: string;
+  images?: string[];
+  kiosk_token?: string | null;
+  stock: number;
+  api_price?: number | null;
+  api_stock?: number | null;
+  api_name?: string | null;
+  short_description?: string | null;
+  stockQuantity?: number;
+  rating?: number;
+  review_count?: number;
+  badges?: string[];
+  features?: string[];
+  specifications?: Record<string, any>;
+  created_at?: string;
+  updated_at?: string;
+  last_synced_at?: string;
+  category?: Category;
 }

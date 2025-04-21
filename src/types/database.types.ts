@@ -229,12 +229,90 @@ export interface Database {
         };
         Relationships: [];
       };
+      profiles: {
+        Row: {
+          id: string;
+          balance: number;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id: string;
+          balance?: number;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          balance?: number;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      api_configs: {
+        Row: {
+          id: string;
+          name: string;
+          user_token: string;
+          kiosk_token: string;
+          is_active?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          user_token: string;
+          kiosk_token: string;
+          is_active?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          user_token?: string;
+          kiosk_token?: string;
+          is_active?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      get_user_roles: {
+        Args: { user_id_param: string };
+        Returns: string[];
+      };
+      assign_role: {
+        Args: { user_id_param: string; role_param: string };
+        Returns: undefined;
+      };
+      remove_role: {
+        Args: { user_id_param: string; role_param: string };
+        Returns: undefined;
+      };
+      check_email_status: {
+        Args: { email_param: string };
+        Returns: {
+          email_exists: boolean;
+          status: string | null;
+          last_verification_sent: string | null;
+        }[];
+      };
+      check_registration_rate_limit: {
+        Args: { email_param: string };
+        Returns: {
+          is_limited: boolean;
+          remaining_attempts: number | null;
+          unlock_time: string | null;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;
