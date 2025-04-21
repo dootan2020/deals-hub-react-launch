@@ -5,6 +5,7 @@ import { ShoppingBag, Loader2 } from 'lucide-react';
 import { usePurchaseDialog } from '@/hooks/use-purchase-dialog';
 import PurchaseConfirmDialog from './PurchaseConfirmDialog';
 import { ensureProductFields } from '@/utils/productUtils';
+import { Product } from '@/types';
 
 interface BuyNowButtonProps {
   product?: any;
@@ -57,7 +58,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
     });
     
     // Open the purchase dialog
-    openDialog(productData);
+    openDialog(productData as Product);
   };
 
   // Handle confirmation with callback
