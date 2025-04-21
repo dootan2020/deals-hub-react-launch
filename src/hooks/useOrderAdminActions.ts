@@ -1,15 +1,52 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Order } from './orderUtils';
 
+// Helper to log order activities for audit
+async function logOrderActivity({
+  orderId,
+  userId,
+  action,
+  oldStatus,
+  newStatus,
+  metadata,
+}: {
+  orderId: string;
+  userId?: string | null;
+  action: string;
+  oldStatus?: string;
+  newStatus?: string;
+  metadata?: any;
+}) {
+  try {
+    await supabase.from('order_activities').insert([
+      {
+        order_id: orderId,
+        user_id: userId ?? null,
+        action,
+        old_status: oldStatus ?? null,
+        new_status: newStatus ?? null,
+        metadata,
+      }
+    ]);
+  } catch (e) {
+    console.error('Failed to log admin order activity', e);
+  }
+}
+
 // Actions for use in admin order management views
 export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) => void) {
   const [loading, setLoading] = useState(false);
 
-  const updateOrderStatus = async (orderId: string, status: string) => {
+  const updateOrderStatus = async (orderId: string, status: string, adminId?: string) => {
     try {
       setLoading(true);
+      // Find old status for logs
+      const oldOrder = orders.find(order => order.id === orderId);
+      const oldStatus = oldOrder?.status || null;
+
       const { error } = await supabase
         .from('orders')
         .update({ status, updated_at: new Date().toISOString() })
@@ -20,6 +57,16 @@ export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) =>
       setOrders(orders.map(order =>
         order.id === orderId ? { ...order, status, updated_at: new Date().toISOString() } : order
       ));
+
+      // Log the status change action
+      await logOrderActivity({
+        orderId,
+        userId: adminId ?? null,
+        action: 'status_changed',
+        oldStatus,
+        newStatus: status,
+        metadata: { adminId }
+      });
 
       return true;
     } catch (err) {
@@ -32,7 +79,7 @@ export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) =>
   };
 
   // Refund logic
-  const processRefund = async (orderId: string) => {
+  const processRefund = async (orderId: string, adminId?: string) => {
     try {
       setLoading(true);
       const { data: orderData, error: orderError } = await supabase
@@ -83,6 +130,16 @@ export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) =>
       setOrders(orders.map(order =>
         order.id === orderId ? { ...order, status: 'refunded', updated_at: new Date().toISOString() } : order
       ));
+
+      // Log refund
+      await logOrderActivity({
+        orderId,
+        userId: adminId ?? null,
+        action: 'refunded',
+        oldStatus: orderData.status ?? null,
+        newStatus: 'refunded',
+        metadata: { adminId, amount: orderData.total_price }
+      });
 
       toast.success("Hoàn tiền thành công", `Số tiền ${orderData.total_price.toLocaleString('vi-VN')} VNĐ đã được hoàn trả cho người dùng`);
       return true;
