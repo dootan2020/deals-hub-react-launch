@@ -1,30 +1,29 @@
 
 import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
 
 interface SubcategoryErrorProps {
-  error: Error | string;
+  error: string | null;
 }
 
 const SubcategoryError: React.FC<SubcategoryErrorProps> = ({ error }) => {
-  const errorMessage = typeof error === 'string' ? error : error.message;
-
   return (
-    <div className="flex flex-col items-center justify-center py-16">
-      <div className="text-red-500 text-6xl mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
+    <div className="container mx-auto px-4 py-16 flex flex-col items-center">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-8 max-w-md w-full text-center">
+        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+        <h2 className="text-xl font-bold text-red-700 mb-2">Error Loading Products</h2>
+        <p className="text-red-600 mb-6">{error || "There was a problem loading the subcategory products."}</p>
+        <div className="space-x-4">
+          <Button asChild variant="outline">
+            <Link to="/">Return to Home</Link>
+          </Button>
+          <Button asChild>
+            <Link to="/products">Browse All Products</Link>
+          </Button>
+        </div>
       </div>
-      <h2 className="text-2xl font-bold mb-2">Something went wrong</h2>
-      <p className="text-muted-foreground mb-8">{errorMessage}</p>
-      <button 
-        onClick={() => window.location.reload()} 
-        className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
-      >
-        Try Again
-      </button>
     </div>
   );
 };

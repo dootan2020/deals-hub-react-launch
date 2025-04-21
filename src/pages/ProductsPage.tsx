@@ -9,8 +9,7 @@ import ViewToggle from '@/components/product/ViewToggle';
 import { useCategoryProducts } from '@/hooks/useCategoryProducts';
 import { useCategoriesContext } from '@/context/CategoriesContext';
 import SubcategoryPills from '@/components/category/SubcategoryPills';
-import { Category } from '@/types';
-import { SortOption } from '@/types';
+import { Category, SortOption } from '@/types';
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -20,21 +19,20 @@ const ProductsPage = () => {
   
   const subcategories = categories.filter(cat => cat.parent_id !== null);
   
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [currentSort, setCurrentSort] = useState<SortOption>(initialSort);
+  
   const { 
     products, 
     loading,
-    loadingMore,
-    hasMore,
-    loadMore,
-    handleSortChange: handleSort,
-    setSelectedCategory 
+    error
   } = useCategoryProducts({
-    isProductsPage: true,
-    sort: initialSort
+    categoryId: selectedCategoryId,
+    sort: currentSort
   });
 
   const handleSortChange = (value: string) => {
-    handleSort(value);
+    setCurrentSort(value as SortOption);
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set('sort', value);
     setSearchParams(newSearchParams);
@@ -45,9 +43,20 @@ const ProductsPage = () => {
   };
 
   const handleSubcategoryClick = (category: Category) => {
-    setSelectedCategory(category.id);
-    toast.success("Category Filter Applied", `Showing products from ${category.name}`);
+    setSelectedCategoryId(category.id);
+    toast({
+      title: "Category Filter Applied",
+      description: `Showing products from ${category.name}`
+    });
   };
+
+  // Mock functions for missing functionality
+  const loadMore = () => {
+    console.log('Loading more products...');
+  };
+
+  const loadingMore = false;
+  const hasMore = false;
 
   return (
     <Layout>
@@ -75,7 +84,7 @@ const ProductsPage = () => {
             <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
               <div className="flex justify-between items-center mb-6">
                 <ProductSorter 
-                  currentSort={initialSort} 
+                  currentSort={currentSort} 
                   onSortChange={handleSortChange} 
                 />
                 <ViewToggle 

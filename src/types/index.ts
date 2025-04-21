@@ -1,3 +1,4 @@
+
 // Define the SortOption type for product sorting
 export type SortOption = 'newest' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc' | 'popular' | 'price-low' | 'price-high';
 
@@ -37,40 +38,16 @@ export interface Product {
   original_price?: number;
   short_description?: string;
   createdAt: string;
+  category?: Category;
   
-  // Camel case getters for compatibility
-  get originalPrice(): number | undefined {
-    return this.original_price;
-  }
-  
-  get shortDescription(): string {
-    return this.short_description || this.description.substring(0, 100);
-  }
-  
-  get categoryId(): string {
-    return this.category_id;
-  }
-  
-  get inStock(): boolean {
-    return this.in_stock;
-  }
-  
-  get stockQuantity(): number {
-    return this.stock_quantity || this.stock || 0;
-  }
-  
-  get reviewCount(): number {
-    return this.review_count || 0;
-  }
-  
-  get salesCount(): number {
-    return 0; // Default value if not provided
-  }
-  
-  get category(): Category | undefined {
-    // This will be populated by the API when needed
-    return undefined;
-  }
+  // Properties to ensure compatibility with both naming conventions
+  readonly originalPrice?: number;
+  readonly shortDescription: string;
+  readonly categoryId: string;
+  readonly inStock: boolean;
+  readonly stockQuantity: number;
+  readonly reviewCount: number;
+  readonly salesCount: number;
 }
 
 export interface FilterParams {

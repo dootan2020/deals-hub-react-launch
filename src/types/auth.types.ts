@@ -12,7 +12,7 @@ export interface User {
     avatar_url?: string;
   };
   role?: UserRole;
-  // Add these properties to fix the type error in MyAccountPage.tsx
+  // Make these properties optional to fix the type error in MyAccountPage.tsx
   app_metadata?: any;
   aud?: string;
   created_at?: string;

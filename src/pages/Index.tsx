@@ -12,30 +12,36 @@ import ProductGrid from '@/components/product/ProductGrid';
 import TestimonialsSection from '@/components/home/TestimonialsSection';
 import NewsletterSection from '@/components/home/NewsletterSection';
 import { toast } from '@/hooks/use-toast';
+import { Product, SortOption } from '@/types';
 
 const Index = () => {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  // Đổi giá trị mặc định từ 'recommended' thành 'newest'
-  const [activeSort, setActiveSort] = useState('newest');
+  // Update to use a valid SortOption
+  const [activeSort, setActiveSort] = useState<SortOption>('newest');
 
   useEffect(() => {
     const loadProducts = async () => {
       try {
         setLoading(true);
-        const fetchedProducts = await fetchProductsWithFilters({
+        const result = await fetchProductsWithFilters({
           sort: activeSort,
         });
         
-        console.log('Featured products in Index page:', fetchedProducts.map(p => ({
-          title: p.title,
-          kiosk_token: p.kiosk_token ? 'present' : 'missing'
-        })));
-        
-        setProducts(fetchedProducts);
+        if (Array.isArray(result)) {
+          setProducts(result);
+        } else if (result && Array.isArray(result.products)) {
+          setProducts(result.products);
+        } else {
+          setProducts([]);
+        }
       } catch (error) {
         console.error('Error loading products:', error);
-        toast.error('Failed to load products');
+        toast({
+          title: "Error",
+          description: "Failed to load products",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
@@ -58,7 +64,7 @@ const Index = () => {
               description="Check out our most popular digital products available now."
               showSort={true}
               activeSort={activeSort}
-              onSortChange={setActiveSort}
+              onSortChange={(sort) => setActiveSort(sort as SortOption)}
               isLoading={loading}
               showViewAll={true}
               viewAllLink={`/products?sort=${activeSort}`}

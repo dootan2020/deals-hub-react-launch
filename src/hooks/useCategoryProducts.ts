@@ -4,18 +4,21 @@ import { fetchProductsWithFilters } from '@/services/productService';
 import { Product, SortOption } from '@/types';
 
 interface UseCategoryProductsProps {
-  categoryId: string | null;
-  sort: SortOption;
+  categoryId?: string | null;
+  sort?: SortOption;
+  isProductsPage?: boolean;
 }
 
-export const useCategoryProducts = ({ categoryId, sort }: UseCategoryProductsProps) => {
+export const useCategoryProducts = ({ categoryId, sort = 'newest', isProductsPage = false }: UseCategoryProductsProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     const fetchProducts = async () => {
-      if (!categoryId) {
+      if (!isProductsPage && !categoryId) {
         setProducts([]);
         setLoading(false);
         return;
@@ -24,9 +27,7 @@ export const useCategoryProducts = ({ categoryId, sort }: UseCategoryProductsPro
       setLoading(true);
       try {
         // Map our UI sort options to API sort options if they're different
-        let apiSortOption: SortOption = sort;
-        if (sort === 'price-high') apiSortOption = 'price-desc';
-        if (sort === 'price-low') apiSortOption = 'price-asc';
+        let apiSortOption = sort;
         
         const result = await fetchProductsWithFilters({
           categoryId,
@@ -35,9 +36,16 @@ export const useCategoryProducts = ({ categoryId, sort }: UseCategoryProductsPro
         
         if (result && Array.isArray(result.products)) {
           setProducts(result.products);
+          setHasMore(result.totalPages > 1);
+        } else if (Array.isArray(result)) {
+          setProducts(result);
+          setHasMore(false);
         } else {
           setProducts([]);
+          setHasMore(false);
         }
+        
+        setError(null);
       } catch (err) {
         console.error('Error fetching products:', err);
         setError('Failed to load products');
@@ -47,7 +55,34 @@ export const useCategoryProducts = ({ categoryId, sort }: UseCategoryProductsPro
     };
 
     fetchProducts();
-  }, [categoryId, sort]);
+  }, [categoryId, sort, isProductsPage]);
 
-  return { products, loading, error };
+  const handleSortChange = (newSort: string) => {
+    // This is just a placeholder, the actual implementation would update the sort state
+    console.log('Sort changed to:', newSort);
+  };
+
+  const setSelectedCategory = (categoryId: string) => {
+    // This is just a placeholder, the actual implementation would update the category
+    console.log('Selected category:', categoryId);
+  };
+
+  const loadMore = () => {
+    setLoadingMore(true);
+    // Simulating loading more products
+    setTimeout(() => {
+      setLoadingMore(false);
+    }, 500);
+  };
+
+  return { 
+    products, 
+    loading, 
+    error, 
+    loadingMore,
+    hasMore,
+    loadMore,
+    handleSortChange,
+    setSelectedCategory 
+  };
 };

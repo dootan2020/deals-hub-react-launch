@@ -55,7 +55,7 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
                   </div>
                   
                   <p className="text-muted-foreground mb-4 line-clamp-2">
-                    {product.shortDescription}
+                    {product.short_description || product.description.substring(0, 100)}
                   </p>
                   
                   <div className="mb-4">
@@ -68,7 +68,7 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
                         ))}
                       </div>
                       <span className="text-muted-foreground text-sm">
-                        ({product.reviewCount} reviews)
+                        ({product.review_count} reviews)
                       </span>
                     </div>
                   </div>
@@ -76,13 +76,13 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
                 
                 <div className="flex flex-wrap items-end justify-between mt-4">
                   <div>
-                    {product.originalPrice && product.originalPrice > product.price ? (
+                    {product.original_price && product.original_price > product.price ? (
                       <div className="flex items-center gap-2">
                         <span className="text-xl font-bold text-primary">
                           {formatCurrency(product.price)}
                         </span>
                         <span className="text-sm line-through text-muted-foreground">
-                          {formatCurrency(product.originalPrice)}
+                          {formatCurrency(product.original_price)}
                         </span>
                       </div>
                     ) : (
@@ -92,7 +92,7 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
                     )}
                     
                     <div className="text-sm text-muted-foreground mt-1">
-                      {product.inStock ? (
+                      {product.in_stock ? (
                         <span className="text-green-600">In Stock</span>
                       ) : (
                         <span className="text-red-500">Out of Stock</span>
@@ -111,7 +111,7 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
                     <BuyNowButton
                       product={product}
                       size="sm"
-                      isInStock={product.inStock}
+                      isInStock={product.in_stock}
                     />
                   </div>
                 </div>

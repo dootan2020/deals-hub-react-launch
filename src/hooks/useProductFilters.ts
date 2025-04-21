@@ -141,8 +141,8 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
   // Convert filters to FilterParams for API requests
   const getFilterParams = (): FilterParams => ({
     sort: filters.sort,
-    minPrice: filters.priceRange[0],
-    maxPrice: filters.priceRange[1],
+    priceMin: filters.priceRange[0],
+    priceMax: filters.priceRange[1],
     inStock: filters.stockFilter === 'in-stock' ? true : undefined,
     categoryId: filters.activeSubcategories.length > 0 ? filters.activeSubcategories[0] : undefined,
     subcategories: filters.activeSubcategories.length > 0 ? filters.activeSubcategories : undefined,

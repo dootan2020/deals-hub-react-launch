@@ -5,21 +5,19 @@ import ProductList from '@/components/product/ProductList';
 import SubcategoryFilters from '@/components/category/SubcategoryFilters';
 import { SortOption } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import SupportSection from '@/components/category/SupportSection';
-import FAQ from '@/components/category/FAQ';
 
 interface SubcategoryMainContentProps {
   title: string;
   products: any[];
   isLoading: boolean;
-  totalProducts: number;
-  currentPage: number;
-  totalPages: number;
+  totalProducts?: number;
+  currentPage?: number;
+  totalPages?: number;
   subcategories: any[];
   activeSort: SortOption;
   activeSubcategories: string[];
   onSortChange: (sort: string) => void;
-  onPageChange: (page: number) => void;
+  onPageChange?: (page: number) => void;
   onSubcategoryToggle: (id: string) => void;
   onPriceChange: (min: number, max: number) => void;
   onStockFilterChange: (value: string) => void;
@@ -31,9 +29,9 @@ export const SubcategoryMainContent: React.FC<SubcategoryMainContentProps> = ({
   title,
   products,
   isLoading,
-  totalProducts,
-  currentPage,
-  totalPages,
+  totalProducts = 0,
+  currentPage = 1,
+  totalPages = 1,
   subcategories,
   activeSort,
   activeSubcategories,
@@ -95,5 +93,24 @@ export const SubcategoryMainContent: React.FC<SubcategoryMainContentProps> = ({
     </div>
   );
 };
+
+// Placeholder components for SupportSection and FAQ
+const SupportSection = () => (
+  <div className="p-4 border rounded-lg">
+    <h3 className="font-medium mb-2">Need Help?</h3>
+    <p className="text-sm text-gray-600">Our support team is available 24/7 to assist you with any questions.</p>
+  </div>
+);
+
+const FAQ = () => (
+  <div className="p-4 border rounded-lg">
+    <h3 className="font-medium mb-2">Frequently Asked Questions</h3>
+    <ul className="text-sm text-gray-600 space-y-2">
+      <li>How do I receive my digital product?</li>
+      <li>What payment methods do you accept?</li>
+      <li>Can I get a refund if I'm not satisfied?</li>
+    </ul>
+  </div>
+);
 
 export default SubcategoryMainContent;

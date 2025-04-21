@@ -28,10 +28,8 @@ export const useSubcategoryProducts = ({
       setError(null);
       
       try {
-        // Map our UI sort options to API sort options if they're different
+        // Map our UI sort options to API sort options if needed
         let apiSortOption: SortOption = sortOption;
-        if (sortOption === 'price-high') apiSortOption = 'price-desc';
-        if (sortOption === 'price-low') apiSortOption = 'price-asc';
         
         const result = await fetchProductsWithFilters({
           subcategory: slug,

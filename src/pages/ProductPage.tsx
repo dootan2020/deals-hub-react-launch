@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -54,7 +55,7 @@ const ProductPage = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-8 lg:py-12">
           <ProductHeader 
             title={product.title}
-            category={product.categories}
+            category={product.category}
           />
 
           {/* Two column layout for purchase section and trust badges */}
