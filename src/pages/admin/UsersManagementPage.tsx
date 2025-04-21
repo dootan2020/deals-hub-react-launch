@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { useUsersManagement } from '@/hooks/admin/use-users-management';
 import { UserStatsCards } from '@/components/admin/users/UserStatsCards';

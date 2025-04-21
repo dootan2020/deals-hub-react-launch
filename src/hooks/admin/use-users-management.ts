@@ -18,9 +18,9 @@ export const useUsersManagement = () => {
     new_users_month: 0,
     inactive_users: 0
   });
+
   const itemsPerPage = 10;
 
-  // Fetch all users
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
@@ -47,7 +47,6 @@ export const useUsersManagement = () => {
     }
   }, [searchTerm]);
 
-  // Apply filters and pagination
   const applyFilters = useCallback((usersData: UserWithRolesRow[], search: string) => {
     let filtered = usersData;
     
@@ -62,7 +61,6 @@ export const useUsersManagement = () => {
     setTotalPages(Math.ceil(filtered.length / itemsPerPage));
   }, []);
 
-  // Calculate user statistics
   const calculateStats = useCallback((usersData: UserWithRolesRow[]) => {
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -78,7 +76,6 @@ export const useUsersManagement = () => {
     setStats(stats);
   }, []);
 
-  // Assign role to user
   const assignRole = async (userId: string, role: UserRole): Promise<boolean> => {
     try {
       const { error } = await (supabase as any).rpc('assign_role', {
@@ -100,7 +97,6 @@ export const useUsersManagement = () => {
     }
   };
 
-  // Remove role from user
   const removeRole = async (userId: string, role: UserRole): Promise<boolean> => {
     try {
       const { error } = await (supabase as any).rpc('remove_role', {
@@ -122,25 +118,20 @@ export const useUsersManagement = () => {
     }
   };
 
-  // Toggle user active status (mock implementation - would need to be replaced with actual Supabase function)
   const toggleUserActiveStatus = async (userId: string, currentStatus?: boolean): Promise<boolean> => {
-    const newStatus = !currentStatus;
-    
-    // This is a mock implementation - replace with actual Supabase admin SDK call
     try {
-      toast.success(`Đã ${newStatus ? 'kích hoạt' : 'vô hiệu hóa'} tài khoản`);
-      
-      // Update local state to reflect change
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === userId ? { ...user, is_active: newStatus } : user
-        )
+      const { error } = await supabase.rpc(
+        currentStatus ? 'ban_user' : 'unban_user',
+        currentStatus ? { user_id_param: userId } : { user_id_param: userId }
       );
-      
-      applyFilters(users.map(user => 
-        user.id === userId ? { ...user, is_active: newStatus } : user
-      ), searchTerm);
-      
+
+      if (error) {
+        toast.error(`Lỗi khi ${currentStatus ? 'khóa' : 'mở khóa'} tài khoản: ${error.message}`);
+        return false;
+      }
+
+      toast.success(`Đã ${currentStatus ? 'khóa' : 'mở khóa'} tài khoản thành công`);
+      await fetchUsers();
       return true;
     } catch (error: any) {
       toast.error(`Lỗi khi cập nhật trạng thái: ${error.message}`);
@@ -148,39 +139,32 @@ export const useUsersManagement = () => {
     }
   };
 
-  // Handle search
   const handleSearch = (term: string) => {
     setSearchTerm(term);
-    setCurrentPage(1); // Reset to first page on search
+    setCurrentPage(1);
     applyFilters(users, term);
   };
 
-  // Handle pagination
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
-  // Get current page data
   const getCurrentPageData = (): UserWithRolesRow[] => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredUsers.slice(startIndex, endIndex);
   };
 
-  // Initial data fetch
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
   return {
     users: getCurrentPageData(),
-    allUsers: filteredUsers,
     loading,
     stats,
-    searchTerm,
     currentPage,
     totalPages,
-    itemsPerPage,
     handleSearch,
     handlePageChange,
     fetchUsers,
