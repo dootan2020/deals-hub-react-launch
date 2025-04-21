@@ -1,77 +1,14 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { useOrderApi } from '@/hooks/use-order-api';
 import { supabase } from '@/integrations/supabase/client';
-import { recordPurchaseActivity, checkUserBehaviorAnomaly } from '@/utils/fraud-detection';
 import { sanitizeHtml } from '@/utils/sanitizeHtml';
-import { generateIdempotencyKey } from '@/utils/idempotencyUtils';
 import { useProductVerification } from './useProductVerification';
 import { useOrderIdempotencyKey } from './useOrderIdempotencyKey';
 import { logOrderActivity, checkFraudAndReport } from './usePurchaseActivity';
-
-interface Product {
-  id: string;
-  kiosk_token: string;
-  title: string;
-  price: number;
-  stockQuantity: number;
-  description?: string;
-  images?: string[];
-  categoryId?: string;
-  rating?: number;
-  reviewCount?: number;
-  badges?: string[];
-  features?: string[];
-  slug?: string;
-  inStock?: boolean;
-  specifications?: object;
-  createdAt?: string;
-  stock?: number;
-  shortDescription?: string;
-}
-
-async function logOrderActivity({
-  orderId,
-  userId,
-  action,
-  oldStatus,
-  newStatus,
-  metadata,
-}: {
-  orderId: string;
-  userId: string | null;
-  action: string;
-  oldStatus?: string;
-  newStatus?: string;
-  metadata?: any;
-}) {
-  try {
-    await supabase.from('order_activities').insert([
-      {
-        order_id: orderId,
-        user_id: userId,
-        action,
-        old_status: oldStatus,
-        new_status: newStatus,
-        metadata,
-      }
-    ]);
-    // No need to toast here; for audit only
-  } catch (error) {
-    // Optionally log to a system like Sentry here
-    console.error('Failed to log order activity:', error);
-  }
-}
-
-function generateOrderIdempotencyKey(userId: string | undefined, productId: string, quantity: number): string {
-  return generateIdempotencyKey('order', { 
-    user_id: userId || 'anonymous',
-    product_id: productId,
-    quantity: quantity,
-    timestamp: new Date().getTime()
-  });
-}
+import { Product } from '@/types'; // Import the standard Product type
 
 export const usePurchaseDialog = () => {
   const [open, setOpen] = useState(false);

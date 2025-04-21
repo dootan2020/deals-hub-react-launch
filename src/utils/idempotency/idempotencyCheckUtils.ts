@@ -1,28 +1,61 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { IdempotencyResult } from '@/types/fixedTypes';
 
-export const checkIdempotency = async (
-  table: 'deposits' | 'orders' | 'transactions',
-  idempotencyKey: string
-): Promise<{ exists: boolean; data?: any }> => {
+/**
+ * Check if a request with this idempotency key already exists and return its result
+ */
+export async function checkIdempotencyKey<T>(
+  key: string,
+  keyType: string
+): Promise<IdempotencyResult<T>> {
   try {
+    // Query for existing idempotency record
     const { data, error } = await supabase
-      .from(table)
+      .from('idempotency_keys')
       .select('*')
-      .eq('idempotency_key', idempotencyKey)
+      .eq('key', key)
+      .eq('key_type', keyType)
       .maybeSingle();
 
     if (error) {
-      console.error(`Error checking idempotency in table ${table}:`, error);
-      return { exists: false };
+      console.error('Error checking idempotency key:', error);
+      return { result: null, isNew: true };
     }
 
-    return {
-      exists: !!data,
-      data: data || undefined
+    // If no record was found, this is a new request
+    if (!data) {
+      return { result: null, isNew: true };
+    }
+
+    // Return the stored result
+    return { 
+      result: data.result as T, 
+      isNew: false
     };
-  } catch (error) {
-    console.error(`Exception checking idempotency in table ${table}:`, error);
-    return { exists: false };
+  } catch (err) {
+    console.error('Exception in checkIdempotencyKey:', err);
+    return { result: null, isNew: true };
   }
-};
+}
+
+export async function getIdempotencyRecord(key: string, keyType: string) {
+  try {
+    const { data, error } = await supabase
+      .from('idempotency_keys')
+      .select('*')
+      .eq('key', key)
+      .eq('key_type', keyType)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error retrieving idempotency record:', error);
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    console.error('Exception in getIdempotencyRecord:', err);
+    return null;
+  }
+}
