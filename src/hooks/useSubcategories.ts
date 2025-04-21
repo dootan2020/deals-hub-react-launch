@@ -1,17 +1,29 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Product } from '@/types';
+import { Product, Category } from '@/types';
 
-export const useSubcategories = (subcategoryId: string | null) => {
+interface UseSubcategoriesResult {
+  products: Product[];
+  loading: boolean;
+  error: string | null;
+  subcategories: Category[];
+  featuredProducts: Product[];
+}
+
+export const useSubcategories = (categoryId: string | null): UseSubcategoriesResult => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [subcategories, setSubcategories] = useState<Category[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      if (!subcategoryId) {
+    const fetchData = async () => {
+      if (!categoryId) {
         setProducts([]);
+        setSubcategories([]);
+        setFeaturedProducts([]);
         setLoading(false);
         return;
       }
@@ -19,13 +31,23 @@ export const useSubcategories = (subcategoryId: string | null) => {
       setLoading(true);
       
       try {
-        const { data, error } = await supabase
+        // Fetch subcategories
+        const { data: subcategoriesData, error: subcategoriesError } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('parent_id', categoryId);
+          
+        if (subcategoriesError) throw subcategoriesError;
+        setSubcategories(subcategoriesData || []);
+        
+        // Fetch products
+        const { data, error: productsError } = await supabase
           .from('products')
           .select('*')
-          .eq('category_id', subcategoryId)
+          .eq('category_id', categoryId)
           .order('created_at', { ascending: false });
           
-        if (error) throw error;
+        if (productsError) throw productsError;
         
         // Map the database results to the Product type
         const productList: Product[] = data.map(item => ({
@@ -49,28 +71,34 @@ export const useSubcategories = (subcategoryId: string | null) => {
           short_description: item.short_description || '',
           createdAt: item.created_at,
           
-          // Computed properties
-          get originalPrice() { return this.original_price; },
-          get shortDescription() { return this.short_description || this.description.substring(0, 100); },
-          get categoryId() { return this.category_id; },
-          get inStock() { return this.in_stock; },
-          get stockQuantity() { return this.stock_quantity || 0; },
-          get reviewCount() { return this.review_count || 0; },
-          get salesCount() { return 0; }
+          // Required computed properties
+          shortDescription: item.short_description || item.description.substring(0, 100),
+          categoryId: item.category_id,
+          inStock: item.in_stock === true,
+          stockQuantity: item.stock_quantity || 0,
+          reviewCount: item.review_count || 0,
+          originalPrice: item.original_price ? Number(item.original_price) : undefined,
+          salesCount: 0
         }));
         
         setProducts(productList);
+        
+        // Set featured products (first 4 products with highest rating)
+        setFeaturedProducts(
+          [...productList].sort((a, b) => b.rating - a.rating).slice(0, 4)
+        );
+        
         setError(null);
       } catch (err) {
-        console.error('Error fetching subcategory products:', err);
-        setError('Failed to load products');
+        console.error('Error fetching subcategory data:', err);
+        setError('Failed to load data');
       } finally {
         setLoading(false);
       }
     };
     
-    fetchProducts();
-  }, [subcategoryId]);
+    fetchData();
+  }, [categoryId]);
   
-  return { products, loading, error };
+  return { products, loading, error, subcategories, featuredProducts };
 };

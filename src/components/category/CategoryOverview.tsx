@@ -16,7 +16,7 @@ const CategoryOverview: React.FC<CategoryOverviewProps> = ({
   products 
 }) => {
   // Get subcategories using the hook
-  const { subcategories, featuredProducts } = useSubcategories(category.id);
+  const { subcategories, featuredProducts, loading, error } = useSubcategories(category.id);
   
   return (
     <>
@@ -28,7 +28,7 @@ const CategoryOverview: React.FC<CategoryOverviewProps> = ({
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-6">Featured Products</h2>
         <EnhancedProductGrid
-          products={products.slice(0, 8)}
+          products={featuredProducts.length > 0 ? featuredProducts : products.slice(0, 8)}
           showSort={false}
           limit={4}
           showViewAll={true}

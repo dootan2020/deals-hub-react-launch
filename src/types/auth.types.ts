@@ -7,12 +7,12 @@ export interface User {
   id: string;
   email: string;
   email_confirmed_at?: string | null;
-  user_metadata?: {
+  user_metadata: { // Making this required to match Supabase's type
     display_name?: string;
     avatar_url?: string;
   };
   role?: UserRole;
-  app_metadata: any; // Make this required to match Supabase's type
+  app_metadata: any; // Required to match Supabase's type
   aud?: string;
   created_at?: string;
 }
