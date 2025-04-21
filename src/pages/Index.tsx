@@ -11,7 +11,7 @@ import FeaturesSection from '@/components/home/FeaturesSection';
 import ProductGrid from '@/components/product/ProductGrid';
 import TestimonialsSection from '@/components/home/TestimonialsSection';
 import NewsletterSection from '@/components/home/NewsletterSection';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
   const [products, setProducts] = useState([]);
@@ -35,7 +35,7 @@ const Index = () => {
         setProducts(fetchedProducts);
       } catch (error) {
         console.error('Error loading products:', error);
-        toast('Failed to load products');
+        toast.error('Failed to load products');
       } finally {
         setLoading(false);
       }

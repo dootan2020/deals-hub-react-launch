@@ -45,9 +45,10 @@ export * from "./table";
 export * from "./tabs";
 export * from "./textarea";
 // Export our custom toast components but not the hooks
-export { Toast, ToastAction, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport, Toaster } from "./toast";
+export { Toast, ToastAction, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "./toast";
+export { Toaster } from "./toaster";
+// Export the toast hooks from our custom implementation
+export { useToast, toast } from "./use-toast";
 export * from "./toggle";
 export * from "./toggle-group";
 export * from "./tooltip";
-// Export the toast hooks from our custom implementation
-export { useToast, toast } from "./use-toast";

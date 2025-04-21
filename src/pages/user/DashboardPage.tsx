@@ -1,8 +1,9 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import UserLayout from '@/components/layout/UserLayout';
 import { useOrderStats } from '@/hooks/useOrderStats';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { processSpecificTransaction, checkDepositStatus } from '@/utils/payment';
 import BalanceCard from '@/components/dashboard/BalanceCard';
 import OrderStatsCard from '@/components/dashboard/OrderStatsCard';
