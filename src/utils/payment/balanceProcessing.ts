@@ -52,7 +52,8 @@ export const processDepositBalance = async (
     if (deposit.status === 'completed' || deposit.transaction_id) {
       console.log(`Calling update_user_balance for user ${deposit.user_id} with amount ${deposit.net_amount}`);
       
-      const { data: updateResult, error: balanceError } = await supabase.rpc(
+      // Fix: Avoid passing result directly in type instantiation
+      const { data, error: balanceError } = await supabase.rpc<boolean>(
         'update_user_balance',
         {
           user_id_param: deposit.user_id,
@@ -66,7 +67,7 @@ export const processDepositBalance = async (
       }
       
       // If result is false, it means no row was found/updated
-      if (updateResult === false) {
+      if (data === false) {
         console.warn("Balance update did not affect any rows");
         return { success: false, error: "User profile not found", updated: false };
       }
