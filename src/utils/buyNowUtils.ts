@@ -18,7 +18,7 @@ export const prepareProductForPurchase = (
       title: product.title || "",
       price: product.price || 0,
       stockQuantity: product.stockQuantity || 0,
-      description: product.description || "", // ensure description is always a string
+      description: product.description || "", // Always ensure description is a string
       shortDescription: product.shortDescription || product.description?.substring(0, 200) || "",
       images: product.images || [],
       categoryId: product.categoryId || "",

@@ -69,10 +69,10 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
 
   // Handle button click - open dialog
   const handleClick = () => {
-    // Use type assertion to ensure the returned product is compatible with what openDialog expects
-    const preparedProduct = prepareProductForPurchase(product as any, productId, kioskToken);
-    // We know openDialog is expecting the full Product type, which prepareProductForPurchase returns
-    openDialog(preparedProduct as unknown as Product);
+    // Use prepareProductForPurchase to ensure the product matches the required Product type
+    const preparedProduct = prepareProductForPurchase(product as Partial<Product>, productId, kioskToken);
+    // Now we can safely pass the prepared product to openDialog without type assertion
+    openDialog(preparedProduct);
   };
 
   const handleConfirmPurchase = async (quantity: number, code?: string) => {
