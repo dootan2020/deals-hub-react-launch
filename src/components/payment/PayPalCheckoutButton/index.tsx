@@ -3,12 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   PayPalButtons, 
   usePayPalScriptReducer, 
-  SCRIPT_LOADING_STATE,
-  CreateOrderActions,
-  OnApproveData,
-  OnApproveActions,
-  OnErrorData,
-  CreateOrderData
+  SCRIPT_LOADING_STATE
 } from '@paypal/react-paypal-js';
 import { toast } from '@/hooks/use-toast';
 import { PayPalProcessingState } from '../PayPalProcessingState';
@@ -36,7 +31,7 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
   }, [isPending, isRejected]);
 
   // Create order function with proper types
-  const createOrder = (_data: CreateOrderData, actions: CreateOrderActions) => {
+  const createOrder = (_data: any, actions: any) => {
     return actions.order.create({
       intent: "CAPTURE",
       purchase_units: [{
@@ -49,15 +44,15 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
   };
 
   // Handle payment success with proper types
-  const handleApprove = (_data: OnApproveData, actions: OnApproveActions) => {
-    return actions.order.capture().then((details) => {
+  const handleApprove = (_data: any, actions: any) => {
+    return actions.order.capture().then((details: any) => {
       toast.success('Thanh toán thành công qua PayPal!');
       onSuccess();
     });
   };
 
   // Handle errors with proper types
-  const handleError = (err: OnErrorData) => {
+  const handleError = (err: any) => {
     toast.error('Đã có lỗi xảy ra trong quá trình thanh toán với PayPal.');
     console.error('PayPal Checkout error:', err);
   };
@@ -69,9 +64,11 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
 
   // Handle retry with correct action type
   const handleRetry = () => {
-    // Use 'reset' as it is a valid action in PayPal's DISPATCH_ACTION type
     paypalDispatch({
-      type: 'reset'
+      type: 'resetOptions',
+      value: {
+        clientId: undefined
+      }
     });
   };
 
