@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -23,12 +24,11 @@ import {
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { toast } from 'sonner';
-import { useOrderApi } from '@/hooks/use-order-api';
+import { toast } from '@/hooks/use-toast';
+import { useOrderAutoPoll } from '@/hooks/useOrderAutoPoll';
 import { createInvoiceFromOrder } from '@/components/account/invoice-utils';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import type { Invoice } from '@/integrations/supabase/types-extension';
 
 interface OrderProduct {
   product: string;
@@ -44,40 +44,32 @@ const OrderSuccessPage = () => {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get('orderId');
   
-  const [isLoading, setIsLoading] = useState(false);
-  const [orderData, setOrderData] = useState<OrderResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [retries, setRetries] = useState(0);
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
   const [isInvoiceLoading, setIsInvoiceLoading] = useState(false);
   
-  const { checkOrder } = useOrderApi();
   const { user } = useAuth();
   
-  const fetchOrderData = async () => {
-    if (!orderId) {
-      setError('Không tìm thấy mã đơn hàng');
-      return;
-    }
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const result = await checkOrder({ orderId });
-      setOrderData(result);
-      
-      if (result.success === 'true' && user?.id) {
-        await createOrderInvoice(orderId);
+  // Use automatic polling hook instead of manual fetching
+  const {
+    orderData,
+    isLoading,
+    error,
+    retries,
+    maxRetries,
+    isComplete,
+    manualRefresh
+  } = useOrderAutoPoll({
+    orderId,
+    initialDelay: 1500,
+    maxRetries: 12,
+    retryDelay: 5000,
+    onSuccess: (result) => {
+      toast.success('Đơn hàng đã xử lý thành công!');
+      if (user?.id && orderId) {
+        createOrderInvoice(orderId);
       }
-      
-    } catch (err: any) {
-      console.error('Error fetching order data:', err);
-      setError(err.message || 'Không thể tải thông tin đơn hàng');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  });
 
   const createOrderInvoice = async (orderId: string) => {
     if (!user?.id) return;
@@ -127,7 +119,7 @@ const OrderSuccessPage = () => {
     if (!orderData?.data) return;
     
     const content = orderData.data
-      .map((item, index) => `${index + 1}. ${item.product}`)
+      .map((item: OrderProduct, index: number) => `${index + 1}. ${item.product}`)
       .join('\n');
       
     const blob = new Blob([content], { type: 'text/plain' });
@@ -147,7 +139,7 @@ const OrderSuccessPage = () => {
     if (!orderData?.data) return;
     
     const content = orderData.data
-      .map((item, index) => `${index + 1}. ${item.product}`)
+      .map((item: OrderProduct, index: number) => `${index + 1}. ${item.product}`)
       .join('\n');
       
     navigator.clipboard.writeText(content)
@@ -166,26 +158,6 @@ const OrderSuccessPage = () => {
       window.open(`/account?tab=invoices`, '_blank');
     }
   };
-  
-  useEffect(() => {
-    if (orderData?.success === 'false' && 
-        orderData?.description === 'Order in processing!' && 
-        retries < 5) {
-      const timer = setTimeout(() => {
-        console.log(`Đang thử lại lần ${retries + 1}/5...`);
-        fetchOrderData();
-        setRetries(prev => prev + 1);
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [orderData, retries]);
-  
-  useEffect(() => {
-    if (orderId) {
-      fetchOrderData();
-    }
-  }, [orderId]);
 
   return (
     <Layout>
@@ -199,7 +171,7 @@ const OrderSuccessPage = () => {
           </CardHeader>
           
           <CardContent>
-            {isLoading ? (
+            {isLoading && !orderData ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
                 <p className="text-lg font-medium">Đang tải thông tin đơn hàng...</p>
@@ -248,7 +220,7 @@ const OrderSuccessPage = () => {
                       <CardContent>
                         <ScrollArea className="h-[300px] w-full rounded-md border p-4">
                           <ol className="space-y-4 list-decimal list-inside">
-                            {orderData.data.map((item, index) => (
+                            {orderData.data.map((item: OrderProduct, index: number) => (
                               <li key={index} className="flex justify-between items-center p-2 hover:bg-slate-50 rounded-lg">
                                 <span className="font-mono break-all mr-2">{item.product}</span>
                                 <Button 
@@ -317,19 +289,29 @@ const OrderSuccessPage = () => {
                       <h3 className="text-xl font-medium">Đơn hàng đang xử lý</h3>
                       <p className="text-muted-foreground mt-1">
                         {orderData.description === 'Order in processing!' 
-                          ? 'Đơn hàng của bạn đang được xử lý. Vui lòng kiểm tra lại sau.' 
+                          ? 'Đơn hàng của bạn đang được xử lý. Hệ thống đang tự động kiểm tra trạng thái.' 
                           : orderData.description || 'Có lỗi xảy ra với đơn hàng của bạn.'}
                       </p>
                     </div>
                     
                     <Alert>
-                      <AlertTitle>Lưu ý</AlertTitle>
+                      <AlertTitle>Thông báo</AlertTitle>
                       <AlertDescription>
                         {retries > 0 
-                          ? `Đang tự động kiểm tra trạng thái đơn hàng (lần ${retries}/5)...` 
-                          : 'Đơn hàng thường được xử lý trong vài phút. Bạn có thể làm mới trang để kiểm tra trạng thái mới nhất.'}
+                          ? `Đang tự động kiểm tra trạng thái đơn hàng (lần ${retries}/${maxRetries})...` 
+                          : 'Đơn hàng thường được xử lý trong vài phút. Hệ thống sẽ tự động cập nhật khi hoàn tất.'}
                       </AlertDescription>
                     </Alert>
+
+                    {/* Hiển thị thanh tiến trình */}
+                    {retries > 0 && (
+                      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                        <div 
+                          className="bg-primary h-2.5 rounded-full transition-all duration-500" 
+                          style={{ width: `${Math.min((retries / maxRetries) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    )}
                   </div>
                 )}
               </>
@@ -349,9 +331,9 @@ const OrderSuccessPage = () => {
               Quay về trang chủ
             </Button>
             
-            {orderId && !isLoading && (
+            {orderId && !isLoading && !isComplete && (
               <Button 
-                onClick={fetchOrderData}
+                onClick={manualRefresh}
                 disabled={isLoading}
               >
                 {isLoading ? (

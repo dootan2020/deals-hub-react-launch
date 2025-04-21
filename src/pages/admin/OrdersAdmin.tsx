@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Eye } from 'lucide-react';
+import { RefreshCw, Eye, ArrowDownUp, RotateCw } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrderApi } from '@/hooks/use-order-api';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 interface Order {
   id: string;
@@ -51,7 +52,12 @@ const OrdersAdmin = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<OrderDetails | null>(null);
   const [isDetailsLoading, setIsDetailsLoading] = useState(false);
+  const [processingOrder, setProcessingOrder] = useState<string | null>(null);
   const { checkOrder } = useOrderApi();
+  
+  // Sort state
+  const [sortField, setSortField] = useState<'created_at' | 'status' | 'total_amount'>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const fetchOrders = async () => {
     setIsLoading(true);
@@ -59,20 +65,20 @@ const OrdersAdmin = () => {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order(sortField, { ascending: sortOrder === 'asc' });
 
       if (error) throw error;
       
-      // Map the data to match the Order interface (total_price to total_amount)
+      // Map the data to match the Order interface
       const mappedOrders = (data || []).map(order => ({
         ...order,
-        total_amount: order.total_price
+        total_amount: order.total_price || 0
       }));
       
       setOrders(mappedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
-      toast.error('Failed to fetch orders');
+      toast.error('Không thể tải danh sách đơn hàng');
     } finally {
       setIsLoading(false);
     }
@@ -80,7 +86,16 @@ const OrdersAdmin = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [sortField, sortOrder]);
+
+  const toggleSort = (field: 'created_at' | 'status' | 'total_amount') => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
 
   const handleViewDetails = async (orderId: string) => {
     setIsDetailsLoading(true);
@@ -109,56 +124,84 @@ const OrdersAdmin = () => {
         items: items || [],
         details: {
           ...orderDetails,
-          total_amount: orderDetails.total_price // Map total_price to total_amount
+          total_amount: orderDetails.total_price || 0
         }
       });
     } catch (error) {
       console.error('Error fetching order details:', error);
-      toast.error('Failed to fetch order details');
+      toast.error('Không thể tải chi tiết đơn hàng');
     } finally {
       setIsDetailsLoading(false);
     }
   };
 
-  const handleCheckOrderStatus = async (externalOrderId: string) => {
+  const handleCheckOrderStatus = async (externalOrderId: string, orderId: string) => {
     if (!externalOrderId) {
-      toast.error('Order has no external ID');
+      toast.error('Đơn hàng không có mã tham chiếu ngoài');
       return;
     }
     
+    setProcessingOrder(orderId);
+    
     try {
-      checkOrder({ orderId: externalOrderId });
-      toast.success('Order check initiated');
-      setTimeout(fetchOrders, 2000); // Refresh after a delay
+      toast.info('Đang kiểm tra trạng thái đơn hàng...');
+      
+      const result = await checkOrder({ orderId: externalOrderId });
+      
+      if (result.success === 'true' && result.data) {
+        // Update order status in database
+        await supabase
+          .from('orders')
+          .update({ status: 'completed' })
+          .eq('external_order_id', externalOrderId);
+          
+        toast.success('Đơn hàng đã hoàn thành!');
+      } else if (result.description === 'Order in processing!') {
+        toast.info('Đơn hàng vẫn đang được xử lý');
+      } else {
+        toast.warning(`Trạng thái đơn hàng: ${result.description || 'Không xác định'}`);
+      }
+      
+      // Refresh orders list after check
+      fetchOrders();
     } catch (error) {
       console.error('Error checking order:', error);
-      toast.error('Failed to check order status');
+      toast.error('Không thể kiểm tra trạng thái đơn hàng');
+    } finally {
+      setProcessingOrder(null);
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+    return new Date(dateString).toLocaleString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
-  const getStatusBadgeClass = (status: string) => {
+  const getOrderStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return <Badge variant="success">Hoàn thành</Badge>;
       case 'processing':
-        return 'bg-blue-100 text-blue-800';
+        return <Badge variant="default">Đang xử lý</Badge>;
       case 'cancelled':
-        return 'bg-red-100 text-red-800';
+        return <Badge variant="destructive">Đã hủy</Badge>;
       default:
-        return 'bg-gray-100 text-gray-800';
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   return (
-    <AdminLayout title="Orders Management">
-      <div className="flex justify-end mb-6">
+    <AdminLayout title="Quản lý đơn hàng">
+      <div className="flex justify-between mb-6 items-center">
+        <h1 className="text-2xl font-bold">Danh sách đơn hàng</h1>
         <Button variant="outline" onClick={fetchOrders}>
           <RefreshCw className="w-4 h-4 mr-2" />
-          Refresh
+          Làm mới
         </Button>
       </div>
 
@@ -168,25 +211,49 @@ const OrdersAdmin = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>External ID</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Mã đơn hàng</TableHead>
+                  <TableHead>Mã tham chiếu</TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => toggleSort('status')}>
+                    <div className="flex items-center">
+                      Trạng thái
+                      {sortField === 'status' && (
+                        <ArrowDownUp className={`ml-1 h-4 w-4 ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => toggleSort('total_amount')}>
+                    <div className="flex items-center">
+                      Tổng tiền
+                      {sortField === 'total_amount' && (
+                        <ArrowDownUp className={`ml-1 h-4 w-4 ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => toggleSort('created_at')}>
+                    <div className="flex items-center">
+                      Ngày tạo
+                      {sortField === 'created_at' && (
+                        <ArrowDownUp className={`ml-1 h-4 w-4 ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center">
-                      Loading orders...
+                      <div className="flex justify-center items-center py-4">
+                        <RefreshCw className="h-5 w-5 animate-spin mr-2" />
+                        Đang tải dữ liệu...
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : orders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center">
-                      No orders found
+                    <TableCell colSpan={6} className="text-center py-8">
+                      Không tìm thấy đơn hàng nào
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -197,9 +264,7 @@ const OrdersAdmin = () => {
                       </TableCell>
                       <TableCell>{order.external_order_id || '—'}</TableCell>
                       <TableCell>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(order.status)}`}>
-                          {order.status}
-                        </span>
+                        {getOrderStatusBadge(order.status)}
                       </TableCell>
                       <TableCell>${order.total_amount.toFixed(2)}</TableCell>
                       <TableCell>{formatDate(order.created_at)}</TableCell>
@@ -211,15 +276,21 @@ const OrdersAdmin = () => {
                             onClick={() => handleViewDetails(order.id)}
                           >
                             <Eye className="w-4 h-4" />
-                            <span className="sr-only">View</span>
+                            <span className="sr-only">Xem</span>
                           </Button>
                           {order.external_order_id && order.status === 'processing' && (
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleCheckOrderStatus(order.external_order_id!)}
+                              onClick={() => handleCheckOrderStatus(order.external_order_id!, order.id)}
+                              disabled={processingOrder === order.id}
                             >
-                              Check Status
+                              {processingOrder === order.id ? (
+                                <RotateCw className="w-4 h-4 animate-spin mr-1" />
+                              ) : (
+                                <RefreshCw className="w-4 h-4 mr-1" />
+                              )}
+                              Kiểm tra
                             </Button>
                           )}
                         </div>
@@ -235,57 +306,87 @@ const OrdersAdmin = () => {
         <div>
           {selectedOrder ? (
             <div className="p-4 border rounded-md">
-              <h3 className="mb-4 text-lg font-medium">Order Details</h3>
+              <h3 className="mb-4 text-lg font-medium">Chi tiết đơn hàng</h3>
               
               <div className="mb-4">
-                <p className="text-sm text-gray-500">Order ID</p>
+                <p className="text-sm text-gray-500">Mã đơn hàng</p>
                 <p className="font-medium">{selectedOrder.id}</p>
               </div>
               
               {selectedOrder.details && (
                 <>
                   <div className="mb-4">
-                    <p className="text-sm text-gray-500">Status</p>
+                    <p className="text-sm text-gray-500">Trạng thái</p>
                     <p className="font-medium">{selectedOrder.details.status}</p>
                   </div>
                   
                   <div className="mb-4">
-                    <p className="text-sm text-gray-500">External Order ID</p>
+                    <p className="text-sm text-gray-500">Mã tham chiếu</p>
                     <p className="font-medium">{selectedOrder.details.external_order_id || '—'}</p>
                   </div>
                   
                   <div className="mb-4">
-                    <p className="text-sm text-gray-500">Created At</p>
+                    <p className="text-sm text-gray-500">Ngày tạo</p>
                     <p className="font-medium">{formatDate(selectedOrder.details.created_at)}</p>
                   </div>
                   
                   <div className="mb-4">
-                    <p className="text-sm text-gray-500">Total Amount</p>
+                    <p className="text-sm text-gray-500">Tổng tiền</p>
                     <p className="font-medium">${selectedOrder.details.total_amount.toFixed(2)}</p>
                   </div>
+                  
+                  {selectedOrder.details.promotion_code && (
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-500">Mã khuyến mãi</p>
+                      <p className="font-medium">{selectedOrder.details.promotion_code}</p>
+                    </div>
+                  )}
                 </>
               )}
               
-              <h4 className="mt-6 mb-2 font-medium">Items</h4>
+              <h4 className="mt-6 mb-2 font-medium">Danh mục sản phẩm</h4>
               <div className="space-y-2">
                 {selectedOrder.items.map((item) => (
                   <div key={item.id} className="p-2 border rounded">
-                    <p className="font-medium">{item.product?.title || 'Unknown Product'}</p>
+                    <p className="font-medium">{item.product?.title || 'Sản phẩm không xác định'}</p>
                     <div className="flex justify-between text-sm text-gray-500">
-                      <span>Quantity: {item.quantity}</span>
+                      <span>Số lượng: {item.quantity}</span>
                       <span>${item.price.toFixed(2)}</span>
                     </div>
                   </div>
                 ))}
               </div>
+              
+              {selectedOrder.details.external_order_id && selectedOrder.details.status === 'processing' && (
+                <div className="mt-4">
+                  <Button 
+                    className="w-full" 
+                    onClick={() => handleCheckOrderStatus(selectedOrder.details.external_order_id!, selectedOrder.id)}
+                    disabled={processingOrder === selectedOrder.id}
+                  >
+                    {processingOrder === selectedOrder.id ? (
+                      <>
+                        <RotateCw className="w-4 h-4 animate-spin mr-2" />
+                        Đang kiểm tra...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Kiểm tra trạng thái
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
           ) : isDetailsLoading ? (
             <div className="p-4 text-center border rounded-md">
-              Loading order details...
+              <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
+              <p>Đang tải chi tiết đơn hàng...</p>
             </div>
           ) : (
             <div className="p-4 text-center border rounded-md">
-              Select an order to view details
+              <p className="text-muted-foreground">Chọn một đơn hàng để xem chi tiết</p>
             </div>
           )}
         </div>

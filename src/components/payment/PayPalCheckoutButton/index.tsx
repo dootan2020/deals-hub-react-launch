@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   PayPalButtons,
@@ -58,10 +59,11 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
   };
 
   const handleRetry = () => {
+    // Sửa lỗi TypeScript bằng cách sử dụng cấu trúc được hỗ trợ bởi PayPal SDK
     paypalDispatch({
       type: 'resetOptions',
       value: {
-        'client-id': process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
+        'clientId': process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
         currency: 'USD',
         intent: 'CAPTURE'
       }
