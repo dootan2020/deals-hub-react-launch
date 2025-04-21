@@ -1,10 +1,6 @@
 
 import { ReactNode } from "react";
-import { toast as sonnerToast, type Toast as SonnerToast, type ExternalToast } from "sonner";
-import { useToast as useShadcnToast } from "@/components/ui/toast";
-
-// Re-export the original useToast hook
-export const useToast = useShadcnToast;
+import { toast as sonnerToast, type ExternalToast } from "sonner";
 
 // Define toast function types that match what we need
 export interface Toast {
@@ -37,18 +33,18 @@ export interface ToastFunction {
 const createToast = (): ToastFunction => {
   // Create the base function with both overload signatures
   const toastFn = ((titleOrOptions: any, description?: ReactNode) => {
-    if (typeof titleOrOptions === 'object' && titleOrOptions !== null && 'title' in titleOrOptions) {
+    if (typeof titleOrOptions === 'object' && titleOrOptions !== null && !React.isValidElement(titleOrOptions)) {
       // Handle object format with variant property
-      const { title, description, variant } = titleOrOptions;
+      const { title, description, variant } = titleOrOptions as Toast;
       
       if (variant === 'destructive') {
-        return sonnerToast.error(title, { description });
+        return sonnerToast.error(title as ReactNode, { description });
       } else if (variant === 'success') {
-        return sonnerToast.success(title, { description });
+        return sonnerToast.success(title as ReactNode, { description });
       } else if (variant === 'warning') {
-        return sonnerToast.warning(title, { description });
+        return sonnerToast.warning(title as ReactNode, { description });
       } else {
-        return sonnerToast(title, { description });
+        return sonnerToast(title as ReactNode, { description });
       }
     } else {
       // Handle title, description format
@@ -81,7 +77,6 @@ const createToast = (): ToastFunction => {
     sonnerToast.dismiss(toastId);
   };
 
-  // Fix promise return type to correctly return the promise
   toastFn.promise = <T>(
     promise: Promise<T>,
     msgs: {
@@ -90,7 +85,7 @@ const createToast = (): ToastFunction => {
       error: ReactNode;
     },
     opts?: ExternalToast
-  ) => {
+  ): Promise<T> => {
     sonnerToast.promise(promise, {
       loading: msgs.loading,
       success: msgs.success,
@@ -103,5 +98,14 @@ const createToast = (): ToastFunction => {
   return toastFn;
 };
 
-// Export the single toast instance
+// Create and export the single toast instance and hook
 export const toast = createToast();
+
+// Create a hook that's compatible with the shadcn pattern
+export const useToast = () => {
+  return {
+    toast,
+    // Add a dummy "toasts" array to be compatible with shadcn/ui toast usage
+    toasts: []
+  };
+};

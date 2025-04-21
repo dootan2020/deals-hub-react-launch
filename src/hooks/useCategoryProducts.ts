@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 import { sortProducts, SortOption } from '@/utils/productFilters';
@@ -12,7 +12,6 @@ interface UseCategoryProductsProps {
 }
 
 export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort = 'popular' }: UseCategoryProductsProps) => {
-  const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -101,10 +100,7 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
       if (process.env.NODE_ENV === 'development') {
         console.error("Error fetching products:", error);
       }
-      toast({
-        title: "Error",
-        description: "Failed to load products. Please try again."
-      });
+      toast.error("Error", "Failed to load products. Please try again.");
     } finally {
       setLoading(false);
       setLoadingMore(false);

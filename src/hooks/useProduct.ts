@@ -2,13 +2,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 export const useProduct = (productSlug: string | undefined) => {
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -66,17 +65,14 @@ export const useProduct = (productSlug: string | undefined) => {
       } catch (err) {
         console.error('Error fetching product details:', err);
         setError('Failed to load product information');
-        toast({
-          title: "Error",
-          description: "There was a problem loading the product. Please try again later."
-        });
+        toast.error("Error", "There was a problem loading the product. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
     
     fetchProductData();
-  }, [productSlug, toast]);
+  }, [productSlug]);
 
   return { product, loading, error };
 };

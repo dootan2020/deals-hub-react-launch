@@ -8,7 +8,7 @@ import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryF
 import ViewToggle from '@/components/category/ViewToggle';
 import { FilterParams, Product } from '@/types';
 import { fetchProductsWithFilters } from '@/services/product';
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { 
   Breadcrumb, 
   BreadcrumbList, 
@@ -20,7 +20,6 @@ import {
 
 const EnhancedProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { toast } = useToast();
   
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,17 +46,14 @@ const EnhancedProductsPage = () => {
       } catch (error) {
         console.error('Error fetching products:', error);
         setError('Failed to load products. Please try again.');
-        toast({
-          title: "Error",
-          description: "There was a problem loading products. Please try again."
-        });
+        toast.error("Error", "There was a problem loading products. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
     getProducts();
-  }, [activeFilters, toast]);
+  }, [activeFilters]);
 
   // Update URL search params when filters change
   useEffect(() => {

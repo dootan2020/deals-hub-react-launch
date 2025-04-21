@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { fetchCategoryBySlug } from '@/services/categoryService';
 import { CategoryWithParent } from '@/types/category.types';
@@ -13,7 +13,6 @@ interface UseCategoryProps {
 
 export const useCategory = ({ categorySlug, parentCategorySlug }: UseCategoryProps) => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [category, setCategory] = useState<CategoryWithParent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -113,17 +112,14 @@ export const useCategory = ({ categorySlug, parentCategorySlug }: UseCategoryPro
           console.error('Error fetching category:', err);
         }
         setError('Failed to load category');
-        toast({
-          title: "Error",
-          description: "Failed to load category data. Please try again."
-        });
+        toast.error("Error", "Failed to load category data. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchCategory();
-  }, [categorySlug, parentCategorySlug, navigate, toast]);
+  }, [categorySlug, parentCategorySlug, navigate]);
 
   return { category, loading, error };
 };
