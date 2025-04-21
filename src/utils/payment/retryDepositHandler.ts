@@ -62,7 +62,7 @@ export const getPendingDepositsStatus = async (): Promise<PendingDepositsStatus>
   try {
     // Use proper typing for RPC call with expected return type
     const { data, error } = await supabase
-      .rpc<DepositStatusRPCResponse>('get_pending_deposits_status');
+      .rpc('get_pending_deposits_status');
     
     if (error || !data) {
       console.error("Error getting pending deposits status:", error);

@@ -88,33 +88,3 @@ export async function deleteIdempotencyKey(
     return false;
   }
 }
-
-// Internal function to avoid circular dependency
-async function checkIdempotencyKeyInternal<T>(
-  key: string
-): Promise<IdempotencyResult<T>> {
-  try {
-    const { data, error } = await supabase
-      .from('transaction_logs')
-      .select('*')
-      .eq('idempotency_key', key)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error checking idempotency key:', error);
-      return { result: null, isNew: true };
-    }
-
-    if (!data) {
-      return { result: null, isNew: true };
-    }
-
-    return { 
-      result: data.response_payload as T, 
-      isNew: false
-    };
-  } catch (err) {
-    console.error('Exception in checkIdempotencyKey:', err);
-    return { result: null, isNew: true };
-  }
-}

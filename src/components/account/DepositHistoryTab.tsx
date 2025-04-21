@@ -28,7 +28,8 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
 
         if (error) throw error;
         
-        setDeposits(data as Deposit[]);
+        // Ensure we cast data to Deposit[] since the database returns the proper shape
+        setDeposits(data as unknown as Deposit[]);
       } catch (error) {
         console.error("Error fetching deposits:", error);
         setError('Failed to load deposit history');

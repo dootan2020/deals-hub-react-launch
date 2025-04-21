@@ -60,6 +60,70 @@ export interface Database extends OriginalDatabase {
         Insert: Omit<TransactionLog, 'id' | 'created_at'>;
         Update: Partial<Omit<TransactionLog, 'id' | 'created_at'>>;
       };
+      deposits: {
+        Row: {
+          id: string;
+          user_id: string;
+          amount: number;
+          net_amount: number;
+          payment_method: string;
+          status: string;
+          transaction_id?: string | null;
+          payer_email?: string | null;
+          payer_id?: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          amount: number;
+          net_amount: number;
+          payment_method: string;
+          status?: string;
+          transaction_id?: string | null;
+          payer_email?: string | null;
+          payer_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          amount?: number;
+          net_amount?: number;
+          payment_method?: string;
+          status?: string;
+          transaction_id?: string | null;
+          payer_email?: string | null;
+          payer_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      proxy_settings: {
+        Row: {
+          id: string;
+          proxy_type: string;
+          custom_url: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          proxy_type: string;
+          custom_url?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          proxy_type?: string;
+          custom_url?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+      };
       invoices: {
         Row: Invoice;
         Insert: Omit<Invoice, 'id' | 'created_at'>;

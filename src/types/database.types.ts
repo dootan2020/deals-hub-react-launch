@@ -1,3 +1,4 @@
+
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
@@ -39,6 +40,72 @@ export interface Database {
           processing_time?: string | null;
           idempotency_key?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      deposits: {
+        Row: {
+          id: string;
+          user_id: string;
+          amount: number;
+          net_amount: number;
+          payment_method: string;
+          status: string;
+          transaction_id?: string | null;
+          payer_email?: string | null;
+          payer_id?: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          amount: number;
+          net_amount: number;
+          payment_method: string;
+          status?: string;
+          transaction_id?: string | null;
+          payer_email?: string | null;
+          payer_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          amount?: number;
+          net_amount?: number;
+          payment_method?: string;
+          status?: string;
+          transaction_id?: string | null;
+          payer_email?: string | null;
+          payer_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      proxy_settings: {
+        Row: {
+          id: string;
+          proxy_type: string;
+          custom_url: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          proxy_type: string;
+          custom_url?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          proxy_type?: string;
+          custom_url?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Relationships: [];
       };
