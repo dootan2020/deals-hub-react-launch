@@ -6,17 +6,23 @@ import { useToast as useShadcnToast } from "@/components/ui/toast";
 // Re-export the original useToast hook
 export const useToast = useShadcnToast;
 
-// Define the toast function type
-export type ToastFunction = {
-  (props: { title?: ReactNode; description?: ReactNode; variant?: "default" | "destructive" | "success" | "warning" }): void;
+// Define toast function types that match what we need
+interface ToastProps {
+  title?: ReactNode;
+  description?: ReactNode;
+  variant?: "default" | "destructive" | "success" | "warning";
+}
+
+interface ToastFunction {
+  (props: ToastProps): void;
   (title: ReactNode, description?: ReactNode): void;
-  success(title: ReactNode, description?: ReactNode): void;
-  error(title: ReactNode, description?: ReactNode): void;
-  warning(title: ReactNode, description?: ReactNode): void;
-  info(title: ReactNode, description?: ReactNode): void;
-  loading(title: ReactNode, description?: ReactNode): string | number;
-  dismiss(toastId?: string | number): void;
-  promise<T>(
+  success: (title: ReactNode, description?: ReactNode) => void;
+  error: (title: ReactNode, description?: ReactNode) => void;
+  warning: (title: ReactNode, description?: ReactNode) => void;
+  info: (title: ReactNode, description?: ReactNode) => void;
+  loading: (title: ReactNode, description?: ReactNode) => string | number;
+  dismiss: (toastId?: string | number) => void;
+  promise: <T>(
     promise: Promise<T>,
     msgs: {
       loading: ReactNode;
@@ -24,16 +30,17 @@ export type ToastFunction = {
       error: ReactNode;
     },
     opts?: ExternalToast
-  ): Promise<T>;
-};
+  ) => Promise<T>;
+}
 
 // Create the toast function
 const createToast = (): ToastFunction => {
-  // Create the base function that can accept both formats
+  // Create the base function with both overload signatures
   const toastFn = ((titleOrOptions: any, description?: ReactNode) => {
-    if (typeof titleOrOptions === 'object' && titleOrOptions !== null) {
-      // This is the object format: { title, description, variant }
+    if (typeof titleOrOptions === 'object' && titleOrOptions !== null && 'title' in titleOrOptions) {
+      // Handle object format with variant property
       const { title, description, variant } = titleOrOptions;
+      
       if (variant === 'destructive') {
         return sonnerToast.error(title, { description });
       } else if (variant === 'success') {
@@ -44,12 +51,12 @@ const createToast = (): ToastFunction => {
         return sonnerToast(title, { description });
       }
     } else {
-      // This is the title, description format
+      // Handle title, description format
       return sonnerToast(titleOrOptions, { description });
     }
-  }) as ToastFunction;
+  }) as unknown as ToastFunction; // Use unknown to help with the type conversion
 
-  // Add methods
+  // Add all the required methods
   toastFn.success = (title: ReactNode, description?: ReactNode) => {
     return sonnerToast.success(title, { description });
   };
@@ -74,13 +81,23 @@ const createToast = (): ToastFunction => {
     sonnerToast.dismiss(toastId);
   };
 
-  toastFn.promise = (promise, msgs, opts) => {
-    return sonnerToast.promise(promise, {
+  // Fix promise return type to correctly return the promise
+  toastFn.promise = <T>(
+    promise: Promise<T>,
+    msgs: {
+      loading: ReactNode;
+      success: ReactNode;
+      error: ReactNode;
+    },
+    opts?: ExternalToast
+  ) => {
+    sonnerToast.promise(promise, {
       loading: msgs.loading,
       success: msgs.success,
       error: msgs.error,
       ...opts
-    }) as Promise<any>;
+    });
+    return promise; // Return the original promise to maintain Promise<T> type
   };
 
   return toastFn;
@@ -88,3 +105,6 @@ const createToast = (): ToastFunction => {
 
 // Export the single toast instance
 export const toast = createToast();
+
+// Expose the Toast type for consumers
+export type Toast = ToastProps;

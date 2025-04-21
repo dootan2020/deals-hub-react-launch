@@ -17,18 +17,16 @@ export function Toaster() {
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
         // Map type to variant for compatibility
-        let variantProp = "default";
+        const variantMapping: Record<string, string> = {
+          'default': 'default',
+          'destructive': 'destructive',
+          'success': 'success',
+          'warning': 'warning'
+        };
         
-        // Handle type property if present
-        if (props.type) {
-          if (props.type === "destructive") {
-            variantProp = "destructive";
-          } else if (props.type === "success") {
-            variantProp = "success"; 
-          } else if (props.type === "warning") {
-            variantProp = "warning";
-          }
-        }
+        let variantProp = props.type && variantMapping[props.type] 
+          ? variantMapping[props.type] 
+          : 'default';
         
         // Filter out properties that don't belong in Toast props
         const { type, ...compatibleProps } = props;

@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 import { sortProducts, SortOption } from '@/utils/productFilters';
@@ -42,7 +41,6 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
       
       let allProducts = fetchedProducts || [];
       
-      // If we're filtering by category, also get products from subcategories
       if (categoryId && !isProductsPage && !isLoadMore) {
         const { data: subcategories } = await supabase
           .from('categories')
@@ -66,7 +64,6 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
       
       console.log('Fetched products data:', allProducts);
       
-      // Map and sort the products
       const mappedProducts: Product[] = allProducts.map(p => ({
         id: p.id,
         title: p.title,
@@ -106,7 +103,6 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
       toast({
         title: "Error",
         description: "Failed to load products. Please try again.",
-        variant: "destructive"
       });
     } finally {
       setLoading(false);

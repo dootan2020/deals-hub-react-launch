@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
@@ -69,7 +68,6 @@ export const useProduct = (productSlug: string | undefined) => {
         toast({
           title: "Error",
           description: "There was a problem loading the product. Please try again later.",
-          variant: "destructive"
         });
       } finally {
         setLoading(false);
