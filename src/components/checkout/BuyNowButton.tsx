@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag } from 'lucide-react';
 import { usePurchaseDialog } from '@/hooks/use-purchase-dialog';
 import PurchaseConfirmDialog from './PurchaseConfirmDialog';
-import { Product } from '@/types';
+import { Product as ProductType } from '@/types';
 import { prepareProductForPurchase } from '@/utils/buyNowUtils';
 
 interface BuyNowButtonProps {
@@ -45,12 +44,10 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
     verifiedPrice
   } = usePurchaseDialog();
 
-  // Handle button click - open dialog
   const handleClick = () => {
-    // Use prepareProductForPurchase to ensure the product matches the required Product type
     const preparedProduct = prepareProductForPurchase(product, productId, kioskToken);
     if (preparedProduct) {
-      openDialog(preparedProduct as Product);
+      openDialog(preparedProduct as ProductType);
     }
   };
 

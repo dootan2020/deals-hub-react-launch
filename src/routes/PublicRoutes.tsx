@@ -1,4 +1,3 @@
-
 import { Route } from 'react-router-dom';
 import LoginPage from "@/pages/auth/LoginPage";
 import RegisterPage from "@/pages/auth/RegisterPage";
@@ -13,10 +12,10 @@ import ProductsPage from "@/pages/ProductsPage";
 import SupportPage from "@/pages/SupportPage";
 import FaqsPage from "@/pages/FaqsPage";
 import KnowledgeBasePage from "@/pages/KnowledgeBasePage";
+import VerifyRequiredPage from "@/pages/auth/VerifyRequiredPage";
 
 const PublicRoutes = () => {
   return (
-    // Return an array of Route elements instead of a fragment
     [
       /* Public routes */
       <Route key="/" path="/" element={<Index />} />,
@@ -26,6 +25,7 @@ const PublicRoutes = () => {
       <Route key="/verify-email" path="/verify-email" element={<VerifyEmailPage />} />,
       <Route key="/forgot-password" path="/forgot-password" element={<ForgotPasswordPage />} />,
       <Route key="/reset-password" path="/reset-password" element={<ResetPasswordPage />} />,
+      <Route key="/verify-required" path="/verify-required" element={<VerifyRequiredPage />} />,
       
       /* SEO-friendly category routes */
       <Route key="/category/:categorySlug" path="/category/:categorySlug" element={<CategoryPage />} />,
