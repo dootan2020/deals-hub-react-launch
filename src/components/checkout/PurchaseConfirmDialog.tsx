@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Product } from '@/types';
@@ -96,6 +97,12 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
     
     console.log(`Quantity changed: ${validQuantity} (max: ${maxQuantity})`);
   };
+  
+  const handlePromotionCodeChange = (value: string) => {
+    // Sanitize the input before setting it
+    const sanitizedValue = sanitizeHtml(value);
+    setPromotionCode(sanitizedValue);
+  };
 
   const handleSubmit = async () => {
     const maxQuantity = verifiedStock ?? product?.stockQuantity ?? 1;
@@ -140,7 +147,7 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
           totalPriceUSD={totalPriceUSD}
           promotionCode={promotionCode}
           onQuantityChange={handleQuantityChange}
-          onPromotionCodeChange={setPromotionCode}
+          onPromotionCodeChange={handlePromotionCodeChange}
           isLoadingBalance={isLoadingBalance}
           userBalance={userBalance}
         />

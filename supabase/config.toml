@@ -1,54 +1,85 @@
 
+# This is the main configuration file for Supabase.
+# It provides information for local development and production.
+
 project_id = "xcpwyvrlutlslgaueokd"
 
 [api]
+# Port to use for the API URL
 port = 54321
+# Schemas to expose in the API
 schemas = ["public", "storage", "graphql_public"]
-extra_search_path = ["public", "extensions"]
-max_rows = 1000
+# Extra schemas to expose in the API
+extra_schemas = ["public", "storage", "graphql_public"]
 
 [db]
+# Port to use for the local database URL
 port = 54322
-shadow_port = 54320
+# The database major version to use
 major_version = 15
 
-[realtime]
-webhooks_port = 54323
-
 [studio]
-port = 54324
+# Port to use for Supabase Studio
+port = 54323
 
 [inbucket]
-port = 54325
-smtp_port = 54326
-pop3_port = 54327
+# Port to use for the email testing server web interface
+port = 54324
+# Port to use for the SMTP server
+smtp_port = 54325
+# Port to use for the POP3 server
+pop3_port = 54326
 
 [storage]
-file_size_limit = "50MiB"
+# The maximum file size allowed (in bytes)
+file_size_limit = 2097152
 
 [auth]
+# The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
+# in emails.
 site_url = "http://localhost:3000"
+# List of additional redirect URLs that users can be redirected to after confirming their email address.
 additional_redirect_urls = ["https://localhost:3000"]
+# How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 seconds (one
+# week).
 jwt_expiry = 3600
+# Allows refresh tokens to be re-used after expiry. Defaults to one-time use refresh tokens.
 enable_refresh_token_rotation = true
-refresh_token_reuse_interval = 10
-enable_signup = true
+# Allow signing in with email/password. Enable if you need backward compatibility.
+enable_sign_up = true
 
 [auth.email]
+# Allow/disallow new user signups via email to your project.
 enable_signup = true
+# If enabled, a user will be required to confirm any email change on both the old, and new email
+# addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
-enable_confirmations = true
+# If enabled, users need to confirm their email address before signing in.
+enable_confirmations = false
 
-[auth.external.facebook]
+[auth.sms]
+# Allow/disallow new user signups via SMS to your project.
+enable_signup = true
+# If enabled, users need to confirm their phone number before signing in.
+enable_confirmations = false
+
+[auth.external.github]
 enabled = false
 client_id = ""
 secret = ""
-url = "https://facebook.com"
+# Overrides the default auth redirectUrl.
 redirect_uri = ""
+# Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,
+# or any other third-party OIDC providers.
+url = ""
 
 [functions]
-serve_port = 54328
+# Port to use for Functions API
+port = 54321
 
-[functions.check-payment]
+# Add the retry-pending-deposits cron job
+[functions.retry-pending-deposits]
 verify_jwt = true
 
+[functions.paypal-webhook]
+verify_jwt = false
