@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
-import { toast as sonnerToast } from '@/components/ui/sonner';
+import { PayPalButtons, usePayPalScriptReducer, SCRIPT_LOADING_STATE } from '@paypal/react-paypal-js';
+import { toast } from '@/hooks/use-toast';
 import { PayPalProcessingState } from '../PayPalProcessingState';
 import { PayPalStateError } from '../PayPalStateError';
 
@@ -29,15 +29,23 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
   // Handle payment success
   const handleApprove = (data: any, actions: any) => {
     return actions.order.capture().then((details: any) => {
-      sonnerToast.success('Thanh toán thành công qua PayPal!');
+      toast.success('Thanh toán thành công qua PayPal!');
       onSuccess();
     });
   };
 
   // Handle errors
   const handleError = (err: any) => {
-    sonnerToast.error('Đã có lỗi xảy ra trong quá trình thanh toán với PayPal.');
+    toast.error('Đã có lỗi xảy ra trong quá trình thanh toán với PayPal.');
     console.error('PayPal Checkout error:', err);
+  };
+
+  const handleRetry = () => {
+    // Reset the PayPal script loading state to trigger a reload
+    paypalDispatch({
+      type: 'resetOptions',
+      value: undefined
+    });
   };
 
   if (isPending) {
@@ -48,7 +56,7 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
     return (
       <PayPalStateError
         errorMessage={errorMessage || 'Lỗi khi tải PayPal.'}
-        onRetry={() => paypalDispatch({ type: "reload", value: undefined })}
+        onRetry={handleRetry}
       />
     );
   }
@@ -72,7 +80,7 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
           }}
           onApprove={handleApprove}
           onError={handleError}
-          onCancel={() => sonnerToast('Thanh toán bị hủy bỏ bởi người dùng.')}
+          onCancel={() => toast.warning('Thanh toán bị hủy bỏ bởi người dùng.')}
         />
       )}
     </>
