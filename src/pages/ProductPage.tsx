@@ -52,21 +52,21 @@ const ProductPage = () => {
       </Helmet>
       
       <div className="bg-background min-h-screen">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-8 lg:py-12">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4 md:px-8 py-5 sm:py-8 lg:py-12">
           <ProductHeader 
             title={product.title}
             category={product.category}
           />
 
-          {/* Two column layout for purchase section and trust badges */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 mt-6">
+          {/* Responsive grid: col-1 mobile, col-2 tablet, col-12 desktop */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 md:gap-6 lg:gap-8 mt-6">
             {/* Left column - Purchase section */}
-            <div className="lg:col-span-7">
+            <div className="lg:col-span-7 md:col-span-1 col-span-1">
               <ProductPurchaseSection product={product} />
             </div>
             
             {/* Right column - Trust badges */}
-            <div className="lg:col-span-5">
+            <div className="lg:col-span-5 md:col-span-1 col-span-1 mt-4 md:mt-0">
               <ProductTrustBadges />
             </div>
           </div>
@@ -82,3 +82,4 @@ const ProductPage = () => {
 };
 
 export default ProductPage;
+

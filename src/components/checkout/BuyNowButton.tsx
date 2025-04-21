@@ -110,33 +110,41 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
 
   const buttonDisabled = !isInStock || isDisabled || isConfirming;
 
+  // Responsive: thêm mặc định w-full, min-h cao và font lớn hơn cho mobile
+  const responsiveButtonClass =
+    "w-full min-h-[48px] py-3 sm:py-4 text-base sm:text-lg font-semibold";
+  // Cho phép override bằng className nếu cần
+  const allButtonClass = className
+    ? `${responsiveButtonClass} ${className}`
+    : responsiveButtonClass;
+
   let buttonLabel = children;
   if (!buttonLabel) {
     if (isConfirming) {
       buttonLabel = (
         <>
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
           Đang xử lý...
         </>
       );
     } else if (!isInStock) {
       buttonLabel = (
         <>
-          <ShoppingBag className="w-4 h-4 mr-2" />
+          <ShoppingBag className="w-5 h-5 mr-2" />
           Hết Hàng
         </>
       );
     } else if (cooldown > 0) {
       buttonLabel = (
         <>
-          <ShoppingBag className="w-4 h-4 mr-2" />
+          <ShoppingBag className="w-5 h-5 mr-2" />
           Mua Ngay {cooldownText && `(${cooldownText})`}
         </>
       );
     } else {
       buttonLabel = (
         <>
-          <ShoppingBag className="w-4 h-4 mr-2" />
+          <ShoppingBag className="w-5 h-5 mr-2" />
           Mua Ngay
         </>
       );
@@ -148,9 +156,10 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       <Button 
         variant={variant} 
         size={size}
-        className={className}
+        className={allButtonClass}
         disabled={buttonDisabled}
         onClick={handleClick}
+        aria-label="Mua ngay"
       >
         {buttonLabel}
       </Button>
@@ -174,3 +183,4 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
 };
 
 export default BuyNowButton;
+
