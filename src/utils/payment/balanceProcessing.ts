@@ -124,6 +124,84 @@ export async function processPurchase(userId: string, amount: number): Promise<{
   }
 }
 
+// Process a deposit by ID, changing its status to completed if verified
+export async function processDepositBalance(depositId: string): Promise<{
+  success: boolean;
+  error?: string;
+  message?: string;
+}> {
+  try {
+    console.log(`Processing deposit: ${depositId}`);
+    
+    // First, verify the deposit exists and get its details
+    const { data: deposit, error: fetchError } = await supabase
+      .from('deposits')
+      .select('*')
+      .eq('id', depositId)
+      .single();
+      
+    if (fetchError) {
+      console.error("Error fetching deposit:", fetchError);
+      return { 
+        success: false, 
+        error: fetchError.message 
+      };
+    }
+    
+    if (!deposit) {
+      return {
+        success: false,
+        error: `Deposit ${depositId} not found`
+      };
+    }
+    
+    // If already completed, return success
+    if (deposit.status === 'completed') {
+      return {
+        success: true,
+        message: 'Deposit already processed'
+      };
+    }
+    
+    // Update the deposit status
+    const { error: updateError } = await supabase
+      .from('deposits')
+      .update({ status: 'completed' })
+      .eq('id', depositId);
+      
+    if (updateError) {
+      console.error("Error updating deposit status:", updateError);
+      return {
+        success: false,
+        error: updateError.message
+      };
+    }
+    
+    // Add the balance to the user's account
+    const updated = await updateUserBalance(deposit.user_id, deposit.net_amount);
+    
+    if (!updated) {
+      console.error("Failed to update user balance");
+      return {
+        success: false,
+        error: "Failed to update balance"
+      };
+    }
+    
+    console.log(`Deposit ${depositId} processed successfully`);
+    return {
+      success: true,
+      message: `Deposit processed successfully`
+    };
+  } catch (error: any) {
+    console.error("Error in processDepositBalance:", error);
+    return {
+      success: false,
+      error: error.message || "Unknown error processing deposit"
+    };
+  }
+}
+
 // Function to reconcile user balance with transaction history
 export async function reconcileUserBalance(userId: string): Promise<{
   success: boolean;
@@ -149,17 +227,36 @@ export async function reconcileUserBalance(userId: string): Promise<{
       };
     }
 
-    // Calculate the correct balance from transaction history
-    // This is now handled by a database function to prevent excessive recursion
-    const { data, error } = await supabase.rpc(
-      'calculate_user_balance_from_transactions',
-      { user_id_param: userId }
+    // Get the calculated balance from transaction history by using a database function
+    const { data: calculatedBalance, error } = await supabase.functions.invoke(
+      'refresh-balance',
+      { 
+        body: { 
+          user_id: userId,
+          action: 'calculate'
+        } 
+      }
     );
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error calculating balance from transactions:", error);
+      return {
+        success: false,
+        message: error.message || 'Failed to calculate balance from transactions'
+      };
+    }
 
-    const calculatedBalance = data;
-    const difference = calculatedBalance - currentBalance;
+    // Check if we got a valid number back
+    if (calculatedBalance === null || calculatedBalance === undefined || 
+        typeof calculatedBalance.balance !== 'number') {
+      return {
+        success: false,
+        message: 'Invalid balance calculation result'
+      };
+    }
+
+    const finalCalculatedBalance = calculatedBalance.balance;
+    const difference = Number(finalCalculatedBalance) - Number(currentBalance);
 
     // If there's a difference, update the balance
     if (Math.abs(difference) > 0.01) {
@@ -170,7 +267,7 @@ export async function reconcileUserBalance(userId: string): Promise<{
           success: false,
           message: 'Failed to reconcile balance',
           oldBalance: currentBalance,
-          newBalance: calculatedBalance,
+          newBalance: finalCalculatedBalance,
           difference
         };
       }
@@ -179,7 +276,7 @@ export async function reconcileUserBalance(userId: string): Promise<{
         success: true,
         message: 'Balance reconciled successfully',
         oldBalance: currentBalance,
-        newBalance: calculatedBalance,
+        newBalance: finalCalculatedBalance,
         difference
       };
     }
@@ -188,7 +285,7 @@ export async function reconcileUserBalance(userId: string): Promise<{
       success: true,
       message: 'Balance is already correct',
       oldBalance: currentBalance,
-      newBalance: calculatedBalance,
+      newBalance: finalCalculatedBalance,
       difference
     };
   } catch (error: any) {

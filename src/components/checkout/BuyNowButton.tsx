@@ -5,14 +5,16 @@ import { ShoppingBag } from 'lucide-react';
 import { usePurchaseDialog } from '@/hooks/use-purchase-dialog';
 import PurchaseConfirmDialog from './PurchaseConfirmDialog';
 import { ensureProductFields } from '@/utils/productUtils';
+import { Product } from '@/types';
 
-interface Product {
+// Define a local Product interface that matches the expected structure
+interface BuyNowButtonProduct {
   id: string;
   kiosk_token: string;
   title: string;
   price: number;
   stockQuantity: number;
-  description?: string; // Make description optional to fix type error
+  description?: string; // Optional description
   images?: string[];
   categoryId?: string;
   rating?: number;
@@ -21,14 +23,14 @@ interface Product {
   features?: string[];
   slug?: string;
   inStock?: boolean;
-  specifications?: object;
+  specifications?: Record<string, string | number | boolean | object>; // Fixed type
   createdAt?: string;
   stock?: number;
   shortDescription?: string;
 }
 
 interface BuyNowButtonProps {
-  product?: Product;
+  product?: BuyNowButtonProduct;
   kioskToken?: string;
   productId?: string;
   quantity?: number;
@@ -69,7 +71,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   const handleClick = () => {
     // Ensure product object matches Product type
     if (product) {
-      openDialog(ensureProductFields(product));
+      openDialog(ensureProductFields(product as unknown as Partial<Product>));
     } else {
       const minimalProduct = ensureProductFields({
         id: productId || '',
@@ -77,7 +79,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
         title: 'Product',
         price: 0,
         stockQuantity: 10,
-        // description is now optional, fixing the type error
+        description: '', // Add required description field
         images: [],
         categoryId: '',
         rating: 0,
@@ -87,7 +89,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
         slug: '',
         inStock: true,
         // Additional safe defaults
-        specifications: {},
+        specifications: {} as Record<string, string | number | boolean | object>,
         createdAt: new Date().toISOString(),
         stock: 10,
         shortDescription: '',
