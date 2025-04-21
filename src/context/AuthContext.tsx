@@ -1,10 +1,12 @@
-import React, { createContext, useContext, useCallback, useMemo, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
 import { useAuthState } from '@/hooks/use-auth-state';
 import { useAuthActions } from '@/hooks/auth/use-auth-actions';
 import { useBalanceListener } from '@/hooks/use-balance-listener';
-import { AuthContextType, UserRole } from '@/types/auth.types';
+import { AuthContextType } from '@/types/auth.types';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { useSessionTimeout } from '@/hooks/auth/use-session-timeout';
+import { useSessionMonitor } from '@/hooks/auth/use-session-monitor';
+import { useSessionRefresh } from '@/hooks/auth/use-session-refresh';
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -29,7 +31,6 @@ const AuthContext = createContext<AuthContextType>({
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [hydrated, setHydrated] = useState(false);
-  const [lastSessionCheck, setLastSessionCheck] = useState(0);
   
   const {
     user,
@@ -48,77 +49,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const { login: authLogin, logout, register, resendVerificationEmail } = useAuthActions();
 
-  const sessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (session?.expires_at) {
-      const now = Math.floor(Date.now() / 1000);
-      const expiresAt = session.expires_at;
-      const timeUntilExpiry = expiresAt - now;
-      
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-      
-      if (timeUntilExpiry < 300) {
-        console.log("Session expires soon, refreshing now...");
-        supabase.auth.refreshSession();
-      }
-      else if (timeUntilExpiry > 360) {
-        const refreshDelay = (timeUntilExpiry - 300) * 1000;
-        console.log(`Scheduling session refresh in ${Math.floor(refreshDelay/60000)} minutes`);
-        
-        refreshTimeoutRef.current = setTimeout(() => {
-          console.log("Executing scheduled session refresh");
-          supabase.auth.refreshSession()
-            .then(({ data, error }) => {
-              if (error) {
-                console.error("Failed to refresh session:", error);
-              } else if (data.session) {
-                console.log("Session refreshed successfully, new expiry:", 
-                  new Date(data.session.expires_at * 1000).toLocaleString());
-              }
-            });
-        }, refreshDelay);
-      }
-    }
-    
-    return () => {
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-    };
-  }, [session?.expires_at]);
+  useSessionTimeout(!!user, user?.id, session?.access_token, logout);
+  useSessionMonitor(session, logout);
+  useSessionRefresh(session);
 
   useEffect(() => {
     setHydrated(true);
   }, []);
-
-  useEffect(() => {
-    const checkSessionInterval = setInterval(() => {
-      const now = Date.now();
-      if (now - lastSessionCheck > 2 * 60 * 1000) {
-        setLastSessionCheck(now);
-        if (session?.expires_at) {
-          const currentTime = Math.floor(Date.now() / 1000);
-          if (session.expires_at < currentTime) {
-            console.log('Session has expired during app usage, logging out');
-            logout().then(() => {
-              toast.error('Phiên đăng nhập hết hạn', {
-                description: 'Vui lòng đăng nhập lại để tiếp tục',
-              });
-              setTimeout(() => {
-                window.location.replace('/login?expired=1');
-              }, 1000);
-            });
-          }
-        }
-      }
-    }, 30000);
-    
-    return () => clearInterval(checkSessionInterval);
-  }, [session, logout, lastSessionCheck]);
 
   useEffect(() => {
     if (authError) {
@@ -126,60 +63,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.error('Lỗi xác thực', { description: authError.message });
     }
   }, [authError]);
-
-  useEffect(() => {
-    if (user && session) {
-      if (sessionTimeoutRef.current) clearTimeout(sessionTimeoutRef.current);
-      
-      sessionTimeoutRef.current = setTimeout(() => {
-        console.warn('Session timeout reached, logging out user for security.');
-        logout().finally(() => {
-          toast.warning('Phiên làm việc hết hạn do không hoạt động', {
-            description: 'Vui lòng đăng nhập lại để tiếp tục'
-          });
-          window.location.replace('/login?timeout=1');
-        });
-      }, 3 * 60 * 60 * 1000);
-    } else {
-      if (sessionTimeoutRef.current) {
-        clearTimeout(sessionTimeoutRef.current);
-        sessionTimeoutRef.current = null;
-      }
-    }
-    
-    return () => {
-      if (sessionTimeoutRef.current) {
-        clearTimeout(sessionTimeoutRef.current);
-        sessionTimeoutRef.current = null;
-      }
-    };
-  }, [user?.id, session?.access_token, logout]);
-
-  useEffect(() => {
-    const resetTimeout = () => {
-      if (user && session && sessionTimeoutRef.current) {
-        clearTimeout(sessionTimeoutRef.current);
-        sessionTimeoutRef.current = setTimeout(() => {
-          console.warn('Session timeout reached, logging out user for security.');
-          logout().finally(() => {
-            window.location.replace('/login?timeout=1');
-          });
-        }, 3 * 60 * 60 * 1000);
-      }
-    };
-
-    window.addEventListener('click', resetTimeout);
-    window.addEventListener('keypress', resetTimeout);
-    window.addEventListener('scroll', resetTimeout);
-    window.addEventListener('mousemove', resetTimeout);
-
-    return () => {
-      window.removeEventListener('click', resetTimeout);
-      window.removeEventListener('keypress', resetTimeout);
-      window.removeEventListener('scroll', resetTimeout);
-      window.removeEventListener('mousemove', resetTimeout);
-    };
-  }, [user, session, logout]);
 
   useBalanceListener(user?.id, (newBalance) => {
     if (typeof newBalance === 'number') {
