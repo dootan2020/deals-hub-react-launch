@@ -1,86 +1,78 @@
 
-import { toast as sonnerToast, type ToastT } from "sonner";
+import { toast as sonnerToast, type ToastT, type ToastToDismiss, type ExternalToast } from "sonner";
 import { useToast as useShadcnToast } from "@/components/ui/toast";
+import { ReactNode } from "react";
 
-// Re-export toast utility
+// Re-export the original useToast hook
 export const useToast = useShadcnToast;
 
-// Create a type for the toast function return
-type ToastReturn = string | number;
-
-// Re-export toast utility with enhanced methods
-export const toast = {
-  success(title: string, description?: string): ToastReturn {
-    if (description) {
-      return sonnerToast.success(title, { description });
-    }
-    return sonnerToast.success(title);
-  },
-  
-  error(title: string, description?: string): ToastReturn {
-    if (description) {
-      return sonnerToast.error(title, { description });
-    }
-    return sonnerToast.error(title);
-  },
-  
-  warning(title: string, description?: string): ToastReturn {
-    if (description) {
-      return sonnerToast.warning(title, { description });
-    }
-    return sonnerToast.warning(title);
-  },
-  
-  info(title: string, description?: string): ToastReturn {
-    if (description) {
-      return sonnerToast.info(title, { description });
-    }
-    return sonnerToast.info(title);
-  },
-  
-  loading(title: string, description?: string): ToastReturn {
-    if (description) {
-      return sonnerToast.loading(title, { description });
-    }
-    return sonnerToast.loading(title);
-  },
-  
-  dismiss(toastId?: string | number): void {
-    sonnerToast.dismiss(toastId);
-  },
-  
-  // Pass through other sonner toast methods
-  ...sonnerToast
+// Define the toast function type
+export type ToastFunction = {
+  (message: ReactNode, data?: ExternalToast): string | number;
+  success(message: ReactNode, data?: ExternalToast): string | number;
+  error(message: ReactNode, data?: ExternalToast): string | number;
+  warning(message: ReactNode, data?: ExternalToast): string | number;
+  info(message: ReactNode, data?: ExternalToast): string | number;
+  loading(message: ReactNode, data?: ExternalToast): string | number;
+  dismiss(toastId?: string | number): void;
+  // Include other methods from sonnerToast
+  getHistory(): (ToastT | ToastToDismiss)[];
+  update(id: string | number, data: ExternalToast): void;
+  promise<T>(
+    promise: Promise<T>,
+    msgs: {
+      loading: ReactNode;
+      success: ReactNode;
+      error: ReactNode;
+    },
+    data?: ExternalToast
+  ): Promise<T>;
 };
 
-// Export the toast type for use in other components
-export type Toast = {
-  (props: { title?: string; description?: string; variant?: "default" | "destructive" | "success" | "warning" }): string | number;
-} & typeof toast;
+// Create the toast function
+const createToast = () => {
+  // Create base toast function
+  const toastFn = (message: ReactNode, data?: ExternalToast) => {
+    return sonnerToast(message, data);
+  };
 
-// Make the toast object callable as a function
-const toastFunction = ((props: { 
-  title?: string; 
-  description?: string; 
-  variant?: "default" | "destructive" | "success" | "warning" 
-}) => {
-  const { title, description, variant } = props;
-    
-  if (variant === "destructive") {
-    return sonnerToast.error(title || "", { description });
-  } else if (variant === "success") {
-    return sonnerToast.success(title || "", { description });
-  } else if (variant === "warning") {
-    return sonnerToast.warning(title || "", { description });
-  } else {
-    return sonnerToast.info(title || "", { description });
-  }
-}) as Toast;
+  // Add success method
+  toastFn.success = (message: ReactNode, data?: ExternalToast) => {
+    return sonnerToast.success(message, data);
+  };
 
-// Copy all properties from toast to toastFunction
-Object.keys(toast).forEach(key => {
-  (toastFunction as any)[key] = (toast as any)[key];
-});
+  // Add error method
+  toastFn.error = (message: ReactNode, data?: ExternalToast) => {
+    return sonnerToast.error(message, data);
+  };
 
-// Export the toast function with all methods
-export { toastFunction as toast };
+  // Add warning method
+  toastFn.warning = (message: ReactNode, data?: ExternalToast) => {
+    return sonnerToast.warning(message, data);
+  };
+
+  // Add info method
+  toastFn.info = (message: ReactNode, data?: ExternalToast) => {
+    return sonnerToast.info(message, data);
+  };
+
+  // Add loading method
+  toastFn.loading = (message: ReactNode, data?: ExternalToast) => {
+    return sonnerToast.loading(message, data);
+  };
+
+  // Add dismiss method
+  toastFn.dismiss = (toastId?: string | number) => {
+    sonnerToast.dismiss(toastId);
+  };
+
+  // Add other methods
+  toastFn.getHistory = sonnerToast.getHistory;
+  toastFn.update = sonnerToast.update;
+  toastFn.promise = sonnerToast.promise;
+
+  return toastFn as ToastFunction;
+};
+
+// Export the single toast instance
+export const toast = createToast();
