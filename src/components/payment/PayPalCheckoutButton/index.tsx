@@ -1,6 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { PayPalButtons, usePayPalScriptReducer, SCRIPT_LOADING_STATE } from '@paypal/react-paypal-js';
+import { 
+  PayPalButtons, 
+  usePayPalScriptReducer, 
+  SCRIPT_LOADING_STATE,
+  CreateOrderActions,
+  OnApproveData,
+  OnApproveActions,
+  OnErrorData,
+  CreateOrderData
+} from '@paypal/react-paypal-js';
 import { toast } from '@/hooks/use-toast';
 import { PayPalProcessingState } from '../PayPalProcessingState';
 import { PayPalStateError } from '../PayPalStateError';
@@ -26,28 +35,43 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
     }
   }, [isPending, isRejected]);
 
-  // Handle payment success
-  const handleApprove = (data: any, actions: any) => {
-    return actions.order.capture().then((details: any) => {
+  // Create order function with proper types
+  const createOrder = (_data: CreateOrderData, actions: CreateOrderActions) => {
+    return actions.order.create({
+      intent: "CAPTURE",
+      purchase_units: [{
+        amount: {
+          value: amount.toFixed(2),
+          currency_code: 'USD'
+        }
+      }],
+    });
+  };
+
+  // Handle payment success with proper types
+  const handleApprove = (_data: OnApproveData, actions: OnApproveActions) => {
+    return actions.order.capture().then((details) => {
       toast.success('Thanh toán thành công qua PayPal!');
       onSuccess();
     });
   };
 
-  // Handle errors
-  const handleError = (err: any) => {
+  // Handle errors with proper types
+  const handleError = (err: OnErrorData) => {
     toast.error('Đã có lỗi xảy ra trong quá trình thanh toán với PayPal.');
     console.error('PayPal Checkout error:', err);
   };
 
+  // Handle cancel
+  const handleCancel = () => {
+    toast.warning('Thanh toán bị hủy bỏ bởi người dùng.');
+  };
+
+  // Handle retry with correct action type
   const handleRetry = () => {
-    // Reset the PayPal script loading state to trigger a reload
-    // Using the correct dispatch type "resetOptions" which is valid for DISPATCH_ACTION
+    // Use 'reset' as it is a valid action in PayPal's DISPATCH_ACTION type
     paypalDispatch({
-      type: "resetOptions",
-      value: {
-        clientId: undefined
-      }
+      type: 'reset'
     });
   };
 
@@ -70,20 +94,10 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
         <PayPalButtons
           style={{ layout: 'horizontal', color: 'blue', shape: 'pill', label: 'pay' }}
           forceReRender={[amount]}
-          createOrder={(data, actions) => {
-            return actions.order.create({
-              intent: "CAPTURE",
-              purchase_units: [{
-                amount: {
-                  value: amount.toFixed(2),
-                  currency_code: 'USD'
-                }
-              }],
-            });
-          }}
+          createOrder={createOrder}
           onApprove={handleApprove}
           onError={handleError}
-          onCancel={() => toast.warning('Thanh toán bị hủy bỏ bởi người dùng.')}
+          onCancel={handleCancel}
         />
       )}
     </>
