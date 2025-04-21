@@ -74,7 +74,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       // Ensure required fields are satisfied as per 'Product' type everywhere
       openDialog(ensureProductFields({
         ...product,
-        description: product.description || "", // Make description required (fallback empty string)
+        description: product.description ?? "", // forcibly provide description as string
         specifications: product.specifications && Object.keys(product.specifications).length > 0
           ? product.specifications
           : {}, // Ensure correct type and not undefined
