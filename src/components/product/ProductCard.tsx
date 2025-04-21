@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -25,6 +24,7 @@ const getLogoType = (title: string): 'gmail' | 'facebook' | 'outlook' | 'default
   const lowercaseTitle = title.toLowerCase();
   if (lowercaseTitle.includes('gmail')) return 'gmail';
   if (lowercaseTitle.includes('facebook')) return 'facebook';
+  if (lowercaseTitle.includes('facebook')) return 'facebook';
   if (lowercaseTitle.includes('outlook')) return 'outlook';
   return 'default';
 };
@@ -46,14 +46,9 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
     ? "flex-1"
     : "";
 
-  // Make sure stock value is properly set and converted to number
   const stock = Number(product.stock_quantity || product.stock || 0);
   const salesCount = Number(product.stock_quantity || 0);
-  
-  // Ensure we have a valid kiosk_token
   const hasKioskToken = Boolean(product.kiosk_token);
-  
-  // Product is in stock if stock > 0
   const isInStock = product.in_stock;
 
   // For debugging
@@ -104,16 +99,16 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2 mt-2">
+        <div className="grid grid-cols-2 gap-2 mt-4">
           <Button
             variant="outline"
-            size="sm"
-            className="flex-1 min-w-[90px] md:min-w-[100px] text-xs md:text-sm font-normal border-primary/20 hover:border-primary/40"
+            size="default"
+            className="h-12 w-full flex items-center justify-center text-sm font-medium border-primary/20 hover:border-primary/40"
             asChild
           >
             <a href={`/product/${product.slug}`}>
               <span>Chi tiết</span>
-              <ArrowRight className="ml-1.5 h-3 w-3 md:h-3.5 md:w-3.5" />
+              <ArrowRight className="ml-1.5 h-4 w-4" />
             </a>
           </Button>
           
@@ -121,12 +116,12 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
             productId={product.id}
             kioskToken={product.kiosk_token}
             variant="default"
-            size="sm"
-            className="flex-1 min-w-[90px] md:min-w-[100px] bg-gradient-to-r from-primary to-primary-dark text-xs md:text-sm"
+            size="default"
+            className="h-12 w-full flex items-center justify-center text-sm font-medium"
             isInStock={isInStock}
             product={product}
           >
-            <ShoppingCart className="mr-1.5 h-3 w-3 md:h-3.5 md:w-3.5" />
+            <ShoppingCart className="mr-1.5 h-4 w-4" />
             Mua ngay
           </BuyNowButton>
         </div>
