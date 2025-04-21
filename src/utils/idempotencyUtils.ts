@@ -25,7 +25,8 @@ export const generateIdempotencyKey = (
   // Use a hash function if needed for shorter keys
   // Here we just use the first 8 chars of a UUID plus the dataString
   const randomPart = uuidv4().split('-')[0];
-  return `${prefix}_${randomPart}_${Buffer.from(dataString).toString('base64').substring(0, 16)}`;
+  const encodedData = Buffer.from(dataString).toString('base64').substring(0, 16);
+  return `${prefix}_${randomPart}_${encodedData}`;
 };
 
 /**
@@ -39,7 +40,7 @@ export const generateRandomIdempotencyKey = (prefix: string): string => {
  * Checks if a transaction with the given idempotency key has already been processed
  */
 export const checkIdempotency = async (
-  table: 'deposits' | 'orders' | 'transactions' | string,
+  table: 'deposits' | 'orders' | 'transactions',
   idempotencyKey: string
 ): Promise<{ exists: boolean; data?: any }> => {
   try {

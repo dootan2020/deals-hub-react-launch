@@ -1,9 +1,10 @@
+
 import React, { createContext, useContext, useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { useAuthState } from '@/hooks/use-auth-state';
 import { useAuthActions } from '@/hooks/auth/use-auth-actions';
 import { useBalanceListener } from '@/hooks/use-balance-listener';
 import { AuthContextType } from '@/types/auth.types';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -25,7 +26,7 @@ const AuthContext = createContext<AuthContextType>({
   resendVerificationEmail: async () => false,
 });
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [hydrated, setHydrated] = useState(false);
   
   const {
@@ -54,7 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (authError) {
       console.error('Authentication error:', authError);
-      toast.error('Lỗi xác thực', authError.message);
+      toast.error('Error authenticating', { description: authError.message });
     }
   }, [authError]);
 
@@ -79,7 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         sessionTimeoutRef.current = null;
       }
     };
-  }, [user?.id, session?.access_token]);
+  }, [user?.id, session?.access_token, logout]);
 
   useEffect(() => {
     if (session && session.expires_at) {
@@ -91,7 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
       }
     }
-  }, [session]);
+  }, [session, logout]);
 
   useBalanceListener(user?.id, (newBalance) => {
     if (typeof newBalance === 'number') {
@@ -109,7 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return userBalance;
     } catch (error) {
       console.error('Error refreshing balance:', error);
-      toast.error('Không thể cập nhật số dư', 'Vui lòng thử lại sau');
+      toast.error('Could not update balance', { description: 'Please try again later' });
       throw error;
     }
   }, [user?.id, fetchUserBalance, userBalance]);
@@ -124,7 +125,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await refreshUserData();
     } catch (error) {
       console.error('Error refreshing user profile:', error);
-      toast.error('Không thể cập nhật thông tin người dùng', 'Vui lòng thử lại sau');
+      toast.error('Could not update user profile', { description: 'Please try again later' });
       throw error;
     }
   }, [user?.id, refreshUserData]);
@@ -135,7 +136,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const isEmailVerified = user?.email_confirmed_at !== null;
 
-  const contextValue: AuthContextType = useMemo(() => ({
+  const contextValue = useMemo(() => ({
     user,
     session,
     loading,
@@ -170,4 +171,5 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     </AuthContext.Provider>
   );
 };
+
 export const useAuth = () => useContext(AuthContext);

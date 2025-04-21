@@ -57,40 +57,35 @@ export const checkAndRetryPendingDeposits = async (): Promise<{
 /**
  * Lấy thông tin về trạng thái các giao dịch đang chờ xử lý
  */
-export const getPendingDepositsStatus = async (): Promise<{
-  total: number;
-  needsRetry: number;
-  processedToday: number;
-  failedToday: number;
-}> => {
+export const getPendingDepositsStatus = async (): Promise<PendingDepositsStatus> => {
   try {
     // Use the correct RPC function call for getting pending deposits status
     const { data, error } = await supabase
-      .rpc('get_pending_deposits_status');
+      .rpc<PendingDepositsStatus>('get_pending_deposits_status');
     
     if (error) {
       console.error("Error getting pending deposits status:", error);
       return {
-        total: 0,
-        needsRetry: 0,
-        processedToday: 0,
-        failedToday: 0
+        total_pending: 0,
+        needs_retry: 0,
+        processed_today: 0,
+        failed_today: 0
       };
     }
     
     return {
-      total: data?.total_pending || 0,
-      needsRetry: data?.needs_retry || 0,
-      processedToday: data?.processed_today || 0,
-      failedToday: data?.failed_today || 0
+      total_pending: data?.total_pending || 0,
+      needs_retry: data?.needs_retry || 0,
+      processed_today: data?.processed_today || 0,
+      failed_today: data?.failed_today || 0
     };
   } catch (err) {
     console.error("Exception in getPendingDepositsStatus:", err);
     return {
-      total: 0,
-      needsRetry: 0,
-      processedToday: 0,
-      failedToday: 0
+      total_pending: 0,
+      needs_retry: 0,
+      processed_today: 0,
+      failed_today: 0
     };
   }
 };

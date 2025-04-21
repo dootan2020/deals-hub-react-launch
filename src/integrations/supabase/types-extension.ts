@@ -54,15 +54,15 @@ export interface TransactionLog {
 export interface Database extends OriginalDatabase {
   public: {
     Tables: {
-      invoices: {
-        Row: Invoice;
-        Insert: Omit<Invoice, 'id' | 'created_at'>;
-        Update: Partial<Omit<Invoice, 'id' | 'created_at'>>;
-      };
       transaction_logs: {
         Row: TransactionLog;
         Insert: Omit<TransactionLog, 'id' | 'created_at'>;
         Update: Partial<Omit<TransactionLog, 'id' | 'created_at'>>;
+      };
+      invoices: {
+        Row: Invoice;
+        Insert: Omit<Invoice, 'id' | 'created_at'>;
+        Update: Partial<Omit<Invoice, 'id' | 'created_at'>>;
       };
     } & OriginalDatabase['public']['Tables'];
     Views: OriginalDatabase['public']['Views'] & {

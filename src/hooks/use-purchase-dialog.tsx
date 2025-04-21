@@ -1,6 +1,7 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useOrderApi } from '@/hooks/use-order-api';
 import { supabase } from '@/integrations/supabase/client';
 import { recordPurchaseActivity, checkUserBehaviorAnomaly } from '@/utils/fraud-detection';
@@ -79,7 +80,6 @@ export const usePurchaseDialog = () => {
   const [verifiedStock, setVerifiedStock] = useState<number | null>(null);
   const [verifiedPrice, setVerifiedPrice] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const { toast } = useToast();
   const { user } = useAuth();
   const { createOrder } = useOrderApi();
 
@@ -123,22 +123,14 @@ export const usePurchaseDialog = () => {
 
       if (error) {
         console.error('Stock verification error:', error);
-        toast({
-          title: 'Không thể xác minh sản phẩm',
-          description: error.message || 'Có lỗi xảy ra khi xác minh sản phẩm',
-          variant: 'destructive',
-        });
+        toast.error('Không thể xác minh sản phẩm', { description: error.message || 'Có lỗi xảy ra khi xác minh sản phẩm' });
         setVerifiedStock(null);
         setVerifiedPrice(null);
         return;
       }
 
       if (data?.success === false || typeof data?.data?.stock !== 'number') {
-        toast({
-          title: 'Không thể xác minh sản phẩm',
-          description: data?.message || 'Có lỗi xảy ra khi xác minh sản phẩm',
-          variant: 'destructive',
-        });
+        toast.error('Không thể xác minh sản phẩm', { description: data?.message || 'Có lỗi xảy ra khi xác minh sản phẩm' });
         setVerifiedStock(null);
         setVerifiedPrice(null);
         return;
@@ -148,17 +140,13 @@ export const usePurchaseDialog = () => {
       setVerifiedPrice(data.data.price);
     } catch (err: any) {
       console.error('Stock verification failed:', err);
-      toast({
-        title: 'Không thể xác minh sản phẩm',
-        description: err.message || 'Có lỗi xảy ra khi xác minh sản phẩm',
-        variant: 'destructive',
-      });
+      toast.error('Không thể xác minh sản phẩm', { description: err.message || 'Có lỗi xảy ra khi xác minh sản phẩm' });
       setVerifiedStock(null);
       setVerifiedPrice(null);
     } finally {
       setIsVerifying(false);
     }
-  }, [selectedProduct, toast]);
+  }, [selectedProduct]);
 
   useEffect(() => {
     if (open && selectedProduct) {
@@ -180,11 +168,7 @@ export const usePurchaseDialog = () => {
       }
       return { stock: data.data.stock, price: data.data.price };
     } catch (e) {
-      toast({
-        title: 'Không thể xác minh số lượng sản phẩm',
-        description: (e as any).message || 'Có lỗi xảy ra khi xác minh số lượng',
-        variant: 'destructive',
-      });
+      toast.error('Không thể xác minh số lượng sản phẩm', { description: (e as any).message || 'Có lỗi xảy ra khi xác minh số lượng' });
       throw e;
     } finally {
       setIsVerifying(false);
@@ -193,20 +177,12 @@ export const usePurchaseDialog = () => {
 
   const handleConfirm = useCallback(async (quantity: number, promotionCode?: string) => {
     if (!selectedProduct) {
-      toast({
-        title: 'Không thể tạo đơn hàng',
-        description: 'Không có sản phẩm nào được chọn',
-        variant: 'destructive',
-      });
+      toast.error('Không thể tạo đơn hàng', { description: 'Không có sản phẩm nào được chọn' });
       return false;
     }
 
     if (quantity <= 0) {
-      toast({
-        title: 'Không thể tạo đơn hàng',
-        description: 'Số lượng phải lớn hơn 0',
-        variant: 'destructive',
-      });
+      toast.error('Không thể tạo đơn hàng', { description: 'Số lượng phải lớn hơn 0' });
       return false;
     }
 
@@ -222,11 +198,7 @@ export const usePurchaseDialog = () => {
       setVerifiedPrice(price);
 
       if (quantity > stock) {
-        toast({
-          title: 'Không thể tạo đơn hàng',
-          description: 'Số lượng vượt quá số lượng sản phẩm hiện có',
-          variant: 'destructive',
-        });
+        toast.error('Không thể tạo đơn hàng', { description: 'Số lượng vượt quá số lượng sản phẩm hiện có' });
         return false;
       }
     } catch {
@@ -250,10 +222,9 @@ export const usePurchaseDialog = () => {
           const behaviorAnomaly = await checkUserBehaviorAnomaly(user.id);
           if (behaviorAnomaly) {
             setSubmitting(false);
-            toast.error(
-              "Không thể xử lý giao dịch",
-              "Hoạt động đáng ngờ được phát hiện. Vui lòng liên hệ hỗ trợ."
-            );
+            toast.error("Không thể xử lý giao dịch", {
+              description: "Hoạt động đáng ngờ được phát hiện. Vui lòng liên hệ hỗ trợ."
+            });
             await supabase.functions.invoke("fraud-detection", {
               body: {
                 action: "report-suspicious",
@@ -295,32 +266,27 @@ export const usePurchaseDialog = () => {
           }
         });
 
-        toast({
-          title: 'Đặt hàng thành công',
-          description: orderResult.message || 'Đơn hàng đã được tạo thành công',
+        toast.success('Đặt hàng thành công', {
+          description: orderResult.message || 'Đơn hàng đã được tạo thành công'
         });
         setOpen(false);
         return true;
       } else {
-        toast({
-          title: 'Không thể tạo đơn hàng',
-          description: orderResult?.message || 'Có lỗi xảy ra khi tạo đơn hàng',
-          variant: 'destructive',
+        toast.error('Không thể tạo đơn hàng', {
+          description: orderResult?.message || 'Có lỗi xảy ra khi tạo đơn hàng'
         });
         return false;
       }
     } catch (err: any) {
       console.error('Order creation failed:', err);
-      toast({
-        title: 'Không thể tạo đơn hàng',
-        description: err.message || 'Có lỗi xảy ra khi tạo đơn hàng',
-        variant: 'destructive',
+      toast.error('Không thể tạo đơn hàng', {
+        description: err.message || 'Có lỗi xảy ra khi tạo đơn hàng'
       });
       return false;
     } finally {
       setSubmitting(false);
     }
-  }, [selectedProduct, toast, quantity, promotionCode, createOrder, user?.id]);
+  }, [selectedProduct, user?.id, createOrder]);
 
   return {
     open,

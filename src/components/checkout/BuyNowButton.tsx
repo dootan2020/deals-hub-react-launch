@@ -7,30 +7,8 @@ import PurchaseConfirmDialog from './PurchaseConfirmDialog';
 import { Product } from '@/types';
 import { prepareProductForPurchase } from '@/utils/buyNowUtils';
 
-// Define a local Product interface that matches the expected structure
-interface BuyNowButtonProduct {
-  id: string;
-  kiosk_token: string;
-  title: string;
-  price: number;
-  stockQuantity: number;
-  description?: string; // This is optional here but required in the main Product type
-  images?: string[];
-  categoryId?: string;
-  rating?: number;
-  reviewCount?: number;
-  badges?: string[];
-  features?: string[];
-  slug?: string;
-  inStock?: boolean;
-  specifications?: Record<string, string | number | boolean | object>;
-  createdAt?: string;
-  stock?: number;
-  shortDescription?: string;
-}
-
 interface BuyNowButtonProps {
-  product?: BuyNowButtonProduct;
+  product?: any;
   kioskToken?: string;
   productId?: string;
   quantity?: number;
@@ -71,13 +49,14 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   const handleClick = () => {
     // Use prepareProductForPurchase to ensure the product matches the required Product type
     const preparedProduct = prepareProductForPurchase(product, productId, kioskToken);
-    // Now we can safely pass the prepared product to openDialog without type assertion
-    openDialog(preparedProduct);
+    if (preparedProduct) {
+      openDialog(preparedProduct as Product);
+    }
   };
 
   const handleConfirmPurchase = async (quantity: number, code?: string) => {
-    await handleConfirm(quantity, code);
-    if (onSuccess) onSuccess();
+    const success = await handleConfirm(quantity, code);
+    if (success && onSuccess) onSuccess();
   };
 
   return (

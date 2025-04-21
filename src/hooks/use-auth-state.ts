@@ -29,7 +29,7 @@ export const useAuthState = () => {
 
     try {
       console.log('Fetching user roles from database');
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .rpc('get_user_roles', { user_id_param: userId })
         .abortSignal(AbortSignal.timeout(3000)); // 3s timeout
 
@@ -158,13 +158,17 @@ export const useAuthState = () => {
           setLoading(false);
         }
         
-        // Cleanup function
+        // Cleanup function will be returned by useEffect
         return () => {
           subscription.unsubscribe();
         };
       } catch (error) {
         console.error('Error in initializeAuth:', error);
-        setAuthError(error instanceof Error ? error : new Error('Unknown auth error'));
+        if (error instanceof Error) {
+          setAuthError(error);
+        } else {
+          setAuthError(new Error('Unknown auth error'));
+        }
         if (isMounted) setLoading(false);
       }
     };
@@ -184,7 +188,7 @@ export const useAuthState = () => {
       isMounted = false;
       clearTimeout(authTimeout);
     };
-  }, [handleAuthStateChange]);
+  }, [handleAuthStateChange, loading]);
 
   // Function to manually refresh user profile data with forced role fetch
   const refreshUserData = useCallback(async () => {

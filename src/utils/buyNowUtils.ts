@@ -18,7 +18,8 @@ export function prepareProductForPurchase(
       title: product.title || 'Unknown Product',
       price: product.price || 0,
       stockQuantity: product.stockQuantity || product.stock || 0,
-      description: product.description || product.shortDescription || 'No description available', // Ensure description is always set
+      stock: product.stock || product.stockQuantity || 0, // Ensure stock is always set
+      description: product.description || product.shortDescription || 'No description available',
       images: product.images || [],
       categoryId: product.categoryId || '',
       rating: product.rating || 0,
@@ -40,7 +41,18 @@ export function prepareProductForPurchase(
     title: 'Quick Purchase',
     price: 0,
     stockQuantity: 1,
-    description: 'Quick purchase product', // This field is now always set
-    inStock: true
+    stock: 1,
+    description: 'Quick purchase product',
+    images: [],
+    categoryId: '',
+    rating: 0,
+    reviewCount: 0,
+    badges: [],
+    features: [],
+    slug: '',
+    inStock: true,
+    specifications: {},
+    createdAt: new Date().toISOString(),
+    shortDescription: ''
   };
 }
