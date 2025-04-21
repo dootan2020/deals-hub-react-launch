@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -72,7 +71,10 @@ export function useOrders() {
             .eq('order_id', order.id);
 
           // Handle potentially missing or error user data
-          const userValue = order.user && typeof order.user === 'object' && !('error' in order.user)
+          const userValue = order.user && 
+                           typeof order.user === 'object' && 
+                           order.user !== null && 
+                           !('error' in order.user)
             ? order.user
             : { email: 'N/A' };
 
@@ -117,7 +119,10 @@ export function useOrders() {
           .eq('order_id', data.id);
 
         // Handle potentially missing or error user data
-        const userValue = data.user && typeof data.user === 'object' && !('error' in data.user)
+        const userValue = data.user && 
+                         typeof data.user === 'object' && 
+                         data.user !== null && 
+                         !('error' in data.user)
           ? data.user
           : { email: 'N/A' };
 

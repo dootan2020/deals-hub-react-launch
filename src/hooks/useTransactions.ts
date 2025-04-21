@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -66,7 +65,10 @@ export function useTransactions() {
       // Type casting to ensure compatibility with Transaction interface
       const typedTransactions = (data || []).map(item => {
         // Handle potentially missing user data
-        const userValue = item.user && typeof item.user === 'object' && !('error' in item.user) 
+        const userValue = item.user && 
+                         typeof item.user === 'object' && 
+                         item.user !== null && 
+                         !('error' in item.user) 
           ? item.user 
           : { email: 'N/A' };
           
@@ -104,7 +106,10 @@ export function useTransactions() {
       // Type casting to ensure compatibility with Deposit interface
       const typedDeposits = (data || []).map(item => {
         // Handle potentially missing user data
-        const userValue = item.user && typeof item.user === 'object' && !('error' in item.user) 
+        const userValue = item.user && 
+                         typeof item.user === 'object' && 
+                         item.user !== null && 
+                         !('error' in item.user) 
           ? item.user 
           : { email: 'N/A' };
           
