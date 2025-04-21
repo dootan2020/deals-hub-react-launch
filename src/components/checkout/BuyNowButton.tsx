@@ -87,7 +87,8 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
         createdAt: product.createdAt || new Date().toISOString()
       };
       
-      openDialog(ensureProductFields(productWithRequiredFields as unknown as Partial<Product>));
+      // Use type assertion to ensure compatibility with the Product type
+      openDialog(ensureProductFields(productWithRequiredFields) as unknown as Product);
     } else {
       const minimalProduct = ensureProductFields({
         id: productId || '',
@@ -108,7 +109,8 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
         createdAt: new Date().toISOString(),
         stock: 10,
         shortDescription: '',
-      });
+      }) as unknown as Product;
+      
       openDialog(minimalProduct);
     }
   };

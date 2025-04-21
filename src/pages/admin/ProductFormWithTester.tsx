@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2, RefreshCw, AlertCircle, Info, CheckCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { buildProxyUrl } from '@/utils/proxyUtils';
+import { buildProxyUrl, ProxyType } from '@/utils/proxyUtils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
@@ -27,7 +27,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { sanitizeHtml } from '@/utils/sanitizeHtml';
 
-// Explicitly define the enum here since we're using it as a value
+// Define the enum here since we're using it as a value
 enum ProxyTypeEnum {
   Mobile = 'Mobile',
   Residential = 'Residential',
@@ -55,7 +55,6 @@ const ProductFormWithTester = () => {
   const [proxyUrl, setProxyUrl] = useState('');
   const [testResult, setTestResult] = useState<any>(null);
   const [isTesting, setIsTesting] = useState(false);
-  const [kioskToken, setKioskToken] = useState('');
   const navigate = useNavigate();
   const { syncProduct } = useProductSync();
 
@@ -114,12 +113,12 @@ const ProductFormWithTester = () => {
     setTestResult(null);
 
     try {
-      // Fix: Pass both arguments to buildProxyUrl and extract just the url property
-      const proxyResult = buildProxyUrl(proxyType.toString(), { type: proxyType.toString() });
-      const url = proxyResult.url;
-      setProxyUrl(url);
+      // Fix: Properly pass proxy type as ProxyType
+      const proxyTypeValue = proxyType as ProxyType; 
+      const proxyResult = buildProxyUrl('https://api.example.com/test', { type: proxyTypeValue });
+      setProxyUrl(proxyResult.url);
 
-      const response = await fetch(url, {
+      const response = await fetch(proxyResult.url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -145,7 +144,7 @@ const ProductFormWithTester = () => {
   const onSubmit = async (values: ProductFormValues) => {
     console.log("Form values", values);
     try {
-      // Fix: Pass proper product data object instead of string
+      // Fix: Create a product object with all required fields
       await syncProduct({
         id: 'new',
         title: values.title,
@@ -167,7 +166,7 @@ const ProductFormWithTester = () => {
         features: [],
         createdAt: new Date().toISOString(),
         stock: 10,
-        shortDescription: ''
+        shortDescription: values.description.substring(0, 100)
       });
       toast.success('Product created successfully!');
       navigate('/admin/product-manager');
