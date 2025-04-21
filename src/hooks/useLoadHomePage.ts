@@ -1,13 +1,19 @@
 
 import { useState, useEffect } from 'react';
 import { fetchProductsWithFilters } from '@/services/product/productService';
-import { fetchMainCategories } from '@/services/categoryService';
-import { Product, SortOption, Category } from '@/types';
+import { fetchAllCategories, fetchSubcategoriesByParentId } from '@/services/categoryService';
+import { Product, SortOption, Category, SubcategoryItem } from '@/types';
 import { toast } from '@/hooks/use-toast';
+
+// Extend the category type for this hook usage to include topSubcategories and totalSubcategories
+interface CategoryWithSubs extends Category {
+  topSubcategories: SubcategoryItem[];
+  totalSubcategories: number;
+}
 
 interface UseLoadHomePageResult {
   products: Product[];
-  categories: Category[];
+  categories: CategoryWithSubs[];
   isLoadingProducts: boolean;
   isLoadingCategories: boolean;
   productsError: string | null;
@@ -19,7 +25,7 @@ interface UseLoadHomePageResult {
 
 export function useLoadHomePage(): UseLoadHomePageResult {
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryWithSubs[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [productsError, setProductsError] = useState<string | null>(null);
@@ -31,7 +37,6 @@ export function useLoadHomePage(): UseLoadHomePageResult {
     setProductsError(null);
     
     try {
-      // Sử dụng timeout để đảm bảo không loading mãi
       const productPromise = fetchProductsWithFilters({ sort: activeSort });
       const timeoutPromise = new Promise<null>((_, reject) => 
         setTimeout(() => reject(new Error('Quá thời gian tải dữ liệu sản phẩm')), 10000)
@@ -61,16 +66,37 @@ export function useLoadHomePage(): UseLoadHomePageResult {
     setCategoriesError(null);
     
     try {
-      // Sử dụng timeout để đảm bảo không loading mãi
-      const categoryPromise = fetchMainCategories();
-      const timeoutPromise = new Promise<null>((_, reject) => 
+      const categoryPromise = fetchAllCategories();
+      const timeoutPromise = new Promise<Category[]>((_, reject) => 
         setTimeout(() => reject(new Error('Quá thời gian tải danh mục')), 10000)
       );
       
       const result = await Promise.race([categoryPromise, timeoutPromise]);
       
       if (Array.isArray(result) && result.length > 0) {
-        setCategories(result);
+        // Filter main categories (no parent_id)
+        const mainCategories = result.filter(cat => !cat.parent_id);
+        
+        // For each main category, fetch top 4 subcategories and total count
+        const categoriesWithSubs: CategoryWithSubs[] = await Promise.all(
+          mainCategories.map(async (cat) => {
+            const subs = await fetchSubcategoriesByParentId(cat.id);
+            // Only take top 4 subs
+            const topSubcategories: SubcategoryItem[] = subs.slice(0, 4).map(s => ({
+              id: s.id,
+              name: s.name,
+              slug: s.slug,
+            }));
+            return {
+              ...cat,
+              topSubcategories,
+              totalSubcategories: subs.length,
+            };
+          })
+        );
+
+        setCategories(categoriesWithSubs);
+        setCategoriesError(null);
       } else {
         setCategories([]);
         setCategoriesError('Không có danh mục nào');
