@@ -2,7 +2,7 @@
 import { Database as OriginalDatabase } from './types';
 import { UserRole } from '@/types/auth.types';
 import { Deposit, PendingDepositsStatus } from '@/types/deposits';
-import { Json } from './types';
+import { Json } from '@/types/database.types';
 
 // Define the Invoice interface
 export interface Invoice {

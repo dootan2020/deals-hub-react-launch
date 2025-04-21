@@ -17,9 +17,9 @@ export async function recordIdempotencyResult<T>(
       .from('transaction_logs')
       .insert({
         idempotency_key: key,
-        status: 'success',
+        status: 'pending',
         request_payload: contextData || {},
-        response_payload: result
+        response_payload: null
       });
 
     if (error) {
@@ -89,38 +89,6 @@ export async function deleteIdempotencyKey(
   }
 }
 
-/**
- * Process a request with idempotency checking and result recording
- */
-export async function processWithIdempotencyHandling<T>(
-  key: string,
-  keyType: string,
-  processor: () => Promise<T>,
-  contextData?: any
-): Promise<IdempotencyResult<T>> {
-  try {
-    // Check if we already have a result for this key
-    const checkResult = await checkIdempotencyKeyInternal<T>(key);
-    
-    if (!checkResult.isNew) {
-      // We already have a result, return it
-      return checkResult;
-    }
-    
-    // Process the request
-    const result = await processor();
-    
-    // Record the result
-    await recordIdempotencyResult(key, keyType, result, contextData);
-    
-    // Return the newly generated result
-    return { result, isNew: true };
-  } catch (error) {
-    console.error('Error in processWithIdempotencyHandling:', error);
-    return { result: null as T, isNew: true, error: (error as Error).message };
-  }
-}
-
 // Internal function to avoid circular dependency
 async function checkIdempotencyKeyInternal<T>(
   key: string
@@ -134,11 +102,11 @@ async function checkIdempotencyKeyInternal<T>(
 
     if (error) {
       console.error('Error checking idempotency key:', error);
-      return { result: null as T, isNew: true };
+      return { result: null, isNew: true };
     }
 
     if (!data) {
-      return { result: null as T, isNew: true };
+      return { result: null, isNew: true };
     }
 
     return { 
@@ -147,6 +115,6 @@ async function checkIdempotencyKeyInternal<T>(
     };
   } catch (err) {
     console.error('Exception in checkIdempotencyKey:', err);
-    return { result: null as T, isNew: true };
+    return { result: null, isNew: true };
   }
 }
