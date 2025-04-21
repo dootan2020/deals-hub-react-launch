@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag } from 'lucide-react';
@@ -8,6 +7,8 @@ import { Product } from '@/types';
 import { prepareProductForPurchase } from '@/utils/buyNowUtils';
 import { useRateLimitedAction } from '@/hooks/use-debounce';
 import { toast } from '@/hooks/use-toast';
+import { useActionStatus } from "@/hooks/useActionStatus";
+import { withToastFeedback } from "@/utils/withToastFeedback";
 
 interface BuyNowButtonProps {
   product?: any;
@@ -23,7 +24,7 @@ interface BuyNowButtonProps {
   children?: React.ReactNode;
 }
 
-export const BuyNowButton: React.FC<BuyNowButtonProps> = ({ 
+export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   className, 
   variant = 'default',
   size = 'default',
@@ -75,6 +76,13 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
     }
   );
 
+  const {
+    isLoading: isConfirming,
+    error: confirmError,
+    execute: executeConfirm,
+    reset: resetConfirm,
+  } = useActionStatus();
+
   const handleClick = () => {
     const preparedProduct = prepareProductForPurchase(product, productId, kioskToken);
     if (preparedProduct) {
@@ -83,16 +91,34 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
   };
 
   const handleConfirmPurchase = async (quantity: number, code?: string) => {
-    const success = await handleConfirm(quantity, code);
-    if (success && onSuccess) onSuccess();
-    return success;
+    return await executeConfirm(async () =>
+      withToastFeedback(
+        async () => {
+          const success = await handleConfirm(quantity, code);
+          if (success && onSuccess) onSuccess();
+          return success;
+        },
+        {
+          loading: "Đang xử lý mua hàng...",
+          success: "Đặt hàng thành công!",
+          error: "Có lỗi khi đặt hàng",
+        }
+      )
+    );
   };
 
-  const buttonDisabled = !isInStock || isDisabled;
+  const buttonDisabled = !isInStock || isDisabled || isConfirming;
   
   let buttonLabel = children;
   if (!buttonLabel) {
-    if (!isInStock) {
+    if (isConfirming) {
+      buttonLabel = (
+        <>
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          Đang xử lý...
+        </>
+      );
+    } else if (!isInStock) {
       buttonLabel = (
         <>
           <ShoppingBag className="w-4 h-4 mr-2" />
@@ -131,10 +157,13 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       {selectedProduct && (
         <EnhancedPurchaseDialog
           open={open}
-          onOpenChange={() => closeDialog()}
+          onOpenChange={() => {
+            closeDialog();
+            resetConfirm();
+          }}
           product={selectedProduct}
           onConfirm={handleConfirmPurchase}
-          isVerifying={isVerifying}
+          isVerifying={isVerifying || isConfirming}
           verifiedStock={verifiedStock}
           verifiedPrice={verifiedPrice}
         />
