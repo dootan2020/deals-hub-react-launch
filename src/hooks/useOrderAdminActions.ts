@@ -1,156 +1,177 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import { Order } from './orderUtils';
+import { toast } from 'sonner';
 
-// Helper to log order activities for audit
-async function logOrderActivity({
-  orderId,
-  userId,
-  action,
-  oldStatus,
-  newStatus,
-  metadata,
-}: {
-  orderId: string;
-  userId?: string | null;
-  action: string;
-  oldStatus?: string;
-  newStatus?: string;
-  metadata?: any;
-}) {
-  try {
-    await supabase.from('order_activities').insert([
-      {
-        order_id: orderId,
-        user_id: userId ?? null,
-        action,
-        old_status: oldStatus ?? null,
-        new_status: newStatus ?? null,
-        metadata,
-      }
-    ]);
-  } catch (e) {
-    console.error('Failed to log admin order activity', e);
-  }
-}
+export const useOrderAdminActions = () => {
+  const [isProcessing, setIsProcessing] = useState(false);
 
-// Actions for use in admin order management views
-export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) => void) {
-  const [loading, setLoading] = useState(false);
-
-  const updateOrderStatus = async (orderId: string, status: string, adminId?: string) => {
+  const updateOrderStatus = async (
+    orderId: string,
+    userId: string,
+    newStatus: string,
+    oldStatus: string,
+    metadata: any = {}
+  ) => {
+    setIsProcessing(true);
     try {
-      setLoading(true);
-      // Find old status for logs
-      const oldOrder = orders.find(order => order.id === orderId);
-      const oldStatus = oldOrder?.status || null;
-
-      const { error } = await supabase
+      // Update the order status
+      const { error: updateError } = await supabase
         .from('orders')
-        .update({ status, updated_at: new Date().toISOString() })
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', orderId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
-      setOrders(orders.map(order =>
-        order.id === orderId ? { ...order, status, updated_at: new Date().toISOString() } : order
-      ));
-
-      // Log the status change action
-      await logOrderActivity({
+      // Log the status change
+      await addOrderLog(
         orderId,
-        userId: adminId ?? null,
-        action: 'status_changed',
+        userId,
+        'status_change',
         oldStatus,
-        newStatus: status,
-        metadata: { adminId }
-      });
+        newStatus,
+        metadata
+      );
 
+      toast.success('Order status updated successfully');
       return true;
-    } catch (err) {
-      console.error('Error updating order status:', err);
-      toast.error("Lỗi", "Không thể cập nhật trạng thái đơn hàng");
-      throw err;
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast.error('Failed to update order status');
+      return false;
     } finally {
-      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
-  // Refund logic
-  const processRefund = async (orderId: string, adminId?: string) => {
+  const addOrderLog = async (
+    orderId: string,
+    userId: string,
+    action: string,
+    oldStatus: string,
+    newStatus: string,
+    metadata: any
+  ) => {
     try {
-      setLoading(true);
-      const { data: orderData, error: orderError } = await supabase
+      // Include order_activities table in Database interface 
+      const { error } = await supabase
+        .from('order_activities')
+        .insert([
+          {
+            order_id: orderId,
+            user_id: userId,
+            action: action,
+            old_status: oldStatus,
+            new_status: newStatus,
+            metadata: metadata
+          }
+        ]);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error logging order activity:', error);
+      return false;
+    }
+  };
+
+  const deleteOrder = async (orderId: string, userId: string) => {
+    setIsProcessing(true);
+    try {
+      // Get the current order status before deletion
+      const { data: orderData, error: fetchError } = await supabase
         .from('orders')
-        .select('*')
+        .select('status')
         .eq('id', orderId)
-        .maybeSingle();
+        .single();
 
-      if (orderError) throw orderError;
-      if (!orderData) throw new Error('Không tìm thấy đơn hàng');
+      if (fetchError) throw fetchError;
 
-      // Update order
+      // Delete the order
+      const { error: deleteError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+
+      if (deleteError) throw deleteError;
+
+      // Log the deletion
+      await addOrderLog(
+        orderId,
+        userId,
+        'delete',
+        orderData?.status || 'unknown',
+        'deleted',
+        { deleted_at: new Date().toISOString() }
+      );
+
+      toast.success('Order deleted successfully');
+      return true;
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error('Failed to delete order');
+      return false;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const refundOrder = async (
+    orderId: string,
+    userId: string,
+    amount: number,
+    oldStatus: string
+  ) => {
+    setIsProcessing(true);
+    try {
+      // Update user balance
+      const { error: balanceError } = await supabase.rpc('update_user_balance', {
+        user_id_param: userId,
+        amount_param: amount
+      });
+
+      if (balanceError) throw balanceError;
+
+      // Update order status to refunded
       const { error: updateError } = await supabase
         .from('orders')
-        .update({
-          status: 'refunded',
-          updated_at: new Date().toISOString()
+        .update({ 
+          status: 'refunded', 
+          updated_at: new Date().toISOString() 
         })
         .eq('id', orderId);
 
       if (updateError) throw updateError;
 
-      // Transaction
-      const { error: transactionError } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: orderData.user_id,
-          amount: orderData.total_price,
-          type: 'refund',
-          status: 'completed',
-          payment_method: 'system',
-          transaction_id: `refund-${orderId}`
-        });
-
-      if (transactionError) throw transactionError;
-
-      // Balance
-      const { error: balanceError } = await supabase.rpc(
-        'update_user_balance',
-        {
-          user_id_param: orderData.user_id,
-          amount_param: orderData.total_price
+      // Log the refund
+      await addOrderLog(
+        orderId,
+        userId,
+        'refund',
+        oldStatus,
+        'refunded',
+        { 
+          refund_amount: amount,
+          refunded_at: new Date().toISOString()
         }
       );
 
-      if (balanceError) throw balanceError;
-
-      setOrders(orders.map(order =>
-        order.id === orderId ? { ...order, status: 'refunded', updated_at: new Date().toISOString() } : order
-      ));
-
-      // Log refund
-      await logOrderActivity({
-        orderId,
-        userId: adminId ?? null,
-        action: 'refunded',
-        oldStatus: orderData.status ?? null,
-        newStatus: 'refunded',
-        metadata: { adminId, amount: orderData.total_price }
-      });
-
-      toast.success("Hoàn tiền thành công", `Số tiền ${orderData.total_price.toLocaleString('vi-VN')} VNĐ đã được hoàn trả cho người dùng`);
+      toast.success(`Order refunded successfully. Amount: $${amount.toFixed(2)}`);
       return true;
-    } catch (err) {
-      console.error('Error processing refund:', err);
-      toast.error("Lỗi", "Không thể xử lý yêu cầu hoàn tiền");
-      throw err;
+    } catch (error) {
+      console.error('Error refunding order:', error);
+      toast.error('Failed to process refund');
+      return false;
     } finally {
-      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
-  return { loading, updateOrderStatus, processRefund };
-}
+  return {
+    isProcessing,
+    updateOrderStatus,
+    deleteOrder,
+    refundOrder
+  };
+};
+
+export default useOrderAdminActions;

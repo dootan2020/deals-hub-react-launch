@@ -41,7 +41,7 @@ export interface Product {
   last_synced_at?: string;
   category?: Category;
   
-  // For compatibility with existing components, define aliases
+  // For compatibility with existing components, define getter aliases
   // These will help us transition to the correct snake_case names
   get originalPrice(): number | undefined {
     return this.original_price ?? undefined;
@@ -60,6 +60,10 @@ export interface Product {
   }
   
   get salesCount(): number {
+    return this.stock_quantity || 0;
+  }
+
+  get stockQuantity(): number {
     return this.stock_quantity || 0;
   }
 }

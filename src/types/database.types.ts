@@ -370,6 +370,111 @@ export interface Database {
         };
         Relationships: [];
       };
+      order_activities: {
+        Row: {
+          id: string;
+          order_id: string;
+          user_id?: string | null;
+          action: string;
+          old_status?: string | null;
+          new_status?: string | null;
+          metadata?: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          order_id: string;
+          user_id?: string | null;
+          action: string;
+          old_status?: string | null;
+          new_status?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          order_id?: string;
+          user_id?: string | null;
+          action?: string;
+          old_status?: string | null;
+          new_status?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      orders: {
+        Row: {
+          id: string;
+          user_id: string;
+          product_id?: string | null;
+          total_price: number;
+          qty: number;
+          status: string;
+          keys?: Json | null;
+          promotion_code?: string | null;
+          external_order_id?: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          product_id?: string | null;
+          total_price: number;
+          qty?: number;
+          status: string;
+          keys?: Json | null;
+          promotion_code?: string | null;
+          external_order_id?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          product_id?: string | null;
+          total_price?: number;
+          qty?: number;
+          status?: string;
+          keys?: Json | null;
+          promotion_code?: string | null;
+          external_order_id?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      order_items: {
+        Row: {
+          id: string;
+          order_id?: string | null;
+          product_id?: string | null;
+          external_product_id?: string | null;
+          price: number;
+          quantity: number;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          order_id?: string | null;
+          product_id?: string | null;
+          external_product_id?: string | null;
+          price: number;
+          quantity: number;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          order_id?: string | null;
+          product_id?: string | null;
+          external_product_id?: string | null;
+          price?: number;
+          quantity?: number;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

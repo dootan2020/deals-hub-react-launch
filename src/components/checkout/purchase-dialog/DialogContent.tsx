@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Product } from '@/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -58,10 +59,10 @@ export const DialogContent = ({
           <div className="flex flex-col items-center space-y-2 py-4">
             <QuantitySelector
               quantity={quantity}
-              maxQuantity={verifiedStock ?? product.stockQuantity ?? 1}
+              maxQuantity={verifiedStock ?? product.stock_quantity ?? 1}
               onQuantityChange={onQuantityChange}
               verifiedStock={verifiedStock}
-              productStock={product.stockQuantity ?? 0}
+              productStock={product.stock_quantity ?? 0}
             />
           </div>
           
@@ -85,7 +86,7 @@ export const DialogContent = ({
             </Alert>
           )}
           
-          {!isVerifying && verifiedStock !== null && verifiedStock < (product.stockQuantity || 0) && (
+          {!isVerifying && verifiedStock !== null && verifiedStock < (product.stock_quantity || 0) && (
             <Alert className="bg-amber-50 border-amber-200">
               <AlertTriangle className="h-4 w-4 text-amber-500" />
               <AlertDescription className="text-amber-800">

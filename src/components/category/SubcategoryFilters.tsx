@@ -3,8 +3,8 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, X } from 'lucide-react';
-import { ProductViewToggle } from '../product/ProductViewToggle';
-import { ProductSorter } from '../product/ProductSorter';
+import { ProductViewToggle } from '@/components/product/ProductViewToggle';
+import ProductSorter from '@/components/product/ProductSorter';
 import { Category, SortOption } from '@/types';
 
 interface SubcategoryFiltersProps {

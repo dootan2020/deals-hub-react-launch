@@ -1,4 +1,3 @@
-
 import { Product, SortOption, FilterParams } from '@/types';
 
 export const sortProducts = (products: Product[], sort: SortOption): Product[] => {
@@ -54,3 +53,5 @@ export const applyFilters = (products: Product[], filters: Partial<FilterParams>
     return true;
   });
 };
+
+export type { SortOption };

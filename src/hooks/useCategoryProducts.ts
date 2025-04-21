@@ -64,28 +64,33 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
       
       console.log('Fetched products data:', allProducts);
       
+      // Convert the raw data to Product objects with proper typing
       const mappedProducts = allProducts.map(p => ({
         id: p.id,
         title: p.title,
         description: p.description,
-        short_description: p.short_description,
         price: Number(p.price),
         original_price: p.original_price ? Number(p.original_price) : undefined,
-        images: p.images || [],
+        in_stock: p.in_stock || false,
+        slug: p.slug,
+        external_id: p.external_id || null,
         category_id: p.category_id || '',
+        images: p.images || [],
+        kiosk_token: p.kiosk_token || null,
+        stock: p.stock || 0,
+        api_price: p.api_price ? Number(p.api_price) : null,
+        api_stock: p.api_stock || null,
+        api_name: p.api_name || null,
+        short_description: p.short_description || null,
+        stock_quantity: p.stock_quantity || 0,
         rating: Number(p.rating) || 0,
         review_count: p.review_count || 0,
-        in_stock: p.in_stock || false,
-        stock_quantity: p.stock_quantity || 0,
         badges: p.badges || [],
-        slug: p.slug,
         features: p.features || [],
         specifications: p.specifications as Record<string, string | number | boolean | object> || {},
-        stock: p.stock || 0,
-        kiosk_token: p.kiosk_token || '',
-        created_at: p.created_at,
-        updated_at: p.updated_at,
-        last_synced_at: p.last_synced_at
+        created_at: p.created_at || '',
+        updated_at: p.updated_at || '',
+        last_synced_at: p.last_synced_at || ''
       })) as Product[];
 
       console.log('Mapped products with kiosk_token:', mappedProducts.map(p => ({
@@ -137,6 +142,7 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
     hasMore,
     loadMore,
     handleSortChange,
+    currentSort,
     setSelectedCategory 
   };
 };

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -40,9 +41,9 @@ interface ProductWithCategory {
   id: string;
   title: string;
   price: number;
-  original_price?: number;
+  original_price?: number | null;
   in_stock: boolean;
-  category_id: string;
+  category_id: string; // Make this required to match the expected type
   slug: string;
   description: string;
   stock: number;
@@ -86,7 +87,8 @@ export function ProductListView({
         const category = categories.find(c => c.id === product.category_id);
         return {
           ...product,
-          category
+          category,
+          category_id: product.category_id || '' // Ensure category_id is always defined
         };
       }) || [];
 

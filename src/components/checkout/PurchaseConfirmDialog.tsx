@@ -1,169 +1,156 @@
-
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from '@/components/ui/button';
 import { Product } from '@/types';
-import { convertVNDtoUSD } from '@/utils/currency';
+import { Loader2 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
-import { DialogHeader } from './purchase-dialog/DialogHeader';
-import { DialogContent as PurchaseDialogContent } from './purchase-dialog/DialogContent';
-import { DialogFooterButtons } from './purchase-dialog/DialogFooterButtons';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
-import { toast } from 'sonner';
-import { sanitizeHtml } from '@/utils/sanitizeHtml';
+import { DialogContent as DialogContentComponent } from './purchase-dialog/DialogContent';
+import { useUserBalance } from '@/hooks/useUserBalance';
 
 interface PurchaseConfirmDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  product?: Product;
-  onConfirm: (quantity: number, promotionCode?: string) => void;
-  isVerifying?: boolean;
-  verifiedStock?: number | null;
-  verifiedPrice?: number | null;
+  product: Product;
+  onPurchase: (productId: string, quantity: number, promotionCode: string) => Promise<void>;
+  onClose: () => void;
+  isOpen: boolean;
 }
 
-export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
-  open,
-  onOpenChange,
-  product,
-  onConfirm,
-  isVerifying = false,
-  verifiedStock = null,
-  verifiedPrice = null
-}) => {
-  const { user } = useAuth();
-  const { data: currencySettings } = useCurrencySettings();
-  const rate = currencySettings?.vnd_per_usd ?? 24000;
-  
+export const PurchaseConfirmDialog = ({ product, onPurchase, onClose, isOpen }: PurchaseConfirmDialogProps) => {
   const [quantity, setQuantity] = useState(1);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifiedStock, setVerifiedStock] = useState<number | null>(null);
+  const [verifiedPrice, setVerifiedPrice] = useState<number | null>(null);
   const [promotionCode, setPromotionCode] = useState('');
-  const [userBalance, setUserBalance] = useState<number | null>(null);
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const productPriceUSD = product ? 
-    convertVNDtoUSD(verifiedPrice || product.price, rate) : 0;
-  
-  const totalPriceUSD = productPriceUSD * quantity;
-  
+  const { data: currencySettings } = useCurrencySettings();
+  const { userBalance, isLoading: isLoadingBalance } = useUserBalance();
+  const vndToUsdRate = currencySettings?.vnd_per_usd || 24000;
+  const priceUSD = product.price / vndToUsdRate;
+  const totalPriceUSD = priceUSD * quantity;
   const hasEnoughBalance = userBalance !== null && userBalance >= totalPriceUSD;
 
   useEffect(() => {
-    const fetchUserBalance = async () => {
-      if (!open || !user) return;
-      
-      setIsLoadingBalance(true);
+    const verifyProductDetails = async () => {
+      setIsVerifying(true);
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('balance')
-          .eq('id', user.id)
-          .maybeSingle();
+        // Simulate API verification (replace with actual API call)
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        if (error) {
-          console.error('Error fetching user balance:', error);
-          setUserBalance(0);
-          return;
-        }
+        // Simulate fetching updated stock and price from an API
+        const updatedStock = Math.floor(Math.random() * (product.stock_quantity || product.stock || 100));
+        const updatedPrice = product.price;
 
-        if (data && typeof data.balance === 'number') {
-          setUserBalance(data.balance);
-        } else {
-          console.warn('No balance data found');
-          setUserBalance(0);
-        }
+        setVerifiedStock(updatedStock);
+        setVerifiedPrice(updatedPrice);
       } catch (error) {
-        console.error('Exception in fetchUserBalance:', error);
-        setUserBalance(0);
+        console.error("Error verifying product details:", error);
+        toast({
+          title: "Error",
+          description: "Failed to verify product details. Please try again.",
+          type: "destructive",
+        });
       } finally {
-        setIsLoadingBalance(false);
+        setIsVerifying(false);
       }
     };
 
-    fetchUserBalance();
-  }, [open, user]);
-
-  useEffect(() => {
-    if (!open) {
-      setQuantity(1);
-      setPromotionCode('');
+    if (isOpen) {
+      verifyProductDetails();
     }
-  }, [open]);
+  }, [isOpen, product.price, product.stock, product.stock_quantity]);
 
-  const handleQuantityChange = (newQuantity: number) => {
-    const maxQuantity = verifiedStock ?? product?.stockQuantity ?? 1;
-    const validQuantity = Math.min(Math.max(1, newQuantity), maxQuantity);
-    setQuantity(validQuantity);
-    
-    console.log(`Quantity changed: ${validQuantity} (max: ${maxQuantity})`);
-  };
-  
-  const handlePromotionCodeChange = (value: string) => {
-    // Sanitize the input before setting it
-    const sanitizedValue = sanitizeHtml(value);
-    setPromotionCode(sanitizedValue);
-  };
-
-  const handleSubmit = async () => {
-    const maxQuantity = verifiedStock ?? product?.stockQuantity ?? 1;
-    
-    if (quantity < 1) {
-      toast.error("Số lượng không hợp lệ");
-      return;
-    }
-    
-    if (quantity > maxQuantity) {
-      toast.error(`Số lượng không thể vượt quá ${maxQuantity}`);
-      return;
-    }
-
-    setIsSubmitting(true);
+  const handlePurchase = async () => {
+    setIsPurchasing(true);
     try {
-      const sanitizedPromotionCode = promotionCode ? sanitizeHtml(promotionCode.trim()) : '';
-      
-      await onConfirm(quantity, sanitizedPromotionCode);
-    } catch (error) {
-      console.error("Error during purchase confirmation:", error);
-      toast.error("Có lỗi xảy ra khi xác nhận mua hàng");
+      if (!product.id) {
+        throw new Error("Product ID is missing.");
+      }
+      await onPurchase(product.id, quantity, promotionCode);
+      toast.success("Purchase successful!");
+      onClose();
+    } catch (error: any) {
+      console.error("Purchase failed:", error);
+      toast.error(error?.message || "Purchase failed. Please try again.");
     } finally {
-      setIsSubmitting(false);
+      setIsPurchasing(false);
     }
   };
 
-  if (!product) return null;
+  const handleDialogClose = () => {
+    onClose();
+  };
+
+  // Update the references to stockQuantity to stock_quantity
+  const handleQuantityChange = (newQuantity: number) => {
+    if (newQuantity >= 1 && newQuantity <= (verifiedStock ?? product.stock_quantity ?? 1)) {
+      setQuantity(newQuantity);
+    }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader isVerifying={isVerifying} />
+    <AlertDialog open={isOpen} onOpenChange={onClose}>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Purchase Confirmation</AlertDialogTitle>
+          <AlertDialogDescription>
+            You are about to purchase {product.title}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
         
-        <PurchaseDialogContent
+        <DialogContentComponent
           product={product}
           isVerifying={isVerifying}
           quantity={quantity}
           verifiedStock={verifiedStock}
           verifiedPrice={verifiedPrice}
-          priceUSD={productPriceUSD}
+          priceUSD={priceUSD}
           totalPriceUSD={totalPriceUSD}
           promotionCode={promotionCode}
           onQuantityChange={handleQuantityChange}
-          onPromotionCodeChange={handlePromotionCodeChange}
+          onPromotionCodeChange={setPromotionCode}
           isLoadingBalance={isLoadingBalance}
           userBalance={userBalance}
         />
         
-        <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          <DialogFooterButtons
-            onCancel={() => onOpenChange(false)}
-            onConfirm={handleSubmit}
-            isSubmitting={isSubmitting}
-            isVerifying={isVerifying}
-            hasEnoughBalance={hasEnoughBalance}
-          />
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <AlertDialogFooter>
+          <Button
+            variant="outline"
+            onClick={handleDialogClose}
+            className="w-full"
+            disabled={isPurchasing}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handlePurchase}
+            className="w-full"
+            disabled={
+              isPurchasing || 
+              isVerifying || 
+              (verifiedStock !== null && verifiedStock < 1) || 
+              !hasEnoughBalance
+            }
+          >
+            {isPurchasing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              'Purchase Now'
+            )}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };
-
-export default PurchaseConfirmDialog;

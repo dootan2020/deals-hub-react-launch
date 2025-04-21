@@ -13,7 +13,7 @@ export const useCurrencySettings = () => {
       try {
         const { data, error } = await supabase
           .from('site_settings')
-          .select('*')
+          .select('key, value')
           .eq('key', 'usd_rate')
           .maybeSingle();
           

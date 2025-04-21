@@ -1,11 +1,9 @@
-
 import React from 'react';
-import ProductGrid from '@/components/product/ProductGrid';
-import { Product } from '@/types';
-import { SortOption } from '@/utils/productFilters';
-import { FAQ } from '@/components/category/FAQ';
-import { SupportSection } from '@/components/category/SupportSection';
-import SubcategoryFilters from '@/components/category/SubcategoryFilters';
+import { ProductGrid } from '@/components/product/ProductGrid';
+import { ProductList } from '@/components/product/ProductList';
+import { Product, SortOption } from '@/types';
+import { sortProducts } from '@/utils/productFilters';
+import { SubcategoryFilters } from '@/components/category/SubcategoryFilters';
 
 interface SubcategoryMainContentProps {
   products: Product[];
@@ -51,12 +49,21 @@ const SubcategoryMainContent: React.FC<SubcategoryMainContentProps> = ({
         maxPrice={priceRange[1]}
       />
       
-      <ProductGrid 
-        products={products} 
-        showSort={false}
-        isLoading={isLoading}
-        viewMode={viewMode}
-      />
+      {viewMode === "grid" ? (
+        <ProductGrid 
+          products={products} 
+          showSort={false}
+          isLoading={isLoading}
+          viewMode={viewMode}
+        />
+      ) : (
+        <ProductList 
+          products={products} 
+          showSort={false}
+          isLoading={isLoading}
+          viewMode={viewMode}
+        />
+      )}
       
       {products.length === 0 && !isLoading && (
         <div className="text-center py-12">

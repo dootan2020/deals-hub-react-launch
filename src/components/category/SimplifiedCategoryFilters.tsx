@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SortOption } from '@/utils/productFilters';
+import { SortOption } from '@/types';
 
 interface SimplifiedCategoryFiltersProps {
   onSortChange: (sort: string) => void;
