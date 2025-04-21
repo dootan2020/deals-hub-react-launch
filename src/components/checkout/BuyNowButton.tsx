@@ -5,7 +5,27 @@ import { ShoppingBag } from 'lucide-react';
 import { usePurchaseDialog } from '@/hooks/use-purchase-dialog';
 import PurchaseConfirmDialog from './PurchaseConfirmDialog';
 import { ensureProductFields } from '@/utils/productUtils';
-import { Product } from '@/types';
+
+interface Product {
+  id: string;
+  kiosk_token: string;
+  title: string;
+  price: number;
+  stockQuantity: number;
+  description?: string; // Make description optional to fix type error
+  images?: string[];
+  categoryId?: string;
+  rating?: number;
+  reviewCount?: number;
+  badges?: string[];
+  features?: string[];
+  slug?: string;
+  inStock?: boolean;
+  specifications?: object;
+  createdAt?: string;
+  stock?: number;
+  shortDescription?: string;
+}
 
 interface BuyNowButtonProps {
   product?: Product;
@@ -57,7 +77,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
         title: 'Product',
         price: 0,
         stockQuantity: 10,
-        description: '',
+        // description is now optional, fixing the type error
         images: [],
         categoryId: '',
         rating: 0,

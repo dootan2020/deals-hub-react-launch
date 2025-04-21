@@ -1,5 +1,5 @@
 
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { UserRole } from '@/types/auth.types';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -11,7 +11,7 @@ interface RoleGuardProps {
 }
 
 /**
- * A component that renders its children only if the current user has one of the required roles.
+ * An optimized component that renders its children only if the current user has one of the required roles.
  * Otherwise, it renders the fallback or redirects to the unauthorized page.
  */
 export const RoleGuard = ({ 
@@ -21,9 +21,10 @@ export const RoleGuard = ({
 }: RoleGuardProps) => {
   const { userRoles } = useAuth();
   
-  const hasRequiredRole = requiredRoles.some(role => 
-    userRoles.includes(role)
-  );
+  // Use useMemo to prevent unnecessary re-evaluations of role checks
+  const hasRequiredRole = useMemo(() => 
+    requiredRoles.some(role => userRoles.includes(role)),
+  [requiredRoles, userRoles]);
 
   if (!hasRequiredRole) {
     return fallback ? <>{fallback}</> : <Navigate to="/unauthorized" replace />;

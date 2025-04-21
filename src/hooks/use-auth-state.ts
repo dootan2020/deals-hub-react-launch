@@ -14,10 +14,21 @@ export const useAuthState = () => {
   const [userBalance, setUserBalance] = useState(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [authError, setAuthError] = useState<Error | null>(null);
+  // Add a cache for roles to prevent unnecessary fetches
+  const [lastRolesFetchTime, setLastRolesFetchTime] = useState<number | null>(null);
+  const rolesCacheDuration = 60000; // Cache roles for 1 minute
 
   // Function to fetch user roles
-  const fetchUserRoles = useCallback(async (userId: string) => {
+  const fetchUserRoles = useCallback(async (userId: string, forceFetch = false) => {
+    // Check if we have recently fetched roles and can use the cache
+    const now = Date.now();
+    if (!forceFetch && lastRolesFetchTime && now - lastRolesFetchTime < rolesCacheDuration) {
+      console.log('Using cached roles data');
+      return;
+    }
+
     try {
+      console.log('Fetching user roles from database');
       const { data, error } = await (supabase as any)
         .rpc('get_user_roles', { user_id_param: userId })
         .abortSignal(AbortSignal.timeout(3000)); // 3s timeout
@@ -35,6 +46,7 @@ export const useAuthState = () => {
         setUserRoles(roles);
         setIsAdmin(roles.includes('admin'));
         setIsStaff(roles.includes('staff'));
+        setLastRolesFetchTime(now);
       }
     } catch (error) {
       console.error('Error in fetchUserRoles:', error);
@@ -42,7 +54,7 @@ export const useAuthState = () => {
       setIsAdmin(false);
       setIsStaff(false);
     }
-  }, []);
+  }, [lastRolesFetchTime]);
 
   // Function to fetch user balance
   const fetchUserBalance = useCallback(async (userId: string) => {
@@ -88,13 +100,21 @@ export const useAuthState = () => {
       setUser(authUser);
       
       // When we get a valid session, proceed with fetching additional data
-      // But defer slightly to prevent potential race conditions
-      setTimeout(() => {
+      // Use requestIdleCallback or setTimeout to defer non-critical operations
+      const deferredFetch = () => {
         if (authUser.id) {
+          console.log('Deferring role and balance fetch for better performance');
           fetchUserRoles(authUser.id);
           fetchUserBalance(authUser.id);
         }
-      }, 10);
+      };
+      
+      // Use requestIdleCallback if available, otherwise fall back to setTimeout
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        window.requestIdleCallback(deferredFetch, { timeout: 1000 });
+      } else {
+        setTimeout(deferredFetch, 100);
+      }
     } else {
       setUser(null);
       setIsAdmin(false);
@@ -166,15 +186,14 @@ export const useAuthState = () => {
     };
   }, [handleAuthStateChange]);
 
-  // Function to manually refresh user profile data
+  // Function to manually refresh user profile data with forced role fetch
   const refreshUserData = useCallback(async () => {
     if (!user) return;
     
     try {
-      await Promise.all([
-        fetchUserRoles(user.id),
-        fetchUserBalance(user.id)
-      ]);
+      // Force fetch roles even if cache is still valid
+      await fetchUserRoles(user.id, true);
+      await fetchUserBalance(user.id);
     } catch (error) {
       console.error('Error refreshing user data:', error);
     }
