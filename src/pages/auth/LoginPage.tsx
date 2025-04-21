@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Layout from '@/components/layout/Layout';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Loader2, User, Lock, LogIn } from 'lucide-react';
+import { Loader2, User, Lock, LogIn, AlertTriangle } from 'lucide-react';
 import { Form, FormField, FormItem, FormControl, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -35,13 +35,29 @@ export default function LoginPage() {
   
   // Get the redirect URL from the state or default to home
   const from = location.state?.from?.pathname || '/';
+  const authError = location.state?.authError;
+  const returnUrl = new URLSearchParams(location.search).get('returnUrl');
+
+  // Set appropriate error message if coming from a redirect due to auth error
+  useEffect(() => {
+    if (authError === 'expired') {
+      setServerError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+    } else if (authError === 'timeout') {
+      setServerError('Xác thực đã hết thời gian chờ. Vui lòng đăng nhập lại.');
+    } else if (location.search.includes('expired=1')) {
+      setServerError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+    } else if (location.search.includes('timeout=1')) {
+      setServerError('Phiên đã hết thời gian do không hoạt động. Vui lòng đăng nhập lại.');
+    }
+  }, [authError, location.search]);
   
   // If already authenticated, redirect
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(from, { replace: true });
+      const redirectTo = returnUrl || from;
+      navigate(redirectTo, { replace: true });
     }
-  }, [isAuthenticated, navigate, from]);
+  }, [isAuthenticated, navigate, from, returnUrl]);
 
   // Handle resend cooldown timer
   useEffect(() => {
@@ -133,7 +149,8 @@ export default function LoginPage() {
             <form onSubmit={form.handleSubmit(handleLogin)}>
               <CardContent className="space-y-4">
                 {serverError && (
-                  <Alert variant="destructive">
+                  <Alert variant="destructive" className="flex items-center">
+                    <AlertTriangle className="h-4 w-4 mr-2" />
                     <AlertDescription>{serverError}</AlertDescription>
                   </Alert>
                 )}

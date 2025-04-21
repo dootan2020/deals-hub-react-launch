@@ -11,6 +11,7 @@ export const useAuthState = () => {
   const [userBalance, setUserBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [authError, setAuthError] = useState<Error | null>(null);
+  const [authInitialized, setAuthInitialized] = useState(false);
 
   // Computed properties
   const isAdmin = userRoles.includes('admin');
@@ -77,53 +78,92 @@ export const useAuthState = () => {
 
   // Initial auth state check
   useEffect(() => {
-    const fetchInitialSession = async () => {
+    let authListener: { data: { subscription: { unsubscribe: () => void } } };
+    
+    const initAuth = async () => {
       try {
+        setLoading(true);
+        
+        // First set up the auth listener to catch any changes
+        authListener = supabase.auth.onAuthStateChange(
+          async (event, currentSession) => {
+            console.log('Auth state change event:', event);
+            
+            setSession(currentSession);
+            
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+              if (currentSession?.user) {
+                console.log('User signed in or token refreshed:', currentSession.user.email);
+                setUser(currentSession.user as User);
+                
+                // Only fetch roles and balance if this is an actual sign-in
+                // (not just a page refresh with existing session)
+                if (event === 'SIGNED_IN' || !authInitialized) {
+                  const roles = await fetchUserRoles(currentSession.user.id);
+                  setUserRoles(roles);
+                  await fetchUserBalance(currentSession.user.id);
+                }
+              }
+            } else if (event === 'SIGNED_OUT') {
+              console.log('User signed out');
+              setUser(null);
+              setUserRoles([]);
+              setUserBalance(0);
+              setSession(null);
+            }
+            
+            // If this is not initialization and the session changed significantly,
+            // we should refresh user data
+            if (authInitialized && 
+                event !== 'INITIAL_SESSION' && 
+                currentSession?.user?.id !== user?.id) {
+              // Data needs refreshing due to significant session change
+              if (currentSession?.user) {
+                const roles = await fetchUserRoles(currentSession.user.id);
+                setUserRoles(roles);
+                await fetchUserBalance(currentSession.user.id);
+              }
+            }
+          }
+        );
+        
+        // Then get the initial session
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Error fetching session:', error);
+          console.error('Error fetching initial session:', error);
           setAuthError(error);
+        } else {
+          console.log('Initial session check:', data.session ? 'Session found' : 'No session');
+          setSession(data.session);
+          
+          if (data.session?.user) {
+            console.log('Initial user:', data.session.user.email);
+            setUser(data.session.user as User);
+            
+            // Load user data
+            const roles = await fetchUserRoles(data.session.user.id);
+            setUserRoles(roles);
+            await fetchUserBalance(data.session.user.id);
+          }
         }
         
-        setSession(data.session);
-        
-        if (data.session?.user) {
-          setUser(data.session.user as User);
-          const roles = await fetchUserRoles(data.session.user.id);
-          setUserRoles(roles);
-          await fetchUserBalance(data.session.user.id);
-        }
+        setAuthInitialized(true);
       } catch (error: any) {
-        console.error('Error in initial session check:', error);
+        console.error('Error in auth initialization:', error);
         setAuthError(error);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchInitialSession();
-    
-    // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          setUser(session.user as User);
-          const roles = await fetchUserRoles(session.user.id);
-          setUserRoles(roles);
-          await fetchUserBalance(session.user.id);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setUserRoles([]);
-          setUserBalance(0);
-        }
-      }
-    );
+    initAuth();
     
     return () => {
-      authListener.subscription.unsubscribe();
+      // Clean up the auth listener
+      if (authListener) {
+        authListener.data.subscription.unsubscribe();
+      }
     };
   }, [fetchUserRoles, fetchUserBalance]);
 

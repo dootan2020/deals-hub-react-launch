@@ -11,14 +11,16 @@ console.log('Initializing Supabase client with:');
 console.log('URL:', supabaseUrl);
 console.log('Key valid:', supabaseAnonKey ? 'Yes (length: ' + supabaseAnonKey.length + ')' : 'No');
 
-// Initialize the Supabase client
+// Initialize the Supabase client with explicit persistence and auto-refresh settings
 export const supabase = createClient<Database>(
   supabaseUrl,
   supabaseAnonKey,
   {
     auth: {
       persistSession: true,
-      detectSessionInUrl: true
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: localStorage
     }
   }
 )
@@ -29,5 +31,8 @@ supabase.auth.getSession().then(({ data, error }) => {
     console.error('Supabase connection error:', error.message);
   } else {
     console.log('Supabase connection successful. Auth status:', data.session ? 'Authenticated' : 'Not authenticated');
+    console.log('Session expires at:', data.session?.expires_at 
+      ? new Date(data.session.expires_at * 1000).toLocaleString() 
+      : 'No active session');
   }
 });
