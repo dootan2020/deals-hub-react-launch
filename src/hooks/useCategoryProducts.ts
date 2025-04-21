@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
@@ -102,7 +103,7 @@ export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort =
       }
       toast({
         title: "Error",
-        description: "Failed to load products. Please try again.",
+        description: "Failed to load products. Please try again."
       });
     } finally {
       setLoading(false);

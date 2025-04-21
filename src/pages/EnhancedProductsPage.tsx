@@ -49,7 +49,7 @@ const EnhancedProductsPage = () => {
         setError('Failed to load products. Please try again.');
         toast({
           title: "Error",
-          description: "There was a problem loading products. Please try again.",
+          description: "There was a problem loading products. Please try again."
         });
       } finally {
         setLoading(false);

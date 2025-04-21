@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
@@ -67,7 +68,7 @@ export const useProduct = (productSlug: string | undefined) => {
         setError('Failed to load product information');
         toast({
           title: "Error",
-          description: "There was a problem loading the product. Please try again later.",
+          description: "There was a problem loading the product. Please try again later."
         });
       } finally {
         setLoading(false);

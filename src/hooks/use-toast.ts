@@ -1,25 +1,25 @@
 
 import { ReactNode } from "react";
-import { toast as sonnerToast, type ToastT, type ExternalToast } from "sonner";
+import { toast as sonnerToast, type Toast as SonnerToast, type ExternalToast } from "sonner";
 import { useToast as useShadcnToast } from "@/components/ui/toast";
 
 // Re-export the original useToast hook
 export const useToast = useShadcnToast;
 
 // Define toast function types that match what we need
-interface ToastProps {
+export interface Toast {
   title?: ReactNode;
   description?: ReactNode;
   variant?: "default" | "destructive" | "success" | "warning";
 }
 
-interface ToastFunction {
-  (props: ToastProps): void;
-  (title: ReactNode, description?: ReactNode): void;
-  success: (title: ReactNode, description?: ReactNode) => void;
-  error: (title: ReactNode, description?: ReactNode) => void;
-  warning: (title: ReactNode, description?: ReactNode) => void;
-  info: (title: ReactNode, description?: ReactNode) => void;
+export interface ToastFunction {
+  (props: Toast): string | number;
+  (title: ReactNode, description?: ReactNode): string | number;
+  success: (title: ReactNode, description?: ReactNode) => string | number;
+  error: (title: ReactNode, description?: ReactNode) => string | number;
+  warning: (title: ReactNode, description?: ReactNode) => string | number;
+  info: (title: ReactNode, description?: ReactNode) => string | number;
   loading: (title: ReactNode, description?: ReactNode) => string | number;
   dismiss: (toastId?: string | number) => void;
   promise: <T>(
@@ -54,7 +54,7 @@ const createToast = (): ToastFunction => {
       // Handle title, description format
       return sonnerToast(titleOrOptions, { description });
     }
-  }) as unknown as ToastFunction; // Use unknown to help with the type conversion
+  }) as ToastFunction;
 
   // Add all the required methods
   toastFn.success = (title: ReactNode, description?: ReactNode) => {
@@ -97,7 +97,7 @@ const createToast = (): ToastFunction => {
       error: msgs.error,
       ...opts
     });
-    return promise; // Return the original promise to maintain Promise<T> type
+    return promise;
   };
 
   return toastFn;
@@ -105,6 +105,3 @@ const createToast = (): ToastFunction => {
 
 // Export the single toast instance
 export const toast = createToast();
-
-// Expose the Toast type for consumers
-export type Toast = ToastProps;

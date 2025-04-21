@@ -115,8 +115,7 @@ export const useCategory = ({ categorySlug, parentCategorySlug }: UseCategoryPro
         setError('Failed to load category');
         toast({
           title: "Error",
-          description: "Failed to load category data. Please try again.",
-          variant: "destructive"
+          description: "Failed to load category data. Please try again."
         });
       } finally {
         setLoading(false);
