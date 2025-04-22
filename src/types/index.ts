@@ -1,3 +1,4 @@
+
 import { TableHTMLAttributes } from 'react';
 
 export interface Product {
@@ -51,6 +52,7 @@ export interface FilterParams {
   sort?: string;
   page?: number;
   limit?: number;
+  perPage?: number; // Added this field
   priceRange?: [number, number];
   subcategory?: string;
 }

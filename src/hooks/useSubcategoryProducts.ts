@@ -9,6 +9,9 @@ interface ProductsResponse {
   totalPages: number;
 }
 
+// Type to handle different response formats
+type ProductServiceResponse = Product[] | ProductsResponse | null;
+
 interface UseSubcategoryProductsProps {
   slug: string;
   sortOption: SortOption;
@@ -42,13 +45,13 @@ export const useSubcategoryProducts = ({
           minPrice: priceRange[0],
           maxPrice: priceRange[1],
           inStock: stockFilter === "in-stock" ? true : undefined
-        });
+        }) as ProductServiceResponse;
         
         // Handle response based on type
         if (Array.isArray(response)) {
           setProducts(response);
           setTotalPages(1);
-        } else if (response && typeof response === 'object') {
+        } else if (response && typeof response === 'object' && 'products' in response) {
           setProducts(response.products || []);
           setTotalPages(response.totalPages || 1);
           
