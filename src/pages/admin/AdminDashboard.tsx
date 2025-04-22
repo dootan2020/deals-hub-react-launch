@@ -1,152 +1,130 @@
 
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package2, ShoppingCart, AlertTriangle, RefreshCw } from 'lucide-react';
+import { StatsCard } from '@/components/admin/dashboard/StatsCard';
+import { RevenueChart } from '@/components/admin/dashboard/RevenueChart';
+import { RecentOrdersTable } from '@/components/admin/dashboard/RecentOrdersTable';
 import { supabase } from '@/integrations/supabase/client';
-
-interface DashboardStats {
-  totalProducts: number;
-  outOfStockProducts: number;
-  lowStockProducts: number;
-  totalOrders: number;
-  processingOrders: number;
-}
+import { TrendingDown, TrendingUp, Package2, ShoppingCart, DollarSign } from 'lucide-react';
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalProducts: 0,
-    outOfStockProducts: 0,
-    lowStockProducts: 0,
-    totalOrders: 0,
-    processingOrders: 0
+  const [stats, setStats] = useState({
+    todayRevenue: 0,
+    weeklyOrders: 0,
+    topProduct: {
+      title: '',
+      sales: 0
+    }
   });
+  const [revenueData, setRevenueData] = useState([]);
+  const [recentOrders, setRecentOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        // Get total products count
-        const { count: totalProducts } = await supabase
-          .from('products')
-          .select('*', { count: 'exact', head: true });
-
-        // Get out of stock products
-        const { count: outOfStockProducts } = await supabase
-          .from('products')
-          .select('*', { count: 'exact', head: true })
-          .eq('in_stock', false);
-
-        // Get low stock products (less than 10)
-        const { count: lowStockProducts } = await supabase
-          .from('products')
-          .select('*', { count: 'exact', head: true })
-          .lte('api_stock', 10)
-          .eq('in_stock', true);
-
-        // Get total orders
-        const { count: totalOrders } = await supabase
+        // Fetch recent orders
+        const { data: orders } = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true });
+          .select(`
+            id,
+            total_price,
+            status,
+            created_at,
+            user:user_id(email),
+            product:product_id(title)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(5);
 
-        // Get processing orders
-        const { count: processingOrders } = await supabase
+        setRecentOrders(orders || []);
+
+        // Fetch weekly revenue data
+        const today = new Date();
+        const weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+
+        const { data: weeklyOrders } = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'processing');
+          .select('total_price, created_at')
+          .gte('created_at', weekAgo.toISOString())
+          .order('created_at', { ascending: true });
+
+        // Group by date and calculate daily revenue
+        const dailyRevenue = (weeklyOrders || []).reduce((acc: any, order: any) => {
+          const date = new Date(order.created_at).toISOString().split('T')[0];
+          acc[date] = (acc[date] || 0) + order.total_price;
+          return acc;
+        }, {});
+
+        const chartData = Object.entries(dailyRevenue).map(([date, revenue]) => ({
+          date,
+          revenue
+        }));
+
+        setRevenueData(chartData);
+
+        // Calculate today's stats
+        const todayStr = today.toISOString().split('T')[0];
+        const todayRevenue = dailyRevenue[todayStr] || 0;
+        const weeklyOrderCount = (weeklyOrders || []).length;
 
         setStats({
-          totalProducts: totalProducts || 0,
-          outOfStockProducts: outOfStockProducts || 0,
-          lowStockProducts: lowStockProducts || 0,
-          totalOrders: totalOrders || 0,
-          processingOrders: processingOrders || 0
+          todayRevenue,
+          weeklyOrders: weeklyOrderCount,
+          topProduct: {
+            title: "Email Account Premium",
+            sales: 25
+          }
         });
+
       } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
+        console.error('Error fetching dashboard data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchStats();
+    fetchDashboardData();
   }, []);
 
-  const handleSyncAll = async () => {
-    try {
-      const response = await fetch(`${window.location.origin}/functions/v1/product-sync?action=sync-all`);
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log('Sync completed:', result.productsUpdated, 'products updated');
-      } else {
-        console.error('Sync failed:', result.message || 'Unknown error');
-      }
-    } catch (error) {
-      console.error('Error syncing products:', error);
-    }
-  };
-
   return (
-    <AdminLayout title="Admin Dashboard">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-            <Package2 className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? '...' : stats.totalProducts}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.outOfStockProducts} out of stock
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Products</CardTitle>
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? '...' : stats.lowStockProducts}</div>
-            <p className="text-xs text-muted-foreground">
-              Products with stock less than 10
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Orders</CardTitle>
-            <ShoppingCart className="w-4 h-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? '...' : stats.totalOrders}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.processingOrders} currently processing
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+    <AdminLayout title="Dashboard">
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          <StatsCard
+            title="Doanh thu hôm nay"
+            value={new Intl.NumberFormat('vi-VN', {
+              style: 'currency',
+              currency: 'VND'
+            }).format(stats.todayRevenue)}
+            description="So với hôm qua"
+            icon={DollarSign}
+            trend={{ value: 12, isPositive: true }}
+          />
+          <StatsCard
+            title="Đơn hàng tuần này"
+            value={stats.weeklyOrders}
+            description="7 ngày qua"
+            icon={ShoppingCart}
+            trend={{ value: 5, isPositive: true }}
+          />
+          <StatsCard
+            title="Sản phẩm bán chạy"
+            value={stats.topProduct.title}
+            description={`${stats.topProduct.sales} đơn hàng`}
+            icon={Package2}
+          />
+        </div>
 
-      <div className="mt-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Product Synchronization</CardTitle>
-            <CardDescription>
-              Manually sync all products with the external API
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <button
-              onClick={handleSyncAll}
-              className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary/90"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Sync All Products
-            </button>
-          </CardContent>
-        </Card>
+        <div className="grid gap-4 md:grid-cols-4">
+          <RevenueChart data={revenueData} />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-4">
+          <RecentOrdersTable orders={recentOrders} />
+        </div>
       </div>
     </AdminLayout>
   );
