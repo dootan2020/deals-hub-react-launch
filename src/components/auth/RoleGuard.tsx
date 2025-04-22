@@ -1,80 +1,101 @@
 
-import { ReactNode, useEffect, useState } from 'react';
-import { UserRole } from '@/types/auth.types';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Navigate, useLocation } from 'react-router-dom';
-import AuthLoadingScreen from '@/components/auth/AuthLoadingScreen';
-import { toast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client'; 
+import { Alert, AlertTitle } from '@/components/ui/alert';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 interface RoleGuardProps {
-  children: ReactNode;
-  requiredRoles: UserRole[];
-  fallback?: ReactNode;
+  children: React.ReactNode;
+  roles: string[];
+  fallback?: React.ReactNode;
+  redirectTo?: string;
 }
 
-/**
- * A component that renders its children only if the current user has one of the required roles.
- * Otherwise, it renders the fallback or redirects to the unauthorized page.
- */
-export const RoleGuard = ({ 
+const RoleGuard: React.FC<RoleGuardProps> = ({ 
   children, 
-  requiredRoles, 
-  fallback 
-}: RoleGuardProps) => {
-  const { userRoles, isAuthenticated, refreshUserProfile, loading, user } = useAuth();
-  const location = useLocation();
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
-  
+  roles, 
+  fallback = null, 
+  redirectTo 
+}) => {
+  const { user, userRoles, isLoading: authLoading } = useAuth();
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const navigate = useNavigate();
+
   useEffect(() => {
-    // Debug logging for role issues
-    console.log('RoleGuard - Required roles:', requiredRoles);
-    console.log('RoleGuard - User roles:', userRoles);
-    console.log('RoleGuard - User authenticated:', isAuthenticated);
-    console.log('RoleGuard - User ID:', user?.id);
+    const checkAuthorization = async () => {
+      if (authLoading) return;
+
+      if (!user) {
+        setIsAuthorized(false);
+        setIsLoading(false);
+        if (redirectTo) {
+          navigate(redirectTo);
+        }
+        return;
+      }
+
+      // If we have userRoles from context
+      if (userRoles && userRoles.length > 0) {
+        const hasRole = roles.some(role => userRoles.includes(role));
+        setIsAuthorized(hasRole);
+        setIsLoading(false);
+        
+        if (!hasRole && redirectTo) {
+          navigate(redirectTo);
+        }
+        return;
+      }
+
+      // If we need to fetch roles directly
+      try {
+        const { data, error } = await supabase
+          .rpc('get_user_roles', { user_id_param: user.id });
+          
+        if (error) throw error;
+        
+        const userRoleValues = data ? data.map((r: any) => r.toString()) : [];
+        const hasRole = roles.some(role => userRoleValues.includes(role));
+        
+        setIsAuthorized(hasRole);
+        
+        if (!hasRole && redirectTo) {
+          navigate(redirectTo);
+        }
+      } catch (error) {
+        console.error('Error checking user roles:', error);
+        setIsAuthorized(false);
+        if (redirectTo) {
+          navigate(redirectTo);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuthorization();
+  }, [user, userRoles, authLoading, roles, navigate, redirectTo]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[200px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    if (fallback) return <>{fallback}</>;
     
-    if (!isAuthenticated) {
-      console.warn('RoleGuard - User not authenticated');
-    } else if (!requiredRoles.some(role => userRoles.includes(role)) && !hasTriedRefresh && !isRefreshing) {
-      console.warn('RoleGuard - User lacks required roles, attempting to refresh profile');
-      
-      // If authenticated but missing roles, try refreshing profile once
-      setIsRefreshing(true);
-      refreshUserProfile()
-        .then(() => {
-          console.log('RoleGuard - Profile refreshed, new roles:', userRoles);
-          setHasTriedRefresh(true);
-        })
-        .catch(err => {
-          console.error('Error refreshing profile in RoleGuard:', err);
-          toast.error("Không thể cập nhật thông tin quyền hạn", {
-            description: "Vui lòng thử tải lại trang"
-          });
-          setHasTriedRefresh(true);
-        })
-        .finally(() => {
-          setIsRefreshing(false);
-        });
-    }
-  }, [requiredRoles, userRoles, isAuthenticated, refreshUserProfile, user, hasTriedRefresh, isRefreshing]);
-  
-  // Waiting for auth to complete or profile refresh
-  if (loading || isRefreshing) {
-    return <AuthLoadingScreen message="Đang kiểm tra quyền truy cập..." />;
-  }
-
-  const hasRequiredRole = requiredRoles.some(role => 
-    userRoles.includes(role)
-  );
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location, authError: 'auth_required' }} replace />;
-  }
-
-  if (!hasRequiredRole) {
-    console.error(`Access denied - User has roles: [${userRoles.join(', ')}] but needs one of: [${requiredRoles.join(', ')}]`);
-    console.log('Redirecting to unauthorized page');
-    return fallback ? <>{fallback}</> : <Navigate to="/unauthorized" replace />;
+    return (
+      <Alert variant="destructive" className="my-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Access Denied</AlertTitle>
+        <p>You don't have permission to access this page.</p>
+      </Alert>
+    );
   }
 
   return <>{children}</>;

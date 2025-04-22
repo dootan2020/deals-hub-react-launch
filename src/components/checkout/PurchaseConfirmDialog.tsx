@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Product } from '@/types';
@@ -9,6 +10,7 @@ import { DialogFooterButtons } from './purchase-dialog/DialogFooterButtons';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { isSupabaseRecord, safeNumber } from '@/utils/supabaseHelpers';
 
 interface PurchaseConfirmDialogProps {
   open: boolean;
@@ -64,8 +66,8 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
           return;
         }
 
-        if (data && typeof data.balance === 'number') {
-          setUserBalance(data.balance);
+        if (data && isSupabaseRecord<{balance: number}>(data)) {
+          setUserBalance(safeNumber(data.balance));
         } else {
           console.warn('No balance data found');
           setUserBalance(0);

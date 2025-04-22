@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -185,15 +186,15 @@ export function ProductForm({
         if (productId) {
           const { error } = await supabase
             .from('products')
-            .update(productData as any)
-            .eq('id', productId as any);
+            .update(productData)
+            .eq('id', productId);
 
           if (error) throw error;
           toast.success('Product updated successfully');
         } else {
           const { error } = await supabase
             .from('products')
-            .insert(productData as any);
+            .insert(productData);
 
           if (error) throw error;
           toast.success('Product created successfully');

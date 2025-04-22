@@ -11,7 +11,7 @@ import { Category } from '@/types';
 import { fetchProxySettings, fetchViaProxy } from '@/utils/proxyUtils';
 import { fetchActiveApiConfig } from '@/utils/apiUtils';
 import { ApiResponse } from '@/components/admin/product-manager/ApiProductTester';
-import { isValidArray, isValidRecord, isDataResponse, isSupabaseRecord, safeString, safeNumber } from '@/utils/supabaseHelpers';
+import { isValidArray, isValidRecord, isDataResponse, isSupabaseRecord, safeString, safeNumber, safeUUID } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
