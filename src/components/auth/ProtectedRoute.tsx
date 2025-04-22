@@ -1,5 +1,4 @@
-
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { UserRole } from '@/types/auth.types';
@@ -7,7 +6,6 @@ import { EmailVerificationGate } from './EmailVerificationGate';
 import { RoleChecker } from './roles/RoleChecker';
 import { useRenderCount } from '@/hooks/useRenderCount';
 
-// Memoized loading screen component
 const AuthLoadingScreen = memo(() => (
   <div className="flex justify-center items-center h-screen">
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -25,7 +23,7 @@ export const ProtectedRoute = memo(({
   children, 
   requiredRoles = [] 
 }: ProtectedRouteProps) => {
-  const renderCount = useRenderCount('ProtectedRoute');
+  const metrics = useRenderCount('ProtectedRoute');
   const location = useLocation();
   
   const { 
@@ -35,7 +33,6 @@ export const ProtectedRoute = memo(({
     isAuthenticated
   } = useAuth();
 
-  // Memoize route protection checks
   const authChecks = useMemo(() => {
     const isFullyAuthenticated = user && 
       isAuthenticated && 
@@ -48,7 +45,6 @@ export const ProtectedRoute = memo(({
     };
   }, [user, isAuthenticated, session]);
 
-  // Memoize the navigation component
   const loginRedirect = useMemo(() => (
     <Navigate 
       to="/login" 
@@ -57,7 +53,6 @@ export const ProtectedRoute = memo(({
     />
   ), [location]);
 
-  // Memoize the protected content
   const protectedContent = useMemo(() => (
     <RoleChecker
       userRoles={user?.roles || []}
@@ -69,6 +64,29 @@ export const ProtectedRoute = memo(({
       </EmailVerificationGate>
     </RoleChecker>
   ), [user?.roles, requiredRoles, children]);
+
+  useEffect(() => {
+    if (!authLoading) {
+      const navigationStart = performance.now();
+      performance.mark('protected-route-start');
+      
+      return () => {
+        performance.mark('protected-route-end');
+        performance.measure(
+          'protected-route-navigation',
+          'protected-route-start',
+          'protected-route-end'
+        );
+        
+        const navigationTime = performance.now() - navigationStart;
+        console.log(
+          `%c[Navigation] Protected Route:`,
+          'color: #3498DB',
+          `Time: ${navigationTime.toFixed(2)}ms`
+        );
+      };
+    }
+  }, [location.pathname, authLoading]);
 
   if (authLoading) {
     return <AuthLoadingScreen />;
@@ -87,4 +105,4 @@ export const ProtectedRoute = memo(({
 
 ProtectedRoute.displayName = 'ProtectedRoute';
 
-export default ProtectedRoute;
+export default withRenderCount(ProtectedRoute, 'ProtectedRoute');

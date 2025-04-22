@@ -7,13 +7,16 @@ export function withRenderCount<P extends object>(
   componentName: string
 ) {
   const WithRenderCount = (props: P) => {
-    useRenderCount(componentName);
+    const metrics = useRenderCount(componentName);
     
     return process.env.NODE_ENV === 'development' ? (
       <div className="relative">
         <WrappedComponent {...props} />
-        <div className="absolute top-0 right-0 bg-green-500 text-white text-xs px-1 rounded">
-          renders: {useRenderCount(componentName)}
+        <div 
+          className="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded"
+          title={`Avg: ${metrics.avgTime.toFixed(1)}ms, Total: ${metrics.totalTime.toFixed(1)}ms`}
+        >
+          renders: {metrics.count}
         </div>
       </div>
     ) : (

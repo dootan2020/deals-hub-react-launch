@@ -6,19 +6,22 @@ import { useSafeAsync } from '@/utils/asyncUtils';
 import { toast } from '@/hooks/use-toast';
 import { withRenderCount } from '@/components/debug/withRenderCount';
 
-// Memoized user info component
-const UserInfo = memo(({ user, userBalance }: { user: any; userBalance: number }) => (
-  <div>
-    <h2>Thông tin tài khoản</h2>
-    <p>ID người dùng: {user?.id}</p>
-    <p>Email: {user?.email}</p>
-    <p>Số dư: {userBalance}</p>
-  </div>
-));
+// Memoized user info component with render tracking
+const UserInfo = withRenderCount(
+  memo(({ user, userBalance }: { user: any; userBalance: number }) => (
+    <div>
+      <h2>Thông tin tài khoản</h2>
+      <p>ID người dùng: {user?.id}</p>
+      <p>Email: {user?.email}</p>
+      <p>Số dư: {userBalance}</p>
+    </div>
+  )),
+  'UserInfo'
+);
 
 UserInfo.displayName = 'UserInfo';
 
-const MyAccountPage = () => {
+const MyAccountPageBase = () => {
   const { user, userBalance, refreshUserBalance } = useAuth();
 
   const { execute: handleRefreshBalance, loading: isRefreshing } = useSafeAsync(async () => {
@@ -48,7 +51,7 @@ const MyAccountPage = () => {
   );
 };
 
-// Wrap with render counter in development
+// Wrap the base component with render counting in development
 export default process.env.NODE_ENV === 'development' 
-  ? withRenderCount(MyAccountPage, 'MyAccountPage')
-  : MyAccountPage;
+  ? withRenderCount(MyAccountPageBase, 'MyAccountPage')
+  : MyAccountPageBase;
