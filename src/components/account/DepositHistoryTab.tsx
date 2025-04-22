@@ -24,7 +24,7 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', userId as string)
+          .eq('user_id', userId)
           .order('created_at', { ascending: false });
 
         if (error) throw error;

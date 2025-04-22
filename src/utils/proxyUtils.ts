@@ -29,7 +29,7 @@ export async function fetchProxySettings(): Promise<ProxyConfig> {
 
     if (error) throw error;
 
-    if (data && isRecord(data)) {
+    if (isRecord(data)) {
       const proxyType = typeof data.proxy_type === 'string' 
         ? data.proxy_type as ProxyType 
         : 'allorigins';

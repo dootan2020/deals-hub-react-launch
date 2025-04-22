@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -109,7 +110,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId as string)
+        .eq('id', productId)
         .maybeSingle();
 
       if (error) throw error;
@@ -202,7 +203,12 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
       const proxyConfig = await fetchProxySettings();
       
       const apiConfig = await fetchActiveApiConfig();
-      const userToken = apiConfig.user_token;
+      if (!isSupabaseRecord(apiConfig)) {
+        toast.error('Failed to fetch API configuration');
+        return;
+      }
+      
+      const userToken = String(apiConfig.user_token || '');
       
       const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${userToken}`;
       const data = await fetchViaProxy(apiUrl, proxyConfig);

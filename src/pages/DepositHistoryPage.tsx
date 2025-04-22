@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wallet, RefreshCcw } from 'lucide-react';
@@ -14,6 +15,7 @@ import LoadingState from '@/components/deposit-history/LoadingState';
 import EmptyState from '@/components/deposit-history/EmptyState';
 import DepositTable from '@/components/deposit-history/DepositTable';
 import PendingTransactionsAlert from '@/components/deposit-history/PendingTransactionsAlert';
+import { isDeposit, isValidArray } from '@/utils/supabaseHelpers';
 
 const DepositHistoryPage = () => {
   const [deposits, setDeposits] = useState<Deposit[]>([]);
@@ -35,18 +37,30 @@ const DepositHistoryPage = () => {
     try {
       setIsLoading(true);
       
+      if (!user?.id) return;
+      
       const { data, error } = await supabase
         .from('deposits')
         .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false }) as { data: Deposit[] | null, error: any };
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching deposit history:', error);
         return;
       }
       
-      setDeposits(data || []);
+      if (isValidArray(data)) {
+        const validDeposits: Deposit[] = [];
+        data.forEach(item => {
+          if (isDeposit(item)) {
+            validDeposits.push(item);
+          }
+        });
+        setDeposits(validDeposits);
+      } else {
+        setDeposits([]);
+      }
     } catch (error) {
       console.error('Error in fetchDepositHistory:', error);
     } finally {
