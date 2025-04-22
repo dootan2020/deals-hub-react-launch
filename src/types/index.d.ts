@@ -82,14 +82,13 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 
 // API Response interface for products
 export interface ApiResponse {
-  success?: string;
+  success: string;
   name?: string;
   price?: string;
   stock?: string;
   description?: string;
   kioskToken?: string;
   error?: string;
-  [key: string]: any;
 }
 
 // Define the SortOption type for product sorting

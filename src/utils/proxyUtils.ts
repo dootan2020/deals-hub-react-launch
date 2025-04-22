@@ -1,10 +1,12 @@
 
-import { ProxyType, ProxyConfig, ApiResponse } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
-import { castData, createDefaultProxySettings } from './supabaseHelpers';
-import { extractFromHtml, isHtmlResponse, normalizeProductInfo } from './apiUtils';
-
 // Base URLs for different proxy types
+export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom';
+
+export interface ProxyConfig {
+  proxy_type: ProxyType;
+  custom_url?: string;
+}
+
 const PROXY_URLS = {
   'allorigins': 'https://api.allorigins.win/raw?url=',
   'corsproxy': 'https://corsproxy.io/?',
@@ -13,10 +15,96 @@ const PROXY_URLS = {
   'custom': ''
 };
 
+export interface ProxyResponse {
+  url: string;
+  proxyType: ProxyType;
+}
+
 /**
- * Fetch the current proxy settings from the database
+ * Build proxied URL based on proxy config
  */
-export async function getProxySettings(): Promise<ProxyConfig> {
+export function buildProxyUrl(targetUrl: string, config: ProxyConfig): ProxyResponse {
+  const { proxy_type, custom_url } = config;
+  
+  let url: string;
+  if (proxy_type === 'custom' && custom_url) {
+    url = custom_url.includes('{url}') 
+      ? custom_url.replace('{url}', encodeURIComponent(targetUrl))
+      : `${custom_url}${encodeURIComponent(targetUrl)}`;
+  } else {
+    url = `${PROXY_URLS[proxy_type]}${encodeURIComponent(targetUrl)}`;
+  }
+  
+  return {
+    url,
+    proxyType: proxy_type
+  };
+}
+
+/**
+ * Fetch with fallback to different proxy types
+ */
+export async function fetchViaProxyWithFallback<T>(
+  url: string,
+  initialConfig?: ProxyConfig
+): Promise<T> {
+  // Default to allorigins if no config provided
+  const config = initialConfig || { proxy_type: 'allorigins' };
+  
+  // Order of fallback proxies
+  const fallbackOrder: ProxyType[] = ['allorigins', 'corsproxy', 'cors-anywhere', 'direct'];
+  
+  let lastError: Error;
+  
+  // Try with initial config
+  try {
+    const proxyUrl = buildProxyUrl(url, config).url;
+    const response = await fetch(proxyUrl);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (contentType?.includes('application/json')) {
+      return await response.json();
+    }
+    return await response.text() as T;
+  } catch (error) {
+    console.warn(`Initial proxy (${config.proxy_type}) failed, trying fallbacks...`);
+    lastError = error as Error;
+  }
+  
+  // Try each fallback
+  for (const proxyType of fallbackOrder) {
+    // Skip if it's the same as initial config
+    if (proxyType === config.proxy_type) continue;
+    
+    try {
+      const proxyUrl = buildProxyUrl(url, { proxy_type: proxyType }).url;
+      const response = await fetch(proxyUrl);
+      
+      if (!response.ok) continue;
+      
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        return await response.json();
+      }
+      return await response.text() as T;
+    } catch (error) {
+      console.warn(`Fallback ${proxyType} failed:`, error);
+      lastError = error as Error;
+    }
+  }
+  
+  // If all attempts fail, throw the last error
+  throw lastError;
+}
+
+/**
+ * Get current proxy settings from database
+ */
+export async function fetchProxySettings(): Promise<ProxyConfig> {
   try {
     const { data, error } = await supabase
       .from('proxy_settings')
@@ -24,91 +112,19 @@ export async function getProxySettings(): Promise<ProxyConfig> {
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
-    
+
     if (error) {
       console.warn("Error fetching proxy settings:", error);
       return { proxy_type: 'allorigins' };
     }
-    
-    const settings = castData(data, createDefaultProxySettings());
+
+    // Return settings or default to allorigins
     return {
-      proxy_type: settings.proxy_type,
-      custom_url: settings.custom_url || undefined
+      proxy_type: data.proxy_type || 'allorigins',
+      custom_url: data.custom_url
     };
   } catch (error) {
     console.error("Failed to fetch proxy settings:", error);
     return { proxy_type: 'allorigins' };
-  }
-}
-
-/**
- * Build a proxied URL based on the provided proxy type and target URL
- */
-export function buildProxiedUrl(targetUrl: string, proxyConfig: ProxyConfig): string {
-  const { proxy_type, custom_url } = proxyConfig;
-  
-  if (proxy_type === 'custom' && custom_url) {
-    // Replace placeholder in custom URL if present, otherwise append
-    return custom_url.includes('{url}') 
-      ? custom_url.replace('{url}', encodeURIComponent(targetUrl))
-      : `${custom_url}${encodeURIComponent(targetUrl)}`;
-  }
-  
-  return `${PROXY_URLS[proxy_type]}${encodeURIComponent(targetUrl)}`;
-}
-
-/**
- * Fetch data from a URL using the specified proxy
- */
-export async function fetchViaProxy(url: string, proxyConfig: ProxyConfig): Promise<any> {
-  const proxiedUrl = buildProxiedUrl(url, proxyConfig);
-  
-  try {
-    const response = await fetch(proxiedUrl);
-    
-    if (!response.ok) {
-      throw new Error(`Proxy request failed with status ${response.status}`);
-    }
-    
-    const contentType = response.headers.get('content-type') || '';
-    
-    if (contentType.includes('application/json')) {
-      return response.json();
-    }
-    
-    return response.text();
-  } catch (error) {
-    console.error(`Error fetching via ${proxyConfig.proxy_type} proxy:`, error);
-    throw error;
-  }
-}
-
-/**
- * Try multiple proxies in order until one succeeds
- */
-export async function fetchViaProxyWithFallback(url: string, initialConfig?: ProxyConfig): Promise<any> {
-  // First try with the specified or stored proxy config
-  const config = initialConfig || await getProxySettings();
-  const fallbackOrder: ProxyType[] = ['allorigins', 'corsproxy', 'cors-anywhere', 'direct'];
-  
-  try {
-    return await fetchViaProxy(url, config);
-  } catch (initialError) {
-    console.warn(`Initial proxy (${config.proxy_type}) failed, trying fallbacks...`);
-    
-    // Try each fallback in sequence, skipping the one we already tried
-    for (const proxyType of fallbackOrder) {
-      if (proxyType === config.proxy_type) continue;
-      
-      try {
-        return await fetchViaProxy(url, { proxy_type: proxyType });
-      } catch (error) {
-        console.warn(`Fallback ${proxyType} failed:`, error);
-        // Continue to next fallback
-      }
-    }
-    
-    // If all fallbacks fail, throw the original error
-    throw initialError;
   }
 }

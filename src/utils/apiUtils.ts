@@ -1,8 +1,9 @@
 
 import { ApiResponse } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Check if a response is HTML
+ * Check if a response appears to be HTML
  */
 export function isHtmlResponse(text: string): boolean {
   return /<\s*html[\s>]/i.test(text) || /<\s*body[\s>]/i.test(text);
@@ -13,16 +14,14 @@ export function isHtmlResponse(text: string): boolean {
  */
 export function extractFromHtml(htmlContent: string): ApiResponse {
   try {
-    // Simple extraction using regex for demonstration
-    // In a real app, use a more robust HTML parsing approach
-    
+    // Extract main product info using regex patterns
     const titleMatch = /<title[^>]*>(.*?)<\/title>/i.exec(htmlContent);
     const descMatch = /<meta\s+name="description"\s+content="([^"]*)"[^>]*>/i.exec(htmlContent);
     const priceMatch = /price["\s:]+(\d+\.?\d*)/i.exec(htmlContent);
     const stockMatch = /stock["\s:]+(\d+)/i.exec(htmlContent);
     
     const result: ApiResponse = {
-      success: 'true',
+      success: 'true'
     };
     
     if (titleMatch && titleMatch[1]) result.name = titleMatch[1].trim();
@@ -56,11 +55,9 @@ export function normalizeProductInfo(data: any): ApiResponse {
     // Handle string responses
     if (typeof data === 'string') {
       try {
-        // Try to parse as JSON
         const parsed = JSON.parse(data);
         return normalizeProductInfo(parsed);
       } catch {
-        // Not valid JSON, return error
         return { 
           success: 'false', 
           error: 'Invalid response format'
@@ -91,12 +88,10 @@ export function normalizeProductInfo(data: any): ApiResponse {
     }
     
     if (data.price || data.cost || data.productPrice) {
-      // Handle price as string or number
       result.price = String(data.price || data.cost || data.productPrice);
     }
     
     if (data.stock !== undefined || data.quantity !== undefined || data.inStock !== undefined) {
-      // Handle stock as string or number
       result.stock = String(data.stock || data.quantity || data.inStock || 0);
     }
     
@@ -111,7 +106,7 @@ export function normalizeProductInfo(data: any): ApiResponse {
       result.error = data.error || data.errorMessage || 'Unknown error';
     }
     
-    // Check if we have enough data to consider this a valid response
+    // Check if we have enough data
     if (result.success === 'true' && !result.name && !result.price) {
       result.success = 'false';
       result.error = 'Incomplete product information';
@@ -123,6 +118,36 @@ export function normalizeProductInfo(data: any): ApiResponse {
     return { 
       success: 'false', 
       error: error instanceof Error ? error.message : 'Unknown error processing data'
+    };
+  }
+}
+
+/**
+ * Fetch product information through serverless function
+ */
+export async function fetchProductInfoViaServerless(
+  kioskToken: string,
+  userToken: string
+): Promise<ApiResponse> {
+  try {
+    const { data, error } = await supabase.functions.invoke('api-proxy', {
+      body: { 
+        endpoint: 'getStock',
+        kioskToken,
+        userToken
+      }
+    });
+
+    if (error) {
+      throw new Error(`Serverless function error: ${error.message}`);
+    }
+
+    return normalizeProductInfo(data);
+  } catch (error) {
+    console.error('Error fetching product info:', error);
+    return {
+      success: 'false',
+      error: error instanceof Error ? error.message : 'Failed to fetch product info'
     };
   }
 }
