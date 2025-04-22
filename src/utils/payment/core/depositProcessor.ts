@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 // Remove unnecessary interface to avoid circular references
@@ -21,7 +22,15 @@ export const createTransactionRecord = async (
   transactionId?: string | null
 ): Promise<boolean> => {
   try {
-    const response = await supabase.from('transactions').select('id').eq('reference_id', depositId).maybeSingle();
+    // Use explicit type casting to avoid deep type inference
+    const response = await supabase
+      .from('transactions')
+      .select('id')
+      .eq('reference_id', depositId)
+      .maybeSingle() as unknown as {
+        data: { id: string } | null;
+        error: { message: string } | null;
+      };
 
     if (response.error) {
       console.error("Error checking for existing transaction:", response.error);
@@ -29,14 +38,18 @@ export const createTransactionRecord = async (
     }
       
     if (!response.data) {
-      const insertResponse = await supabase.from('transactions').insert({
-        user_id: userId,
-        amount: amount,
-        type: 'deposit',
-        status: 'completed',
-        description: `Deposit processed via ${transactionId ? 'PayPal' : 'manual'} payment`,
-        reference_id: depositId
-      });
+      const insertResponse = await supabase
+        .from('transactions')
+        .insert({
+          user_id: userId,
+          amount: amount,
+          type: 'deposit',
+          status: 'completed',
+          description: `Deposit processed via ${transactionId ? 'PayPal' : 'manual'} payment`,
+          reference_id: depositId
+        }) as unknown as {
+          error: { message: string } | null;
+        };
 
       if (insertResponse.error) {
         console.error("Error creating transaction record:", insertResponse.error);
@@ -86,7 +99,9 @@ export const processDepositBalance = async (
       const updateResponse = await supabase
         .from('deposits')
         .update({ status: 'completed' })
-        .eq('id', depositId);
+        .eq('id', depositId) as unknown as {
+          error: { message: string } | null;
+        };
         
       if (updateResponse.error) {
         console.error("Error updating deposit status:", updateResponse.error);
@@ -102,7 +117,10 @@ export const processDepositBalance = async (
       const balanceResponse = await supabase.rpc('update_user_balance', {
         user_id_param: deposit.user_id,
         amount_param: deposit.net_amount
-      });
+      }) as unknown as {
+        data: boolean | null;
+        error: { message: string } | null;
+      };
 
       if (balanceResponse.error) {
         console.error("Error updating user balance:", balanceResponse.error);

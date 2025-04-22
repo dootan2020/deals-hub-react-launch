@@ -12,11 +12,11 @@ import { PayPalStateError } from '../PayPalStateError';
 interface PayPalCheckoutButtonProps {
   amount: number;
   onSuccess: () => void;
-  onError?: (error: string) => void; // Add the onError prop
+  onError?: (error: string) => void;
 }
 
 export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amount, onSuccess, onError }) => {
-  const [{ isPending, isRejected }, paypalDispatch] = usePayPalScriptReducer();
+  const [{ isPending, isRejected }] = usePayPalScriptReducer();
   const [showButtons, setShowButtons] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -26,8 +26,9 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
     }
     if (isRejected) {
       setErrorMessage('Không thể kết nối với PayPal. Vui lòng thử lại sau.');
+      if (onError) onError('Không thể kết nối với PayPal. Vui lòng thử lại sau.');
     }
-  }, [isPending, isRejected]);
+  }, [isPending, isRejected, onError]);
 
   const createOrder = (_data: any, actions: any) => {
     return actions.order.create({
@@ -65,27 +66,15 @@ export const PayPalCheckoutButton: React.FC<PayPalCheckoutButtonProps> = ({ amou
     toast.warning('Thanh toán bị hủy bỏ bởi người dùng.');
   };
 
-  const handleRetry = () => {
-    // Reset the PayPal script with correct action type
-    paypalDispatch({
-      type: 'resetOptions' as any,
-      value: {
-        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
-        currency: 'USD',
-        intent: 'capture'
-      }
-    });
-  };
-
   if (isPending) {
     return <PayPalProcessingState />;
   }
 
-  if (isRejected) {
+  if (isRejected || errorMessage) {
     return (
       <PayPalStateError
         errorMessage={errorMessage || 'Lỗi khi tải PayPal.'}
-        onRetry={handleRetry}
+        onRetry={() => window.location.reload()}
       />
     );
   }

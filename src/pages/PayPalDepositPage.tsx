@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -15,6 +16,7 @@ import { PayPalCheckoutButton } from '@/components/payment/PayPalCheckoutButton'
 import { PayPalTransactionResult } from '@/components/payment/PayPalTransactionResult';
 import { PayPalStateError } from '@/components/payment/PayPalStateError';
 import { usePayPalVerification } from '@/hooks/use-paypal-verification';
+import { PayPalProvider } from '@/components/payment/PayPalProvider';
 
 const PayPalDepositPage = () => {
   const [amount, setAmount] = useState<string>('');
@@ -221,11 +223,13 @@ const PayPalDepositPage = () => {
                         </div>
                       </div>
                       
-                      <PayPalCheckoutButton 
-                        amount={numAmount} 
-                        onSuccess={handlePaymentSuccess}
-                        onError={handlePaymentError}
-                      />
+                      <PayPalProvider>
+                        <PayPalCheckoutButton 
+                          amount={numAmount} 
+                          onSuccess={handlePaymentSuccess}
+                          onError={handlePaymentError}
+                        />
+                      </PayPalProvider>
                       
                       <div className="mt-4 text-center">
                         <Button 
