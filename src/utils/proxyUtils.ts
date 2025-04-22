@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { isRecord } from './supabaseHelpers';
 
@@ -12,6 +11,39 @@ export interface ProxyConfig {
 export interface ProxySettings {
   proxyUrl: string;
   appendMode: 'prefix' | 'suffix' | 'path';
+}
+
+/**
+ * Create a proxy URL based on the specified proxy type and target URL
+ * @param url The URL to proxy
+ * @param config The proxy configuration
+ * @returns An object with the proxied URL
+ */
+export function buildProxyUrl(url: string, config: ProxyConfig): { url: string } {
+  switch (config.type) {
+    case 'allorigins':
+      return { url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}` };
+    
+    case 'corsproxy':
+      return { url: `https://corsproxy.io/?${encodeURIComponent(url)}` };
+      
+    case 'cors-anywhere':
+      return { url: `https://cors-anywhere.herokuapp.com/${url}` };
+      
+    case 'custom':
+      if (config.url) {
+        return { url: `${config.url}${encodeURIComponent(url)}` };
+      }
+      // Fallback to allorigins if custom URL is missing
+      return { url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}` };
+      
+    case 'direct':
+      return { url };
+      
+    default:
+      // Default to allorigins
+      return { url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}` };
+  }
 }
 
 /**
@@ -49,39 +81,6 @@ export async function fetchProxySettings(): Promise<ProxyConfig> {
   } catch (error) {
     console.error('Error fetching proxy settings:', error);
     return { type: 'allorigins' }; // Default to allorigins on error
-  }
-}
-
-/**
- * Create a proxy URL based on the specified proxy type and target URL
- * @param targetUrl The URL to proxy
- * @param proxyConfig The proxy configuration
- * @returns The proxied URL
- */
-export function createProxyUrl(targetUrl: string, proxyConfig: ProxyConfig): string {
-  switch (proxyConfig.type) {
-    case 'allorigins':
-      return `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-    
-    case 'corsproxy':
-      return `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-      
-    case 'cors-anywhere':
-      return `https://cors-anywhere.herokuapp.com/${targetUrl}`;
-      
-    case 'custom':
-      if (proxyConfig.url) {
-        return `${proxyConfig.url}${encodeURIComponent(targetUrl)}`;
-      }
-      // Fallback to allorigins if custom URL is missing
-      return `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-      
-    case 'direct':
-      return targetUrl;
-      
-    default:
-      // Default to allorigins
-      return `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
   }
 }
 
@@ -148,9 +147,9 @@ export async function processProxyResponse(response: Response, proxyType: ProxyT
  */
 export async function fetchViaProxy(url: string, proxyConfig: ProxyConfig): Promise<any> {
   try {
-    const proxiedUrl = createProxyUrl(url, proxyConfig);
+    const proxiedUrl = buildProxyUrl(url, proxyConfig);
     
-    const response = await fetch(proxiedUrl);
+    const response = await fetch(proxiedUrl.url);
     
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
