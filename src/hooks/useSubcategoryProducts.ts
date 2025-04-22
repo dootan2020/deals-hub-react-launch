@@ -4,6 +4,11 @@ import { fetchProductsWithFilters } from '@/services/productService';
 import { Product } from '@/types';
 import { SortOption } from '@/types';
 
+interface ProductsResponse {
+  products: Product[];
+  totalPages: number;
+}
+
 interface UseSubcategoryProductsProps {
   slug: string;
   sortOption: SortOption;
@@ -29,7 +34,7 @@ export const useSubcategoryProducts = ({
       setError(null);
       
       try {
-        const result = await fetchProductsWithFilters({
+        const response = await fetchProductsWithFilters({
           subcategory: slug,
           page: currentPage,
           perPage: 12,
@@ -39,11 +44,15 @@ export const useSubcategoryProducts = ({
           inStock: stockFilter === "in-stock" ? true : undefined
         });
         
-        if (result && Array.isArray(result.products)) {
-          setProducts(result.products);
-          setTotalPages(result.totalPages || 1);
+        // Handle response based on type
+        if (Array.isArray(response)) {
+          setProducts(response);
+          setTotalPages(1);
+        } else if (response && typeof response === 'object') {
+          setProducts(response.products || []);
+          setTotalPages(response.totalPages || 1);
           
-          if (result.products.length === 0 && currentPage > 1) {
+          if (response.products?.length === 0 && currentPage > 1) {
             setCurrentPage(1);
           }
         } else {

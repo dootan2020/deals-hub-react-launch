@@ -1,4 +1,3 @@
-
 import { TableHTMLAttributes } from 'react';
 
 export interface Product {
@@ -53,6 +52,7 @@ export interface FilterParams {
   page?: number;
   limit?: number;
   priceRange?: [number, number];
+  subcategory?: string;
 }
 
 export interface CategoryPageParams extends Record<string, string> {
