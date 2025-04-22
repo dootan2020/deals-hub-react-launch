@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole } from '@/types/auth.types';
@@ -99,7 +98,7 @@ export const useAuthState = () => {
         console.log('User signed in or token refreshed:', currentSession.user.email);
         
         // Update user state immediately to improve perceived performance
-        setUser(currentSession.user as User);
+        setUser(currentSession.user as unknown as User);
         
         // Set loading to false as soon as we have user data
         setLoading(false);
@@ -145,7 +144,7 @@ export const useAuthState = () => {
     } else if (event === 'INITIAL_SESSION') {
       // For initial session, set user/session immediately if available
       if (currentSession) {
-        setUser(currentSession.user as User);
+        setUser(currentSession.user as unknown as User);
       }
       
       // Always set loading to false regardless of result
@@ -196,7 +195,7 @@ export const useAuthState = () => {
           console.log('Initial session check:', data.session ? 'Session found' : 'No session');
           
           // Immediately set user and session
-          setUser(data.session?.user || null);
+          setUser(data.session?.user as unknown as User || null);
           setSession(data.session);
           
           // If we have a session, start loading additional data while setting loading to false
@@ -252,7 +251,7 @@ export const useAuthState = () => {
         authListenerRef.current = null;
       }
     };
-  }, [handleAuthStateChange, fetchUserRoles, fetchUserBalance]);
+  }, [handleAuthStateChange, fetchUserRoles, fetchUserBalance, loading]);
 
   // Set up a periodic health check for the listener
   useEffect(() => {
