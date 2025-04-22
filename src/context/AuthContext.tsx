@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
-import { useAuthState } from '@/hooks/use-auth-state';
+import { useAuthState } from '@/hooks/auth/use-auth-state';
 import { useAuthActions } from '@/hooks/auth/use-auth-actions';
 import { useBalanceListener } from '@/hooks/use-balance-listener';
 import { AuthContextType } from '@/types/auth.types';
@@ -48,7 +48,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchUserBalance,
     refreshUserData,
     isLoadingBalance,
-    authError
+    authError,
+    setUser,
+    setSession
   } = useAuthState();
 
   const { login: authLogin, logout, register, resendVerificationEmail } = useAuthActions();
@@ -60,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Explicitly check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
+      console.log('🔍 Session check starting...');
       setManualSessionCheck(true);
       try {
         console.log('Explicitly checking for existing session...');
@@ -68,16 +71,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error) {
           console.error('Error fetching session:', error);
         } else if (data.session) {
-          console.log('Existing session found:', { 
+          console.log('✅ Existing session found:', { 
             userId: data.session.user.id,
             expiresAt: new Date(data.session.expires_at! * 1000).toLocaleString()
           });
+          
+          // Explicitly update user and session state from the found session
+          setUser(data.session.user);
+          setSession(data.session);
+          
+          // Immediately set hydrated to unblock UI rendering
+          setHydrated(true);
+          
+          // Load user data in background (roles, balance) without blocking UI
+          if (data.session.user.id) {
+            refreshUserData().catch(err => {
+              console.error('Background user data refresh failed:', err);
+            });
+          }
         } else {
-          console.log('No existing session found');
+          console.log('❌ No existing session found');
         }
       } catch (err) {
         console.error('Exception during session check:', err);
       } finally {
+        console.log('🏁 Session check completed');
         setManualSessionCheck(false);
         // Set hydrated regardless of result to unblock UI
         setHydrated(true);
@@ -85,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     
     checkSession();
-  }, []);
+  }, [refreshUserData, setSession, setUser]);
 
   // Handle authentication errors
   useEffect(() => {
@@ -152,10 +170,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = !!user;
 
   // Memoize context value to prevent unnecessary rerenders
+  // No longer including manualSessionCheck in loading state
   const contextValue = useMemo(() => ({
     user,
     session,
-    loading: loading || manualSessionCheck,
+    loading, // No longer combining with manualSessionCheck
     isAuthenticated,
     isAdmin,
     isStaff,
@@ -172,14 +191,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isEmailVerified,
     resendVerificationEmail,
   }), [
-    user, session, loading, manualSessionCheck, isAdmin, isStaff, userRoles, userBalance,
+    user, session, loading, isAdmin, isStaff, userRoles, userBalance,
     isLoadingBalance, refreshUserBalance, refreshUserProfile, refreshBalance, 
     logout, register, checkUserRole, isEmailVerified, resendVerificationEmail, isAuthenticated
   ]);
 
   // Don't render until hydrated to avoid SSR/hydration mismatch
   if (!hydrated) {
-    return null;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <span className="ml-2 text-gray-600">Khởi tạo ứng dụng...</span>
+      </div>
+    );
   }
 
   return (

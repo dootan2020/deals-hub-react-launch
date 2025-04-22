@@ -136,12 +136,15 @@ export const useAuthState = () => {
     
     const initAuth = async () => {
       try {
+        console.log('🚀 Starting auth initialization...');
         setLoading(true);
         initializationTimeRef.current = Date.now();
         
+        // Register auth state change listener first
         authListenerRef.current = supabase.auth.onAuthStateChange(handleAuthStateChange);
         console.log('Auth listener registered at', new Date().toISOString());
         
+        // Then check for existing session
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -149,16 +152,21 @@ export const useAuthState = () => {
           setAuthError(error);
           if (isMounted) setLoading(false);
         } else {
-          console.log('Initial session check:', data.session ? 'Session found' : 'No session');
+          console.log('Initial session check:', data.session ? '✅ Session found' : '❌ No session');
           
           if (isMounted) {
-            setUser(data.session?.user as unknown as User || null);
-            setSession(data.session);
+            if (data.session) {
+              console.log('Setting user from session:', data.session.user.email);
+              setUser(data.session.user as unknown as User);
+              setSession(data.session);
+            }
+            
+            // Important: Set loading to false as soon as we know if a session exists or not
+            setLoading(false);
           }
           
           if (data.session?.user) {
-            if (isMounted) setLoading(false);
-            
+            // Load additional data in background without blocking UI
             const loadAdditionalData = async () => {
               try {
                 const roles = await fetchUserRoles(data.session.user.id);
@@ -172,12 +180,13 @@ export const useAuthState = () => {
             };
             
             loadAdditionalData();
-          } else {
-            if (isMounted) setLoading(false);
           }
         }
         
-        if (isMounted) setAuthInitialized(true);
+        if (isMounted) {
+          setAuthInitialized(true);
+          console.log('🏁 Auth initialization completed');
+        }
       } catch (error: any) {
         console.error('Error in auth initialization:', error);
         if (isMounted) {
@@ -188,12 +197,13 @@ export const useAuthState = () => {
         toast.error('Lỗi khởi tạo xác thực');
       }
       
+      // Failsafe timer - reduced from 2s to 1.5s
       const failsafeTimer = setTimeout(() => {
         if (isMounted && loading) {
-          console.warn('Auth initialization taking too long, clearing loading state as a failsafe');
+          console.warn('❗ Auth initialization taking too long, clearing loading state as a failsafe');
           setLoading(false);
         }
-      }, 2000);
+      }, 1500);
       
       return () => clearTimeout(failsafeTimer);
     };
@@ -222,6 +232,9 @@ export const useAuthState = () => {
     fetchUserBalance,
     refreshUserData,
     isLoadingBalance,
-    authError
+    authError,
+    // Expose these setters for direct manipulation from AuthContext
+    setUser,
+    setSession
   };
 };
