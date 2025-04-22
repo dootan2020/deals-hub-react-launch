@@ -37,6 +37,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ApiResponse } from '@/components/admin/product-manager/ApiProductTester';
+import { isSupabaseRecord, safeString, safeNumber } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
@@ -135,19 +136,20 @@ export function ProductForm({
         .single();
 
       if (error) throw error;
-      if (data) {
+      
+      if (data && isSupabaseRecord(data)) {
         form.reset({
-          title: data.title,
-          description: data.description,
-          price: data.price,
-          originalPrice: data.original_price || undefined,
-          inStock: data.in_stock ?? true,
-          slug: data.slug,
-          externalId: data.external_id || '',
-          categoryId: data.category_id || '',
-          images: data.images && data.images.length > 0 ? data.images.join('\n') : '',
-          kioskToken: data.kiosk_token || '',
-          stock: data.stock || 0,
+          title: safeString(data.title),
+          description: safeString(data.description),
+          price: safeNumber(data.price),
+          originalPrice: data.original_price !== undefined ? safeNumber(data.original_price) : undefined,
+          inStock: !!data.in_stock,
+          slug: safeString(data.slug),
+          externalId: data.external_id ? safeString(data.external_id) : '',
+          categoryId: safeString(data.category_id),
+          images: Array.isArray(data.images) && data.images.length > 0 ? data.images.join('\n') : '',
+          kioskToken: data.kiosk_token ? safeString(data.kiosk_token) : '',
+          stock: safeNumber(data.stock),
         });
         setFormDirty(false);
       }
@@ -183,15 +185,15 @@ export function ProductForm({
         if (productId) {
           const { error } = await supabase
             .from('products')
-            .update(productData)
-            .eq('id', productId);
+            .update(productData as any)
+            .eq('id', productId as any);
 
           if (error) throw error;
           toast.success('Product updated successfully');
         } else {
           const { error } = await supabase
             .from('products')
-            .insert(productData);
+            .insert(productData as any);
 
           if (error) throw error;
           toast.success('Product created successfully');

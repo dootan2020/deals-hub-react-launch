@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, RefreshCw, Info, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProxyType, fetchProxySettings } from '@/utils/proxyUtils';
-import { fetchActiveApiConfig, fetchProductInfoViaServerless } from '@/utils/apiUtils';
+import { fetchActiveApiConfig } from '@/utils/apiUtils';
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ApiResponse {
@@ -212,7 +211,7 @@ export function ApiProductTester({
               <SelectContent>
                 <SelectItem value="allorigins">AllOrigins</SelectItem>
                 <SelectItem value="corsproxy">CORS Proxy</SelectItem>
-                <SelectItem value="cors-anywhere">CORS Anywhere</SelectItem>
+                <SelectItem value="corsanywhere">CORS Anywhere</SelectItem>
                 <SelectItem value="direct">Direct API Call</SelectItem>
                 <SelectItem value="yproxy">YProxy (AllOrigins Raw)</SelectItem>
               </SelectContent>

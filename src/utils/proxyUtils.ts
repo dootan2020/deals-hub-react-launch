@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { isSupabaseRecord } from './supabaseHelpers';
 
-export type ProxyType = 'allorigins' | 'corsproxy' | 'corsanywhere' | 'direct' | 'custom';
+export type ProxyType = 'allorigins' | 'corsproxy' | 'corsanywhere' | 'direct' | 'custom' | 'yproxy';
 
 export interface ProxyConfig {
   type: ProxyType;
@@ -50,6 +50,8 @@ export function buildProxyUrl(targetUrl: string, proxyConfig: ProxyConfig): stri
       return `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
     case 'corsanywhere':
       return `https://cors-anywhere.herokuapp.com/${targetUrl}`;
+    case 'yproxy':
+      return `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
     case 'custom':
       if (proxyConfig.url) {
         return `${proxyConfig.url}${encodeURIComponent(targetUrl)}`;
@@ -92,6 +94,37 @@ export async function fetchViaProxy(url: string, proxyConfig: ProxyConfig): Prom
     }
   } catch (error) {
     console.error('Error fetching via proxy:', error);
+    throw error;
+  }
+}
+
+// Add the missing function
+export async function fetchViaProxyWithFallback(url: string, proxyConfig: ProxyConfig): Promise<any> {
+  try {
+    // Try different proxy methods in sequence
+    const fallbackProxies: ProxyType[] = ['allorigins', 'corsproxy', 'yproxy', 'direct'];
+    
+    // Start with the requested proxy
+    const proxyTypes = [proxyConfig.type, ...fallbackProxies.filter(p => p !== proxyConfig.type)];
+    
+    let lastError = null;
+    
+    for (const proxyType of proxyTypes) {
+      try {
+        const currentConfig = { ...proxyConfig, type: proxyType as ProxyType };
+        const result = await fetchViaProxy(url, currentConfig);
+        return result;
+      } catch (error) {
+        console.warn(`Proxy ${proxyType} failed, trying next...`, error);
+        lastError = error;
+        // Continue to next proxy
+      }
+    }
+    
+    // If we get here, all proxies failed
+    throw lastError || new Error('All proxy methods failed');
+  } catch (error) {
+    console.error('Error in fetchViaProxyWithFallback:', error);
     throw error;
   }
 }

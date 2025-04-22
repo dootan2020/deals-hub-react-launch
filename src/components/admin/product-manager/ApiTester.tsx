@@ -14,7 +14,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, RefreshCw, Info, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { ProxyType, ProxyConfig, fetchProxySettings, fetchViaProxy, fetchViaProxyWithFallback } from '@/utils/proxyUtils';
+import { ProxyType, ProxyConfig, fetchProxySettings, fetchViaProxy } from '@/utils/proxyUtils';
 import { isHtmlResponse, extractFromHtml, normalizeProductInfo } from '@/utils/apiUtils';
 
 interface ApiResponse {
@@ -47,6 +47,37 @@ export function ApiTester({ onApiDataReceived, initialKioskToken = '', initialUs
     const now = new Date();
     const timestamp = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}]`;
     setLogs(prev => [...prev, `${timestamp} ${message}`]);
+  };
+
+  // Helper function to handle proxy fallback since fetchViaProxyWithFallback doesn't exist
+  const fetchWithProxyFallback = async (url: string, proxyConfig: ProxyConfig): Promise<any> => {
+    try {
+      // Try different proxy methods in sequence
+      const fallbackProxies: ProxyType[] = ['allorigins', 'corsproxy', 'yproxy', 'direct'];
+      
+      // Start with the requested proxy
+      const proxyTypes = [proxyConfig.type, ...fallbackProxies.filter(p => p !== proxyConfig.type)];
+      
+      let lastError = null;
+      
+      for (const proxyType of proxyTypes) {
+        try {
+          const currentConfig = { ...proxyConfig, type: proxyType as ProxyType };
+          const result = await fetchViaProxy(url, currentConfig);
+          return result;
+        } catch (error) {
+          console.warn(`Proxy ${proxyType} failed, trying next...`, error);
+          lastError = error;
+          // Continue to next proxy
+        }
+      }
+      
+      // If we get here, all proxies failed
+      throw lastError || new Error('All proxy methods failed');
+    } catch (error) {
+      console.error('Error in fetchWithProxyFallback:', error);
+      throw error;
+    }
   };
 
   const handleApiTest = async () => {
@@ -83,7 +114,7 @@ export function ApiTester({ onApiDataReceived, initialKioskToken = '', initialUs
           addLog(`${selectedProxy} proxy failed: ${(proxyError as Error).message}`);
           addLog('Attempting fallback method...');
           
-          responseData = await fetchViaProxyWithFallback(url, proxyConfig);
+          responseData = await fetchWithProxyFallback(url, proxyConfig);
           addLog('Fallback method succeeded');
         }
         
@@ -235,7 +266,7 @@ export function ApiTester({ onApiDataReceived, initialKioskToken = '', initialUs
               <SelectContent>
                 <SelectItem value="allorigins">AllOrigins</SelectItem>
                 <SelectItem value="corsproxy">CORS Proxy</SelectItem>
-                <SelectItem value="cors-anywhere">CORS Anywhere</SelectItem>
+                <SelectItem value="corsanywhere">CORS Anywhere</SelectItem>
                 <SelectItem value="direct">Direct API Call</SelectItem>
                 <SelectItem value="yproxy">YProxy (AllOrigins Raw)</SelectItem>
               </SelectContent>

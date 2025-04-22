@@ -136,7 +136,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId as string)
+        .eq('id', productId)
         .maybeSingle();
 
       if (error) throw error;
@@ -230,7 +230,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
       const proxyConfig = await fetchProxySettings();
       
       const apiConfig = await fetchActiveApiConfig();
-      if (!isSupabaseRecord(apiConfig)) {
+      if (!isValidRecord(apiConfig)) {
         toast.error('Failed to fetch API configuration');
         return;
       }
