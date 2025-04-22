@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -12,10 +13,13 @@ import { ProductTrustBadges } from '@/components/product/ProductTrustBadges';
 import { useState } from 'react';
 import { useProductRecommendations } from '@/hooks/useProductRecommendations';
 import { ProductRecommendations } from '@/components/product/ProductRecommendations';
+import { useAuth } from '@/context/AuthContext';
+import { usePersonalizedRecommendations } from '@/hooks/usePersonalizedRecommendations';
 
 const ProductPage = () => {
   const { productSlug } = useParams();
   const { product, loading, error } = useProduct(productSlug);
+  const { user } = useAuth();
 
   const [aiSource] = useState<'openai' | 'claude' | 'local'>('openai');
   const {
@@ -23,6 +27,13 @@ const ProductPage = () => {
     loading: recLoading,
     error: recError
   } = useProductRecommendations(product, aiSource);
+
+  // Thêm personalized recommendations
+  const {
+    recommendations: personalizedRecs,
+    loading: persLoading,
+    error: persError
+  } = usePersonalizedRecommendations(user?.id || null, product, aiSource);
 
   if (loading) {
     return (
@@ -91,6 +102,14 @@ const ProductPage = () => {
           <div className="mt-8 w-full">
             <ProductDescription description={product.description} />
           </div>
+
+          {/* Gợi ý sản phẩm cá nhân hóa */}
+          <ProductRecommendations
+            recommendations={personalizedRecs}
+            loading={persLoading}
+            error={persError}
+            label="Dành riêng cho bạn"
+          />
         </div>
       </div>
     </Layout>

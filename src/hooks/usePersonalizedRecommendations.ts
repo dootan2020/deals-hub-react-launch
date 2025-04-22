@@ -1,0 +1,159 @@
+
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Product } from "@/types";
+
+type AISource = "openai" | "local";
+
+export interface Recommendation {
+  title: string;
+  description?: string;
+  slug?: string;
+  category?: string;
+  image?: string;
+}
+
+interface UsePersonalizedRecommendationsReturn {
+  recommendations: Recommendation[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => void;
+}
+
+async function fetchOrderHistory(userId: string) {
+  const { data, error } = await supabase
+    .from("orders")
+    .select(`
+      *,
+      order_items(
+        *,
+        product:products(
+          id, title, slug, category_id, categories:categories(name), image:images
+        )
+      )
+    `)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []);
+}
+
+// fallback bình thường nếu không có AI: suggest theo category sản phẩm đã mua nhiều nhất
+async function localRecommend(userId: string, currentProductSlug: string): Promise<Recommendation[]> {
+  // Lấy các sản phẩm đã mua (không phải là sản phẩm hiện tại)
+  const history = await fetchOrderHistory(userId);
+  const bought = [];
+  let mostCat = null;
+  const catCount: Record<string, number> = {};
+
+  history.forEach(order => {
+    order.order_items?.forEach(item => {
+      if (item.product && item.product.slug !== currentProductSlug) {
+        bought.push(item.product);
+        const cid = item.product.category_id || "";
+        if (cid) catCount[cid] = (catCount[cid] || 0) + 1;
+      }
+    });
+  });
+
+  mostCat = Object.entries(catCount).sort((a, b) => b[1] - a[1])?.[0]?.[0] || null;
+  // Lấy sản phẩm cùng category nhiều nhất, khác các sản phẩm đã mua và sản phẩm hiện tại
+  if (mostCat) {
+    const { data, error } = await supabase
+      .from("products")
+      .select("id,title,slug,description,category_id,images")
+      .eq("category_id", mostCat)
+      .neq("slug", currentProductSlug)
+      .limit(5);
+
+    if (!error && data) {
+      // Loại bỏ sản phẩm trùng đã mua + hiện tại
+      const boughtSlugs = bought.map((p: any) => p.slug);
+      const recs = data.filter(p => !boughtSlugs.includes(p.slug)).map(p => ({
+        title: p.title,
+        slug: p.slug,
+        description: p.description,
+        image: Array.isArray(p.images) ? p.images[0] : undefined,
+        category: p.category_id
+      }));
+      return recs.slice(0, 5);
+    }
+  }
+  return [];
+}
+
+async function fetchAiRecommendations(
+  userId: string, 
+  currentProduct: Product, 
+  currentProductSlug: string, 
+  aiSource: AISource
+): Promise<Recommendation[]> {
+  const history = await fetchOrderHistory(userId);
+  const productNames = [];
+  const boughtSlugs = [];
+
+  history.forEach(order =>
+    order.order_items?.forEach(item => {
+      if (item.product && item.product.slug !== currentProductSlug) {
+        productNames.push(item.product.title);
+        boughtSlugs.push(item.product.slug);
+      }
+    })
+  );
+
+  // Nếu không có lịch sử thì fallback local
+  if (productNames.length === 0 || aiSource === "local") {
+    return localRecommend(userId, currentProductSlug);
+  }
+
+  // Gửi lên OpenAI để xin gợi ý
+  const prompt = `Dựa vào lịch sử mua các sản phẩm: ${productNames.map(t => `"${t}"`).join(", ")} của khách, hãy gợi ý 3-5 sản phẩm liên quan khách MMO thường sẽ quan tâm, tránh gợi ý các sản phẩm đã mua. Trả về JSON dạng [{"title":"...","description":"..."}], tên ngắn gọn, mô tả ngắn.`;
+
+  let aiModel = "gpt-4o-mini";
+  const { data, error } = await supabase.functions.invoke("ai-recommendation", {
+    body: {
+      prompt,
+      aiModel
+    }
+  });
+  if (error || !data?.recommendations) throw new Error(data?.error || error?.message || "AI error");
+  // Loại trùng sản phẩm hiện tại
+  return data.recommendations.filter((rec: any) => rec.slug !== currentProductSlug).slice(0, 5);
+}
+
+// MAIN HOOK
+export function usePersonalizedRecommendations(
+  userId: string | null,
+  currentProduct: Product | null,
+  aiSource: AISource = "openai"
+): UsePersonalizedRecommendationsReturn {
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchRecs = async () => {
+    if (!userId || !currentProduct) return;
+    setLoading(true); setError(null);
+    try {
+      const recs = await fetchAiRecommendations(userId, currentProduct, currentProduct.slug, aiSource);
+      setRecommendations(recs);
+    } catch (err: any) {
+      // fallback local nếu AI failed hoặc OpenAI hết quota
+      try {
+        const localRecs = await localRecommend(userId, currentProduct.slug);
+        setRecommendations(localRecs);
+      } catch {
+        setError("Không thể gợi ý sản phẩm cá nhân hóa.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { 
+    if (userId && currentProduct) fetchRecs();
+    // eslint-disable-next-line
+  }, [userId, currentProduct, aiSource]);
+
+  return { recommendations, loading, error, refetch: fetchRecs };
+}

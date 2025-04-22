@@ -9,18 +9,20 @@ interface ProductRecommendationsProps {
   recommendations: Recommendation[];
   loading: boolean;
   error: string | null;
+  label?: string;
 }
 
 export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
   recommendations,
   loading,
   error,
+  label = "Sản phẩm liên quan bạn có thể quan tâm"
 }) => {
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-8">
         <Loader2 className="animate-spin h-5 w-5 text-primary" />
-        <span>Đang gợi ý sản phẩm liên quan...</span>
+        <span>Đang gợi ý sản phẩm...</span>
       </div>
     );
   }
@@ -30,7 +32,7 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
   if (!recommendations || recommendations.length === 0) return null;
   return (
     <div className="mt-12">
-      <h4 className="font-semibold text-lg mb-5 text-primary">Sản phẩm liên quan bạn có thể quan tâm</h4>
+      <h4 className="font-semibold text-lg mb-5 text-primary">{label}</h4>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {recommendations.map((rec, idx) => (
           <Card key={rec.slug || idx} className="p-4 rounded-lg border shadow-sm">
