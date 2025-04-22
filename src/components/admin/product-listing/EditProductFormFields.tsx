@@ -1,7 +1,13 @@
+
 import { FormProvider } from 'react-hook-form';
 import { ProductBasicInfoFields } from '../product-form/ProductBasicInfoFields';
 import { ProductPricingFields } from '../product-form/ProductPricingFields';
 import { ProductApiFields } from '../product-form/ProductApiFields';
+import { ProductStockFields } from '../product-form/ProductStockFields';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 import type { UseFormReturn } from 'react-hook-form';
 import type { Category } from '@/types';
 import type { ProductFormValues } from '@/hooks/admin/useEditProduct';
@@ -28,6 +34,7 @@ export function EditProductFormFields({
           <ProductApiFields />
           <ProductBasicInfoFields />
           <ProductPricingFields />
+          <ProductStockFields />
 
           <FormField
             name="categoryId"

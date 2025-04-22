@@ -1,20 +1,12 @@
+
 import { useFormContext } from 'react-hook-form';
-import { 
-  FormField, FormItem, FormLabel, FormControl, 
-  FormMessage, FormDescription 
-} from '@/components/ui/form';
+import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 
 export function ProductBasicInfoFields() {
   const form = useFormContext();
-
-  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '');
-    form.setValue('slug', value);
-  };
 
   const generateSlugFromTitle = () => {
     const title = form.getValues('title');
@@ -22,6 +14,13 @@ export function ProductBasicInfoFields() {
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
     form.setValue('slug', slug);
+  };
+
+  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
+    form.setValue('slug', value);
   };
 
   return (
@@ -82,16 +81,16 @@ export function ProductBasicInfoFields() {
                 <Input 
                   {...field} 
                   placeholder="product-slug" 
-                  onChange={handleSlugChange} 
+                  onChange={handleSlugChange}
                 />
               </FormControl>
-              <button 
+              <Button 
                 type="button"
-                className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200"
+                variant="outline"
                 onClick={generateSlugFromTitle}
               >
                 Generate
-              </button>
+              </Button>
             </div>
             <FormDescription>
               URL-friendly version of the product name
