@@ -11,11 +11,17 @@ export const createTransactionRecord = async (
   transactionId?: string | null
 ): Promise<boolean> => {
   try {
-    const { data: existingTransaction } = await supabase
+    // Avoid type instantiation by using simpler query approach
+    const { data: existingTransaction, error: queryError } = await supabase
       .from('transactions')
       .select('id')
       .eq('reference_id', depositId)
       .maybeSingle();
+      
+    if (queryError) {
+      console.error("Error checking for existing transaction:", queryError);
+      return false;
+    }
       
     if (!existingTransaction) {
       const { error } = await supabase.from('transactions').insert({
