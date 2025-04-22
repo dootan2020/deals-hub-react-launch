@@ -1,8 +1,10 @@
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { UserRole } from '@/types/auth.types';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate } from 'react-router-dom';
+import AuthLoadingScreen from '@/components/auth/AuthLoadingScreen';
+import { toast } from 'sonner';
 
 interface RoleGuardProps {
   children: ReactNode;
@@ -19,30 +21,55 @@ export const RoleGuard = ({
   requiredRoles, 
   fallback 
 }: RoleGuardProps) => {
-  const { userRoles, isAuthenticated, refreshUserProfile } = useAuth();
+  const { userRoles, isAuthenticated, refreshUserProfile, loading, user } = useAuth();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
   
   useEffect(() => {
     // Debug logging for role issues
     console.log('RoleGuard - Required roles:', requiredRoles);
     console.log('RoleGuard - User roles:', userRoles);
+    console.log('RoleGuard - User authenticated:', isAuthenticated);
+    console.log('RoleGuard - User ID:', user?.id);
     
     if (!isAuthenticated) {
       console.warn('RoleGuard - User not authenticated');
-    } else if (!requiredRoles.some(role => userRoles.includes(role))) {
-      console.warn('RoleGuard - User lacks required roles');
+    } else if (!requiredRoles.some(role => userRoles.includes(role)) && !hasTriedRefresh && !isRefreshing) {
+      console.warn('RoleGuard - User lacks required roles, attempting to refresh profile');
       
-      // If authenticated but missing roles, try refreshing profile
-      refreshUserProfile().catch(err => {
-        console.error('Error refreshing profile in RoleGuard:', err);
-      });
+      // If authenticated but missing roles, try refreshing profile once
+      setIsRefreshing(true);
+      refreshUserProfile()
+        .then(() => {
+          console.log('RoleGuard - Profile refreshed, new roles:', userRoles);
+          setHasTriedRefresh(true);
+        })
+        .catch(err => {
+          console.error('Error refreshing profile in RoleGuard:', err);
+          toast.error("Không thể cập nhật thông tin quyền hạn");
+          setHasTriedRefresh(true);
+        })
+        .finally(() => {
+          setIsRefreshing(false);
+        });
     }
-  }, [requiredRoles, userRoles, isAuthenticated, refreshUserProfile]);
+  }, [requiredRoles, userRoles, isAuthenticated, refreshUserProfile, user, hasTriedRefresh, isRefreshing]);
   
+  // Waiting for auth to complete or profile refresh
+  if (loading || isRefreshing) {
+    return <AuthLoadingScreen message="Đang kiểm tra quyền truy cập..." />;
+  }
+
   const hasRequiredRole = requiredRoles.some(role => 
     userRoles.includes(role)
   );
 
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location, authError: 'auth_required' }} replace />;
+  }
+
   if (!hasRequiredRole) {
+    console.error(`Access denied - User has roles: [${userRoles.join(', ')}] but needs one of: [${requiredRoles.join(', ')}]`);
     return fallback ? <>{fallback}</> : <Navigate to="/unauthorized" replace />;
   }
 

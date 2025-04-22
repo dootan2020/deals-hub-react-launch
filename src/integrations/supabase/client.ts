@@ -34,6 +34,17 @@ export const supabase = createClient<Database>(
       params: {
         eventsPerSecond: 10
       }
+    },
+    global: {
+      headers: {
+        'X-Client-Info': 'Digital Deals Hub Admin'
+      }
     }
   }
 );
+
+// Add debugging listener for auth state changes
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('Supabase Auth State Change:', event, session?.user?.id);
+});
+

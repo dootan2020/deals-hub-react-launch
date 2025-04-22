@@ -19,6 +19,14 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
   const [authTimeout, setAuthTimeout] = useState(false);
   const [sessionInvalid, setSessionInvalid] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('ProtectedRoute - Path:', location.pathname);
+    console.log('ProtectedRoute - Auth state:', { isAuthenticated, loading, user, userRoles });
+    console.log('ProtectedRoute - Required roles:', requiredRoles);
+  }, [location.pathname, isAuthenticated, loading, user, userRoles, requiredRoles]);
 
   // Handle timeout logic (fallback for stuck loading)
   useEffect(() => {
@@ -65,20 +73,50 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
           setIsRefreshing(false);
           
           // Also refresh user profile/roles after successful session refresh
-          refreshUserProfile().catch(err => {
-            console.error('Error refreshing profile after session refresh:', err);
-          });
+          refreshUserProfile()
+            .then(() => {
+              console.log("User profile refreshed after session refresh");
+              setHasTriedRefresh(true);
+            })
+            .catch(err => {
+              console.error('Error refreshing profile after session refresh:', err);
+            });
         }
       });
     }
   }, [sessionInvalid, isRefreshing, logout, navigate, location, refreshUserProfile]);
+
+  // Try to refresh roles if we're authenticated but missing needed roles
+  useEffect(() => {
+    if (isAuthenticated && user && requiredRoles.length > 0 && !hasTriedRefresh && !isRefreshing) {
+      const hasRequiredRole = requiredRoles.length === 0 || 
+                             requiredRoles.some(role => userRoles.includes(role));
+
+      if (!hasRequiredRole) {
+        console.log("Missing required roles, attempting to refresh user profile");
+        setIsRefreshing(true);
+        refreshUserProfile()
+          .then(() => {
+            console.log("Profile refreshed, new roles:", userRoles);
+            setHasTriedRefresh(true);
+          })
+          .catch(err => {
+            console.error("Error refreshing profile for role check:", err);
+            setHasTriedRefresh(true);
+          })
+          .finally(() => {
+            setIsRefreshing(false);
+          });
+      }
+    }
+  }, [isAuthenticated, user, requiredRoles, userRoles, refreshUserProfile, hasTriedRefresh, isRefreshing]);
 
   if (authTimeout) {
     return <Navigate to="/login" state={{ from: location, authError: 'timeout' }} replace />;
   }
 
   if (isRefreshing) {
-    return <AuthLoadingScreen message="Đang làm mới phiên của bạn..." />;
+    return <AuthLoadingScreen message="Đang làm mới phiên và quyền hạn của bạn..." />;
   }
 
   if (sessionInvalid) {
