@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { ProxyType, ProxySettings } from '@/utils/proxyUtils';
-import { prepareInsert, castData } from '@/utils/supabaseHelpers';
+import { ProxyType, ProxySettings } from '@/types';
+import { prepareInsert, prepareUpdate, prepareQueryId, castData, createDefaultProxySettings } from '@/utils/supabaseHelpers';
 
 export const CorsProxySelector = () => {
   const [proxyType, setProxyType] = useState<ProxyType>('allorigins');
@@ -39,7 +39,7 @@ export const CorsProxySelector = () => {
       
       if (data) {
         // Use castData to safely cast to ProxySettings
-        const safeData = castData<ProxySettings>(data);
+        const safeData = castData<ProxySettings>(data, createDefaultProxySettings());
         setSettings(safeData);
         setProxyType(safeData.proxy_type as ProxyType);
         setCustomUrl(safeData.custom_url || '');
@@ -54,24 +54,24 @@ export const CorsProxySelector = () => {
     setIsSaving(true);
     
     try {
-      const proxyData = {
+      const proxyData = prepareUpdate<ProxySettings>({
         proxy_type: proxyType,
         custom_url: proxyType === 'custom' ? customUrl : null
-      };
+      });
       
       if (settings?.id) {
         // Update existing settings
         const { error } = await supabase
           .from('proxy_settings')
           .update(proxyData)
-          .eq('id', settings.id);
+          .eq('id', prepareQueryId(settings.id));
           
         if (error) throw error;
       } else {
         // Insert new settings
         const { error } = await supabase
           .from('proxy_settings')
-          .insert(proxyData);
+          .insert(prepareInsert(proxyData));
           
         if (error) throw error;
       }

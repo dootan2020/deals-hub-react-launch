@@ -1,12 +1,12 @@
 
 import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
-import { Order, OrderItem } from '@/types';
+import { Order, OrderItem, Category, Product, ProxySettings, Deposit } from '@/types';
 
 /**
  * Safely casts Supabase data to a specific type, handling errors and undefined values
  */
 export function castData<T>(data: any, fallback: T = {} as T): T {
-  if (!data || 'error' in data) return fallback;
+  if (!data || data.error || data === null) return fallback;
   return data as T;
 }
 
@@ -14,7 +14,7 @@ export function castData<T>(data: any, fallback: T = {} as T): T {
  * Safely casts Supabase array data to a specific type, handling errors and empty arrays
  */
 export function castArrayData<T>(data: any, fallback: T[] = []): T[] {
-  if (!data || 'error' in data) return fallback;
+  if (!data || data.error || data === null) return fallback;
   if (!Array.isArray(data)) return fallback;
   return data as T[];
 }
@@ -52,12 +52,68 @@ export function createDefaultOrderItem(): OrderItem {
 }
 
 /**
+ * Creates a default Product object for type safety
+ */
+export function createDefaultProduct(): Product {
+  return {
+    id: '',
+    title: '',
+    description: '',
+    price: 0,
+    in_stock: true,
+    slug: '',
+    category_id: '',
+    stock: 0
+  };
+}
+
+/**
+ * Creates a default Category object for type safety
+ */
+export function createDefaultCategory(): Category {
+  return {
+    id: '',
+    name: '',
+    description: '',
+    slug: '',
+    image: '',
+    count: 0
+  };
+}
+
+/**
+ * Creates a default ProxySettings object for type safety
+ */
+export function createDefaultProxySettings(): ProxySettings {
+  return {
+    id: '',
+    proxy_type: 'allorigins',
+    custom_url: null
+  };
+}
+
+/**
+ * Creates a default Deposit object for type safety
+ */
+export function createDefaultDeposit(): Deposit {
+  return {
+    id: '',
+    user_id: '',
+    amount: 0,
+    net_amount: 0,
+    payment_method: 'paypal',
+    status: 'pending',
+    created_at: new Date().toISOString()
+  };
+}
+
+/**
  * Prepares an ID for use in Supabase queries by converting it to the appropriate type
  * This helps with UUID type compatibility
  */
 export function prepareQueryId(id: string | null | undefined): string | null {
   if (!id) return null;
-  return id as string;
+  return id;
 }
 
 /**

@@ -59,6 +59,30 @@ export interface OrderItem {
   created_at?: string;
 }
 
+// Deposit type
+export interface Deposit {
+  id: string;
+  user_id: string;
+  amount: number;
+  net_amount: number;
+  payment_method: string;
+  status: string;
+  transaction_id?: string;
+  payer_id?: string;
+  payer_email?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+// Proxy Settings type
+export interface ProxySettings {
+  id: string;
+  proxy_type: ProxyType;
+  custom_url?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // JSON type for TypeScript
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
@@ -93,4 +117,13 @@ export interface FilterParams {
   priceMax?: number;
   subcategories?: string[];
   limit?: number;
+}
+
+// ProxyType definition
+export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom';
+
+// ProxyConfig interface
+export interface ProxyConfig {
+  proxy_type: ProxyType;
+  custom_url?: string;
 }

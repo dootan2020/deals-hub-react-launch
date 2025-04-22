@@ -23,7 +23,7 @@ import { ApiResponse } from '@/types';
 import ImageUpload from './ImageUpload';
 import ApiProductTester from './product-manager/ApiProductTester';
 import { Category, Product } from '@/types';
-import { prepareQueryId, prepareUpdate, prepareInsert, castArrayData } from '@/utils/supabaseHelpers';
+import { prepareQueryId, prepareInsert, prepareUpdate, castData, castArrayData, createDefaultProduct } from '@/utils/supabaseHelpers';
 
 // Define form schema
 const productFormSchema = z.object({
@@ -93,19 +93,20 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
           toast.error("Failed to load product");
           console.error(error);
         } else {
-          setProduct(data as Product);
+          const safeProduct = castData<Product>(data, createDefaultProduct());
+          setProduct(safeProduct);
           form.reset({
-            title: data.title,
-            description: data.description,
-            price: data.price,
-            original_price: data.original_price || undefined,
-            in_stock: data.in_stock,
-            slug: data.slug,
-            external_id: data.external_id || '',
-            category_id: data.category_id,
-            images: data.images || [],
-            kiosk_token: data.kiosk_token || '',
-            stock: data.stock,
+            title: safeProduct.title,
+            description: safeProduct.description,
+            price: safeProduct.price,
+            original_price: safeProduct.original_price || undefined,
+            in_stock: safeProduct.in_stock,
+            slug: safeProduct.slug,
+            external_id: safeProduct.external_id || '',
+            category_id: safeProduct.category_id,
+            images: safeProduct.images || [],
+            kiosk_token: safeProduct.kiosk_token || '',
+            stock: safeProduct.stock,
           });
         }
         setLoading(false);
@@ -189,24 +190,16 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     }
   };
 
-  const handleApiResult = (apiResult: ApiResponse) => {
-    if (apiResult) {
-      form.setValue('title', apiResult.name || '');
-      form.setValue('description', apiResult.description || '');
-      
-      if (apiResult.price) {
-        const price = parseFloat(apiResult.price);
-        if (!isNaN(price)) {
-          form.setValue('price', price);
-        }
-      }
-      
-      if (apiResult.stock) {
-        const stock = parseInt(apiResult.stock, 10);
-        if (!isNaN(stock)) {
-          form.setValue('stock', stock);
-        }
-      }
+  const handleApiResult = (result: ApiResponse) => {
+    if (result && result.success === 'true') {
+      if (result.name) form.setValue('title', result.name);
+      if (result.price) form.setValue('price', Number(result.price) || 0);
+      if (result.stock) form.setValue('stock', Number(result.stock) || 0);
+      if (result.description) form.setValue('description', result.description);
+      if (result.kioskToken) form.setValue('kiosk_token', result.kioskToken);
+      toast.success("API data loaded successfully!");
+    } else {
+      toast.error(`API test error: ${result?.error || 'Unknown error'}`);
     }
   };
 
@@ -396,9 +389,21 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
                   </FormItem>
                 )}
               />
-              <ImageUpload
-                images={form.getValues('images') || []}
-                onChange={(newImages) => form.setValue('images', newImages)}
+              <FormField
+                control={form.control}
+                name="images"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Images</FormLabel>
+                    <FormControl>
+                      <ImageUpload
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
           </div>
