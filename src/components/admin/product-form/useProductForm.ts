@@ -78,7 +78,21 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
         .order('name');
 
       if (error) throw error;
-      setCategories(data || []);
+      // Type cast the data to Category[]
+      if (data) {
+        const typedCategories: Category[] = data.map(item => ({
+          id: String(item.id || ''),
+          name: String(item.name || ''),
+          description: String(item.description || ''),
+          slug: String(item.slug || ''),
+          image: String(item.image || ''),
+          count: Number(item.count || 0),
+          parent_id: item.parent_id ? String(item.parent_id) : null
+        }));
+        setCategories(typedCategories);
+      } else {
+        setCategories([]);
+      }
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast.error('Failed to fetch categories');

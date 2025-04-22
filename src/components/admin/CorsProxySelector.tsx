@@ -96,7 +96,10 @@ export function CorsProxySelector() {
     setLoading(true);
     try {
       // Prepare data for insert with proper typing
-      const proxyData = {
+      const proxyData: {
+        proxy_type: ProxyType;
+        custom_url: string | null;
+      } = {
         proxy_type: selectedProxy,
         custom_url: selectedProxy === 'custom' ? customProxyUrl : null,
       };

@@ -52,9 +52,9 @@ export const NotificationBell: React.FC = () => {
       if (data && Array.isArray(data)) {
         // Map and validate each order item
         const validOrders = data
-          .filter(item => (
-            typeof item === 'object' && 
-            item !== null
+          .filter((item): item is Record<string, any> => (
+            item !== null && 
+            typeof item === 'object'
           ))
           .map(item => {
             // Ensure proper typing for each field

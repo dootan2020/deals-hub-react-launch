@@ -20,10 +20,11 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
     const fetchDeposits = async () => {
       setIsLoading(true);
       try {
+        // Cast userId to UUID type for Supabase query
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', userId as string)
+          .eq('user_id', userId)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -31,12 +32,8 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
         if (data) {
           // Explicitly type check and map each property to ensure type safety
           const typedDeposits = data.map(item => {
-            // Ensure each item has the required fields before mapping to Deposit
-            if (!item || typeof item !== 'object') {
-              console.error('Invalid deposit data item:', item);
-              return null;
-            }
-
+            if (!item) return null;
+            
             return {
               id: String(item.id || ''),
               user_id: String(item.user_id || ''),

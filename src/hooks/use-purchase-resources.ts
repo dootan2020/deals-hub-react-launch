@@ -102,6 +102,9 @@ export function usePurchaseResources({
     return balance >= stockInfo.price && (stockInfo.stock || 0) > 0;
   }, [balance, stockInfo]);
 
+  const stockQty = stockInfo?.stock || 0;
+  const stockPrice = stockInfo?.price || 0;
+
   return {
     // Balance data
     balance,
@@ -111,8 +114,8 @@ export function usePurchaseResources({
     balanceLastRefreshed,
     
     // Stock data
-    stock: stockInfo?.stock || 0,
-    price: stockInfo?.price || 0,
+    stock: stockQty,
+    price: stockPrice,
     productName: stockInfo?.name,
     stockLoading,
     stockError,
@@ -127,7 +130,7 @@ export function usePurchaseResources({
     
     // Additional info
     missingFunds: stockInfo?.price ? Math.max(0, stockInfo.price - (balance || 0)) : 0,
-    isInStock: (stockInfo?.stock || 0) > 0,
+    isInStock: stockQty > 0,
     
     // Debug info
     hasAttemptedFetch
