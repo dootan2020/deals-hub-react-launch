@@ -1,133 +1,67 @@
 
-interface CacheItem<T> {
+export const CACHE_KEYS = {
+  USER_PROFILE: 'user-profile',
+  USER_BALANCE: 'user-balance',
+  USER_ROLES: 'user-roles',
+  USER_ORDERS: 'user-orders',
+  TRANSACTIONS: 'transactions',
+  PROXY_CONFIG: 'proxy-settings'
+} as const;
+
+export const TTL = {
+  PROFILE: 5 * 60 * 1000, // 5 minutes
+  BALANCE: 30 * 1000, // 30 seconds
+  SETTINGS: 15 * 60 * 1000, // 15 minutes
+  ORDERS: 60 * 1000 // 1 minute
+} as const;
+
+type CacheData<T> = {
   data: T;
   timestamp: number;
-  ttl: number;
-}
+};
 
-interface CacheConfig {
+type GetCacheOptions = {
   ttl?: number;
-  forceRefresh?: boolean;
-}
+};
 
-const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
-const PROFILE_TTL = 10 * 60 * 1000; // 10 minutes
-const CATEGORY_TTL = 30 * 60 * 1000; // 30 minutes
-const SETTINGS_TTL = 60 * 60 * 1000; // 1 hour
-
-/**
- * Get cached data with TTL check
- */
-export function getCachedData<T>(key: string, config: CacheConfig = {}): T | null {
+export function getCachedData<T>(key: string, options: GetCacheOptions = {}): T | null {
   try {
-    const item = localStorage.getItem(`cache_${key}`);
-    if (!item) return null;
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
 
-    const cached: CacheItem<T> = JSON.parse(item);
-    const now = Date.now();
-    const ttl = config.ttl || DEFAULT_TTL;
-
-    // Force refresh or expired
-    if (config.forceRefresh || (now - cached.timestamp > ttl)) {
-      localStorage.removeItem(`cache_${key}`);
+    const { data, timestamp }: CacheData<T> = JSON.parse(cached);
+    if (options.ttl && Date.now() - timestamp > options.ttl) {
+      localStorage.removeItem(key);
       return null;
     }
 
-    return cached.data;
+    return data;
   } catch (error) {
-    console.warn(`Cache read error for key ${key}:`, error);
+    console.warn(`Error reading cache for key ${key}:`, error);
     return null;
   }
 }
 
-/**
- * Set data in cache with TTL
- */
-export function setCachedData<T>(key: string, data: T, ttl: number = DEFAULT_TTL): void {
+export function setCachedData<T>(key: string, data: T, ttl?: number): void {
   try {
-    const cacheItem: CacheItem<T> = {
+    const cacheData: CacheData<T> = {
       data,
-      timestamp: Date.now(),
-      ttl
+      timestamp: Date.now()
     };
-    localStorage.setItem(`cache_${key}`, JSON.stringify(cacheItem));
+    localStorage.setItem(key, JSON.stringify(cacheData));
   } catch (error) {
-    console.error(`Cache write error for key ${key}:`, error);
+    console.warn(`Error setting cache for key ${key}:`, error);
   }
 }
 
-/**
- * Invalidate specific cache entry
- */
 export function invalidateCache(key: string): void {
-  localStorage.removeItem(`cache_${key}`);
+  localStorage.removeItem(key);
 }
 
-/**
- * Clear all cached data
- */
-export function clearAllCache(): void {
-  const keys = Object.keys(localStorage);
-  keys.forEach(key => {
-    if (key.startsWith('cache_')) {
+export function invalidateCacheGroup(prefix: string): void {
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith(prefix)) {
       localStorage.removeItem(key);
     }
   });
 }
-
-/**
- * Hook for cached data with auto-refresh
- */
-export function useCachedData<T>(
-  key: string,
-  fetchFn: () => Promise<T>,
-  config: CacheConfig = {}
-) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Try to get from cache first
-        const cached = getCachedData<T>(key, config);
-        if (cached) {
-          setData(cached);
-          setLoading(false);
-          return;
-        }
-
-        // Fetch fresh data
-        const fresh = await fetchFn();
-        setCachedData(key, fresh, config.ttl);
-        setData(fresh);
-      } catch (error) {
-        console.error(`Error loading data for ${key}:`, error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [key, config.ttl]);
-
-  return { data, loading };
-}
-
-// Cache keys
-export const CACHE_KEYS = {
-  USER_PROFILE: 'user_profile',
-  USER_BALANCE: 'user_balance',
-  USER_ROLES: 'user_roles',
-  CATEGORIES: 'categories',
-  PROXY_CONFIG: 'proxy_config',
-  TRANSACTION_HISTORY: (userId: string) => `transactions_${userId}`,
-} as const;
-
-// TTL constants
-export const TTL = {
-  PROFILE: PROFILE_TTL,
-  CATEGORY: CATEGORY_TTL,
-  SETTINGS: SETTINGS_TTL,
-  DEFAULT: DEFAULT_TTL,
-} as const;

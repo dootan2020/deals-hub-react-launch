@@ -14,7 +14,8 @@ export const useUserData = () => {
     try {
       // Check cache first
       const cachedRoles = getCachedData<UserRole[]>(
-        `${CACHE_KEYS.USER_ROLES}_${userId}`
+        `${CACHE_KEYS.USER_ROLES}_${userId}`,
+        { ttl: TTL.PROFILE }
       );
       
       if (cachedRoles) {

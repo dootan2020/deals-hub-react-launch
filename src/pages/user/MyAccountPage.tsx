@@ -5,6 +5,7 @@ import UserLayout from '@/components/layout/UserLayout';
 import { useSafeAsync } from '@/utils/asyncUtils';
 import { toast } from '@/hooks/use-toast';
 import { withRenderCount } from '@/components/debug/withRenderCount';
+import { invalidateCache, CACHE_KEYS } from '@/utils/cacheUtils';
 
 // Memoized user info component with render tracking
 const UserInfo = withRenderCount(
@@ -26,6 +27,11 @@ const MyAccountPageBase = () => {
 
   const { execute: handleRefreshBalance, loading: isRefreshing } = useSafeAsync(async () => {
     try {
+      // Invalidate balance cache before refreshing
+      if (user?.id) {
+        invalidateCache(`${CACHE_KEYS.USER_BALANCE}_${user.id}`);
+      }
+      
       await refreshUserBalance();
       toast.success('Cập nhật số dư thành công!');
     } catch (error) {
