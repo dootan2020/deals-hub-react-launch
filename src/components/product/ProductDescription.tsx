@@ -9,7 +9,7 @@ export const ProductDescription = ({ description }: ProductDescriptionProps) => 
       <h2 className="text-xl font-semibold mb-4">Description</h2>
       <div 
         className="prose max-w-none text-muted-foreground"
-        dangerouslySetInnerHTML={{ __html: description }}
+        dangerouslySetInnerHTML={{ __html: typeof description === 'string' ? description : String(description) }}
       />
     </div>
   );

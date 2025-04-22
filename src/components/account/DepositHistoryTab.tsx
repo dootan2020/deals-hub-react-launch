@@ -24,7 +24,7 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', userId)
+          .eq('user_id', userId as any) // Type casting to fix TS2345
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -33,7 +33,7 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
           const typedDeposits: Deposit[] = [];
           data.forEach(item => {
             if (isSupabaseRecord<Deposit>(item) && isDeposit(item)) {
-              typedDeposits.push({ ...item, id: String(item.id) });
+              typedDeposits.push({ ...item as any, id: String(item.id) });
             }
           });
           setDeposits(typedDeposits);
