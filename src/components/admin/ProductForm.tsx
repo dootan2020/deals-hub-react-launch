@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,8 +19,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { ApiResponse, Category, Product } from '@/types';
-import { prepareQueryId, prepareInsert, prepareUpdate, castArrayData } from '@/utils/supabaseHelpers';
+import { Category, ApiResponse } from '@/types';
+import { prepareTableId, prepareTableInsert, prepareTableUpdate } from '@/utils/databaseTypes';
+import { castArrayData, castData } from '@/utils/supabaseHelpers';
 
 const ImageUpload = ({ value, onChange }: { value?: string[] | null, onChange: (value: string[]) => void }) => {
   return (
@@ -133,31 +135,37 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     if (productId) {
       const fetchProduct = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('id', productId)
-          .single();
-        
-        if (error) {
+        try {
+          const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('id', prepareTableId('products', productId))
+            .single();
+          
+          if (error) {
+            toast.error("Failed to load product");
+            console.error(error);
+          } else if (data) {
+            form.reset({
+              title: data.title,
+              description: data.description,
+              price: data.price,
+              original_price: data.original_price || undefined,
+              in_stock: data.in_stock,
+              slug: data.slug,
+              external_id: data.external_id || '',
+              category_id: data.category_id || '',
+              images: data.images || [],
+              kiosk_token: data.kiosk_token || '',
+              stock: data.stock,
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching product:", error);
           toast.error("Failed to load product");
-          console.error(error);
-        } else {
-          form.reset({
-            title: data.title,
-            description: data.description,
-            price: data.price,
-            original_price: data.original_price || undefined,
-            in_stock: data.in_stock,
-            slug: data.slug,
-            external_id: data.external_id || '',
-            category_id: data.category_id,
-            images: data.images || [],
-            kiosk_token: data.kiosk_token || '',
-            stock: data.stock,
-          });
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
       };
       
       fetchProduct();
@@ -186,7 +194,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     setLoading(true);
     
     try {
-      const productData = {
+      const productData = prepareTableUpdate('products', {
         title: values.title,
         description: values.description,
         price: values.price,
@@ -198,13 +206,13 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         images: values.images,
         kiosk_token: values.kiosk_token,
         stock: values.stock,
-      };
+      });
       
       if (productId) {
         const { error } = await supabase
           .from('products')
           .update(productData)
-          .eq('id', productId);
+          .eq('id', prepareTableId('products', productId));
           
         if (error) throw error;
         
@@ -212,7 +220,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       } else {
         const { error } = await supabase
           .from('products')
-          .insert([productData]);
+          .insert(prepareTableInsert('products', productData));
           
         if (error) throw error;
         

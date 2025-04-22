@@ -7,6 +7,8 @@ import { Wallet, Loader2, AlertCircle } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Deposit } from '@/types';
 import { castArrayData } from '@/utils/supabaseHelpers';
+import { TableRow as SupabaseTableRow } from '@supabase/supabase-js/dist/module/lib/types';
+import { prepareTableId } from '@/utils/databaseTypes';
 
 interface DepositHistoryTabProps {
   userId: string;
@@ -25,7 +27,7 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', userId)
+          .eq('user_id', prepareTableId('deposits', userId))
           .order('created_at', { ascending: false });
 
         if (error) throw error;

@@ -67,21 +67,6 @@ export interface OrderItem {
   created_at?: string;
 }
 
-// Deposit type
-export interface Deposit {
-  id: string;
-  user_id: string;
-  amount: number;
-  net_amount: number;
-  payment_method: string;
-  status: string;
-  transaction_id?: string | null;
-  payer_id?: string | null;
-  payer_email?: string | null;
-  created_at: string;
-  updated_at?: string;
-}
-
 // ProxyType and ProxySettings
 export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom';
 
@@ -127,12 +112,6 @@ export interface FilterParams {
   priceMax?: number;
   subcategories?: string[];
   limit?: number;
-}
-
-// ProxyConfig interface
-export interface ProxyConfig {
-  proxy_type: ProxyType;
-  custom_url?: string;
 }
 
 // Export Deposit types from deposits.ts to ensure they're available

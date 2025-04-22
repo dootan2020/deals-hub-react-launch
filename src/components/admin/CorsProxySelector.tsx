@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ProxyType, ProxySettings } from '@/types';
 import { prepareInsert, prepareUpdate, castData, createDefaultProxySettings } from '@/utils/supabaseHelpers';
+import { prepareTableId, prepareTableInsert, prepareTableUpdate } from '@/utils/databaseTypes';
 
 export const CorsProxySelector = () => {
   const [proxyType, setProxyType] = useState<ProxyType>('allorigins');
@@ -55,24 +56,24 @@ export const CorsProxySelector = () => {
     
     try {
       // Create a clean object using prepareUpdate to avoid type issues
-      const proxyData = {
+      const proxyData = prepareTableUpdate('proxy_settings', {
         proxy_type: proxyType,
         custom_url: proxyType === 'custom' ? customUrl : null
-      };
+      });
       
       if (settings?.id) {
         // Update existing settings
         const { error } = await supabase
           .from('proxy_settings')
           .update(proxyData)
-          .eq('id', settings.id);
+          .eq('id', prepareTableId('proxy_settings', settings.id));
           
         if (error) throw error;
       } else {
         // Insert new settings
         const { error } = await supabase
           .from('proxy_settings')
-          .insert([proxyData]);
+          .insert(prepareTableInsert('proxy_settings', proxyData));
           
         if (error) throw error;
       }
