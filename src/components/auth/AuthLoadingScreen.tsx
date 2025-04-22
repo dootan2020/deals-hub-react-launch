@@ -22,6 +22,7 @@ const AuthLoadingScreen = ({
 }: AuthLoadingScreenProps) => {
   const navigate = useNavigate();
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [isAutoRetrying, setIsAutoRetrying] = useState(false);
   
   // Track elapsed time for better user feedback
   useEffect(() => {
@@ -32,6 +33,21 @@ const AuthLoadingScreen = ({
     
     return () => clearInterval(timer);
   }, []);
+  
+  // Auto retry if waiting too long
+  useEffect(() => {
+    // After 8 seconds with no success, try automatic retry
+    if (elapsedTime >= 8 && onRetry && !isAutoRetrying && attempts < 2) {
+      setIsAutoRetrying(true);
+      const timeoutId = setTimeout(() => {
+        console.log('Auto-retrying authentication after timeout');
+        onRetry();
+        setIsAutoRetrying(false);
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [elapsedTime, onRetry, isAutoRetrying, attempts]);
 
   const goHome = () => {
     navigate('/', { replace: true });
@@ -51,9 +67,10 @@ const AuthLoadingScreen = ({
               : "Vui lòng đợi trong khi chúng tôi xác thực tài khoản..."}
           </p>
           
-          {elapsedTime > 5 && (
+          {elapsedTime > 3 && (
             <p className="text-sm text-muted-foreground">
               Đã chờ {elapsedTime} giây...
+              {isAutoRetrying && " (Đang tự động thử lại)"}
             </p>
           )}
 
@@ -71,14 +88,24 @@ const AuthLoadingScreen = ({
               <AlertTitle>Đừng lo lắng</AlertTitle>
               <AlertDescription>
                 Nếu bạn đã đăng nhập trước đó, hệ thống đang cố gắng khôi phục phiên làm việc của bạn.
-                {elapsedTime > 10 && " Bạn có thể thử tải lại trang hoặc quay về trang chủ."}
+                {elapsedTime > 8 && " Bạn có thể thử tải lại trang hoặc quay về trang chủ."}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {elapsedTime > 15 && (
+            <Alert variant="destructive" className="mb-4 mt-4">
+              <AlertTitle>Xác thực đã quá thời gian</AlertTitle>
+              <AlertDescription>
+                Hệ thống có thể đang quá tải hoặc kết nối của bạn không ổn định.
+                Bạn có thể thử tải lại trang hoặc quay lại sau.
               </AlertDescription>
             </Alert>
           )}
         </div>
 
         <div className="flex justify-center space-x-4 pt-2">
-          {onRetry && (
+          {onRetry && elapsedTime > 5 && (
             <Button 
               variant="outline"
               onClick={onRetry}
@@ -89,7 +116,7 @@ const AuthLoadingScreen = ({
             </Button>
           )}
           
-          {elapsedTime > 8 && (
+          {elapsedTime > 5 && (
             <Button 
               variant="outline"
               onClick={goHome}
@@ -107,7 +134,7 @@ const AuthLoadingScreen = ({
               className="flex items-center text-muted-foreground"
             >
               <XCircle className="mr-2 h-4 w-4" />
-              Trở về trang chủ
+              Hủy
             </Button>
           )}
         </div>
