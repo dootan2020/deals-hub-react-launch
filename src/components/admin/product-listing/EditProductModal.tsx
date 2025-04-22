@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -105,12 +106,12 @@ export function EditProductModal({
       if (data) {
         const productData = castData(data, {});
         form.reset({
-          title: productData.title,
-          description: productData.description,
-          price: productData.price,
+          title: productData.title || '',
+          description: productData.description || '',
+          price: productData.price || 0,
           originalPrice: productData.original_price || undefined,
           inStock: productData.in_stock ?? true,
-          slug: productData.slug,
+          slug: productData.slug || '',
           externalId: productData.external_id || '',
           categoryId: productData.category_id || '',
           images: productData.images && productData.images.length > 0 ? productData.images.join('\n') : '',

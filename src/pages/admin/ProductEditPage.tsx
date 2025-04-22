@@ -1,3 +1,4 @@
+
 import { useParams } from 'react-router-dom';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { ProductForm } from '@/components/admin/ProductForm';
@@ -25,12 +26,13 @@ const ProductEditPage = () => {
       const { data, error } = await supabase
         .from('products')
         .select('id, title')
-        .eq('id', id as string)
+        .eq('id', prepareQueryId(id))
         .single();
 
       if (error) throw error;
-      // Use type assertion for safe property access
-      const productData = data as any;
+      
+      // Use type assertion with safe handling
+      const productData = castData(data, {});
       setProductExists(!!productData);
       if (productData?.title) {
         setProductName(productData.title);
