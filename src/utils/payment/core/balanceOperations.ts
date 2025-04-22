@@ -1,10 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-
-interface RpcResponse {
-  data: boolean | null;
-  error: Error | null;
-}
+import { RpcResponse } from '@/types/rpc';
 
 export const updateUserBalance = async (
   userId: string,
@@ -19,10 +15,11 @@ export const updateUserBalance = async (
   try {
     console.log(`Updating balance for user ${userId}: ${amount > 0 ? '+' : ''}${amount}`);
     
+    // Fix TypeScript excessive type instantiation error by explicitly typing the result
     const balanceResponse = await supabase.rpc('update_user_balance', {
       user_id_param: userId,
       amount_param: amount
-    }) as RpcResponse;
+    }) as RpcResponse<boolean>;
     
     if (balanceResponse.error) {
       console.error("Error updating user balance:", balanceResponse.error);
