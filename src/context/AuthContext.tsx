@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
 import { useAuthState } from '@/hooks/auth/use-auth-state';
 import { useAuthActions } from '@/hooks/auth/use-auth-actions';
@@ -74,18 +75,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             expiresAt: new Date(data.session.expires_at! * 1000).toLocaleString()
           });
           
+          // CRITICAL FIX: Convert Supabase User to App User format
           const supabaseUser = data.session.user;
           const appUser = {
             ...supabaseUser,
             email: supabaseUser.email || null,
           } as User;
           
+          // Explicitly update user and session
+          console.debug('Setting user and session from checkSession()', appUser.id);
           setUser(appUser);
           setSession(data.session);
           
+          // Unblock UI rendering immediately
           setHydrated(true);
           
+          // Load additional user data in background
           if (data.session.user.id) {
+            console.debug('Starting background user data refresh');
             refreshUserData().catch(err => {
               console.error('Background user data refresh failed:', err);
             });
@@ -161,11 +168,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isEmailVerified = user?.email_confirmed_at !== null;
 
   const isAuthenticated = !!user;
+  
+  console.debug('AuthContext state update:', { 
+    isAuthenticated, 
+    userId: user?.id || 'none',
+    hasSession: !!session,
+    loading,
+    hydrated
+  });
 
   const contextValue = useMemo(() => ({
     user,
     session,
-    loading,
+    loading, // Not including manualSessionCheck
     isAuthenticated,
     isAdmin,
     isStaff,

@@ -57,12 +57,23 @@ export const useAuthState = () => {
   // Handle auth state changes
   const handleAuthStateChange = useCallback(async (event: string, currentSession: any) => {
     console.debug('Auth state change event:', event);
+    
+    // CRITICAL FIX: Always update session state immediately
     setSession(currentSession);
     
     if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
       if (currentSession?.user) {
         console.log('User signed in or token refreshed:', currentSession.user.email);
-        setUser(currentSession.user as unknown as User);
+        
+        // CRITICAL FIX: Convert Supabase User to App User format
+        const supabaseUser = currentSession.user;
+        const appUser = {
+          ...supabaseUser,
+          email: supabaseUser.email || null,
+        } as User;
+        
+        console.debug('Setting user from auth state change', appUser.id);
+        setUser(appUser);
         setLoading(false);
         
         if (event === 'SIGNED_IN' || !authInitialized) {
@@ -102,7 +113,15 @@ export const useAuthState = () => {
       }
     } else if (event === 'INITIAL_SESSION') {
       if (currentSession) {
-        setUser(currentSession.user as unknown as User);
+        // CRITICAL FIX: Convert Supabase User to App User format
+        const supabaseUser = currentSession.user;
+        const appUser = {
+          ...supabaseUser,
+          email: supabaseUser.email || null,
+        } as User;
+        
+        console.debug('Setting user from INITIAL_SESSION', appUser.id);
+        setUser(appUser);
       }
       
       const delay = Date.now() - initializationTimeRef.current;
@@ -140,11 +159,11 @@ export const useAuthState = () => {
         setLoading(true);
         initializationTimeRef.current = Date.now();
         
-        // Register auth state change listener first
+        // CRITICAL FIX: Register auth state change listener first
         authListenerRef.current = supabase.auth.onAuthStateChange(handleAuthStateChange);
         console.log('Auth listener registered at', new Date().toISOString());
         
-        // Then check for existing session
+        // CRITICAL FIX: Then check for existing session and manually update state
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -156,8 +175,15 @@ export const useAuthState = () => {
           
           if (isMounted) {
             if (data.session) {
-              console.log('Setting user from session:', data.session.user.email);
-              setUser(data.session.user as unknown as User);
+              // CRITICAL FIX: Convert Supabase User to App User format
+              const supabaseUser = data.session.user;
+              const appUser = {
+                ...supabaseUser,
+                email: supabaseUser.email || null,
+              } as User;
+              
+              console.debug('Setting user from initAuth', appUser.id);
+              setUser(appUser);
               setSession(data.session);
             }
             
@@ -197,13 +223,13 @@ export const useAuthState = () => {
         toast.error('Lỗi khởi tạo xác thực');
       }
       
-      // Failsafe timer - reduced from 2s to 1.5s
+      // CRITICAL FIX: Reduced failsafe timer from 1.5s to 1s
       const failsafeTimer = setTimeout(() => {
         if (isMounted && loading) {
           console.warn('❗ Auth initialization taking too long, clearing loading state as a failsafe');
           setLoading(false);
         }
-      }, 1500);
+      }, 1000);
       
       return () => clearTimeout(failsafeTimer);
     };

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
@@ -40,6 +39,14 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
     const timeoutId = setTimeout(() => {
       if (authLoading && !isAuthenticated) {
         console.log('Authentication verification taking longer than expected');
+        console.debug('Auth state debug:', {
+          authLoading,
+          isAuthenticated,
+          hasUser: !!user,
+          hasSession: !!session,
+          refreshing,
+          attempts,
+        });
         setWaitingTooLong(true);
       }
     }, 5000);
@@ -47,21 +54,46 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
     const hardTimeoutId = setTimeout(() => {
       if (authLoading && !isAuthenticated) {
         console.error('Authentication timeout reached');
+        console.debug('Auth state on timeout:', {
+          authLoading,
+          isAuthenticated,
+          hasUser: !!user,
+          hasSession: !!session,
+          refreshing,
+          attempts,
+        });
         setAuthTimeout(true);
       }
-    }, 15000);
+    }, 20000);
     
     return () => {
       clearTimeout(timeoutId);
       clearTimeout(hardTimeoutId);
     };
-  }, [authLoading, isAuthenticated]);
+  }, [authLoading, isAuthenticated, user, session, refreshing, attempts]);
+
+  if (user && isAuthenticated) {
+    console.debug('ProtectedRoute: User authenticated, rendering content');
+    return (
+      <RoleChecker
+        userRoles={userRoles}
+        requiredRoles={requiredRoles}
+        roleCheckComplete={roleCheckComplete}
+      >
+        <EmailVerificationGate>
+          {children}
+        </EmailVerificationGate>
+      </RoleChecker>
+    );
+  }
 
   if (authTimeout) {
+    console.debug('ProtectedRoute: Auth timeout reached, redirecting to login');
     return <Navigate to="/login" state={{ from: location, authError: 'timeout' }} replace />;
   }
 
   if ((authLoading || refreshing) && !user) {
+    console.debug('ProtectedRoute: Still loading or refreshing without user, showing loading screen');
     return (
       <AuthLoadingScreen 
         onRetry={showRetry ? handleRetry : undefined}
@@ -77,6 +109,7 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  console.debug('ProtectedRoute: Fallback render path (should not be reached)');
   return (
     <RoleChecker
       userRoles={userRoles}
