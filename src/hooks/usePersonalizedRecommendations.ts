@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types";
-
-type AISource = "openai" | "local";
+import { AISource } from "@/types/ai";
 
 export interface Recommendation {
   title: string;
@@ -101,9 +101,12 @@ async function fetchAiRecommendations(
     return localRecommend(userId, currentProductSlug);
   }
 
+  let aiModel = "gpt-4o-mini";
+  if (aiSource === "claude") {
+    aiModel = "claude-3-haiku-20240307";
+  }
   const prompt = `Dựa vào lịch sử mua các sản phẩm: ${productNames.map(t => `"${t}"`).join(", ")} của khách, hãy gợi ý 3-5 sản phẩm liên quan khách MMO thường sẽ quan tâm, tránh gợi ý các sản phẩm đã mua. Trả về JSON dạng [{"title":"...","description":"..."}], tên ngắn gọn, mô tả ngắn.`;
 
-  let aiModel = "gpt-4o-mini";
   const { data, error } = await supabase.functions.invoke("ai-recommendation", {
     body: {
       prompt,

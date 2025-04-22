@@ -1,11 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-interface SimpleRpcResponse {
-  data: boolean | null;
-  error: { message: string } | null;
-}
-
 // Remove unnecessary interface to avoid circular references
 type TransactionResponse = {
   success: boolean;
@@ -28,7 +23,7 @@ export const createTransactionRecord = async (
 ): Promise<boolean> => {
   try {
     const response = await supabase.from('transactions').select('id').eq('reference_id', depositId).maybeSingle();
-    
+
     if (response.error) {
       console.error("Error checking for existing transaction:", response.error);
       return false;
@@ -43,16 +38,16 @@ export const createTransactionRecord = async (
         description: `Deposit processed via ${transactionId ? 'PayPal' : 'manual'} payment`,
         reference_id: depositId
       });
-      
+
       if (insertResponse.error) {
         console.error("Error creating transaction record:", insertResponse.error);
         return false;
       }
-      
+
       console.log(`Created transaction record for deposit ${depositId}`);
       return true;
     }
-    
+
     return false;
   } catch (error) {
     console.error("Error in createTransactionRecord:", error);
@@ -66,6 +61,7 @@ export const processDepositBalance = async (
   try {
     console.log(`Processing deposit balance for deposit ID: ${depositId}`);
     
+    // Remove excessive type assertion for response; check data shape at runtime instead
     const depositResponse = await supabase
       .from('deposits')
       .select('id, user_id, net_amount, status, transaction_id')
@@ -104,13 +100,13 @@ export const processDepositBalance = async (
       const balanceResponse = await supabase.rpc('update_user_balance', {
         user_id_param: deposit.user_id,
         amount_param: deposit.net_amount
-      }) as SimpleRpcResponse;
-      
+      });
+
       if (balanceResponse.error) {
         console.error("Error updating user balance:", balanceResponse.error);
         return { success: false, error: balanceResponse.error.message, updated: false };
       }
-      
+
       if (balanceResponse.data === false) {
         console.warn("Balance update did not affect any rows");
         return { success: false, error: "User profile not found", updated: false };

@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types";
-
-export type AISource = "openai" | "claude" | "local";
+import { AISource } from "@/types/ai";
 
 export interface Recommendation {
   title: string;

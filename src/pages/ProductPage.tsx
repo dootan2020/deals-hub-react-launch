@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -10,10 +11,11 @@ import { Link } from 'react-router-dom';
 import { useProduct } from '@/hooks/useProduct';
 import { ProductTrustBadges } from '@/components/product/ProductTrustBadges';
 import { useState } from 'react';
-import { useProductRecommendations, AISource } from '@/hooks/useProductRecommendations';
+import { useProductRecommendations } from '@/hooks/useProductRecommendations';
 import { ProductRecommendations } from '@/components/product/ProductRecommendations';
 import { useAuth } from '@/context/AuthContext';
 import { usePersonalizedRecommendations } from '@/hooks/usePersonalizedRecommendations';
+import { AISource } from '@/types/ai';
 
 const ProductPage = () => {
   const { productSlug } = useParams();
