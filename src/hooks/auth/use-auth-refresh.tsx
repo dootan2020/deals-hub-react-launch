@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { reloadSession } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
 export const useAuthRefresh = () => {
@@ -109,10 +109,8 @@ export const useAuthRefresh = () => {
     const success = await attemptRefresh();
     if (!success) {
       console.error('Manual refresh attempt failed, redirecting to login');
-      toast({
-        title: "Không thể khôi phục phiên",
-        description: "Vui lòng đăng nhập lại để tiếp tục",
-        variant: "destructive"
+      toast.error("Không thể khôi phục phiên", {
+        description: "Vui lòng đăng nhập lại để tiếp tục"
       });
       
       navigate('/login', { 
