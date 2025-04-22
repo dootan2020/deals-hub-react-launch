@@ -39,7 +39,7 @@ export const ProxyTester = () => {
 
     try {
       // Properly pass proxy type as ProxyType
-      const proxyTypeValue = proxyType as ProxyType; 
+      const proxyTypeValue = proxyType as unknown as ProxyType; 
       const proxyResult = buildProxyUrl('https://api.example.com/test', { type: proxyTypeValue });
       setProxyUrl(proxyResult.url);
 

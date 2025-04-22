@@ -64,7 +64,12 @@ export function CorsProxySelector() {
       }
 
       if (proxySettings && proxySettings.length > 0) {
-        const settings = proxySettings[0];
+        // Use type assertion to tell TypeScript that proxySettings is an array of valid objects
+        const settings = proxySettings[0] as unknown as {
+          proxy_type: string;
+          custom_url: string | null;
+        };
+        
         setSavedConfig({
           type: settings.proxy_type as ProxyType,
           url: settings.custom_url || undefined,
@@ -82,15 +87,18 @@ export function CorsProxySelector() {
   const saveProxySettings = async () => {
     setLoading(true);
     try {
-      // Prepare data for insert
-      const proxyData = {
+      // Prepare data for insert with proper typing to match the table schema
+      const proxyData: {
+        proxy_type: string;
+        custom_url: string | null;
+      } = {
         proxy_type: selectedProxy,
         custom_url: selectedProxy === 'custom' ? customProxyUrl : null,
       };
 
       const { error } = await supabase
         .from('proxy_settings')
-        .insert(proxyData);
+        .insert(proxyData as any); // Use type assertion as a last resort
 
       if (error) throw error;
 
