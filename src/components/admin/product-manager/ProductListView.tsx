@@ -1,204 +1,160 @@
-
 import { useState, useEffect } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
+import { Product, Category } from '@/types';
 import { toast } from 'sonner';
-import { EditIcon, TrashIcon, MoreVerticalIcon, RefreshCwIcon } from 'lucide-react';
-import { Category, Product } from '@/types';
-import { castArrayData, createDefaultProduct } from '@/utils/supabaseHelpers';
+import { Edit, Trash2, Plus, MoreHorizontal } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
+import ProductFormModal from './ProductFormModal';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { castArrayData, prepareQueryId } from '@/utils/supabaseHelpers';
 
-interface ProductListViewProps {
-  onEdit: (product: Product) => void;
-  onSync: (product: Product) => void;
-  onSyncAll: () => void;
-  categories: Category[];
-}
-
-export function ProductListView({ onEdit, onSync, onSyncAll, categories }: ProductListViewProps) {
+export function ProductListView() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [categories, setCategories] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
   
-  useEffect(() => {
-    loadProducts();
-  }, []);
+  const productsPerPage = 10;
   
-  const loadProducts = async () => {
-    setLoading(true);
+  const fetchProducts = async (page: number) => {
     try {
+      setLoading(true);
+      
+      const { count, error: countError } = await supabase
+        .from('products')
+        .select('id', { count: 'exact', head: true });
+      
+      if (countError) throw countError;
+      
+      setTotalProducts(count || 0);
+      
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range((page - 1) * productsPerPage, page * productsPerPage - 1);
+        
+      if (error) throw error;
       
-      if (error) {
-        throw error;
-      }
-      
-      setProducts(castArrayData<Product>(data, []));
+      setProducts(castArrayData<Product>(data));
     } catch (error) {
-      console.error('Error loading products:', error);
+      console.error(error);
       toast.error('Failed to load products');
     } finally {
       setLoading(false);
     }
   };
-
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) {
-      return;
+  
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name');
+        
+      if (error) throw error;
+      
+      const categoryMap: Record<string, string> = {};
+      castArrayData<Category>(data).forEach(category => {
+        if (category && category.id) {
+          categoryMap[category.id] = category.name;
+        }
+      });
+      
+      setCategories(categoryMap);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to load categories');
     }
+  };
+  
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
     
     try {
       const { error } = await supabase
         .from('products')
         .delete()
-        .eq('id', id);
+        .eq('id', prepareQueryId(id));
+        
+      if (error) throw error;
       
-      if (error) {
-        throw error;
-      }
-      
-      setProducts(prevProducts => prevProducts.filter(product => product.id !== id));
+      setProducts(products.filter(p => p.id !== id));
       toast.success('Product deleted successfully');
     } catch (error) {
-      console.error('Error deleting product:', error);
+      console.error(error);
       toast.error('Failed to delete product');
     }
   };
 
-  const getCategoryName = (categoryId: string | null | undefined): string => {
-    if (!categoryId) return 'Uncategorized';
-    
-    const category = categories.find(cat => cat.id === categoryId);
-    return category ? category.name : 'Uncategorized';
-  };
-  
-  const filteredProducts = products.filter(product => {
-    // Handle potentially undefined values with safe defaults
-    const productData = { ...createDefaultProduct(), ...product };
-    
-    return (
-      productData.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      productData.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getCategoryName(productData.category_id).toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
+  useEffect(() => {
+    fetchProducts(currentPage);
+    fetchCategories();
+  }, [currentPage]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2 items-center justify-between">
-        <div className="flex-1 min-w-[250px]">
-          <Input
-            placeholder="Search products..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-md"
-          />
-        </div>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={loadProducts}
-            disabled={loading}
-          >
-            {loading ? 'Loading...' : 'Refresh'}
-          </Button>
-          <Button
-            size="sm"
-            onClick={onSyncAll}
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <RefreshCwIcon className="w-4 h-4 mr-2" />
-            Sync All Products
-          </Button>
-        </div>
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">Products</h2>
+        <Button onClick={() => { setModalOpen(true); setSelectedProduct(null); }}>
+          <Plus className="mr-2" /> Add Product
+        </Button>
       </div>
-
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Product</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {loading ? (
             <TableRow>
-              <TableHead className="w-[250px]">Name</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Last Sync</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableCell colSpan={4} className="text-center">Loading...</TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredProducts.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-10 text-gray-500">
-                  {loading ? 'Loading products...' : 'No products found'}
+          ) : (
+            products.map(product => (
+              <TableRow key={product.id}>
+                <TableCell>{product.title}</TableCell>
+                <TableCell>{formatCurrency(product.price)}</TableCell>
+                <TableCell>{categories[product.category_id] || 'N/A'}</TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => { setModalOpen(true); setSelectedProduct(product); }}>
+                        <Edit className="mr-2" /> Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDelete(product.id)}>
+                        <Trash2 className="mr-2" /> Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
-            ) : (
-              filteredProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.title}</TableCell>
-                  <TableCell>{product.price?.toLocaleString() || 0}</TableCell>
-                  <TableCell>{product.stock || 0}</TableCell>
-                  <TableCell>{getCategoryName(product.category_id)}</TableCell>
-                  <TableCell>
-                    {product.last_synced_at ? new Date(product.last_synced_at).toLocaleString() : 'Never'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVerticalIcon className="h-4 w-4" />
-                          <span className="sr-only">Actions</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEdit(product)}>
-                          <EditIcon className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onSync(product)} disabled={!product.kiosk_token}>
-                          <RefreshCwIcon className="h-4 w-4 mr-2" />
-                          Sync with API
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleDelete(product.id)}
-                          className="text-red-600 focus:text-red-600"
-                        >
-                          <TrashIcon className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="text-sm text-gray-500">
-        Total: {filteredProducts.length} products found
-      </div>
+            ))
+          )}
+        </TableBody>
+      </Table>
+      <ProductFormModal 
+        open={modalOpen} 
+        onClose={() => setModalOpen(false)} 
+        product={selectedProduct} 
+        onSuccess={() => {
+          fetchProducts(currentPage);
+          setModalOpen(false);
+        }} 
+      />
     </div>
   );
 }
-
-export default ProductListView;

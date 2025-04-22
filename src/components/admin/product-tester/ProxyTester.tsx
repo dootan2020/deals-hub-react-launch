@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { buildProxyUrl, ProxyType, ProxyConfig } from '@/utils/proxyUtils';
+import { ProxyType, ProxyConfig, buildProxyUrl } from '@/utils/proxyUtils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,10 +49,10 @@ export const ProxyTester = () => {
       const proxyTypeValue = proxyTypeMapping[proxyType]; 
       const proxyConfig: ProxyConfig = { proxy_type: proxyTypeValue };
       
-      const proxyResult = buildProxyUrl('https://api.example.com/test', proxyConfig);
-      setProxyUrl(proxyResult.url);
+      const proxyUrlResult = buildProxyUrl('https://api.example.com/test', proxyConfig);
+      setProxyUrl(proxyUrlResult.url);
 
-      const response = await fetch(proxyResult.url, {
+      const response = await fetch(proxyUrlResult.url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

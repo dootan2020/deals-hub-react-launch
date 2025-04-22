@@ -1,221 +1,245 @@
-
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import { useContext, createContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Session } from '@supabase/supabase-js';
-import { User as SupabaseUser } from '@supabase/supabase-js';
-import { Database } from '@/types/database.types';
-import { UserRole } from '@/types/auth.types';
-import { useNavigate } from 'react-router-dom';
+import { AuthContextType, User, UserRole } from '@/types/auth.types';
 import { prepareQueryId, castData } from '@/utils/supabaseHelpers';
 
-interface AuthContextType {
-  session: Session | null;
-  user: SupabaseUser | null;
-  userRoles: UserRole[];
-  userBalance: number;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  loading: boolean;
-  isAdmin: boolean;
-  isStaff: boolean;
-  isEmailVerified: boolean;
-  isLoadingBalance: boolean;
-  signIn: (email: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  logout: () => Promise<void>;
-  signUp: (email: string, password?: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<any>;
-  register: (email: string, password: string, options?: any) => Promise<any>;
-  assignRole: (userId: string, role: UserRole) => Promise<boolean>;
-  removeRole: (userId: string, role: UserRole) => Promise<boolean>;
-  toggleUserStatus: (userId: string, currentStatus?: boolean) => Promise<boolean>;
-  refreshSession: () => Promise<void>;
-  refreshUserBalance: () => Promise<void>;
-  refreshUserProfile: () => Promise<void>;
-  refreshBalance: () => Promise<void>;
-  checkUserRole: (role: UserRole) => boolean;
-  resendVerificationEmail: (email: string) => Promise<boolean>;
-}
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  session: null,
+  loading: false,
+  isAuthenticated: false,
+  isAdmin: false,
+  isStaff: false,
+  userRoles: [],
+  userBalance: 0,
+  refreshUserBalance: async () => { },
+  refreshUserProfile: async () => { },
+  refreshBalance: async () => { },
+  login: async () => { },
+  logout: async () => { },
+  register: async () => { },
+  checkUserRole: () => false,
+  isEmailVerified: false,
+  resendVerificationEmail: async () => false,
+  isLoadingBalance: false,
+  signIn: async () => { },
+  signOut: async () => { },
+  signUp: async () => { },
+  assignRole: async () => false,
+  removeRole: async () => false,
+  toggleUserStatus: async () => false,
+  refreshSession: async () => { },
+  setUserBalance: () => { },
+  fetchUserBalance: async () => 0,
+  authError: null,
+} as AuthContextType);
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isStaff, setIsStaff] = useState<boolean>(false);
   const [userBalance, setUserBalance] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
-  
-  // Computed properties
-  const isAuthenticated = !!user && !!session;
-  const isAdmin = userRoles.includes('admin');
-  const isStaff = userRoles.includes('staff');
-  const isEmailVerified = !!user?.email_confirmed_at;
-  const loading = isLoading;
-  const isLoadingBalance = false;
+  const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false);
+  const [authError, setAuthError] = useState<Error | null>(null);
+  const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
 
   useEffect(() => {
     const loadSession = async () => {
-      setIsLoading(true);
-      try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
 
-        setSession(initialSession);
-        setUser(initialSession?.user || null);
+      setSession(session);
+      setUser(session?.user as User || null);
+      setLoading(false);
 
-        if (initialSession?.user?.id) {
-          await fetchUserRoles(initialSession.user.id);
-          await fetchUserBalance(initialSession.user.id);
-        }
-      } catch (error) {
-        console.error('Error loading session:', error);
-      } finally {
-        setIsLoading(false);
+      if (session?.user?.id) {
+        await fetchUserRoles(session.user.id);
+        await fetchUserBalance(session.user.id);
+        setIsEmailVerified(!!session.user.email_confirmed_at);
       }
     };
 
     loadSession();
 
-    supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      setSession(currentSession);
-      setUser(currentSession?.user || null);
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      setSession(session);
+      setUser(session?.user as User || null);
+      setLoading(false);
 
-      if (currentSession?.user?.id) {
-        await fetchUserRoles(currentSession.user.id);
-        await fetchUserBalance(currentSession.user.id);
-      } else {
-        setUserRoles([]);
-        setUserBalance(0);
+      if (session?.user?.id) {
+        await fetchUserRoles(session.user.id);
+        await fetchUserBalance(session.user.id);
+        setIsEmailVerified(!!session.user.email_confirmed_at);
       }
     });
   }, []);
 
-  const fetchUserRoles = async (userId: string) => {
+  const login = async (email: string, password: string) => {
+    setLoading(true);
+    setAuthError(null);
     try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', prepareQueryId(userId));
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (error) throw error;
+      if (error) {
+        setAuthError(error);
+        throw error;
+      }
 
-      // Use castArrayData to ensure proper typing
-      const roleData = castData(data, []);
-      const roles = roleData ? roleData.map(item => item.role as UserRole) : [];
-      setUserRoles(roles);
-      return roles;
+      setSession(data.session);
+      setUser(data.user as User);
     } catch (error) {
-      console.error('Error fetching user roles:', error);
-      setUserRoles([]);
-      return [];
-    }
-  };
-
-  const fetchUserBalance = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('balance')
-        .eq('id', prepareQueryId(userId))
-        .single();
-
-      if (error) throw error;
-      
-      const profileData = castData(data, { balance: 0 });
-      const balance = profileData.balance || 0;
-      setUserBalance(balance);
-      return balance;
-    } catch (error) {
-      console.error('Error fetching user balance:', error);
-      setUserBalance(0);
-      return 0;
-    }
-  };
-
-  const signIn = async (email: string) => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({ email });
-      if (error) throw error;
-      alert('Check your email for the magic link to sign in.');
-    } catch (error) {
-      console.error('Error signing in:', error);
-      alert(`Error signing in: ${(error as Error).message}`);
+      console.error('Login failed:', error);
+      throw error;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const signOut = async () => {
-    setIsLoading(true);
+  const logout = async () => {
+    setLoading(true);
+    setAuthError(null);
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+
+      if (error) {
+        setAuthError(error);
+        throw error;
+      }
+
+      setUser(null);
+      setSession(null);
       setUserRoles([]);
-      navigate('/login');
+      setIsAdmin(false);
+      setIsStaff(false);
+      setUserBalance(0);
+    } catch (error) {
+      console.error('Logout failed:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const register = async (email: string, password: string, options?: any) => {
+    setLoading(true);
+    setAuthError(null);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options,
+      });
+
+      if (error) {
+        setAuthError(error);
+        throw error;
+      }
+
+      setSession(data.session);
+      setUser(data.user as User);
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkUserRole = (role: UserRole): boolean => {
+    return userRoles.includes(role);
+  };
+
+  const resendVerificationEmail = async (email: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+      });
+
+      if (error) {
+        console.error('Error resending verification email:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error resending verification email:', error);
+      return false;
+    }
+  };
+
+  const signIn = async (email: string): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ email });
+
+      if (error) {
+        console.error('Error signing in with OTP:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error signing in with OTP:', error);
+      throw error;
+    }
+  };
+
+  const signOut = async (): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error('Error signing out:', error);
+        throw error;
+      }
     } catch (error) {
       console.error('Error signing out:', error);
-      alert(`Error signing out: ${(error as Error).message}`);
-    } finally {
-      setIsLoading(false);
+      throw error;
     }
   };
 
-  // Alias for compatibility
-  const logout = signOut;
-
-  const signUp = async (email: string, password?: string) => {
-    setIsLoading(true);
+  const signUp = async (email: string, password?: string): Promise<void> => {
     try {
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) throw error;
-      alert('Check your email to confirm your registration.');
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Error signing up:', error);
+        throw error;
+      }
     } catch (error) {
       console.error('Error signing up:', error);
-      alert(`Error signing up: ${(error as Error).message}`);
-    } finally {
-      setIsLoading(false);
+      throw error;
     }
   };
 
-  // Alias for compatibility
-  const register = signUp;
-  const login = async (email: string, password: string) => {
-    // Implementation
-    return { user: null, session: null, error: new Error('Not implemented') };
-  };
-
+  // Assign a role to a user
   const assignRole = async (userId: string, role: UserRole): Promise<boolean> => {
-    setIsLoading(true);
     try {
-      // Create a properly typed object for inserting
-      const roleData = {
-        user_id: userId,
-        role: role
-      };
-
       const { error } = await supabase
         .from('user_roles')
-        .insert(roleData);
+        .insert([{ user_id: userId, role }]);
 
-      if (error) throw error;
-      
-      if (userId === user?.id) {
-        await fetchUserRoles(userId);
+      if (error) {
+        console.error('Error assigning role:', error);
+        return false;
       }
-      
+
+      await fetchUserRoles(userId);
       return true;
     } catch (error) {
       console.error('Error assigning role:', error);
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
+  // Remove a role from a user
   const removeRole = async (userId: string, role: UserRole): Promise<boolean> => {
-    setIsLoading(true);
     try {
       const { error } = await supabase
         .from('user_roles')
@@ -223,127 +247,167 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('user_id', userId)
         .eq('role', role);
 
-      if (error) throw error;
-      
-      if (userId === user?.id) {
-        await fetchUserRoles(userId);
+      if (error) {
+        console.error('Error removing role:', error);
+        return false;
       }
-      
+
+      await fetchUserRoles(userId);
       return true;
     } catch (error) {
       console.error('Error removing role:', error);
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const toggleUserStatus = async (userId: string, currentStatus: boolean = true): Promise<boolean> => {
-    setIsLoading(true);
+  // Toggle user status (active/inactive)
+  const toggleUserStatus = async (userId: string, currentStatus?: boolean): Promise<boolean> => {
     try {
+      const newStatus = currentStatus === false;
       const { error } = await supabase
         .from('profiles')
-        .update({ is_active: !currentStatus })
+        .update({ is_active: newStatus })
         .eq('id', userId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error toggling user status:', error);
+        return false;
+      }
+
       return true;
     } catch (error) {
       console.error('Error toggling user status:', error);
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const refreshSession = async () => {
     try {
-      const { data, error } = await supabase.auth.refreshSession();
-      if (error) throw error;
-
-      setSession(data.session);
-      setUser(data.session?.user || null);
-
-      if (data.session?.user?.id) {
-        await fetchUserRoles(data.session.user.id);
-        await fetchUserBalance(data.session.user.id);
+      const { data, error } = await supabase.auth.refreshSession()
+      if (error) {
+        console.error('Error refreshing session:', error);
+      } else {
+        setSession(data.session)
+        setUser(data.user as User)
       }
     } catch (error) {
       console.error('Error refreshing session:', error);
-    } finally {
-      setIsLoading(false);
     }
-  };
-  
-  // Additional helper methods for compatibility
-  const refreshUserBalance = async () => {
-    if (user?.id) {
-      await fetchUserBalance(user.id);
-    }
-  };
-  
-  const refreshUserProfile = async () => {
-    if (user?.id) {
-      await fetchUserRoles(user.id);
-      await fetchUserBalance(user.id);
-    }
-  };
-  
-  const refreshBalance = refreshUserBalance;
-  
-  const checkUserRole = (role: UserRole): boolean => {
-    return userRoles.includes(role);
-  };
-  
-  const resendVerificationEmail = async (email: string): Promise<boolean> => {
+  }
+
+  // Fetch user roles
+  const fetchUserRoles = async (userId: string) => {
     try {
-      // Implementation depends on your auth setup
-      return true;
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', prepareQueryId(userId));
+
+      if (error) {
+        console.error('Error fetching user roles:', error);
+        return [];
+      }
+
+      const roles = (data || []).map(item => castData<{role: any}>(item).role as UserRole);
+      setUserRoles(roles);
+      setIsAdmin(roles.includes('admin'));
+      setIsStaff(roles.includes('staff') || roles.includes('admin'));
+      return roles;
     } catch (error) {
-      return false;
+      console.error('Error fetching user roles:', error);
+      return [];
     }
   };
 
-  const value: AuthContextType = {
-    session,
+  // Fetch user balance
+  const fetchUserBalance = async (userId: string) => {
+    try {
+      setIsLoadingBalance(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', prepareQueryId(userId))
+        .single();
+
+      if (error) {
+        console.error('Error fetching user balance:', error);
+        return 0;
+      }
+
+      const balance = castData<{balance: number}>(data).balance || 0;
+      setUserBalance(balance);
+      return balance;
+    } catch (error) {
+      console.error('Error fetching user balance:', error);
+      return 0;
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  };
+
+  // Refresh user balance
+  const refreshUserBalance = async () => {
+    if (user?.id) {
+      return await fetchUserBalance(user.id);
+    }
+    return 0;
+  };
+
+  // Refresh user profile
+  const refreshUserProfile = async () => {
+    if (!session?.user) return;
+    try {
+      const { data } = await supabase.auth.refreshSession();
+      const { session: refreshedSession, user: refreshedUser } = data;
+      
+      if (refreshedUser) {
+        setUser(refreshedUser as User);
+        if (refreshedUser.id) {
+          await fetchUserRoles(refreshedUser.id);
+          await fetchUserBalance(refreshedUser.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing user profile:', error);
+    }
+  };
+
+  const value = {
     user,
-    userRoles,
-    userBalance,
-    isLoading,
-    isAuthenticated,
+    session,
     loading,
+    isAuthenticated: !!user,
     isAdmin,
     isStaff,
+    userRoles,
+    userBalance,
+    login,
+    logout,
+    register,
+    checkUserRole,
     isEmailVerified,
+    resendVerificationEmail,
     isLoadingBalance,
     signIn,
     signOut,
-    logout,
     signUp,
-    login,
-    register,
     assignRole,
     removeRole,
     toggleUserStatus,
-    refreshSession,
     refreshUserBalance,
     refreshUserProfile,
-    refreshBalance,
-    checkUserRole,
-    resendVerificationEmail
+    refreshBalance: refreshUserBalance,
+    setUserBalance,
+    fetchUserBalance,
+    refreshSession,
+    authError,
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);
