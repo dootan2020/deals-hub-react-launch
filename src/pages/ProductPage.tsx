@@ -9,10 +9,20 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { useProduct } from '@/hooks/useProduct';
 import { ProductTrustBadges } from '@/components/product/ProductTrustBadges';
+import { useState } from 'react';
+import { useProductRecommendations } from '@/hooks/useProductRecommendations';
+import { ProductRecommendations } from '@/components/product/ProductRecommendations';
 
 const ProductPage = () => {
   const { productSlug } = useParams();
   const { product, loading, error } = useProduct(productSlug);
+
+  const [aiSource] = useState<'openai' | 'claude' | 'local'>('openai');
+  const {
+    recommendations,
+    loading: recLoading,
+    error: recError
+  } = useProductRecommendations(product, aiSource);
 
   if (loading) {
     return (
@@ -47,7 +57,7 @@ const ProductPage = () => {
     <Layout>
       <Helmet>
         <title>{product.title} | Digital Deals Hub</title>
-        <meta name="description" content={product.shortDescription || product.description.substring(0, 160)} />
+        <meta name="description" content={product.shortDescription || product.description?.substring(0, 160)} />
       </Helmet>
       
       <div className="bg-background min-h-screen">
@@ -69,6 +79,13 @@ const ProductPage = () => {
               <ProductTrustBadges />
             </div>
           </div>
+
+          {/* Gợi ý sản phẩm liên quan dựa trên AI */}
+          <ProductRecommendations
+            recommendations={recommendations}
+            loading={recLoading}
+            error={recError}
+          />
 
           {/* Full width description section */}
           <div className="mt-8 w-full">
