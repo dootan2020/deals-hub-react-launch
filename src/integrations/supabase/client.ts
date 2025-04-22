@@ -6,12 +6,10 @@ import { Database } from '@/types/database.types';
 const supabaseUrl = 'https://xcpwyvrlutlslgaueokd.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjcHd5dnJsdXRsc2xnYXVlb2tkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTMwMDAsImV4cCI6MjA2MDMyOTAwMH0.6uScHil1Q02Mz-x6p_GQui7vchxIYLRcOCd8UsNiOp0';
 
-// Add more detailed debug logging
-console.log('Initializing Supabase client with:');
-console.log('URL:', supabaseUrl);
-console.log('Key valid:', supabaseAnonKey ? 'Yes (length: ' + supabaseAnonKey.length + ')' : 'No');
+// Only log minimal initialization info
+console.log('Initializing Supabase client');
 
-// Initialize the Supabase client with explicit persistence and auto-refresh settings
+// Initialize the Supabase client with optimized settings to prevent session update loops
 export const supabase = createClient<Database>(
   supabaseUrl,
   supabaseAnonKey,
@@ -22,57 +20,99 @@ export const supabase = createClient<Database>(
       detectSessionInUrl: true,
       storage: localStorage,
       flowType: 'implicit',
-      debug: true
+      debug: false, // Turn off debug mode to reduce noise
+      lockSessionUpdateInterval: 30000, // Lock session updates to once every 30 seconds
     },
     realtime: {
       params: {
-        eventsPerSecond: 10
+        eventsPerSecond: 5 // Reduce from 10 to 5
       }
     },
     global: {
-      fetch: (url, options) => {
-        console.debug('Supabase fetch:', url);
-        return fetch(url, options);
-      }
+      // Remove verbose logging from fetch
+      fetch: undefined
     }
   }
 );
 
-// Test connection and log status
+// Test connection and log only critical info
 supabase.auth.getSession().then(({ data, error }) => {
   if (error) {
     console.error('Supabase connection error:', error.message);
   } else {
     console.log('Supabase connection successful. Auth status:', data.session ? 'Authenticated' : 'Not authenticated');
-    console.log('Session expires at:', data.session?.expires_at 
-      ? new Date(data.session.expires_at * 1000).toLocaleString() 
-      : 'No active session');
   }
 });
 
-// Export a utility to reload session explicitly
+// Rate limiting for session reload
+const SESSION_RELOAD_COOLDOWN = 10000; // 10 seconds
+let lastReloadTime = 0;
+
+// Export a utility to reload session explicitly with rate limiting
 export const reloadSession = async () => {
+  const now = Date.now();
+  
+  // Apply rate limiting
+  if (now - lastReloadTime < SESSION_RELOAD_COOLDOWN) {
+    console.log('Session reload throttled. Try again later.');
+    return { 
+      success: false, 
+      error: new Error('Too many session reload attempts. Please wait before trying again.'),
+      rateLimited: true
+    };
+  }
+  
   try {
-    console.log('Attempting to reload session...');
+    console.log('Reloading session...');
+    lastReloadTime = now;
+    
     const { data, error } = await supabase.auth.refreshSession();
     if (error) {
       console.error('Failed to reload session:', error.message);
       return { success: false, error };
     }
-    console.log('Session reloaded successfully, new expiry:', 
-      data.session ? new Date(data.session.expires_at * 1000).toLocaleString() : 'No session');
-    return { success: !!data.session, data };
+    
+    if (data.session) {
+      console.log('Session reloaded successfully');
+      return { success: true, data };
+    } else {
+      return { success: false, error: new Error('No session returned') };
+    }
   } catch (err) {
     console.error('Error reloading session:', err);
     return { success: false, error: err };
   }
 };
 
-// Add heartbeat to check connection
-setInterval(() => {
-  supabase.functions.invoke('heartbeat', { body: { ping: true } })
-    .catch(err => {
+// Replace frequent heartbeat with a less intensive one
+// Check connection only every 2 minutes instead of every 30 seconds
+let heartbeatTimer: number | null = null;
+
+const startHeartbeat = () => {
+  // Clear any existing heartbeat
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+  }
+  
+  // Start a new heartbeat at a reduced frequency
+  heartbeatTimer = window.setInterval(() => {
+    // Use a simple ping that doesn't trigger any auth events
+    supabase.functions.invoke('heartbeat', { 
+      body: { ping: true },
+      headers: { 'Prefer': 'return=minimal' } // Request minimal response to reduce load
+    }).catch(() => {
       // Silent catch - just for connection testing
-      console.debug('Supabase heartbeat failed:', err?.message || 'Unknown error');
+      // Don't log anything to avoid console spam
     });
-}, 30000); // Check every 30 seconds
+  }, 120000); // Check every 2 minutes (was 30 seconds)
+};
+
+// Start heartbeat when client is first used
+startHeartbeat();
+
+// Clean up on page unload
+window.addEventListener('beforeunload', () => {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+  }
+});
