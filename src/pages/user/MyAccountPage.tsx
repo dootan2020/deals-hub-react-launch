@@ -1,36 +1,54 @@
-import { useState } from 'react';
+
+import { memo, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import UserLayout from '@/components/layout/UserLayout';
 import { useSafeAsync } from '@/utils/asyncUtils';
 import { toast } from '@/hooks/use-toast';
+import { withRenderCount } from '@/components/debug/withRenderCount';
+
+// Memoized user info component
+const UserInfo = memo(({ user, userBalance }: { user: any; userBalance: number }) => (
+  <div>
+    <h2>Thông tin tài khoản</h2>
+    <p>ID người dùng: {user?.id}</p>
+    <p>Email: {user?.email}</p>
+    <p>Số dư: {userBalance}</p>
+  </div>
+));
+
+UserInfo.displayName = 'UserInfo';
 
 const MyAccountPage = () => {
-  const { user, userBalance, refreshUserBalance, userRoles } = useAuth();
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { user, userBalance, refreshUserBalance } = useAuth();
 
-  const { execute: handleRefreshBalance } = useSafeAsync(async () => {
-    setIsRefreshing(true);
+  const { execute: handleRefreshBalance, loading: isRefreshing } = useSafeAsync(async () => {
     try {
       await refreshUserBalance();
       toast.success('Cập nhật số dư thành công!');
-    } finally {
-      setIsRefreshing(false);
+    } catch (error) {
+      toast.error('Không thể cập nhật số dư');
     }
   });
 
+  const onRefreshClick = useCallback(() => {
+    handleRefreshBalance();
+  }, [handleRefreshBalance]);
+
   return (
     <UserLayout title="Tài khoản của tôi">
-      <div>
-        <h2>Thông tin tài khoản</h2>
-        <p>ID người dùng: {user?.id}</p>
-        <p>Email: {user?.email}</p>
-        <p>Số dư: {userBalance}</p>
-        <button onClick={handleRefreshBalance} disabled={isRefreshing}>
-          {isRefreshing ? 'Đang làm mới...' : 'Làm mới số dư'}
-        </button>
-      </div>
+      <UserInfo user={user} userBalance={userBalance} />
+      <button 
+        onClick={onRefreshClick} 
+        disabled={isRefreshing}
+        className="mt-4 px-4 py-2 bg-primary text-white rounded disabled:opacity-50"
+      >
+        {isRefreshing ? 'Đang làm mới...' : 'Làm mới số dư'}
+      </button>
     </UserLayout>
   );
 };
 
-export default MyAccountPage;
+// Wrap with render counter in development
+export default process.env.NODE_ENV === 'development' 
+  ? withRenderCount(MyAccountPage, 'MyAccountPage')
+  : MyAccountPage;

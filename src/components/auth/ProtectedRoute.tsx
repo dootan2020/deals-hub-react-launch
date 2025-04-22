@@ -1,172 +1,90 @@
-import { useEffect, useRef, useState } from 'react';
+
+import { memo, useCallback, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { UserRole } from '@/types/auth.types';
-import AuthLoadingScreen from './loading/AuthLoadingScreen';
 import { EmailVerificationGate } from './EmailVerificationGate';
 import { RoleChecker } from './roles/RoleChecker';
-import { safeAsync, useAsyncEffect } from '@/utils/asyncUtils';
+import { useRenderCount } from '@/hooks/useRenderCount';
+
+// Memoized loading screen component
+const AuthLoadingScreen = memo(() => (
+  <div className="flex justify-center items-center h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+));
+
+AuthLoadingScreen.displayName = 'AuthLoadingScreen';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRoles?: UserRole[];
 }
 
-export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteProps) => {
-  const { 
-    isAuthenticated, 
-    loading: authLoading, 
-    userRoles, 
-    user, 
-    session,
-    refreshSession
-  } = useAuth();
+export const ProtectedRoute = memo(({ 
+  children, 
+  requiredRoles = [] 
+}: ProtectedRouteProps) => {
+  const renderCount = useRenderCount('ProtectedRoute');
   const location = useLocation();
-  const [authTimeout, setAuthTimeout] = useState(false);
-  const [waitingTooLong, setWaitingTooLong] = useState(false);
-  const [roleCheckComplete, setRoleCheckComplete] = useState(requiredRoles.length === 0);
   
-  // Track mount state to prevent updates after unmount
-  const isMounted = useRef(true);
-  const timeoutIds = useRef<NodeJS.Timeout[]>([]);
-  const refreshAttempted = useRef(false);
+  const { 
+    user, 
+    loading: authLoading, 
+    session,
+    isAuthenticated
+  } = useAuth();
 
-  const {
-    refreshing,
-    attempts,
-    showRetry,
-    attemptRefresh,
-    handleRetry,
-    cleanup: cleanupRefreshAttempts
-  } = useAuthRefresh();
+  // Memoize route protection checks
+  const authChecks = useMemo(() => {
+    const isFullyAuthenticated = user && 
+      isAuthenticated && 
+      session?.access_token && 
+      (session.expires_at ? session.expires_at * 1000 > Date.now() : true);
 
-  // Set up role check completion
-  useEffect(() => {
-    if (requiredRoles.length > 0 && userRoles.length > 0) {
-      setRoleCheckComplete(true);
-    }
-  }, [requiredRoles, userRoles]);
-
-  // Clear all timeouts on unmount
-  useEffect(() => {
-    return () => {
-      isMounted.current = false;
-      timeoutIds.current.forEach(clearTimeout);
-      timeoutIds.current = [];
-      cleanupRefreshAttempts();
+    return {
+      isFullyAuthenticated,
+      needsRedirect: !isAuthenticated || !user
     };
-  }, [cleanupRefreshAttempts]);
+  }, [user, isAuthenticated, session]);
 
-  // Handle session refresh if needed - with safeguards against infinite loops
-  useAsyncEffect(async () => {
-    if (isAuthenticated || authLoading || refreshAttempted.current) return;
-    
-    refreshAttempted.current = true;
-    
-    const success = await safeAsync(async () => {
-      const sessionRestored = await refreshSession();
-      if (!sessionRestored) {
-        return attemptRefresh();
-      }
-      return true;
-    });
+  // Memoize the navigation component
+  const loginRedirect = useMemo(() => (
+    <Navigate 
+      to="/login" 
+      state={{ from: location }} 
+      replace 
+    />
+  ), [location]);
 
-    if (!success && isMounted.current) {
-      setAuthTimeout(true);
-    }
-  }, [isAuthenticated, authLoading, refreshSession, attemptRefresh]);
-
-  // Set up authentication timeouts with debouncing
-  useEffect(() => {
-    // Skip if already authenticated or not loading
-    if (user && isAuthenticated) return;
-    if (!authLoading && !refreshing) return;
-
-    const addTimeout = (callback: () => void, delay: number) => {
-      const timeoutId = setTimeout(() => {
-        if (isMounted.current) {
-          callback();
-        }
-      }, delay);
-      timeoutIds.current.push(timeoutId);
-      return timeoutId;
-    };
-
-    // Warning timeout (5s)
-    addTimeout(() => {
-      if ((authLoading || refreshing) && !isAuthenticated) {
-        setWaitingTooLong(true);
-      }
-    }, 5000);
-
-    // Hard timeout (8s instead of 10s to avoid race conditions)
-    addTimeout(() => {
-      if ((authLoading || refreshing) && !isAuthenticated) {
-        setAuthTimeout(true);
-      }
-    }, 8000);
-
-    return () => {
-      timeoutIds.current.forEach(clearTimeout);
-      timeoutIds.current = [];
-    };
-  }, [authLoading, isAuthenticated, user, session, refreshing, attempts]);
-
-  // CRITICAL: Authenticated user check with proper validation
-  const isFullyAuthenticated = user && 
-    isAuthenticated && 
-    session?.access_token && 
-    (session.expires_at ? session.expires_at * 1000 > Date.now() : true);
-
-  // Return authenticated content immediately if possible
-  if (isFullyAuthenticated) {
-    return (
-      <RoleChecker
-        userRoles={userRoles}
-        requiredRoles={requiredRoles}
-        roleCheckComplete={roleCheckComplete}
-      >
-        <EmailVerificationGate>
-          {children}
-        </EmailVerificationGate>
-      </RoleChecker>
-    );
-  }
-
-  // Handle timeout
-  if (authTimeout) {
-    return <Navigate to="/login" state={{ from: location, authError: 'timeout' }} replace />;
-  }
-
-  // Show loading screen during authentication or refresh
-  if ((authLoading || refreshing) && !authTimeout) {
-    return (
-      <AuthLoadingScreen 
-        onRetry={showRetry ? handleRetry : undefined}
-        message={refreshing ? "Đang khôi phục phiên đăng nhập..." : "Đang xác minh phiên đăng nhập..."}
-        attempts={attempts}
-        isWaitingTooLong={waitingTooLong}
-      />
-    );
-  }
-
-  // Redirect to login if not authenticated
-  if (!isAuthenticated || !user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  // Fallback render with role and email verification checks
-  return (
+  // Memoize the protected content
+  const protectedContent = useMemo(() => (
     <RoleChecker
-      userRoles={userRoles}
+      userRoles={user?.roles || []}
       requiredRoles={requiredRoles}
-      roleCheckComplete={roleCheckComplete}
+      roleCheckComplete={true}
     >
       <EmailVerificationGate>
         {children}
       </EmailVerificationGate>
     </RoleChecker>
-  );
-};
+  ), [user?.roles, requiredRoles, children]);
+
+  if (authLoading) {
+    return <AuthLoadingScreen />;
+  }
+
+  if (authChecks.needsRedirect) {
+    return loginRedirect;
+  }
+
+  if (authChecks.isFullyAuthenticated) {
+    return protectedContent;
+  }
+
+  return loginRedirect;
+});
+
+ProtectedRoute.displayName = 'ProtectedRoute';
 
 export default ProtectedRoute;

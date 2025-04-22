@@ -1,19 +1,23 @@
-import { createContext, useContext, ReactNode } from 'react';
+
+import { createContext, useContext, useMemo, ReactNode, memo } from 'react';
 import { useSessionState } from '@/hooks/auth/use-session-state';
 import { useSessionEvents } from '@/hooks/auth/use-session-events';
 import { useAuthRefresh } from '@/hooks/auth/use-auth-refresh';
 import { useAuthRetry } from '@/hooks/auth/use-auth-retry';
 import { useAuthErrors } from '@/hooks/auth/use-auth-errors';
 import { useAsyncEffect } from '@/utils/asyncUtils';
-import type { AuthContextType } from '@/types/auth.types';
+import type { AuthContextType, User } from '@/types/auth.types';
 
-const AuthContext = createContext<AuthContextType | null>(null);
+// Separate contexts for different types of data
+const UserContext = createContext<User | null>(null);
+const AuthStateContext = createContext<Omit<AuthContextType, 'user'> | null>(null);
 
-const RETRY_CONFIG = {
-  maxAttempts: 3,
-  baseDelay: 2000,
-  maxDelay: 16000
-};
+// Memoized providers
+const UserProvider = memo(({ children, user }: { children: ReactNode; user: User | null }) => (
+  <UserContext.Provider value={user}>{children}</UserContext.Provider>
+));
+
+UserProvider.displayName = 'UserProvider';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const {
@@ -28,14 +32,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const { handleAuthError, clearError } = useAuthErrors();
   
-  const { attemptRefresh, refreshing } = useAuthRefresh(RETRY_CONFIG);
+  const { attemptRefresh, refreshing } = useAuthRefresh({
+    maxAttempts: 3,
+    baseDelay: 2000,
+    maxDelay: 16000
+  });
   
   const {
     attempts,
     showRetry,
     scheduleRetry,
     cleanup: cleanupRetry
-  } = useAuthRetry(RETRY_CONFIG);
+  } = useAuthRetry({
+    maxAttempts: 3,
+    baseDelay: 2000,
+    maxDelay: 16000
+  });
 
   useAsyncEffect(async () => {
     const unsubscribe = await useSessionEvents(updateSession, initializeAuth);
@@ -45,8 +57,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const contextValue: AuthContextType = {
-    user,
+  // Memoize auth state values that change together
+  const authStateValue = useMemo(() => ({
     session,
     loading,
     authInitialized,
@@ -69,19 +81,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       cleanupRetry();
       return attemptRefresh();
     }
-  };
+  }), [session, loading, authInitialized, refreshing, showRetry, attemptRefresh, 
+       scheduleRetry, handleAuthError, clearError, cleanupRetry]);
+
+  // Only render when not loading
+  if (loading) return null;
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {!loading && children}
-    </AuthContext.Provider>
+    <AuthStateContext.Provider value={authStateValue}>
+      <UserProvider user={user}>
+        {children}
+      </UserProvider>
+    </AuthStateContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+// Custom hooks for accessing context values
+export const useUser = () => {
+  const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error('useUser must be used within UserProvider');
   }
   return context;
+};
+
+export const useAuthState = () => {
+  const context = useContext(AuthStateContext);
+  if (context === undefined) {
+    throw new Error('useAuthState must be used within AuthProvider');
+  }
+  return context;
+};
+
+// Combined hook for backward compatibility
+export const useAuth = () => {
+  const user = useUser();
+  const authState = useAuthState();
+  return useMemo(() => ({ 
+    user, 
+    ...authState 
+  }), [user, authState]);
 };
