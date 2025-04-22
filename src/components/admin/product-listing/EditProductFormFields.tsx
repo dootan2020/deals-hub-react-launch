@@ -1,8 +1,11 @@
 
 import { Button } from '@/components/ui/button';
-import { ProductFormFields } from '../product-form/ProductFormFields';
 import { FormProvider } from 'react-hook-form';
 import { Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ProductBasicInfoFields } from '../product-form/ProductBasicInfoFields';
+import { ProductPricingFields } from '../product-form/ProductPricingFields';
+import { ProductApiFields } from '../product-form/ProductApiFields';
 import type { UseFormReturn } from 'react-hook-form';
 import type { Category } from '@/types';
 import type { ProductFormValues } from '@/hooks/admin/useEditProduct';
@@ -24,11 +27,42 @@ export function EditProductFormFields({
 }: EditProductFormFieldsProps) {
   return (
     <FormProvider {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-        <ProductFormFields 
-          categories={categories} 
-          isEditMode={true}
-        />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <div className="space-y-8">
+          <ProductApiFields />
+          <ProductBasicInfoFields />
+          <ProductPricingFields />
+          
+          <FormField
+            name="categoryId"
+            control={form.control}
+            rules={{ required: "Category is required" }}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category <span className="text-red-500">*</span></FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         
         <div className="flex justify-end space-x-2 pt-4">
           <Button 
