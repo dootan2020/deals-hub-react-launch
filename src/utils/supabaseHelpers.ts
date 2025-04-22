@@ -8,9 +8,14 @@ export function isValidRecord<T = Record<string, any>>(value: unknown): value is
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** Type guard: kiểm tra một mảng có hợp lệ không */
+/** Type guard: kiểm tra một mảng có hợp lệ */
 export function isValidArray<T>(val: unknown): val is T[] {
   return Array.isArray(val);
+}
+
+/** Type guard: Kiểm tra response Supabase dạng có data, không lỗi */
+export function isDataResponse<T>(response: { data: T | null, error: PostgrestError | null }): response is { data: T, error: null } {
+  return response && response.error === null && response.data !== null;
 }
 
 /** Safe cast kiểu string */
@@ -22,11 +27,6 @@ export function safeString(val: unknown): string {
 export function safeNumber(val: unknown): number {
   const num = Number(val);
   return isNaN(num) ? 0 : num;
-}
-
-/** Kiểm tra response Supabase dạng có data, không lỗi */
-export function isDataResponse<T>(response: { data: T | null, error: PostgrestError | null }): response is { data: T, error: null } {
-  return response && response.error === null && response.data !== null;
 }
 
 /** Type guard cho Deposit (giản lược, có thể mở rộng) */
@@ -53,4 +53,9 @@ export function isOrder(item: any): item is {
     && typeof item.created_at === 'string'
     && typeof item.status === 'string'
     && (typeof item.total_price === 'number' || typeof item.total_price === 'string');
+}
+
+/** Record typescript check */
+export function isRecord(obj: unknown): obj is Record<string, unknown> {
+  return isValidRecord(obj);
 }

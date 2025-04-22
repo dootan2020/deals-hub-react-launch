@@ -139,3 +139,26 @@ export async function processProxyResponse(response: Response, proxyType: ProxyT
     throw new Error('Failed to process proxy response');
   }
 }
+
+/**
+ * Fetch data via the configured proxy
+ * @param url The URL to fetch
+ * @param proxyConfig The proxy configuration
+ * @returns The fetched data
+ */
+export async function fetchViaProxy(url: string, proxyConfig: ProxyConfig): Promise<any> {
+  try {
+    const proxiedUrl = createProxyUrl(url, proxyConfig);
+    
+    const response = await fetch(proxiedUrl);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    
+    return await processProxyResponse(response, proxyConfig.type);
+  } catch (error) {
+    console.error('Error fetching via proxy:', error);
+    throw error;
+  }
+}
