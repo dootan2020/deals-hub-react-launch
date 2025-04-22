@@ -1,36 +1,10 @@
 
-import { Product } from './index';
-
 /**
- * Minimal representation of a product that can be used for purchase
- * Contains only essential fields needed for purchase operations
+ * Fixed types for the application
+ * These types are used for strongly-typed access to database types
  */
-export interface MinimalProduct {
-  id: string;
-  title: string;
-  price: number;
-  description: string;
-  stock: number;
-  kiosk_token: string;
-}
 
-/**
- * Used for cases where we need to create a product with only some fields
- */
-export type PartialProduct = Partial<Product>;
-
-/**
- * Result from idempotency processing without recursive type issues
- */
-export interface IdempotencyResult<T> {
-  result: T | null;
-  isNew: boolean;
-  error?: string;
-}
-
-/**
- * Strongly typed RPC response structure for deposit status
- */
+// For use with RPC calls that return specific types
 export interface DepositStatusRPCResponse {
   total_pending: number;
   needs_retry: number;
@@ -38,13 +12,7 @@ export interface DepositStatusRPCResponse {
   failed_today: number;
 }
 
-/**
- * Response structure for transaction processing
- */
-export interface TransactionProcessResult {
-  success: boolean;
-  processed: number;
-  failed: number;
-  error?: string;
-  depositIds?: string[];
-}
+// For use with Supabase API helper functions
+export type DatabaseId = string;
+
+export type SafeString = string;

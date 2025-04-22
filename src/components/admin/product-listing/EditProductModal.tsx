@@ -9,7 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Product, Category } from '@/types';
-import { prepareQueryId, prepareUpdate, castArrayData } from '@/utils/supabaseHelpers';
+import { prepareTableUpdate } from '@/utils/databaseTypes';
+import { castArrayData } from '@/utils/supabaseHelpers';
 
 interface EditProductModalProps {
   open: boolean;
@@ -26,7 +27,7 @@ export const EditProductModal = ({
 }: EditProductModalProps) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [product, setProduct] = useState<Product>({
+  const [product, setProduct] = useState<Partial<Product>>({
     id: '',
     title: '',
     description: '',
@@ -53,7 +54,7 @@ export const EditProductModal = ({
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', prepareQueryId(productId))
+        .eq('id', productId)
         .single();
         
       if (error) throw error;
@@ -97,8 +98,8 @@ export const EditProductModal = ({
     setSaving(true);
     
     try {
-      // Prepare updated product data
-      const updatedData = prepareUpdate({
+      // Prepare product data for update
+      const updatedData = {
         title: product.title,
         description: product.description,
         price: product.price,
@@ -110,12 +111,12 @@ export const EditProductModal = ({
         images: product.images,
         kiosk_token: product.kiosk_token,
         stock: product.stock,
-      });
+      };
       
       const { error } = await supabase
         .from('products')
         .update(updatedData)
-        .eq('id', prepareQueryId(productId));
+        .eq('id', productId);
         
       if (error) throw error;
       

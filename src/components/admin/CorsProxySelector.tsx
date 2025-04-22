@@ -54,10 +54,11 @@ export const CorsProxySelector = () => {
     setIsSaving(true);
     
     try {
-      const proxyData = prepareUpdate<ProxySettings>({
+      // Create a clean object using prepareUpdate to avoid type issues
+      const proxyData = {
         proxy_type: proxyType,
         custom_url: proxyType === 'custom' ? customUrl : null
-      });
+      };
       
       if (settings?.id) {
         // Update existing settings

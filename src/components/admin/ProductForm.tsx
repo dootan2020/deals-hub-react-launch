@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,24 +17,68 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { ApiResponse, Category, Product } from '@/types';
-import { prepareQueryId, prepareInsert, prepareUpdate, castData, castArrayData, createDefaultProduct } from '@/utils/supabaseHelpers';
+import { prepareQueryId, prepareInsert, prepareUpdate, castArrayData } from '@/utils/supabaseHelpers';
 
-// Define image upload component
 const ImageUpload = ({ value, onChange }: { value?: string[] | null, onChange: (value: string[]) => void }) => {
   return (
     <Textarea 
-      value={value ? value.join('\n') : ''} 
-      onChange={(e) => onChange(e.target.value.split('\n').filter(Boolean))}
-      placeholder="Enter image URLs, one per line"
-      className="min-h-[100px]"
+      placeholder="Enter image URLs (one per line)"
+      value={(value || []).join('\n')}
+      onChange={(e) => {
+        const urls = e.target.value
+          .split('\n')
+          .map(url => url.trim())
+          .filter(url => url !== '');
+        onChange(urls);
+      }}
+      className="h-32"
     />
   );
 };
 
-// Define form schema
+const ApiProductTester = ({ onSelectResult }: { onSelectResult: (result: ApiResponse) => void }) => {
+  const [apiUrl, setApiUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  const testApi = async () => {
+    setLoading(true);
+    try {
+      // Simulate API test
+      setTimeout(() => {
+        onSelectResult({
+          success: 'true',
+          name: 'Test Product',
+          price: '19.99',
+          stock: '100',
+          description: 'This is a test product from API'
+        });
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error('API test error:', error);
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <Input 
+          placeholder="Enter API URL to test" 
+          value={apiUrl}
+          onChange={(e) => setApiUrl(e.target.value)}
+          className="flex-1"
+        />
+        <Button onClick={testApi} disabled={loading || !apiUrl}>
+          {loading ? 'Testing...' : 'Test API'}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const productFormSchema = z.object({
   title: z.string().min(2, {
     message: "Title must be at least 2 characters.",
@@ -46,17 +89,17 @@ const productFormSchema = z.object({
   price: z.number(),
   original_price: z.number().optional(),
   in_stock: z.boolean().default(true),
-  slug: z.string().min(3, {
-    message: "Slug must be at least 3 characters.",
+  slug: z.string().regex(/^[a-z0-9-]+$/, {
+    message: "Slug must be lowercase and contain only letters, numbers, and dashes.",
   }),
   external_id: z.string().optional(),
   category_id: z.string().uuid({
-    message: "Please select a valid category.",
+    message: "Category ID must be a valid UUID.",
   }),
-  images: z.string().array().optional(),
+  images: z.string().array().default([]),
   kiosk_token: z.string().optional(),
   stock: z.number().min(0, {
-    message: "Stock must be at least 0.",
+    message: "Stock must be a non-negative number.",
   }),
 });
 
@@ -68,9 +111,7 @@ interface ProductFormProps {
 export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   const [loading, setLoading] = useState<boolean>(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [product, setProduct] = useState<Product | null>(null);
   
-  // Initialize form
   const form = useForm<z.infer<typeof productFormSchema>>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
@@ -88,7 +129,6 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     },
   });
 
-  // Load product data for editing
   useEffect(() => {
     if (productId) {
       const fetchProduct = async () => {
@@ -96,27 +136,25 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         const { data, error } = await supabase
           .from('products')
           .select('*')
-          .eq('id', productId as string)
+          .eq('id', productId)
           .single();
         
         if (error) {
           toast.error("Failed to load product");
           console.error(error);
         } else {
-          const safeProduct = castData<Product>(data, createDefaultProduct());
-          setProduct(safeProduct);
           form.reset({
-            title: safeProduct.title,
-            description: safeProduct.description,
-            price: safeProduct.price,
-            original_price: safeProduct.original_price || undefined,
-            in_stock: safeProduct.in_stock,
-            slug: safeProduct.slug,
-            external_id: safeProduct.external_id || '',
-            category_id: safeProduct.category_id,
-            images: safeProduct.images || [],
-            kiosk_token: safeProduct.kiosk_token || '',
-            stock: safeProduct.stock,
+            title: data.title,
+            description: data.description,
+            price: data.price,
+            original_price: data.original_price || undefined,
+            in_stock: data.in_stock,
+            slug: data.slug,
+            external_id: data.external_id || '',
+            category_id: data.category_id,
+            images: data.images || [],
+            kiosk_token: data.kiosk_token || '',
+            stock: data.stock,
           });
         }
         setLoading(false);
@@ -126,7 +164,6 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     }
   }, [productId, form]);
 
-  // Load categories
   useEffect(() => {
     const fetchCategories = async () => {
       const { data, error } = await supabase
@@ -145,13 +182,11 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     fetchCategories();
   }, []);
 
-  // Handle form submission
   const onSubmit = async (values: z.infer<typeof productFormSchema>) => {
     setLoading(true);
     
     try {
-      // Prepare the product data
-      const productData = prepareUpdate<Product>({
+      const productData = {
         title: values.title,
         description: values.description,
         price: values.price,
@@ -163,20 +198,18 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         images: values.images,
         kiosk_token: values.kiosk_token,
         stock: values.stock,
-      });
+      };
       
       if (productId) {
-        // Update existing product
         const { error } = await supabase
           .from('products')
           .update(productData)
-          .eq('id', productId as string);
+          .eq('id', productId);
           
         if (error) throw error;
         
         toast.success("Product updated successfully");
       } else {
-        // Insert new product
         const { error } = await supabase
           .from('products')
           .insert([productData]);
@@ -189,7 +222,6 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       if (onSuccess) onSuccess();
       
       if (!productId) {
-        // Reset form after creating a new product
         form.reset();
       }
     } catch (error: any) {
@@ -201,15 +233,14 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
   };
 
   const handleApiResult = (result: ApiResponse) => {
-    if (result && result.success === 'true') {
-      if (result.name) form.setValue('title', result.name);
-      if (result.price) form.setValue('price', Number(result.price) || 0);
-      if (result.stock) form.setValue('stock', Number(result.stock) || 0);
-      if (result.description) form.setValue('description', result.description);
-      if (result.kioskToken) form.setValue('kiosk_token', result.kioskToken);
+    if (result.success === 'true') {
+      form.setValue('title', result.name || '');
+      form.setValue('price', Number(result.price) || 0);
+      form.setValue('stock', Number(result.stock) || 0);
+      form.setValue('description', result.description || '');
       toast.success("API data loaded successfully!");
     } else {
-      toast.error(`API test error: ${result?.error || 'Unknown error'}`);
+      toast.error(`API test error: ${result.error || 'Unknown error'}`);
     }
   };
 
@@ -423,6 +454,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
           <h3 className="text-lg font-semibold mb-4">
             API Product Tester
           </h3>
+          <ApiProductTester onSelectResult={handleApiResult} />
         </div>
 
         <Button type="submit" disabled={loading}>

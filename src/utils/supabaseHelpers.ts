@@ -1,6 +1,7 @@
 
 import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 import { Order, OrderItem, Category, Product, ProxySettings, Deposit } from '@/types';
+import { Database } from '@/types/database.types';
 
 /**
  * Safely casts Supabase data to a specific type, handling errors and undefined values
@@ -137,6 +138,8 @@ export function asDbValue<T>(value: any, fallback: T): T {
 /**
  * Prepares a record for insertion into the database with proper typing
  * Returns a regular object that can be used with Supabase insert
+ * 
+ * This function helps to safely prepare data for insertion without type errors
  */
 export function prepareInsert<T extends Record<string, any>>(data: Partial<T>): Record<string, any> {
   return Object.fromEntries(
@@ -147,6 +150,8 @@ export function prepareInsert<T extends Record<string, any>>(data: Partial<T>): 
 /**
  * Prepares a record for update in the database with proper typing
  * Returns a regular object that can be used with Supabase update
+ * 
+ * This function helps to safely prepare data for updates without type errors
  */
 export function prepareUpdate<T extends Record<string, any>>(data: Partial<T>): Record<string, any> {
   return Object.fromEntries(

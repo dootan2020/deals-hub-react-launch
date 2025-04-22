@@ -1,5 +1,4 @@
 
-
 // Product type
 export interface Product {
   id: string;
@@ -19,6 +18,13 @@ export interface Product {
   api_stock?: number | null;
   created_at?: string;
   updated_at?: string;
+  rating?: number;
+  review_count?: number;
+  specifications?: Record<string, any>;
+  badges?: string[];
+  features?: string[];
+  stock_quantity?: number;
+  short_description?: string;
 }
 
 // Category type
@@ -32,6 +38,7 @@ export interface Category {
   parent_id?: string | null;
   created_at?: string;
   updated_at?: string;
+  subcategories?: Category[];
 }
 
 // Order type
@@ -68,9 +75,9 @@ export interface Deposit {
   net_amount: number;
   payment_method: string;
   status: string;
-  transaction_id?: string;
-  payer_id?: string;
-  payer_email?: string;
+  transaction_id?: string | null;
+  payer_id?: string | null;
+  payer_email?: string | null;
   created_at: string;
   updated_at?: string;
 }
@@ -128,3 +135,5 @@ export interface ProxyConfig {
   custom_url?: string;
 }
 
+// Export Deposit types from deposits.ts to ensure they're available
+export * from './deposits';

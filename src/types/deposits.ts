@@ -12,7 +12,7 @@ export interface Deposit {
   transaction_id?: string;
   payer_id?: string;
   payer_email?: string;
-  created_at?: string;
+  created_at: string;
   updated_at?: string;
 }
 
@@ -20,6 +20,16 @@ export interface Deposit {
  * Status of pending deposits in the system
  */
 export interface PendingDepositsStatus {
+  total_pending: number;
+  needs_retry: number;
+  processed_today: number;
+  failed_today: number;
+}
+
+/**
+ * Response type for deposit status RPC calls
+ */
+export interface DepositStatusRPCResponse {
   total_pending: number;
   needs_retry: number;
   processed_today: number;
