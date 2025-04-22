@@ -1,9 +1,10 @@
+
 import React, { useEffect, useState } from "react";
 import { Bell, AlertTriangle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { isRecord, isOrder } from "@/utils/supabaseHelpers";
+import { isOrder, isValidArray } from "@/utils/supabaseHelpers";
 
 interface NewOrder {
   id: string;
@@ -24,7 +25,7 @@ export const NotificationBell: React.FC = () => {
     fetchNewOrders();
     const interval = setInterval(() => {
       fetchNewOrders();
-    }, 15_000); // Poll every 15s
+    }, 15_000);
 
     return () => clearInterval(interval);
   }, []);
@@ -43,29 +44,27 @@ export const NotificationBell: React.FC = () => {
 
       if (depositsError) {
         setError("Không thể lấy đơn hàng mới");
-        console.error("Error fetching orders:", depositsError);
         setLoading(false);
         return;
       }
 
-      if (data && Array.isArray(data)) {
-        const validOrders: NewOrder[] = data
-          .filter(item => isOrder(item))
-          .map(item => ({
-            id: String(item.id || ''),
-            user_id: String(item.user_id || ''),
-            created_at: String(item.created_at || ''),
-            status: String(item.status || ''),
-            external_order_id: item.external_order_id ? String(item.external_order_id) : undefined,
-            total_price: Number(item.total_price || 0)
-          }));
-
-        setOrders(validOrders);
-      } else {
-        setOrders([]);
+      const validOrders: NewOrder[] = [];
+      if (isValidArray(data)) {
+        data.forEach(item => {
+          if (isOrder(item)) {
+            validOrders.push({
+              id: String(item.id),
+              user_id: String(item.user_id),
+              created_at: String(item.created_at),
+              status: String(item.status),
+              external_order_id: item.external_order_id ? String(item.external_order_id) : undefined,
+              total_price: typeof item.total_price === 'number' ? item.total_price : parseFloat(String(item.total_price) || '0')
+            });
+          }
+        });
       }
+      setOrders(validOrders);
     } catch (err) {
-      console.error("Unexpected error in fetchNewOrders:", err);
       setError("Đã xảy ra lỗi khi tải đơn hàng");
     } finally {
       setLoading(false);

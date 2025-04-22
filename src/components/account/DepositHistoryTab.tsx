@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
@@ -5,7 +6,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Wallet, Loader2, AlertCircle } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Deposit } from '@/types/deposits';
-import { isRecord, isDeposit } from '@/utils/supabaseHelpers';
+import { isDeposit, isValidArray, isValidRecord } from '@/utils/supabaseHelpers';
 
 interface DepositHistoryTabProps {
   userId: string;
@@ -23,12 +24,12 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', userId as any)
+          .eq('user_id', userId as string) // Fix: cast về string
           .order('created_at', { ascending: false });
 
         if (error) throw error;
 
-        if (data && Array.isArray(data)) {
+        if (isValidArray(data)) {
           const typedDeposits = data
             .filter(isDeposit)
             .map(item => ({ ...item, id: String(item.id) }));
@@ -38,7 +39,6 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
           setDeposits([]);
         }
       } catch (error) {
-        console.error("Error fetching deposits:", error);
         setError('Failed to load deposit history');
       } finally {
         setIsLoading(false);
@@ -118,56 +118,36 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
         <CardDescription>View your account funding history</CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-            <span>Loading deposit history...</span>
-          </div>
-        ) : error ? (
-          <div className="flex items-center justify-center h-64 text-red-500">
-            <AlertCircle className="h-6 w-6 mr-2" />
-            <span>{error}</span>
-          </div>
-        ) : deposits.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 p-6">
-            <Wallet className="h-12 w-12 text-gray-300 mb-2" />
-            <h3 className="text-lg font-medium text-gray-500">No Deposits Yet</h3>
-            <p className="text-gray-400 text-center mt-2">
-              You haven't made any deposits yet. Add funds to your account to see your transaction history here.
-            </p>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Transaction ID</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Net Amount</TableHead>
-                <TableHead>Status</TableHead>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Transaction ID</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Method</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Net Amount</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {deposits.map((deposit) => (
+              <TableRow key={deposit.id}>
+                <TableCell className="font-medium">{(deposit.transaction_id || deposit.id).slice(0, 8)}...</TableCell>
+                <TableCell>
+                  {new Date(deposit.created_at).toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
+                </TableCell>
+                <TableCell>{renderPaymentMethod(deposit.payment_method)}</TableCell>
+                <TableCell>{formatCurrency(deposit.amount)}</TableCell>
+                <TableCell>{formatCurrency(deposit.net_amount)}</TableCell>
+                <TableCell>{renderDepositStatus(deposit.status)}</TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {deposits.map((deposit) => (
-                <TableRow key={deposit.id}>
-                  <TableCell className="font-medium">{(deposit.transaction_id || deposit.id).slice(0, 8)}...</TableCell>
-                  <TableCell>
-                    {new Date(deposit.created_at).toLocaleString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
-                  </TableCell>
-                  <TableCell>{renderPaymentMethod(deposit.payment_method)}</TableCell>
-                  <TableCell>{formatCurrency(deposit.amount)}</TableCell>
-                  <TableCell>{formatCurrency(deposit.net_amount)}</TableCell>
-                  <TableCell>{renderDepositStatus(deposit.status)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -11,6 +10,7 @@ import { Category } from '@/types';
 import { fetchProxySettings, fetchViaProxy } from '@/utils/proxyUtils';
 import { fetchActiveApiConfig } from '@/utils/apiUtils';
 import { ApiResponse } from '@/components/admin/product-manager/ApiProductTester';
+import { isValidArray, isValidRecord, isDataResponse } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
@@ -79,14 +79,14 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
 
       if (error) throw error;
       // Type cast the data to Category[]
-      if (data) {
-        const typedCategories: Category[] = data.map(item => ({
-          id: String(item.id || ''),
-          name: String(item.name || ''),
-          description: String(item.description || ''),
-          slug: String(item.slug || ''),
-          image: String(item.image || ''),
-          count: Number(item.count || 0),
+      if (isValidArray(data)) {
+        const typedCategories: Category[] = data.filter(isValidRecord).map(item => ({
+          id: String(item.id ?? ''),
+          name: String(item.name ?? ''),
+          description: String(item.description ?? ''),
+          slug: String(item.slug ?? ''),
+          image: String(item.image ?? ''),
+          count: Number(item.count ?? 0),
           parent_id: item.parent_id ? String(item.parent_id) : null
         }));
         setCategories(typedCategories);
@@ -94,41 +94,38 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
         setCategories([]);
       }
     } catch (error) {
-      console.error('Error fetching categories:', error);
       toast.error('Failed to fetch categories');
     }
   };
 
   const fetchProductDetails = async () => {
     if (!productId) return;
-    
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId)
+        .eq('id', productId as string)
         .maybeSingle();
 
       if (error) throw error;
-      if (data) {
+      if (isValidRecord(data)) {
         form.reset({
-          title: data.title,
-          description: data.description,
-          price: data.price,
-          originalPrice: data.original_price || undefined,
+          title: data.title ?? '',
+          description: data.description ?? '',
+          price: Number(data.price ?? 0),
+          originalPrice: data.original_price ?? undefined,
           inStock: data.in_stock ?? true,
-          slug: data.slug,
-          externalId: data.external_id || '',
-          categoryId: data.category_id || '',
-          images: data.images && data.images.length > 0 ? data.images.join('\n') : '',
-          kioskToken: data.kiosk_token || '',
-          stock: data.stock || 0,
+          slug: data.slug ?? '',
+          externalId: data.external_id ?? '',
+          categoryId: data.category_id ?? '',
+          images: Array.isArray(data.images) && data.images.length > 0 ? data.images.join('\n') : '',
+          kioskToken: data.kiosk_token ?? '',
+          stock: Number(data.stock ?? 0),
         });
         setFormDirty(false);
       }
     } catch (error) {
-      console.error('Error fetching product details:', error);
       toast.error('Failed to fetch product details');
     } finally {
       setIsLoading(false);

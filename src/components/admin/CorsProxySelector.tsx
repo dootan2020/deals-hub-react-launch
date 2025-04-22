@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -20,8 +21,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
-import { ProxyType, ProxySettings } from '@/utils/proxyUtils';
-import { isRecord } from '@/utils/supabaseHelpers';
+import { ProxyType } from '@/utils/proxyUtils';
+import { isValidRecord } from '@/utils/supabaseHelpers';
 
 export type { ProxyType } from '@/utils/proxyUtils';
 
@@ -59,12 +60,11 @@ export function CorsProxySelector() {
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching proxy settings:', error);
         setLoading(false);
         return;
       }
 
-      if (proxySettings && isRecord(proxySettings)) {
+      if (isValidRecord(proxySettings)) {
         const proxyType = typeof proxySettings.proxy_type === 'string'
           ? proxySettings.proxy_type as ProxyType
           : 'allorigins';
@@ -81,7 +81,7 @@ export function CorsProxySelector() {
         setCustomProxyUrl(customUrl || '');
       }
     } catch (error) {
-      console.error('Error fetching proxy settings:', error);
+      // toast error optional
     } finally {
       setLoading(false);
     }
@@ -97,7 +97,7 @@ export function CorsProxySelector() {
 
       const { error } = await supabase
         .from('proxy_settings')
-        .insert([proxyData]);
+        .insert([proxyData]); // Must be array
 
       if (error) throw error;
 
@@ -108,7 +108,6 @@ export function CorsProxySelector() {
 
       toast.success('CORS proxy settings saved successfully');
     } catch (error: any) {
-      console.error('Error saving proxy settings:', error);
       toast.error(`Failed to save proxy settings: ${error.message}`);
     } finally {
       setLoading(false);
