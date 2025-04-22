@@ -12,6 +12,7 @@ export const createTransactionRecord = async (
 ): Promise<boolean> => {
   try {
     // Check if a transaction with the given reference_id already exists
+    // Simplified query to avoid deep type instantiation
     const { data, error } = await supabase
       .from('transactions')
       .select('id')
@@ -58,7 +59,7 @@ export const processDepositBalance = async (
   try {
     console.log(`Processing deposit balance for deposit ID: ${depositId}`);
     
-    // Get deposit details
+    // Get deposit details - Simplified query to avoid deep type instantiation
     const { data: deposit, error } = await supabase
       .from('deposits')
       .select('id, user_id, net_amount, status, transaction_id')

@@ -62,8 +62,8 @@ export const sortProducts = (products: Product[], sortOption?: string): Product[
     case 'popular':
       // Sort by sales count (safely check for undefined)
       return sortedProducts.sort((a, b) => {
-        const salesA = a.salesCount || 0;
-        const salesB = b.salesCount || 0;
+        const salesA = a.salesCount || a.sales_count || 0;
+        const salesB = b.salesCount || b.sales_count || 0;
         return salesB - salesA;
       });
       

@@ -17,8 +17,7 @@ export const updateUserBalance = async (
   try {
     console.log(`Updating balance for user ${userId}: ${amount > 0 ? '+' : ''}${amount}`);
     
-    // Start a transaction
-    // Simplify the RPC call to avoid deep type instantiation issues
+    // Simplified RPC call to avoid deep type instantiation issues
     const { data: balanceResult, error: balanceError } = await supabase.rpc('update_user_balance', {
       user_id_param: userId,
       amount_param: amount
@@ -34,7 +33,7 @@ export const updateUserBalance = async (
       return { success: false, error: "User profile not found" };
     }
     
-    // Record the transaction
+    // Record the transaction - simplified query
     const { error: transactionError } = await supabase.from('transactions').insert({
       user_id: userId,
       amount: amount,
@@ -49,7 +48,7 @@ export const updateUserBalance = async (
       // Don't fail the operation if transaction recording fails
     }
     
-    // Fetch the new balance
+    // Fetch the new balance - simplified query
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('balance')

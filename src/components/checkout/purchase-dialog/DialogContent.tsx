@@ -39,12 +39,10 @@ export const DialogContent = ({
 }: DialogContentProps) => {
   const hasEnoughBalance = userBalance !== null && userBalance >= totalPriceUSD;
   
-  // Get effective stock, prioritizing verified stock, then product.stock, then stock or stockQuantity
+  // Get effective stock, prioritizing verified stock, then product.stock
   const effectiveStock = verifiedStock !== null 
     ? verifiedStock 
-    : product.stock !== undefined 
-      ? product.stock 
-      : product.stockQuantity || 0;
+    : product.stock;
 
   return (
     <div className="space-y-4 py-4">
@@ -69,7 +67,7 @@ export const DialogContent = ({
               maxQuantity={effectiveStock}
               onQuantityChange={onQuantityChange}
               verifiedStock={verifiedStock}
-              productStock={product.stock || 0}
+              productStock={product.stock}
             />
           </div>
           
@@ -94,7 +92,7 @@ export const DialogContent = ({
           )}
           
           {!isVerifying && verifiedStock !== null && 
-           verifiedStock < (product.stock || product.stockQuantity || 0) && (
+           verifiedStock < product.stock && (
             <Alert className="bg-amber-50 border-amber-200">
               <AlertTriangle className="h-4 w-4 text-amber-500" />
               <AlertDescription className="text-amber-800">

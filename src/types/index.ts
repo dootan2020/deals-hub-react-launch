@@ -12,7 +12,7 @@ export interface Product {
   createdAt: string;
   specifications: Record<string, string | number | boolean | object>;
   
-  // Additional fields used across the application
+  // Make optional fields explicitly optional
   description?: string;
   shortDescription?: string;
   images?: string[];

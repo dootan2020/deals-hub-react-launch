@@ -24,7 +24,7 @@ export const ProductPurchaseSection = ({ product }: ProductPurchaseSectionProps)
     <div className="bg-card rounded-lg p-6 shadow-sm transition-all duration-300 ease-in-out hover:shadow-md hover:border-primary/40 hover:scale-[1.01] hover:translate-y-[-4px]">
       {/* Stock and Sales Info */}
       <ProductStock 
-        stock={product.stockQuantity || product.stock || 0}
+        stock={product.stock}
         soldCount={product.salesCount || 0}
         className="mb-4"
       />

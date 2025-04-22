@@ -25,6 +25,7 @@ export const ensureProductFields = (product: Partial<Product>): Product => {
     originalPrice: product.originalPrice,
     stockQuantity: product.stockQuantity,
     salesCount: product.salesCount,
+    sales_count: product.sales_count,
     rating: product.rating,
     reviewCount: product.reviewCount,
     features: product.features
