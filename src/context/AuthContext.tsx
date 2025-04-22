@@ -1,9 +1,11 @@
+
 import React, { createContext, useContext, useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { useAuthState } from '@/hooks/use-auth-state';
 import { useAuthActions } from '@/hooks/auth/use-auth-actions';
 import { useBalanceListener } from '@/hooks/use-balance-listener';
 import { AuthContextType } from '@/types/auth.types';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -27,6 +29,7 @@ const AuthContext = createContext<AuthContextType>({
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [hydrated, setHydrated] = useState(false);
+  const [sessionRefreshAttempt, setSessionRefreshAttempt] = useState(0);
   
   const {
     user,
@@ -46,18 +49,92 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { login, logout, register, resendVerificationEmail } = useAuthActions();
 
   const sessionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tokenRefreshRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Handle hydration
   useEffect(() => {
     setHydrated(true);
+    console.log('AuthContext hydrated');
+    return () => console.log('AuthContext unmounted');
   }, []);
 
+  // Error handling
   useEffect(() => {
     if (authError) {
       console.error('Authentication error:', authError);
       toast.error('Lỗi xác thực', authError.message);
+      
+      // On authentication error, attempt to refresh the session once
+      if (sessionRefreshAttempt === 0) {
+        console.log('Attempting to refresh session due to auth error');
+        setSessionRefreshAttempt(prev => prev + 1);
+        
+        // Try to refresh token
+        supabase.auth.refreshSession().then(({ data, error }) => {
+          if (error) {
+            console.error('Session refresh failed:', error);
+          } else if (data.session) {
+            console.log('Session refreshed successfully');
+          }
+        });
+      }
     }
-  }, [authError]);
+  }, [authError, sessionRefreshAttempt]);
 
+  // Session expiry monitoring and auto-refresh
+  useEffect(() => {
+    if (!session) return;
+    
+    // Clear any existing refresh timer
+    if (tokenRefreshRef.current) {
+      clearTimeout(tokenRefreshRef.current);
+      tokenRefreshRef.current = null;
+    }
+    
+    if (session.expires_at) {
+      const now = Math.floor(Date.now() / 1000);
+      const expiresAt = session.expires_at;
+      const timeUntilExpiry = expiresAt - now;
+      
+      console.log(`Session expires in ${timeUntilExpiry} seconds`);
+      
+      // If session is valid but will expire in less than 5 minutes, refresh it
+      if (timeUntilExpiry > 0 && timeUntilExpiry < 300) {
+        console.log('Session expiring soon, scheduling refresh');
+        tokenRefreshRef.current = setTimeout(() => {
+          console.log('Refreshing session token');
+          supabase.auth.refreshSession().then(({ data, error }) => {
+            if (error) {
+              console.error('Failed to refresh session:', error);
+            } else {
+              console.log('Session refreshed successfully');
+            }
+          });
+        }, 0);
+      }
+      
+      // If session is expired, notify and attempt refresh immediately
+      if (expiresAt < now) {
+        console.warn('Session expired!');
+        
+        // Try to refresh session immediately
+        supabase.auth.refreshSession().then(({ data, error }) => {
+          if (error) {
+            console.error('Failed to refresh expired session:', error);
+            logout().catch(err => {
+              console.error('Error during logout after session expiry:', err);
+            });
+          } else if (data.session) {
+            console.log('Expired session refreshed successfully');
+            // Force a refresh of user data
+            refreshUserData();
+          }
+        });
+      }
+    }
+  }, [session, logout, refreshUserData]);
+
+  // Session activity timeout
   useEffect(() => {
     if (user && session) {
       if (sessionTimeoutRef.current) clearTimeout(sessionTimeoutRef.current);
@@ -79,20 +156,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         sessionTimeoutRef.current = null;
       }
     };
-  }, [user?.id, session?.access_token]);
+  }, [user?.id, session?.access_token, logout]);
 
-  useEffect(() => {
-    if (session && session.expires_at) {
-      const now = Math.floor(Date.now() / 1000);
-      if (session.expires_at < now) {
-        console.error('Session expired! Forcing logout.');
-        logout().finally(() => {
-          window.location.replace('/login?expired=1');
-        });
-      }
-    }
-  }, [session]);
-
+  // Balance listener integration
   useBalanceListener(user?.id, (newBalance) => {
     if (typeof newBalance === 'number') {
       console.log('Balance updated via listener:', newBalance);
@@ -100,6 +166,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   });
 
+  // Balance refresh functionality
   const refreshUserBalance = useCallback(async () => {
     if (!user?.id) return;
     console.log('Manually refreshing user balance for ID:', user.id);
@@ -116,6 +183,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const refreshBalance = refreshUserBalance;
 
+  // Profile refresh functionality
   const refreshUserProfile = useCallback(async () => {
     if (!user?.id) return;
     console.log('Refreshing full user profile for ID:', user.id);
@@ -139,7 +207,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     user,
     session,
     loading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !!session,
     isAdmin,
     isStaff,
     userRoles,
@@ -170,4 +238,5 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     </AuthContext.Provider>
   );
 };
+
 export const useAuth = () => useContext(AuthContext);

@@ -18,9 +18,9 @@ export const useAuthState = () => {
   // Function to fetch user roles
   const fetchUserRoles = useCallback(async (userId: string) => {
     try {
+      console.log('Fetching roles for user:', userId);
       const { data, error } = await (supabase as any)
-        .rpc('get_user_roles', { user_id_param: userId })
-        .abortSignal(AbortSignal.timeout(3000)); // 3s timeout
+        .rpc('get_user_roles', { user_id_param: userId });
 
       if (error) {
         console.error('Error fetching user roles:', error);
@@ -32,6 +32,7 @@ export const useAuthState = () => {
 
       if (data) {
         const roles = data as UserRole[];
+        console.log('User roles fetched:', roles);
         setUserRoles(roles);
         setIsAdmin(roles.includes('admin'));
         setIsStaff(roles.includes('staff'));
@@ -56,7 +57,6 @@ export const useAuthState = () => {
         .from('profiles')
         .select('balance')
         .eq('id', userId)
-        .abortSignal(AbortSignal.timeout(3000)) // 3s timeout
         .single();
 
       if (error) {
@@ -88,13 +88,13 @@ export const useAuthState = () => {
       setUser(authUser);
       
       // When we get a valid session, proceed with fetching additional data
-      // But defer slightly to prevent potential race conditions
-      setTimeout(() => {
-        if (authUser.id) {
+      if (authUser.id) {
+        // Avoid recursive Supabase calls inside the auth state change callback
+        setTimeout(() => {
           fetchUserRoles(authUser.id);
           fetchUserBalance(authUser.id);
-        }
-      }, 10);
+        }, 0);
+      }
     } else {
       setUser(null);
       setIsAdmin(false);
@@ -110,6 +110,8 @@ export const useAuthState = () => {
     
     const initializeAuth = async () => {
       try {
+        console.log('Initializing auth...');
+        
         // First set up the auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
           if (isMounted) {
@@ -129,6 +131,7 @@ export const useAuthState = () => {
         
         if (isMounted) {
           if (data.session) {
+            console.log('Found existing session:', data.session.user?.id);
             handleAuthStateChange('INITIAL_SESSION', data.session);
           } else {
             console.log('No existing session found');
@@ -138,7 +141,6 @@ export const useAuthState = () => {
           setLoading(false);
         }
         
-        // Cleanup function
         return () => {
           subscription.unsubscribe();
         };
@@ -156,7 +158,7 @@ export const useAuthState = () => {
         setLoading(false);
         setAuthError(new Error('Authentication timed out'));
       }
-    }, 5000);
+    }, 10000); // Increase timeout to 10 seconds
     
     initializeAuth();
     
