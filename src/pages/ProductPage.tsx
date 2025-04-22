@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -11,7 +10,7 @@ import { Link } from 'react-router-dom';
 import { useProduct } from '@/hooks/useProduct';
 import { ProductTrustBadges } from '@/components/product/ProductTrustBadges';
 import { useState } from 'react';
-import { useProductRecommendations } from '@/hooks/useProductRecommendations';
+import { useProductRecommendations, AISource } from '@/hooks/useProductRecommendations';
 import { ProductRecommendations } from '@/components/product/ProductRecommendations';
 import { useAuth } from '@/context/AuthContext';
 import { usePersonalizedRecommendations } from '@/hooks/usePersonalizedRecommendations';
@@ -21,14 +20,13 @@ const ProductPage = () => {
   const { product, loading, error } = useProduct(productSlug);
   const { user } = useAuth();
 
-  const [aiSource] = useState<'openai' | 'claude' | 'local'>('openai');
+  const [aiSource] = useState<AISource>('openai');
   const {
     recommendations,
     loading: recLoading,
     error: recError
   } = useProductRecommendations(product, aiSource);
 
-  // Thêm personalized recommendations
   const {
     recommendations: personalizedRecs,
     loading: persLoading,
@@ -78,32 +76,26 @@ const ProductPage = () => {
             category={product.categories}
           />
 
-          {/* Two column layout for purchase section and trust badges */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 mt-6">
-            {/* Left column - Purchase section */}
             <div className="lg:col-span-7">
               <ProductPurchaseSection product={product} />
             </div>
             
-            {/* Right column - Trust badges */}
             <div className="lg:col-span-5">
               <ProductTrustBadges />
             </div>
           </div>
 
-          {/* Gợi ý sản phẩm liên quan dựa trên AI */}
           <ProductRecommendations
             recommendations={recommendations}
             loading={recLoading}
             error={recError}
           />
 
-          {/* Full width description section */}
           <div className="mt-8 w-full">
             <ProductDescription description={product.description} />
           </div>
 
-          {/* Gợi ý sản phẩm cá nhân hóa */}
           <ProductRecommendations
             recommendations={personalizedRecs}
             loading={persLoading}

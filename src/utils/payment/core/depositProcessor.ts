@@ -6,7 +6,8 @@ interface SimpleRpcResponse {
   error: { message: string } | null;
 }
 
-interface TransactionResponse {
+// Remove unnecessary interface to avoid circular references
+type TransactionResponse = {
   success: boolean;
   error?: string;
 }

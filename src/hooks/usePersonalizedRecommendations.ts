@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types";
@@ -38,9 +37,7 @@ async function fetchOrderHistory(userId: string) {
   return (data ?? []);
 }
 
-// fallback bình thường nếu không có AI: suggest theo category sản phẩm đã mua nhiều nhất
 async function localRecommend(userId: string, currentProductSlug: string): Promise<Recommendation[]> {
-  // Lấy các sản phẩm đã mua (không phải là sản phẩm hiện tại)
   const history = await fetchOrderHistory(userId);
   const bought = [];
   let mostCat = null;
@@ -57,7 +54,7 @@ async function localRecommend(userId: string, currentProductSlug: string): Promi
   });
 
   mostCat = Object.entries(catCount).sort((a, b) => b[1] - a[1])?.[0]?.[0] || null;
-  // Lấy sản phẩm cùng category nhiều nhất, khác các sản phẩm đã mua và sản phẩm hiện tại
+
   if (mostCat) {
     const { data, error } = await supabase
       .from("products")
@@ -67,7 +64,6 @@ async function localRecommend(userId: string, currentProductSlug: string): Promi
       .limit(5);
 
     if (!error && data) {
-      // Loại bỏ sản phẩm trùng đã mua + hiện tại
       const boughtSlugs = bought.map((p: any) => p.slug);
       const recs = data.filter(p => !boughtSlugs.includes(p.slug)).map(p => ({
         title: p.title,
@@ -101,12 +97,10 @@ async function fetchAiRecommendations(
     })
   );
 
-  // Nếu không có lịch sử thì fallback local
   if (productNames.length === 0 || aiSource === "local") {
     return localRecommend(userId, currentProductSlug);
   }
 
-  // Gửi lên OpenAI để xin gợi ý
   const prompt = `Dựa vào lịch sử mua các sản phẩm: ${productNames.map(t => `"${t}"`).join(", ")} của khách, hãy gợi ý 3-5 sản phẩm liên quan khách MMO thường sẽ quan tâm, tránh gợi ý các sản phẩm đã mua. Trả về JSON dạng [{"title":"...","description":"..."}], tên ngắn gọn, mô tả ngắn.`;
 
   let aiModel = "gpt-4o-mini";
@@ -117,11 +111,9 @@ async function fetchAiRecommendations(
     }
   });
   if (error || !data?.recommendations) throw new Error(data?.error || error?.message || "AI error");
-  // Loại trùng sản phẩm hiện tại
   return data.recommendations.filter((rec: any) => rec.slug !== currentProductSlug).slice(0, 5);
 }
 
-// MAIN HOOK
 export function usePersonalizedRecommendations(
   userId: string | null,
   currentProduct: Product | null,
@@ -138,7 +130,6 @@ export function usePersonalizedRecommendations(
       const recs = await fetchAiRecommendations(userId, currentProduct, currentProduct.slug, aiSource);
       setRecommendations(recs);
     } catch (err: any) {
-      // fallback local nếu AI failed hoặc OpenAI hết quota
       try {
         const localRecs = await localRecommend(userId, currentProduct.slug);
         setRecommendations(localRecs);
