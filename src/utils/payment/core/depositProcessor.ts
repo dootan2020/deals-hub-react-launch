@@ -1,18 +1,11 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { BalanceUpdateResponse } from '@/types/rpc';
 
-/**
- * Simple response type for transaction operations
- */
 interface TransactionResponse {
   success: boolean;
   error?: string;
 }
 
-/**
- * Simple deposit data interface to replace complex supabase return types
- */
 interface DepositData {
   id: string;
   user_id: string;
@@ -21,9 +14,11 @@ interface DepositData {
   transaction_id: string | null;
 }
 
-/**
- * Create a transaction record for a deposit if one doesn't exist
- */
+interface RpcResponse {
+  data: boolean | null;
+  error: Error | null;
+}
+
 export const createTransactionRecord = async (
   userId: string, 
   amount: number, 
@@ -31,8 +26,6 @@ export const createTransactionRecord = async (
   transactionId?: string | null
 ): Promise<boolean> => {
   try {
-    // Check if a transaction with the given reference_id already exists
-    // Using a direct fetch approach without complex types
     const response = await supabase.from('transactions').select('id').eq('reference_id', depositId).maybeSingle();
     
     if (response.error) {
@@ -59,23 +52,19 @@ export const createTransactionRecord = async (
       return true;
     }
     
-    return false; // Transaction already exists
+    return false;
   } catch (error) {
     console.error("Error in createTransactionRecord:", error);
     return false;
   }
 };
 
-/**
- * Ensure deposit is processed and user balance is updated
- */
 export const processDepositBalance = async (
   depositId: string
 ): Promise<{ success: boolean, error?: string, updated: boolean }> => {
   try {
     console.log(`Processing deposit balance for deposit ID: ${depositId}`);
     
-    // Get deposit details with explicit typing
     const depositResponse = await supabase
       .from('deposits')
       .select('id, user_id, net_amount, status, transaction_id')
@@ -93,11 +82,8 @@ export const processDepositBalance = async (
       return { success: false, error: "Deposit not found", updated: false };
     }
     
-    console.log(`Deposit found:`, deposit);
-    
     let statusUpdated = false;
     if (deposit.transaction_id && deposit.status !== 'completed') {
-      // Update deposit status with explicit typing
       const updateResponse = await supabase
         .from('deposits')
         .update({ status: 'completed' })
@@ -109,35 +95,25 @@ export const processDepositBalance = async (
       }
       
       statusUpdated = true;
-      console.log(`Deposit ${depositId} status updated to completed`);
     }
     
     if (deposit.status === 'completed' || deposit.transaction_id) {
       console.log(`Calling update_user_balance for user ${deposit.user_id} with amount ${deposit.net_amount}`);
       
-      // Use a basic object type to avoid deep instantiation
       const balanceResponse = await supabase.rpc('update_user_balance', {
         user_id_param: deposit.user_id,
         amount_param: deposit.net_amount
-      });
+      }) as RpcResponse;
       
-      // Type assertion after the call rather than inline
-      const typedResponse = {
-        data: balanceResponse.data as boolean | null,
-        error: balanceResponse.error
-      };
-      
-      if (typedResponse.error) {
-        console.error("Error updating user balance:", typedResponse.error);
-        return { success: false, error: typedResponse.error.message, updated: false };
+      if (balanceResponse.error) {
+        console.error("Error updating user balance:", balanceResponse.error);
+        return { success: false, error: balanceResponse.error.message, updated: false };
       }
       
-      if (typedResponse.data === false) {
+      if (balanceResponse.data === false) {
         console.warn("Balance update did not affect any rows");
         return { success: false, error: "User profile not found", updated: false };
       }
-      
-      console.log(`Successfully updated balance for user ${deposit.user_id}`);
       
       await createTransactionRecord(
         deposit.user_id,
