@@ -5,9 +5,10 @@ import { Loader2, RefreshCcw, XCircle } from "lucide-react";
 interface AuthLoadingScreenProps {
   onRetry?: () => void;
   onCancel?: () => void;
+  message?: string; // Added message prop
 }
 
-const AuthLoadingScreen = ({ onRetry, onCancel }: AuthLoadingScreenProps) => {
+const AuthLoadingScreen = ({ onRetry, onCancel, message }: AuthLoadingScreenProps) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background">
       <div className="w-full max-w-md p-8 space-y-6 bg-card rounded-lg shadow-lg">
@@ -15,7 +16,7 @@ const AuthLoadingScreen = ({ onRetry, onCancel }: AuthLoadingScreenProps) => {
           <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
           <h2 className="text-2xl font-bold tracking-tight mb-2">Verifying your session</h2>
           <p className="text-muted-foreground mb-6">
-            Please wait while we authenticate your account...
+            {message || "Please wait while we authenticate your account..."}
           </p>
         </div>
 
