@@ -1,3 +1,4 @@
+
 import { Database } from "@/integrations/supabase/types";
 import { Deposit } from "@/types/deposits";
 import { supabase } from "@/integrations/supabase/client";
@@ -131,6 +132,101 @@ export const createDepositProcessor = (options?: DepositProcessorOptions): Depos
     status: "ready",
     processDeposit,
   };
+};
+
+// Add the missing functions that are being imported elsewhere
+export const processDepositBalance = async (depositId: string): Promise<{ success: boolean; updated?: boolean; error?: string }> => {
+  try {
+    console.log(`Processing deposit balance for deposit ID: ${depositId}`);
+    
+    // Get the deposit details
+    const { data: deposit, error: getError } = await supabase
+      .from("deposits")
+      .select("*")
+      .eq("id", depositId)
+      .maybeSingle();
+    
+    if (getError) {
+      console.error("Error fetching deposit:", getError);
+      return { success: false, error: getError.message };
+    }
+    
+    if (!deposit) {
+      return { success: false, error: "Deposit not found" };
+    }
+    
+    // If already completed, return success but note it was already processed
+    if (deposit.status === "completed") {
+      return { success: true, updated: false };
+    }
+    
+    // If deposit has transaction_id and is in pending status, mark as completed
+    if (deposit.transaction_id && deposit.status === "pending") {
+      const { error: updateError } = await supabase
+        .from("deposits")
+        .update({ status: "completed" })
+        .eq("id", depositId);
+      
+      if (updateError) {
+        console.error("Error updating deposit status:", updateError);
+        return { success: false, error: updateError.message };
+      }
+      
+      // Update user balance
+      const { error: balanceError } = await supabase.rpc(
+        "update_user_balance",
+        {
+          user_id_param: deposit.user_id,
+          amount_param: deposit.amount
+        }
+      );
+      
+      if (balanceError) {
+        console.error("Error updating user balance:", balanceError);
+        return { success: false, error: balanceError.message };
+      }
+      
+      // Create a transaction record
+      await createTransactionRecord(deposit);
+      
+      return { success: true, updated: true };
+    }
+    
+    return { success: true, updated: false };
+  } catch (error) {
+    console.error("Error in processDepositBalance:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error processing deposit balance"
+    };
+  }
+};
+
+export const createTransactionRecord = async (deposit: Deposit): Promise<boolean> => {
+  try {
+    console.log(`Creating transaction record for deposit ID: ${deposit.id}`);
+    
+    const { error } = await supabase
+      .from("transactions")
+      .insert({
+        user_id: deposit.user_id,
+        amount: deposit.amount,
+        payment_method: deposit.payment_method,
+        status: "completed",
+        type: "deposit",
+        transaction_id: deposit.transaction_id
+      });
+    
+    if (error) {
+      console.error("Error creating transaction record:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error in createTransactionRecord:", error);
+    return false;
+  }
 };
 
 export default createDepositProcessor;
