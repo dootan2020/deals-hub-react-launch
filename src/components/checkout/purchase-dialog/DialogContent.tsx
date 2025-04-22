@@ -39,7 +39,7 @@ export const DialogContent = ({
 }: DialogContentProps) => {
   const hasEnoughBalance = userBalance !== null && userBalance >= totalPriceUSD;
   
-  // Get effective stock, prioritizing verified stock, then product.stock
+  // Get effective stock, prioritizing verified stock
   const effectiveStock = verifiedStock !== null 
     ? verifiedStock 
     : product.stock;
