@@ -1,11 +1,13 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 import { useOrderApi } from '@/hooks/use-order-api';
 import { supabase } from '@/integrations/supabase/client';
 import { recordPurchaseActivity, checkUserBehaviorAnomaly } from '@/utils/fraud-detection';
 import { Product } from '@/types';
+import { usePurchaseToast } from "@/hooks/purchase/usePurchaseToast";
 
+// Dùng helper mới cho toast và trạng thái
 export const usePurchaseDialog = () => {
   const [open, setOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -14,36 +16,40 @@ export const usePurchaseDialog = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifiedStock, setVerifiedStock] = useState<number | null>(null);
   const [verifiedPrice, setVerifiedPrice] = useState<number | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const { toast } = useToast();
+
   const { user } = useAuth();
   const { createOrder } = useOrderApi();
+  const {
+    notifyLoading,
+    notifySuccess,
+    notifyError,
+    handleApiError,
+    status: submittingStatus,
+    setStatus: setSubmittingStatus,
+  } = usePurchaseToast();
 
-  const openDialog = (product: Product) => {
+  const openDialog = useCallback((product: Product) => {
     setSelectedProduct(product);
     setOpen(true);
     setQuantity(1);
     setPromotionCode('');
     setVerifiedStock(null);
     setVerifiedPrice(null);
-  };
+    setSubmittingStatus("idle");
+  }, [setSubmittingStatus]);
 
-  const closeDialog = () => {
+  const closeDialog = useCallback(() => {
     setOpen(false);
     setSelectedProduct(null);
     setQuantity(1);
     setPromotionCode('');
     setVerifiedStock(null);
     setVerifiedPrice(null);
-  };
+    setSubmittingStatus("idle");
+  }, [setSubmittingStatus]);
 
-  const handleQuantityChange = (value: number) => {
-    setQuantity(value);
-  };
-
-  const handlePromotionCodeChange = (value: string) => {
-    setPromotionCode(value);
-  };
+  const handleQuantityChange = (value: number) => setQuantity(value);
+  const handlePromotionCodeChange = (value: string) => setPromotionCode(value);
 
   const verifyProduct = useCallback(async () => {
     if (!selectedProduct) return;
@@ -58,37 +64,21 @@ export const usePurchaseDialog = () => {
       });
 
       if (error) {
-        console.error('Stock verification error:', error);
-        toast({
-          title: 'Không thể xác minh sản phẩm',
-          description: error.message || 'Có lỗi xảy ra khi xác minh sản phẩm',
-          variant: 'destructive',
-        });
+        notifyError('Không thể xác minh sản phẩm', error.message || 'Có lỗi xảy ra khi xác minh sản phẩm');
         return;
       }
-
       if (data?.success === false) {
-        toast({
-          title: 'Không thể xác minh sản phẩm',
-          description: data.message || 'Có lỗi xảy ra khi xác minh sản phẩm',
-          variant: 'destructive',
-        });
+        notifyError('Không thể xác minh sản phẩm', data.message || 'Có lỗi xảy ra khi xác minh sản phẩm');
         return;
       }
-
       setVerifiedStock(data.data.stock);
       setVerifiedPrice(data.data.price);
     } catch (err: any) {
-      console.error('Stock verification failed:', err);
-      toast({
-        title: 'Không thể xác minh sản phẩm',
-        description: err.message || 'Có lỗi xảy ra khi xác minh sản phẩm',
-        variant: 'destructive',
-      });
+      notifyError('Không thể xác minh sản phẩm', err.message || 'Có lỗi xảy ra khi xác minh sản phẩm');
     } finally {
       setIsVerifying(false);
     }
-  }, [selectedProduct, toast]);
+  }, [selectedProduct, notifyError]);
 
   useEffect(() => {
     if (open && selectedProduct) {
@@ -96,60 +86,36 @@ export const usePurchaseDialog = () => {
     }
   }, [open, selectedProduct, verifyProduct]);
 
+  // Đã gom logic toast, status vào usePurchaseToast
   const handleConfirm = useCallback(async (quantity: number, promotionCode?: string) => {
     if (!selectedProduct) {
-      toast({
-        title: 'Không thể tạo đơn hàng',
-        description: 'Không có sản phẩm nào được chọn',
-        variant: 'destructive',
-      });
+      notifyError("Không thể tạo đơn hàng", "Không có sản phẩm nào được chọn");
       return false;
     }
-
     if (quantity <= 0) {
-      toast({
-        title: 'Không thể tạo đơn hàng',
-        description: 'Số lượng phải lớn hơn 0',
-        variant: 'destructive',
-      });
+      notifyError("Không thể tạo đơn hàng", "Số lượng phải lớn hơn 0");
       return false;
     }
-
     if (verifiedStock === null) {
-      toast({
-        title: 'Không thể tạo đơn hàng',
-        description: 'Không thể xác minh số lượng sản phẩm',
-        variant: 'destructive',
-      });
+      notifyError("Không thể tạo đơn hàng", "Không thể xác minh số lượng sản phẩm");
       return false;
     }
-
     if (quantity > verifiedStock) {
-      toast({
-        title: 'Không thể tạo đơn hàng',
-        description: 'Số lượng vượt quá số lượng sản phẩm hiện có',
-        variant: 'destructive',
-      });
+      notifyError("Không thể tạo đơn hàng", "Số lượng vượt quá số lượng sản phẩm hiện có");
       return false;
     }
 
-    setSubmitting(true);
+    notifyLoading();
+
     try {
       const totalAmount = (verifiedPrice || selectedProduct.price) * quantity;
 
       if (user?.id) {
         const isSuspicious = await recordPurchaseActivity(user.id, totalAmount, selectedProduct.id);
-        
         if (isSuspicious) {
           const behaviorAnomaly = await checkUserBehaviorAnomaly(user.id);
-          
           if (behaviorAnomaly) {
-            setSubmitting(false);
-            toast.error(
-              "Không thể xử lý giao dịch", 
-              "Hoạt động đáng ngờ được phát hiện. Vui lòng liên hệ hỗ trợ."
-            );
-            
+            notifyError("Không thể xử lý giao dịch", "Hoạt động đáng ngờ được phát hiện. Vui lòng liên hệ hỗ trợ.");
             await supabase.functions.invoke("fraud-detection", {
               body: {
                 action: "report-suspicious",
@@ -162,36 +128,47 @@ export const usePurchaseDialog = () => {
                 }
               }
             });
-            
+            setSubmittingStatus("idle");
             return false;
           }
         }
       }
-      
+
       const orderResult = await createOrder({
         kioskToken: selectedProduct.kiosk_token,
         productId: selectedProduct.id,
-        quantity: quantity,
-        promotionCode: promotionCode,
+        quantity,
+        promotionCode,
         priceUSD: totalAmount / 24000
       });
 
       if (orderResult?.success) {
-        toast.success('Mua thành công', 'Đơn hàng đã được tạo thành công.');
+        notifySuccess("Mua thành công", "Đơn hàng đã được tạo thành công.");
         setOpen(false);
+        setSubmittingStatus("idle");
         return true;
       } else {
-        toast.error('Không thể tạo đơn hàng', orderResult?.message || 'Có lỗi xảy ra khi tạo đơn hàng');
+        notifyError("Không thể tạo đơn hàng", orderResult?.message || "Có lỗi xảy ra khi tạo đơn hàng");
+        setSubmittingStatus("idle");
         return false;
       }
     } catch (err: any) {
-      console.error('Order creation failed:', err);
-      toast.error('Không thể tạo đơn hàng', err.message || 'Có lỗi xảy ra khi tạo đơn hàng');
+      handleApiError(err, "Có lỗi xảy ra khi tạo đơn hàng");
+      setSubmittingStatus("idle");
       return false;
-    } finally {
-      setSubmitting(false);
     }
-  }, [selectedProduct, toast, quantity, promotionCode, verifiedPrice, verifiedStock, createOrder, user?.id]);
+  }, [
+    selectedProduct,
+    notifyError,
+    notifyLoading,
+    notifySuccess,
+    handleApiError,
+    setSubmittingStatus,
+    verifiedPrice,
+    verifiedStock,
+    createOrder,
+    user?.id
+  ]);
 
   return {
     open,
@@ -201,7 +178,7 @@ export const usePurchaseDialog = () => {
     isVerifying,
     verifiedStock,
     verifiedPrice,
-    submitting,
+    submitting: submittingStatus === "loading",
     openDialog,
     closeDialog,
     handleQuantityChange,
@@ -210,3 +187,4 @@ export const usePurchaseDialog = () => {
     verifyProduct
   };
 };
+
