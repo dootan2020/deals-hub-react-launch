@@ -1,4 +1,3 @@
-
 // Product type
 export interface Product {
   id: string;

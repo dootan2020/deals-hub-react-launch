@@ -5,9 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import { Wallet, Loader2, AlertCircle } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { Deposit } from '@/types';
+import { Deposit } from '@/types/deposits';
 import { castArrayData } from '@/utils/supabaseHelpers';
-import { TableRow as SupabaseTableRow } from '@supabase/supabase-js/dist/module/lib/types';
 import { prepareTableId } from '@/utils/databaseTypes';
 
 interface DepositHistoryTabProps {

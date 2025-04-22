@@ -1,106 +1,62 @@
 
-import { useEffect, useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCcw, Home } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import React from 'react';
+import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface AuthLoadingScreenProps {
-  onRetry?: () => void;
-  onCancel?: () => void;
   message?: string;
+  onRetry?: () => void;
   attempts?: number;
   isWaitingTooLong?: boolean;
 }
 
-const AuthLoadingScreen = ({ 
-  onRetry, 
-  onCancel, 
-  message = "Đang xác minh phiên đăng nhập",
+/**
+ * Loading screen displayed during authentication processes
+ * Provides feedback and retry options
+ */
+const AuthLoadingScreen = ({
+  message = "Đang xác minh phiên đăng nhập...",
+  onRetry,
   attempts = 0,
   isWaitingTooLong = false
 }: AuthLoadingScreenProps) => {
-  const navigate = useNavigate();
-  const [elapsedTime, setElapsedTime] = useState(0);
-
-  useEffect(() => {
-    const startTime = Date.now();
-    const timer = setInterval(() => {
-      setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, []);
-
-  const goHome = () => navigate('/', { replace: true });
-  const forceRefresh = () => window.location.reload();
-
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-      <div className="w-full max-w-md p-8 space-y-6 bg-card rounded-lg shadow-lg">
-        <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-          <h2 className="text-2xl font-bold tracking-tight mb-2">
-            {message}
-          </h2>
-          <p className="text-muted-foreground mb-2">
-            {isWaitingTooLong 
-              ? "Quá trình này đang mất nhiều thời gian hơn dự kiến..." 
-              : "Vui lòng đợi trong khi chúng tôi xác thực tài khoản..."}
-          </p>
-          
-          {elapsedTime > 3 && (
-            <p className="text-sm text-muted-foreground">
-              Đã chờ {elapsedTime} giây...
-            </p>
-          )}
-
-          {attempts > 0 && (
-            <Alert variant="warning" className="mb-4 mt-4">
-              <AlertTitle>Kết nối đang gặp vấn đề</AlertTitle>
-              <AlertDescription>
-                Đã thử {attempts}/3 lần. {attempts >= 3 ? 'Vui lòng thử lại thủ công.' : 'Đang cố gắng kết nối...'}
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
-
-        <div className="flex justify-center space-x-4 pt-2">
-          {onRetry && elapsedTime > 5 && (
-            <Button 
-              variant="outline"
-              onClick={onRetry}
-              className="flex items-center"
-            >
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Thử lại
-            </Button>
-          )}
-          
-          {elapsedTime > 5 && (
-            <Button 
-              variant="outline"
-              onClick={goHome}
-              className="flex items-center"
-            >
-              <Home className="mr-2 h-4 w-4" />
-              Về trang chủ
-            </Button>
-          )}
-          
-          {elapsedTime > 15 && (
-            <Button
-              variant="default"
-              onClick={forceRefresh}
-              className="flex items-center"
-            >
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Tải lại trang
-            </Button>
-          )}
-        </div>
-      </div>
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <Card className="w-full max-w-md mx-auto">
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center justify-center text-center p-4">
+            {onRetry ? (
+              <div className="flex flex-col items-center">
+                <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
+                <h3 className="text-lg font-medium mb-2">Đang gặp vấn đề kết nối</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  {attempts > 0 && `Lần thử thứ ${attempts}. `}
+                  Không thể kết nối tới máy chủ xác thực. Vui lòng thử lại.
+                </p>
+                <Button onClick={onRetry} className="flex items-center">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Thử lại
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                <h3 className="text-lg font-medium mb-2">{message}</h3>
+                
+                {isWaitingTooLong && (
+                  <div className="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-md">
+                    <p className="text-sm text-amber-700">
+                      Quá trình đang mất nhiều thời gian hơn dự kiến. 
+                      Vui lòng kiểm tra kết nối mạng của bạn.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

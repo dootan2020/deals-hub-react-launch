@@ -1,11 +1,11 @@
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { UserRole } from '@/types/auth.types';
 import AuthLoadingScreen from './loading/AuthLoadingScreen';
 import { EmailVerificationGate } from "./EmailVerificationGate";
-import { useAuthRefresh } from '@/hooks/auth/use-auth-refresh';
+import { useAuthRefresh } from '@/hooks/auth/useAuthRefresh';
 import { RoleChecker } from './roles/RoleChecker';
 
 interface ProtectedRouteProps {
@@ -14,7 +14,14 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteProps) => {
-  const { isAuthenticated, loading: authLoading, userRoles, user, session } = useAuth();
+  const { 
+    isAuthenticated, 
+    loading: authLoading, 
+    userRoles, 
+    user, 
+    session,
+    refreshSession
+  } = useAuth();
   const location = useLocation();
   const [authTimeout, setAuthTimeout] = useState(false);
   const [waitingTooLong, setWaitingTooLong] = useState(false);
@@ -29,7 +36,8 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
     attempts,
     showRetry,
     attemptRefresh,
-    handleRetry
+    handleRetry,
+    cleanup: cleanupRefreshAttempts
   } = useAuthRefresh();
 
   // Set up role check completion
@@ -45,8 +53,30 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
       isMounted.current = false;
       timeoutIds.current.forEach(clearTimeout);
       timeoutIds.current = [];
+      cleanupRefreshAttempts();
     };
-  }, []);
+  }, [cleanupRefreshAttempts]);
+
+  // Handle session refresh if needed
+  useEffect(() => {
+    // If not authenticated or already loading, skip
+    if (isAuthenticated || authLoading) return;
+    
+    // Check if session might be valid but not detected
+    const attemptSessionRestore = async () => {
+      try {
+        const success = await refreshSession();
+        if (!success && !authLoading && isMounted.current) {
+          attemptRefresh();
+        }
+      } catch (error) {
+        console.error("Error attempting session restore:", error);
+      }
+    };
+    
+    // Call immediately but only once
+    attemptSessionRestore();
+  }, [isAuthenticated, authLoading, refreshSession, attemptRefresh]);
 
   // Set up authentication timeouts with debouncing
   useEffect(() => {
@@ -71,12 +101,12 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
       }
     }, 5000);
 
-    // Hard timeout (15s - reduced from 20s)
+    // Hard timeout (10s)
     addTimeout(() => {
       if ((authLoading || refreshing) && !isAuthenticated) {
         setAuthTimeout(true);
       }
-    }, 15000);
+    }, 10000);
 
     return () => {
       timeoutIds.current.forEach(clearTimeout);
@@ -88,7 +118,7 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
   const isFullyAuthenticated = user && 
     isAuthenticated && 
     session?.access_token && 
-    session.expires_at * 1000 > Date.now();
+    (session.expires_at ? session.expires_at * 1000 > Date.now() : true);
 
   // Return authenticated content immediately if possible
   if (isFullyAuthenticated) {

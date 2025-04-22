@@ -1,53 +1,28 @@
 
-import { Database } from '@/types/database.types';
+/**
+ * Helper functions for type-safe database ID handling
+ */
 
 /**
- * Helper function to safely cast database data types
- * when working with Supabase tables
- * 
- * @param tableName The name of the table in the database
- * @param id The ID to compare with
- * @returns The ID in the correct format for Supabase queries
+ * Prepares a table ID for use with Supabase
+ * Ensures consistent type handling across the application
  */
-export function prepareTableId<T extends keyof Database['public']['Tables']>(
-  tableName: T,
-  id: string
-): string {
+export function prepareTableId(tableName: string, id: string): string {
   return id;
 }
 
 /**
- * Helper type for getting row type from a specific table
+ * Prepares an object for insertion into a Supabase table
+ * Ensures consistent type handling across the application
  */
-export type TableRow<T extends keyof Database['public']['Tables']> = 
-  Database['public']['Tables'][T]['Row'];
-
-/**
- * Helper type for getting insert type from a specific table
- */
-export type TableInsert<T extends keyof Database['public']['Tables']> = 
-  Database['public']['Tables'][T]['Insert'];
-
-/**
- * Helper type for getting update type from a specific table
- */
-export type TableUpdate<T extends keyof Database['public']['Tables']> = 
-  Database['public']['Tables'][T]['Update'];
-
-/**
- * Helper function to prepare data for insertion into a specific table
- */
-export function prepareTableInsert<T extends keyof Database['public']['Tables']>(
-  data: Partial<TableInsert<T>>
-): TableInsert<T> {
-  return data as TableInsert<T>;
+export function prepareTableInsert(tableName: string, data: Record<string, any>): Record<string, any> {
+  return data;
 }
 
 /**
- * Helper function to prepare data for updating a specific table
+ * Prepares an object for updating a Supabase table
+ * Ensures consistent type handling across the application
  */
-export function prepareTableUpdate<T extends keyof Database['public']['Tables']>(
-  data: Partial<TableUpdate<T>>
-): TableUpdate<T> {
-  return data as TableUpdate<T>;
+export function prepareTableUpdate(tableName: string, data: Record<string, any>): Record<string, any> {
+  return data;
 }

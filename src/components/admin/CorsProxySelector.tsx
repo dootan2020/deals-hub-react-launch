@@ -8,8 +8,15 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ProxyType, ProxySettings } from '@/types';
-import { prepareInsert, prepareUpdate, castData, createDefaultProxySettings } from '@/utils/supabaseHelpers';
+import { castData } from '@/utils/supabaseHelpers';
 import { prepareTableId, prepareTableInsert, prepareTableUpdate } from '@/utils/databaseTypes';
+
+// Default proxy settings to use when no settings exist
+const createDefaultProxySettings = (): ProxySettings => ({
+  id: '',
+  proxy_type: 'allorigins',
+  custom_url: null
+});
 
 export const CorsProxySelector = () => {
   const [proxyType, setProxyType] = useState<ProxyType>('allorigins');
@@ -40,7 +47,7 @@ export const CorsProxySelector = () => {
       
       if (data) {
         // Use castData to safely cast to ProxySettings
-        const safeData = castData<ProxySettings>(data, createDefaultProxySettings());
+        const safeData = castData<ProxySettings>(data);
         setSettings(safeData);
         setProxyType(safeData.proxy_type as ProxyType);
         setCustomUrl(safeData.custom_url || '');
