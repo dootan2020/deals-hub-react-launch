@@ -2,6 +2,25 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
+ * Simple response type for transaction operations
+ */
+interface TransactionResponse {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Simple deposit data interface to replace complex supabase return types
+ */
+interface DepositData {
+  id: string;
+  user_id: string;
+  net_amount: number;
+  status: string;
+  transaction_id: string | null;
+}
+
+/**
  * Create a transaction record for a deposit if one doesn't exist
  */
 export const createTransactionRecord = async (
@@ -12,12 +31,15 @@ export const createTransactionRecord = async (
 ): Promise<boolean> => {
   try {
     // Check if a transaction with the given reference_id already exists
-    // Simplified query to avoid deep type instantiation
-    const { data, error } = await supabase
+    // Using a simplified query approach without complex generics
+    const result = await supabase
       .from('transactions')
       .select('id')
       .eq('reference_id', depositId)
       .maybeSingle();
+      
+    const error = result.error;
+    const data = result.data;
       
     if (error) {
       console.error("Error checking for existing transaction:", error);
@@ -25,7 +47,7 @@ export const createTransactionRecord = async (
     }
       
     if (!data) {
-      const { error } = await supabase.from('transactions').insert({
+      const insertResult = await supabase.from('transactions').insert({
         user_id: userId,
         amount: amount,
         type: 'deposit',
@@ -34,8 +56,8 @@ export const createTransactionRecord = async (
         reference_id: depositId
       });
       
-      if (error) {
-        console.error("Error creating transaction record:", error);
+      if (insertResult.error) {
+        console.error("Error creating transaction record:", insertResult.error);
         return false;
       }
       
@@ -59,12 +81,15 @@ export const processDepositBalance = async (
   try {
     console.log(`Processing deposit balance for deposit ID: ${depositId}`);
     
-    // Get deposit details - Simplified query to avoid deep type instantiation
-    const { data: deposit, error } = await supabase
+    // Get deposit details with simplified query approach
+    const result = await supabase
       .from('deposits')
       .select('id, user_id, net_amount, status, transaction_id')
       .eq('id', depositId)
       .maybeSingle();
+      
+    const error = result.error;
+    const deposit = result.data as DepositData | null;
       
     if (error) {
       console.error("Error fetching deposit:", error);
@@ -82,14 +107,14 @@ export const processDepositBalance = async (
     if (deposit.transaction_id && deposit.status !== 'completed') {
       console.log(`Updating deposit ${depositId} status to completed`);
       
-      const { error: updateError } = await supabase
+      const updateResult = await supabase
         .from('deposits')
         .update({ status: 'completed' })
         .eq('id', depositId);
         
-      if (updateError) {
-        console.error("Error updating deposit status:", updateError);
-        return { success: false, error: updateError.message, updated: false };
+      if (updateResult.error) {
+        console.error("Error updating deposit status:", updateResult.error);
+        return { success: false, error: updateResult.error.message, updated: false };
       }
       
       statusUpdated = true;
@@ -101,11 +126,14 @@ export const processDepositBalance = async (
     if (deposit.status === 'completed' || deposit.transaction_id) {
       console.log(`Calling update_user_balance for user ${deposit.user_id} with amount ${deposit.net_amount}`);
       
-      // Simplify the RPC call to avoid deep type instantiation issues
-      const { data, error: balanceError } = await supabase.rpc('update_user_balance', {
+      // Simplified RPC call without complex generic types
+      const balanceResult = await supabase.rpc('update_user_balance', {
         user_id_param: deposit.user_id,
         amount_param: deposit.net_amount
       });
+      
+      const balanceError = balanceResult.error;
+      const balanceData = balanceResult.data;
       
       if (balanceError) {
         console.error("Error updating user balance:", balanceError);
@@ -113,7 +141,7 @@ export const processDepositBalance = async (
       }
       
       // If result is false, it means no row was found/updated
-      if (data === false) {
+      if (balanceData === false) {
         console.warn("Balance update did not affect any rows");
         return { success: false, error: "User profile not found", updated: false };
       }
