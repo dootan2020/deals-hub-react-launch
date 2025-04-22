@@ -2,17 +2,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+import { getCachedData, setCachedData, CACHE_KEYS, TTL } from '@/utils/cacheUtils';
 
 interface AccountData {
   totalDeposited: number;
   totalOrders: number;
   lastLoginAt: Date | null;
-}
-
-interface CacheData extends AccountData {
-  timestamp: number;
 }
 
 export const useAccountData = () => {
@@ -26,26 +21,6 @@ export const useAccountData = () => {
   const [error, setError] = useState('');
   const isMounted = useRef(true);
 
-  const getCachedData = useCallback(() => {
-    const cached = localStorage.getItem(`account_data_${user?.id}`);
-    if (cached) {
-      const parsedCache: CacheData = JSON.parse(cached);
-      if (Date.now() - parsedCache.timestamp < CACHE_DURATION) {
-        delete parsedCache.timestamp;
-        return parsedCache as AccountData;
-      }
-    }
-    return null;
-  }, [user?.id]);
-
-  const cacheData = useCallback((data: AccountData) => {
-    const cacheData: CacheData = {
-      ...data,
-      timestamp: Date.now()
-    };
-    localStorage.setItem(`account_data_${user?.id}`, JSON.stringify(cacheData));
-  }, [user?.id]);
-
   const fetchData = useCallback(async () => {
     if (!user?.id) return;
 
@@ -54,10 +29,14 @@ export const useAccountData = () => {
 
     try {
       // Check cache first
-      const cachedData = getCachedData();
-      if (cachedData) {
+      const cached = getCachedData<AccountData>(
+        `${CACHE_KEYS.USER_PROFILE}_${user.id}`,
+        { ttl: TTL.PROFILE }
+      );
+      
+      if (cached) {
         if (isMounted.current) {
-          setData(cachedData);
+          setData(cached);
           setIsLoading(false);
         }
         return;
@@ -91,7 +70,8 @@ export const useAccountData = () => {
       };
 
       setData(newData);
-      cacheData(newData);
+      setCachedData(`${CACHE_KEYS.USER_PROFILE}_${user.id}`, newData, TTL.PROFILE);
+      
     } catch (error) {
       console.error("Error fetching account data:", error);
       if (isMounted.current) {
@@ -102,11 +82,10 @@ export const useAccountData = () => {
         setIsLoading(false);
       }
     }
-  }, [user?.id, getCachedData, cacheData]);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchData();
-
     return () => {
       isMounted.current = false;
     };
