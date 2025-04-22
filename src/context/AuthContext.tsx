@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useMemo, ReactNode, memo } from 'react';
-import { useAuthState } from '@/hooks/auth/useAuthState';
+import { useAuthState as useAuthStateHook } from '@/hooks/auth/useAuthState';
 import type { AuthContextType, User } from '@/types/auth.types';
 import { AuthErrorBoundary } from '@/components/auth/AuthErrorBoundary';
 
@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     fetchUserBalance,
     refreshUserData,
     isLoadingBalance,
-  } = useAuthState();
+  } = useAuthStateHook();
 
   // Memoized auth state values
   const authStateValue = useMemo(() => ({
@@ -96,10 +96,10 @@ export const useUser = () => {
   return context;
 };
 
-export const useAuthState = () => {
+export const useAuthContext = () => {
   const context = useContext(AuthStateContext);
   if (context === undefined) {
-    throw new Error('useAuthState must be used within AuthProvider');
+    throw new Error('useAuthContext must be used within AuthProvider');
   }
   return context;
 };
@@ -107,7 +107,7 @@ export const useAuthState = () => {
 // Combined hook for backward compatibility
 export const useAuth = () => {
   const user = useUser();
-  const authState = useAuthState();
+  const authState = useAuthContext();
   return useMemo(() => ({ 
     user, 
     ...authState 
