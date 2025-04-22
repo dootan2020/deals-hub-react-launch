@@ -25,13 +25,15 @@ const ProductEditPage = () => {
       const { data, error } = await supabase
         .from('products')
         .select('id, title')
-        .eq('id', id)
+        .eq('id', id as string)
         .single();
 
       if (error) throw error;
-      setProductExists(!!data);
-      if (data?.title) {
-        setProductName(data.title);
+      // Use type assertion for safe property access
+      const productData = data as any;
+      setProductExists(!!productData);
+      if (productData?.title) {
+        setProductName(productData.title);
       }
     } catch (error) {
       console.error('Error checking product:', error);

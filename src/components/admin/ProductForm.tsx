@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -108,7 +109,8 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         .order('name');
 
       if (error) throw error;
-      setCategories(data || []);
+      // Fix type assertion here
+      setCategories((data || []) as Category[]);
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast.error('Failed to fetch categories');
@@ -121,23 +123,25 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId)
+        .eq('id', productId as string)
         .single();
 
       if (error) throw error;
       if (data) {
+        // Safe property access with type assertion
+        const productData = data as any;
         form.reset({
-          title: data.title,
-          description: data.description,
-          price: data.price,
-          originalPrice: data.original_price || undefined,
-          inStock: data.in_stock ?? true,
-          slug: data.slug,
-          externalId: data.external_id || '',
-          categoryId: data.category_id || '',
-          images: data.images && data.images.length > 0 ? data.images.join('\n') : '',
-          kioskToken: data.kiosk_token || '',
-          stock: data.stock || 0,
+          title: productData.title,
+          description: productData.description,
+          price: productData.price,
+          originalPrice: productData.original_price || undefined,
+          inStock: productData.in_stock ?? true,
+          slug: productData.slug,
+          externalId: productData.external_id || '',
+          categoryId: productData.category_id || '',
+          images: productData.images && productData.images.length > 0 ? productData.images.join('\n') : '',
+          kioskToken: productData.kiosk_token || '',
+          stock: productData.stock || 0,
         });
         setFormDirty(false);
       }
@@ -242,7 +246,9 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       const proxyConfig = await fetchProxySettings();
       
       const apiConfig = await fetchActiveApiConfig();
-      const userToken = apiConfig.user_token;
+      // Fix type safety for apiConfig
+      const apiConfigData = apiConfig as any;
+      const userToken = apiConfigData.user_token;
       
       const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${userToken}`;
       const data = await fetchViaProxy(apiUrl, proxyConfig);
@@ -376,3 +382,4 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     </>
   );
 }
+
