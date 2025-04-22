@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useAuthMonitoring } from '@/utils/auth/auth-monitoring';
 import { Button } from '@/components/ui/button';
+import { AuthEvent } from '@/types'; // Import AuthEvent type
 import {
   Dialog,
   DialogContent,
@@ -16,14 +17,18 @@ const AuthDebugger = () => {
   const [sessionChecks, setSessionChecks] = useState(0);
 
   useEffect(() => {
+    // Only run the effect in development environment
+    if (process.env.NODE_ENV !== 'development') return;
+    
     const interval = setInterval(() => {
       setLogs(getRecentLogs());
       setSessionChecks(getSessionChecksCount());
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [getRecentLogs, getSessionChecksCount]);
 
+  // Don't render in production
   if (process.env.NODE_ENV !== 'development') {
     return null;
   }

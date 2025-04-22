@@ -1,6 +1,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { reloadSession } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,8 +21,17 @@ export const useAuthRefresh = () => {
   const lastRefreshAttempt = useRef<number>(0);
   const retryTimer = useRef<NodeJS.Timeout | null>(null);
   const isAutoRetrying = useRef(false);
+  const isComponentMounted = useRef(true); // Track mount status
   
   const navigate = useNavigate();
+
+  // Set up mount status tracker
+  useEffect(() => {
+    isComponentMounted.current = true;
+    return () => {
+      isComponentMounted.current = false;
+    };
+  }, []);
 
   // Cleanup function
   const cleanup = useCallback(() => {
@@ -35,6 +44,8 @@ export const useAuthRefresh = () => {
 
   // Reset all state
   const resetState = useCallback(() => {
+    if (!isComponentMounted.current) return;
+    
     setAttempts(0);
     setShowRetry(false);
     setLastError(null);
@@ -64,57 +75,73 @@ export const useAuthRefresh = () => {
       return false;
     }
     
+    if (!isComponentMounted.current) return false;
     setRefreshing(true);
+    
     const currentAttempt = attempts + 1;
     lastRefreshAttempt.current = Date.now();
 
     try {
       console.debug(`Starting session refresh (attempt ${currentAttempt}/${MAX_ATTEMPTS})`);
       
-      const { success, error, data, rateLimited } = await reloadSession();
+      const { data, error } = await supabase.auth.refreshSession();
       
-      if (rateLimited) {
-        toast.error("Too many refresh attempts", {
-          description: "Please wait before trying again"
+      if (!isComponentMounted.current) return false;
+      
+      if (error) {
+        // Handle rate limiting errors specifically
+        if (error.message?.includes('rate limit') || error.message?.includes('too many requests')) {
+          toast.error("Quá nhiều yêu cầu", {
+            description: "Vui lòng đợi một lúc trước khi thử lại"
+          });
+          setLastError("rate_limited");
+          return false;
+        }
+
+        // Handle general errors
+        const errorMessage = error.message || 'Unknown error';
+        console.error('Session refresh failed:', {
+          attempt: currentAttempt,
+          error: errorMessage,
+          timestamp: new Date().toISOString()
         });
+        
+        setLastError(errorMessage);
+        setAttempts(currentAttempt);
+        
+        // Only show retry button after all auto-retries are exhausted
+        if (currentAttempt >= MAX_ATTEMPTS) {
+          console.warn('Maximum refresh attempts reached');
+          setShowRetry(true);
+          cleanup(); // Ensure no more auto-retries
+        } else if (currentAttempt <= AUTO_RETRY_THRESHOLD && !isAutoRetrying.current) {
+          // Schedule auto-retry with exponential backoff
+          isAutoRetrying.current = true;
+          const delay = RETRY_DELAY * Math.pow(2, currentAttempt - 1);
+          console.debug(`Scheduling auto-retry #${currentAttempt} in ${delay}ms`);
+          
+          retryTimer.current = setTimeout(() => {
+            if (isComponentMounted.current) {
+              isAutoRetrying.current = false;
+              attemptRefresh();
+            }
+          }, delay);
+        }
+        
         return false;
       }
 
-      if (success && data?.session) {
+      // Success case
+      if (data.session) {
         console.debug('Session refreshed successfully', {
           expiresAt: new Date(data.session.expires_at * 1000).toLocaleString(),
           userId: data.session.user.id
         });
-        resetState();
-        return true;
-      }
-
-      // Handle error cases
-      const errorMessage = error?.message || 'Unknown error';
-      console.error('Session refresh failed:', {
-        attempt: currentAttempt,
-        error: errorMessage,
-        timestamp: new Date().toISOString()
-      });
-      
-      setLastError(errorMessage);
-      setAttempts(currentAttempt);
-      
-      // Only show retry button after all auto-retries are exhausted
-      if (currentAttempt >= MAX_ATTEMPTS) {
-        console.warn('Maximum refresh attempts reached');
-        setShowRetry(true);
-        cleanup(); // Ensure no more auto-retries
-      } else if (currentAttempt <= AUTO_RETRY_THRESHOLD && !isAutoRetrying.current) {
-        // Schedule auto-retry with exponential backoff
-        isAutoRetrying.current = true;
-        const delay = RETRY_DELAY * Math.pow(2, currentAttempt - 1);
-        console.debug(`Scheduling auto-retry #${currentAttempt} in ${delay}ms`);
         
-        retryTimer.current = setTimeout(() => {
-          isAutoRetrying.current = false;
-          attemptRefresh();
-        }, delay);
+        if (isComponentMounted.current) {
+          resetState();
+        }
+        return true;
       }
       
       return false;
@@ -127,20 +154,24 @@ export const useAuthRefresh = () => {
         timestamp: new Date().toISOString()
       });
       
-      setLastError(errorMessage);
-      setAttempts(currentAttempt);
+      if (isComponentMounted.current) {
+        setLastError(errorMessage);
+        setAttempts(currentAttempt);
+      }
       return false;
     } finally {
-      setRefreshing(false);
+      if (isComponentMounted.current) {
+        setRefreshing(false);
+      }
     }
-  }, [refreshing, attempts, resetState, cleanup]);
+  }, [refreshing, attempts, resetState, cleanup, isRateLimited]);
 
   const handleManualRetry = useCallback(async () => {
     cleanup(); // Clear any pending auto-retries
     resetState(); // Reset attempt counter and error state
     
     const success = await attemptRefresh();
-    if (!success) {
+    if (!success && isComponentMounted.current) {
       console.error('Manual refresh attempt failed, redirecting to login');
       toast.error("Không thể khôi phục phiên", {
         description: "Vui lòng đăng nhập lại để tiếp tục"
@@ -162,6 +193,7 @@ export const useAuthRefresh = () => {
     showRetry,
     lastError,
     attemptRefresh,
-    handleRetry: handleManualRetry
+    handleRetry: handleManualRetry,
+    cleanup
   };
 };

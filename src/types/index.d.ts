@@ -1,3 +1,4 @@
+
 // Product type
 export interface Product {
   id: string;
@@ -114,3 +115,10 @@ export interface FilterParams {
 
 // Export Deposit types from deposits.ts to ensure they're available
 export * from './deposits';
+
+// Auth event type for monitoring
+export type AuthEvent = {
+  type: 'session_check' | 'login' | 'logout' | 'refresh' | 'error';
+  timestamp: number;
+  metadata?: Record<string, any>;
+};

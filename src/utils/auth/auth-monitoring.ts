@@ -1,10 +1,5 @@
 import { toast } from "sonner";
-
-export type AuthEvent = {
-  type: 'session_check' | 'login' | 'logout' | 'refresh' | 'error';
-  timestamp: number;
-  metadata?: Record<string, any>;
-};
+import { AuthEvent } from "@/types";
 
 const authLogs: AuthEvent[] = [];
 let sessionChecks = 0;
@@ -51,6 +46,7 @@ export const authMonitoring = {
 
   setDebugMode(enabled: boolean) {
     isDebugMode = enabled;
+    console.log(`[Auth] Debug mode ${enabled ? 'enabled' : 'disabled'}`);
   },
 
   notifyAuthIssue(title: string, description?: string) {

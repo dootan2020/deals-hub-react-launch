@@ -5,7 +5,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { UserRole } from '@/types/auth.types';
 import AuthLoadingScreen from './loading/AuthLoadingScreen';
 import { EmailVerificationGate } from "./EmailVerificationGate";
-import { useAuthRefresh } from '@/hooks/auth/useAuthRefresh';
+import { useAuthRefresh } from '@/hooks/auth/use-auth-refresh';
 import { RoleChecker } from './roles/RoleChecker';
 
 interface ProtectedRouteProps {
@@ -30,6 +30,7 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
   // Track mount state to prevent updates after unmount
   const isMounted = useRef(true);
   const timeoutIds = useRef<NodeJS.Timeout[]>([]);
+  const refreshAttempted = useRef(false);
 
   const {
     refreshing,
@@ -57,15 +58,21 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
     };
   }, [cleanupRefreshAttempts]);
 
-  // Handle session refresh if needed
+  // Handle session refresh if needed - with safeguards against infinite loops
   useEffect(() => {
-    // If not authenticated or already loading, skip
-    if (isAuthenticated || authLoading) return;
+    // If authenticated, already loading or refresh already attempted, skip
+    if (isAuthenticated || authLoading || refreshAttempted.current) return;
+    
+    // Set the flag to prevent multiple attempts in the same render cycle
+    refreshAttempted.current = true;
     
     // Check if session might be valid but not detected
     const attemptSessionRestore = async () => {
       try {
+        console.log("Attempting session restore...");
         const success = await refreshSession();
+        
+        // If refresh failed and component still mounted, try the refresh mechanism
         if (!success && !authLoading && isMounted.current) {
           attemptRefresh();
         }
@@ -74,8 +81,16 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
       }
     };
     
-    // Call immediately but only once
-    attemptSessionRestore();
+    // Wait a small delay before attempting to avoid immediate attempts during navigation
+    const delayTimer = setTimeout(() => {
+      attemptSessionRestore();
+    }, 50);
+    
+    timeoutIds.current.push(delayTimer);
+    
+    return () => {
+      clearTimeout(delayTimer);
+    };
   }, [isAuthenticated, authLoading, refreshSession, attemptRefresh]);
 
   // Set up authentication timeouts with debouncing
@@ -101,12 +116,12 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
       }
     }, 5000);
 
-    // Hard timeout (10s)
+    // Hard timeout (8s instead of 10s to avoid race conditions)
     addTimeout(() => {
       if ((authLoading || refreshing) && !isAuthenticated) {
         setAuthTimeout(true);
       }
-    }, 10000);
+    }, 8000);
 
     return () => {
       timeoutIds.current.forEach(clearTimeout);
