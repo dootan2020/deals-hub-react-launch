@@ -1,13 +1,10 @@
-
 import { useFormContext } from 'react-hook-form';
 import { 
   FormField, FormItem, FormLabel, FormControl, 
   FormMessage, FormDescription 
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
-import '@/styles/quill.css';
+import { RichTextEditor } from '@/components/ui/RichTextEditor';
 
 export function ProductBasicInfoFields() {
   const form = useFormContext();
@@ -26,21 +23,6 @@ export function ProductBasicInfoFields() {
       .replace(/[^a-z0-9-]/g, '');
     form.setValue('slug', slug);
   };
-
-  // Rich text editor configuration 
-  const modules = {
-    toolbar: [
-      ['bold', 'italic', 'underline'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['link'],
-      ['clean']
-    ],
-  };
-
-  const formats = [
-    'bold', 'italic', 'underline',
-    'list', 'bullet', 'link'
-  ];
 
   return (
     <div className="space-y-6">
@@ -67,16 +49,12 @@ export function ProductBasicInfoFields() {
           <FormItem>
             <FormLabel>Description <span className="text-red-500">*</span></FormLabel>
             <FormControl>
-              <div className="rich-text-editor">
-                <ReactQuill 
-                  theme="snow" 
-                  value={field.value} 
-                  onChange={field.onChange}
-                  modules={modules}
-                  formats={formats}
-                  className="min-h-[200px] mb-12"
-                />
-              </div>
+              <RichTextEditor 
+                value={field.value} 
+                onChange={field.onChange}
+                placeholder="Enter product description..."
+                height="300px"
+              />
             </FormControl>
             <FormDescription>
               Format your description using the toolbar above

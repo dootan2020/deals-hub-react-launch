@@ -1,8 +1,4 @@
-
-import { Button } from '@/components/ui/button';
 import { FormProvider } from 'react-hook-form';
-import { Loader2 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ProductBasicInfoFields } from '../product-form/ProductBasicInfoFields';
 import { ProductPricingFields } from '../product-form/ProductPricingFields';
 import { ProductApiFields } from '../product-form/ProductApiFields';
@@ -32,7 +28,7 @@ export function EditProductFormFields({
           <ProductApiFields />
           <ProductBasicInfoFields />
           <ProductPricingFields />
-          
+
           <FormField
             name="categoryId"
             control={form.control}
