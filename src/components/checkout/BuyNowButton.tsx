@@ -8,7 +8,7 @@ import { ensureProductFields } from '@/utils/productUtils';
 import { Product } from '@/types';
 
 interface BuyNowButtonProps {
-  product?: any;
+  product?: Product;
   kioskToken?: string;
   productId?: string;
   quantity?: number;
