@@ -11,7 +11,7 @@ import { Category } from '@/types';
 import { fetchProxySettings, fetchViaProxy } from '@/utils/proxyUtils';
 import { fetchActiveApiConfig } from '@/utils/apiUtils';
 import { ApiResponse } from '@/components/admin/product-manager/ApiProductTester';
-import { isValidArray, isValidRecord, isDataResponse, isSupabaseRecord } from '@/utils/supabaseHelpers';
+import { isValidArray, isValidRecord, isDataResponse, isSupabaseRecord, safeString, safeNumber } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
@@ -29,6 +29,16 @@ const productSchema = z.object({
 });
 
 export type ProductFormValues = z.infer<typeof productSchema>;
+
+interface CategoryData {
+  id: string;
+  name: string;
+  description: string;
+  slug: string;
+  image: string;
+  count: number;
+  parent_id: string | null;
+}
 
 export function useProductForm(productId?: string, onSuccess?: () => void) {
   const [isLoading, setIsLoading] = useState(false);
@@ -79,18 +89,19 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
         .order('name');
 
       if (error) throw error;
+
       if (isValidArray(data)) {
         const typedCategories: Category[] = [];
         data.forEach(item => {
-          if (isSupabaseRecord(item) && isValidRecord(item)) {
+          if (isSupabaseRecord(item) && isValidRecord<CategoryData>(item)) {
             typedCategories.push({
-              id: String(item.id ?? ''),
-              name: String(item.name ?? ''),
-              description: String(item.description ?? ''),
-              slug: String(item.slug ?? ''),
-              image: String(item.image ?? ''),
-              count: Number(item.count ?? 0),
-              parent_id: item.parent_id ? String(item.parent_id) : null
+              id: safeString(item.id),
+              name: safeString(item.name),
+              description: safeString(item.description),
+              slug: safeString(item.slug),
+              image: safeString(item.image),
+              count: safeNumber(item.count),
+              parent_id: item.parent_id ? safeString(item.parent_id) : null
             });
           }
         });
@@ -103,6 +114,21 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
     }
   };
 
+  interface ProductData {
+    id: string;
+    title: string;
+    description: string;
+    price: number;
+    original_price?: number;
+    in_stock: boolean;
+    slug: string;
+    external_id?: string;
+    category_id: string;
+    images?: string[];
+    kiosk_token?: string;
+    stock: number;
+  }
+
   const fetchProductDetails = async () => {
     if (!productId) return;
     setIsLoading(true);
@@ -110,23 +136,24 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId)
+        .eq('id', productId as string)
         .maybeSingle();
 
       if (error) throw error;
-      if (data && isSupabaseRecord(data) && isValidRecord(data)) {
+      
+      if (data && isSupabaseRecord<ProductData>(data)) {
         form.reset({
-          title: data.title ?? '',
-          description: data.description ?? '',
-          price: Number(data.price ?? 0),
-          originalPrice: data.original_price ?? undefined,
-          inStock: data.in_stock ?? true,
-          slug: data.slug ?? '',
-          externalId: data.external_id ?? '',
-          categoryId: data.category_id ?? '',
+          title: safeString(data.title),
+          description: safeString(data.description),
+          price: safeNumber(data.price),
+          originalPrice: data.original_price !== undefined ? safeNumber(data.original_price) : undefined,
+          inStock: !!data.in_stock,
+          slug: safeString(data.slug),
+          externalId: data.external_id ? safeString(data.external_id) : '',
+          categoryId: safeString(data.category_id),
           images: Array.isArray(data.images) && data.images.length > 0 ? data.images.join('\n') : '',
-          kioskToken: data.kiosk_token ?? '',
-          stock: Number(data.stock ?? 0),
+          kioskToken: data.kiosk_token ? safeString(data.kiosk_token) : '',
+          stock: safeNumber(data.stock),
         });
         setFormDirty(false);
       } else {
@@ -208,7 +235,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
         return;
       }
       
-      const userToken = String(apiConfig.user_token || '');
+      const userToken = safeString(apiConfig.user_token || '');
       
       const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${userToken}`;
       const data = await fetchViaProxy(apiUrl, proxyConfig);

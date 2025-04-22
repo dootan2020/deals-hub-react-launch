@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -21,13 +22,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { ProxyType } from '@/utils/proxyUtils';
-import { isValidRecord, isSupabaseRecord } from '@/utils/supabaseHelpers';
+import { isValidRecord, isSupabaseRecord, isDataResponse } from '@/utils/supabaseHelpers';
 
 export type { ProxyType } from '@/utils/proxyUtils';
 
 interface ProxyConfig {
   type: ProxyType;
   url?: string;
+}
+
+interface ProxySettings {
+  proxy_type: string;
+  custom_url?: string;
+  id?: string;
 }
 
 export function CorsProxySelector() {
@@ -63,7 +70,7 @@ export function CorsProxySelector() {
         return;
       }
 
-      if (proxySettings && isSupabaseRecord(proxySettings) && isValidRecord(proxySettings)) {
+      if (proxySettings && isSupabaseRecord<ProxySettings>(proxySettings)) {
         const proxyType = typeof proxySettings.proxy_type === 'string' 
           ? proxySettings.proxy_type as ProxyType 
           : 'allorigins';

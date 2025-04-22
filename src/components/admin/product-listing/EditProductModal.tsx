@@ -11,6 +11,7 @@ import { EditProductHeader } from './EditProductHeader';
 import { EditProductFormFields } from './EditProductFormFields';
 import { useEditProduct } from '@/hooks/admin/useEditProduct';
 import type { Category } from '@/types';
+import { isValidArray, isSupabaseRecord } from '@/utils/supabaseHelpers';
 
 interface EditProductModalProps {
   isOpen: boolean;
@@ -43,7 +44,12 @@ export function EditProductModal({
         .order('name');
 
       if (error) throw error;
-      setCategories(data || []);
+      
+      if (isValidArray<Category>(data) && data.every(item => isSupabaseRecord<Category>(item))) {
+        setCategories(data);
+      } else {
+        setCategories([]);
+      }
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast.error('Failed to fetch categories');
