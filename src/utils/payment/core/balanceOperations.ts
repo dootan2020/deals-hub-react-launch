@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { BalanceUpdateResponse } from '@/types/rpc';
 
 /**
  * Safely update user balance by a given amount
@@ -18,18 +17,24 @@ export const updateUserBalance = async (
   try {
     console.log(`Updating balance for user ${userId}: ${amount > 0 ? '+' : ''}${amount}`);
     
-    // RPC call with explicit typing using "as"
+    // Use a basic call and then type the response separately
     const balanceResponse = await supabase.rpc('update_user_balance', {
       user_id_param: userId,
       amount_param: amount
-    }) as BalanceUpdateResponse;
+    });
     
-    if (balanceResponse.error) {
-      console.error("Error updating user balance:", balanceResponse.error);
-      return { success: false, error: balanceResponse.error.message };
+    // Type assertion after the call
+    const typedResponse = {
+      data: balanceResponse.data as boolean | null,
+      error: balanceResponse.error
+    };
+    
+    if (typedResponse.error) {
+      console.error("Error updating user balance:", typedResponse.error);
+      return { success: false, error: typedResponse.error.message };
     }
     
-    if (balanceResponse.data === false) {
+    if (typedResponse.data === false) {
       return { success: false, error: "User profile not found" };
     }
     
