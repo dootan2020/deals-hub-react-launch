@@ -10,8 +10,22 @@ export interface Product {
   inStock: boolean;
   slug: string;
   createdAt: string;
-  // Remove fields not in actual schema: images, categoryId, rating, etc.
   specifications: Record<string, string | number | boolean | object>;
+  
+  // Additional fields used across the application
+  description?: string;
+  shortDescription?: string;
+  images?: string[];
+  categoryId?: string;
+  categories?: Category;
+  badges?: string[];
+  originalPrice?: number;
+  stockQuantity?: number;
+  salesCount?: number;
+  sales_count?: number;
+  rating?: number;
+  reviewCount?: number;
+  features?: string[];
 }
 
 export interface Category {

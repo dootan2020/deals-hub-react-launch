@@ -18,9 +18,11 @@ export const applyFilters = (products: Product[], filters: any = {}): Product[] 
     }
   }
   
-  // Filter by rating
+  // Filter by rating (if product has rating property)
   if (filters.rating !== undefined) {
-    filteredProducts = filteredProducts.filter(p => p.rating >= filters.rating);
+    filteredProducts = filteredProducts.filter(p => 
+      p.rating !== undefined && p.rating >= filters.rating
+    );
   }
   
   // Filter by availability (in stock)
@@ -58,8 +60,12 @@ export const sortProducts = (products: Product[], sortOption?: string): Product[
       });
       
     case 'popular':
-      // Sort by sales count
-      return sortedProducts.sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
+      // Sort by sales count (safely check for undefined)
+      return sortedProducts.sort((a, b) => {
+        const salesA = a.salesCount || 0;
+        const salesB = b.salesCount || 0;
+        return salesB - salesA;
+      });
       
     default:
       // Default to newest if unknown sort option is provided

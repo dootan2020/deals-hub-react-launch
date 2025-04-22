@@ -14,7 +14,20 @@ export const ensureProductFields = (product: Partial<Product>): Product => {
     createdAt: product.createdAt || new Date().toISOString(),
     kiosk_token: product.kiosk_token || '',
     stock: product.stock !== undefined ? product.stock : 0,
-    specifications: product.specifications || {}
+    specifications: product.specifications || {},
+    
+    // Optional fields
+    description: product.description,
+    shortDescription: product.shortDescription,
+    images: product.images,
+    categoryId: product.categoryId,
+    badges: product.badges,
+    originalPrice: product.originalPrice,
+    stockQuantity: product.stockQuantity,
+    salesCount: product.salesCount,
+    rating: product.rating,
+    reviewCount: product.reviewCount,
+    features: product.features
   };
 };
 

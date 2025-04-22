@@ -1,17 +1,11 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useOrderApi } from '@/hooks/use-order-api';
 import { supabase } from '@/integrations/supabase/client';
 import { recordPurchaseActivity, checkUserBehaviorAnomaly } from '@/utils/fraud-detection';
-
-interface Product {
-  id: string;
-  kiosk_token: string;
-  title: string;
-  price: number;
-  stockQuantity: number;
-}
+import { Product } from '@/types';
 
 export const usePurchaseDialog = () => {
   const [open, setOpen] = useState(false);

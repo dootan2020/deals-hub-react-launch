@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Product } from '@/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -37,6 +38,13 @@ export const DialogContent = ({
   userBalance,
 }: DialogContentProps) => {
   const hasEnoughBalance = userBalance !== null && userBalance >= totalPriceUSD;
+  
+  // Get effective stock, prioritizing verified stock, then product.stock, then stock or stockQuantity
+  const effectiveStock = verifiedStock !== null 
+    ? verifiedStock 
+    : product.stock !== undefined 
+      ? product.stock 
+      : product.stockQuantity || 0;
 
   return (
     <div className="space-y-4 py-4">
@@ -58,10 +66,10 @@ export const DialogContent = ({
           <div className="flex flex-col items-center space-y-2 py-4">
             <QuantitySelector
               quantity={quantity}
-              maxQuantity={verifiedStock ?? product.stockQuantity ?? 1}
+              maxQuantity={effectiveStock}
               onQuantityChange={onQuantityChange}
               verifiedStock={verifiedStock}
-              productStock={product.stockQuantity ?? 0}
+              productStock={product.stock || 0}
             />
           </div>
           
@@ -85,7 +93,8 @@ export const DialogContent = ({
             </Alert>
           )}
           
-          {!isVerifying && verifiedStock !== null && verifiedStock < (product.stockQuantity || 0) && (
+          {!isVerifying && verifiedStock !== null && 
+           verifiedStock < (product.stock || product.stockQuantity || 0) && (
             <Alert className="bg-amber-50 border-amber-200">
               <AlertTriangle className="h-4 w-4 text-amber-500" />
               <AlertDescription className="text-amber-800">

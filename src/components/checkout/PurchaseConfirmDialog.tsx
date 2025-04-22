@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Product } from '@/types';
@@ -89,7 +90,9 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
   }, [open]);
 
   const handleQuantityChange = (newQuantity: number) => {
-    const maxQuantity = verifiedStock ?? product?.stockQuantity ?? 1;
+    // Use product.stock as the primary source for stockQuantity, 
+    // falling back to verifiedStock if available
+    const maxQuantity = verifiedStock ?? product?.stock ?? 0;
     const validQuantity = Math.min(Math.max(1, newQuantity), maxQuantity);
     setQuantity(validQuantity);
     
@@ -97,7 +100,7 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
   };
 
   const handleSubmit = async () => {
-    const maxQuantity = verifiedStock ?? product?.stockQuantity ?? 1;
+    const maxQuantity = verifiedStock ?? product?.stock ?? 0;
     
     if (quantity < 1) {
       toast.error("Số lượng không hợp lệ");
