@@ -1,4 +1,3 @@
-
 // Product type
 export interface Product {
   id: string;
@@ -122,3 +121,16 @@ export type AuthEvent = {
   timestamp: number;
   metadata?: Record<string, any>;
 };
+
+// New types for auth functionality
+export interface AuthError {
+  message: string;
+  code?: string;
+  details?: Record<string, any>;
+}
+
+export interface RetryConfig {
+  maxAttempts: number;
+  baseDelay: number;
+  maxDelay: number;
+}
