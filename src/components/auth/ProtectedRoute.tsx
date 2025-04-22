@@ -43,7 +43,15 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
     checkAndRefreshSession();
   }, [authLoading, isAuthenticated, refreshing, attemptRefresh]);
 
-  // Handle timeouts - shorter timeout for better UX
+  // Reset timeout if authenticated
+  useEffect(() => {
+    if (isAuthenticated && authTimeout) {
+      console.log('Authentication successful, resetting timeout state');
+      setAuthTimeout(false);
+    }
+  }, [isAuthenticated, authTimeout]);
+
+  // Handle timeouts - increased timeout window for better UX
   useEffect(() => {
     if (!authLoading) return;
     
@@ -52,14 +60,14 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
         console.log('Authentication verification taking longer than expected');
         setWaitingTooLong(true);
       }
-    }, 3000); // Show additional message after 3 seconds
+    }, 5000); // Increased to 5 seconds
 
     const hardTimeoutId = setTimeout(() => {
       if (authLoading && !isAuthenticated) {
         console.error('Authentication timeout reached');
         setAuthTimeout(true);
       }
-    }, 8000); // Hard timeout after 8 seconds
+    }, 15000); // Increased to 15 seconds
 
     return () => {
       clearTimeout(timeoutId);
@@ -81,6 +89,9 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
       if (session.expires_at < now) {
         console.log("Session expired at:", new Date(session.expires_at * 1000).toLocaleString());
         setSessionInvalid(true);
+      } else {
+        // Session is valid, ensure sessionInvalid is false
+        setSessionInvalid(false);
       }
     }
   }, [user, session]);

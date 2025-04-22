@@ -9,6 +9,7 @@ import { useSessionTimeout } from '@/hooks/auth/use-session-timeout';
 import { useSessionMonitor } from '@/hooks/auth/use-session-monitor';
 import { useSessionRefresh } from '@/hooks/auth/use-session-refresh';
 import { UserRole } from '@/types/auth.types';
+import { supabase } from '@/integrations/supabase/client';
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -33,6 +34,7 @@ const AuthContext = createContext<AuthContextType>({
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [hydrated, setHydrated] = useState(false);
+  const [manualSessionCheck, setManualSessionCheck] = useState(false);
   
   const {
     user,
@@ -55,10 +57,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useSessionMonitor(session, logout);
   useSessionRefresh(session);
 
-  // Initial hydration - happens only once
+  // Explicitly check for existing session on mount
   useEffect(() => {
-    setHydrated(true);
-    console.log('AuthContext hydrated');
+    const checkSession = async () => {
+      setManualSessionCheck(true);
+      try {
+        console.log('Explicitly checking for existing session...');
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error fetching session:', error);
+        } else if (data.session) {
+          console.log('Existing session found:', { 
+            userId: data.session.user.id,
+            expiresAt: new Date(data.session.expires_at! * 1000).toLocaleString()
+          });
+        } else {
+          console.log('No existing session found');
+        }
+      } catch (err) {
+        console.error('Exception during session check:', err);
+      } finally {
+        setManualSessionCheck(false);
+        // Set hydrated regardless of result to unblock UI
+        setHydrated(true);
+      }
+    };
+    
+    checkSession();
   }, []);
 
   // Handle authentication errors
@@ -123,12 +149,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isEmailVerified = user?.email_confirmed_at !== null;
 
+  const isAuthenticated = !!user;
+
   // Memoize context value to prevent unnecessary rerenders
   const contextValue = useMemo(() => ({
     user,
     session,
-    loading,
-    isAuthenticated: !!user,
+    loading: loading || manualSessionCheck,
+    isAuthenticated,
     isAdmin,
     isStaff,
     userRoles,
@@ -144,9 +172,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isEmailVerified,
     resendVerificationEmail,
   }), [
-    user, session, loading, isAdmin, isStaff, userRoles, userBalance,
+    user, session, loading, manualSessionCheck, isAdmin, isStaff, userRoles, userBalance,
     isLoadingBalance, refreshUserBalance, refreshUserProfile, refreshBalance, 
-    logout, register, checkUserRole, isEmailVerified, resendVerificationEmail
+    logout, register, checkUserRole, isEmailVerified, resendVerificationEmail, isAuthenticated
   ]);
 
   // Don't render until hydrated to avoid SSR/hydration mismatch

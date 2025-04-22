@@ -108,19 +108,30 @@ export const useAuthState = () => {
         if (event === 'SIGNED_IN' || !authInitialized) {
           const start = performance.now();
           
+          // First set roles to empty array to avoid showing incorrect roles momentarily
+          setUserRoles([]);
+          
           try {
             // Fetch roles first (higher priority)
             const roles = await fetchUserRoles(currentSession.user.id);
             setUserRoles(roles);
             console.log(`Roles loaded in ${(performance.now() - start).toFixed(1)}ms:`, roles);
             
-            // Then fetch balance (lower priority)
+            // Then fetch balance (lower priority) - don't await to avoid blocking
             fetchUserBalance(currentSession.user.id)
               .then(balance => {
                 console.log(`Balance loaded in ${(performance.now() - start).toFixed(1)}ms:`, balance);
+              })
+              .catch(err => {
+                console.error('Error loading balance:', err);
+                // Still set a default balance to avoid UI issues
+                setUserBalance(0);
               });
           } catch (err) {
             console.error('Error loading user data:', err);
+            // Set defaults to avoid UI issues
+            setUserRoles([]);
+            setUserBalance(0);
           }
         }
       }
@@ -132,8 +143,12 @@ export const useAuthState = () => {
       setSession(null);
       setLoading(false);
     } else if (event === 'INITIAL_SESSION') {
-      // For initial session, explicitly set loading to false regardless of result
-      // to unblock the UI as soon as possible
+      // For initial session, set user/session immediately if available
+      if (currentSession) {
+        setUser(currentSession.user as User);
+      }
+      
+      // Always set loading to false regardless of result
       const delay = Date.now() - initializationTimeRef.current;
       console.log(`Initial session check completed in ${delay}ms`, 
                  currentSession ? 'with session' : 'without session');
@@ -147,9 +162,12 @@ export const useAuthState = () => {
         currentSession?.user?.id !== user?.id) {
       // Data needs refreshing due to significant session change
       if (currentSession?.user) {
-        const roles = await fetchUserRoles(currentSession.user.id);
-        setUserRoles(roles);
-        await fetchUserBalance(currentSession.user.id);
+        Promise.all([
+          fetchUserRoles(currentSession.user.id).then(setUserRoles),
+          fetchUserBalance(currentSession.user.id)
+        ]).catch(err => {
+          console.error('Error refreshing user data after session change:', err);
+        });
       }
     }
   }, [authInitialized, fetchUserBalance, fetchUserRoles, user?.id]);
@@ -177,8 +195,26 @@ export const useAuthState = () => {
         } else {
           console.log('Initial session check:', data.session ? 'Session found' : 'No session');
           
-          // Manually handle initial session state to ensure consistency
-          await handleAuthStateChange('INITIAL_SESSION', data.session);
+          // Immediately set user and session
+          setUser(data.session?.user || null);
+          setSession(data.session);
+          
+          // If we have a session, start loading additional data while setting loading to false
+          if (data.session?.user) {
+            // Set loading to false now that we have the basic session
+            setLoading(false);
+            
+            // Load additional data in the background
+            Promise.all([
+              fetchUserRoles(data.session.user.id).then(setUserRoles),
+              fetchUserBalance(data.session.user.id)
+            ]).catch(err => {
+              console.error('Error loading additional user data:', err);
+            });
+          } else {
+            // No session, just set loading to false
+            setLoading(false);
+          }
         }
         
         setAuthInitialized(true);
@@ -201,7 +237,7 @@ export const useAuthState = () => {
           console.warn('Auth initialization taking too long, clearing loading state as a failsafe');
           setLoading(false);
         }
-      }, 5000);
+      }, 3000); // Shortened failsafe timeout to 3 seconds
       
       return () => clearTimeout(failsafeTimer);
     };
@@ -216,7 +252,7 @@ export const useAuthState = () => {
         authListenerRef.current = null;
       }
     };
-  }, [handleAuthStateChange, loading]);
+  }, [handleAuthStateChange, fetchUserRoles, fetchUserBalance]);
 
   // Set up a periodic health check for the listener
   useEffect(() => {
