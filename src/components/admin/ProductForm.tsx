@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -29,6 +28,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { sanitizeHtml } from '@/utils/sanitizeHtml';
+import { castArrayData, prepareQueryId, castData } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
   title: z.string()
@@ -109,8 +109,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         .order('name');
 
       if (error) throw error;
-      // Fix type assertion here
-      setCategories((data || []) as Category[]);
+      setCategories(castArrayData<Category>(data));
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast.error('Failed to fetch categories');
@@ -123,13 +122,12 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId as string)
+        .eq('id', prepareQueryId(productId))
         .single();
 
       if (error) throw error;
       if (data) {
-        // Safe property access with type assertion
-        const productData = data as any;
+        const productData = castData(data, {});
         form.reset({
           title: productData.title,
           description: productData.description,
@@ -246,7 +244,6 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       const proxyConfig = await fetchProxySettings();
       
       const apiConfig = await fetchActiveApiConfig();
-      // Fix type safety for apiConfig
       const apiConfigData = apiConfig as any;
       const userToken = apiConfigData.user_token;
       
@@ -382,4 +379,3 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     </>
   );
 }
-

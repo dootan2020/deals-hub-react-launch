@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Table,
@@ -13,6 +12,7 @@ import { Edit, Trash2 } from 'lucide-react';
 import { Category } from '@/types';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { prepareQueryId, castArrayData } from '@/utils/supabaseHelpers';
 
 interface MainCategoriesTableProps {
   mainCategories: Category[];
@@ -37,7 +37,7 @@ export const MainCategoriesTable: React.FC<MainCategoriesTableProps> = ({
       const { data: subcategories, error: subcategoriesError } = await supabase
         .from('categories')
         .select('id')
-        .eq('parent_id', category.id)
+        .eq('parent_id', prepareQueryId(category.id))
         .limit(1);
 
       if (subcategoriesError) throw subcategoriesError;
@@ -52,7 +52,7 @@ export const MainCategoriesTable: React.FC<MainCategoriesTableProps> = ({
       const { data: products, error: checkError } = await supabase
         .from('products')
         .select('id')
-        .eq('category_id', category.id)
+        .eq('category_id', prepareQueryId(category.id))
         .limit(1);
 
       if (checkError) throw checkError;

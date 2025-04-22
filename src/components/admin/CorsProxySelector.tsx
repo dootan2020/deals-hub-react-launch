@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -22,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { ProxyType, ProxySettings } from '@/utils/proxyUtils';
+import { prepareDataForInsert, castData } from '@/utils/supabaseHelpers';
 
 export type { ProxyType } from '@/utils/proxyUtils';
 
@@ -64,8 +64,7 @@ export function CorsProxySelector() {
       }
 
       if (proxySettings && proxySettings.length > 0) {
-        // Use type assertion to tell TypeScript that proxySettings is an array of valid objects
-        const settings = proxySettings[0] as unknown as {
+        const settings = castData(proxySettings[0], {}) as {
           proxy_type: string;
           custom_url: string | null;
         };
@@ -87,18 +86,14 @@ export function CorsProxySelector() {
   const saveProxySettings = async () => {
     setLoading(true);
     try {
-      // Prepare data for insert with proper typing to match the table schema
-      const proxyData: {
-        proxy_type: string;
-        custom_url: string | null;
-      } = {
+      const proxyData = {
         proxy_type: selectedProxy,
         custom_url: selectedProxy === 'custom' ? customProxyUrl : null,
       };
 
       const { error } = await supabase
         .from('proxy_settings')
-        .insert(proxyData as any); // Use type assertion as a last resort
+        .insert(prepareDataForInsert(proxyData));
 
       if (error) throw error;
 

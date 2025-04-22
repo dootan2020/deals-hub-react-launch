@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Wallet, Loader2, AlertCircle } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Deposit } from '@/types/deposits';
+import { prepareQueryId, castArrayData } from '@/utils/supabaseHelpers';
 
 interface DepositHistoryTabProps {
   userId: string;
@@ -20,17 +21,17 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
     const fetchDeposits = async () => {
       setIsLoading(true);
       try {
-        // Use type assertion with as uuid for userId to resolve TypeScript error
+        // Use our helper function to avoid TypeScript errors with the userId
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', userId as any) // Using type assertion to fix TypeScript error
+          .eq('user_id', prepareQueryId(userId)) // Using helper to handle type mismatch
           .order('created_at', { ascending: false });
 
         if (error) throw error;
         
-        // Ensure we cast data to Deposit[] since the database returns the proper shape
-        setDeposits(data as unknown as Deposit[]);
+        // Use castArrayData to safely cast the query result to Deposit[]
+        setDeposits(castArrayData<Deposit>(data));
       } catch (error) {
         console.error("Error fetching deposits:", error);
         setError('Failed to load deposit history');

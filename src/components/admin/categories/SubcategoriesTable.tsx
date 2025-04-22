@@ -20,6 +20,7 @@ import {
 import { Category } from '@/types';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { prepareQueryId } from '@/utils/supabaseHelpers';
 
 interface SubcategoriesTableProps {
   subcategories: Category[];
@@ -48,7 +49,7 @@ export const SubcategoriesTable: React.FC<SubcategoriesTableProps> = ({
       const { data: products, error: checkError } = await supabase
         .from('products')
         .select('id')
-        .eq('category_id', category.id)
+        .eq('category_id', prepareQueryId(category.id))
         .limit(1);
 
       if (checkError) throw checkError;
