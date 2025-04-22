@@ -17,24 +17,24 @@ export const updateUserBalance = async (
   try {
     console.log(`Updating balance for user ${userId}: ${amount > 0 ? '+' : ''}${amount}`);
     
-    // Simplified RPC call to avoid deep type instantiation issues
-    const { data: balanceResult, error: balanceError } = await supabase.rpc('update_user_balance', {
+    // Direct RPC call without complex generic types
+    const balanceResponse = await supabase.rpc('update_user_balance', {
       user_id_param: userId,
       amount_param: amount
     });
     
-    if (balanceError) {
-      console.error("Error updating user balance:", balanceError);
-      return { success: false, error: balanceError.message };
+    if (balanceResponse.error) {
+      console.error("Error updating user balance:", balanceResponse.error);
+      return { success: false, error: balanceResponse.error.message };
     }
     
     // If result is false, it means no row was found/updated
-    if (balanceResult === false) {
+    if (balanceResponse.data === false) {
       return { success: false, error: "User profile not found" };
     }
     
-    // Record the transaction - simplified query
-    const { error: transactionError } = await supabase.from('transactions').insert({
+    // Record the transaction - direct approach
+    const transactionResponse = await supabase.from('transactions').insert({
       user_id: userId,
       amount: amount,
       type: amount > 0 ? 'deposit' : 'withdrawal',
@@ -43,24 +43,24 @@ export const updateUserBalance = async (
       reference_id: referenceId
     });
     
-    if (transactionError) {
-      console.error("Error recording transaction:", transactionError);
+    if (transactionResponse.error) {
+      console.error("Error recording transaction:", transactionResponse.error);
       // Don't fail the operation if transaction recording fails
     }
     
-    // Fetch the new balance - simplified query
-    const { data: profile, error: profileError } = await supabase
+    // Fetch the new balance - direct approach
+    const profileResponse = await supabase
       .from('profiles')
       .select('balance')
       .eq('id', userId)
       .single();
       
-    if (profileError || !profile) {
-      console.warn("Couldn't fetch updated balance:", profileError);
+    if (profileResponse.error || !profileResponse.data) {
+      console.warn("Couldn't fetch updated balance:", profileResponse.error);
       return { success: true };
     }
     
-    return { success: true, newBalance: profile.balance };
+    return { success: true, newBalance: profileResponse.data.balance };
   } catch (error) {
     console.error("Exception in updateUserBalance:", error);
     return { 
