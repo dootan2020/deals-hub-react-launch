@@ -48,8 +48,7 @@ serve(async (req: Request) => {
         );
       }
       
-      // Begin transaction
-      // 1. Check user balance
+      // 1. Check user balance, 2. Get API configuration
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
         .select('balance')
@@ -78,7 +77,6 @@ serve(async (req: Request) => {
         );
       }
       
-      // 2. Get API configuration
       const { data: apiConfigs, error: configError } = await supabase
         .from('api_configs')
         .select('*')
@@ -276,7 +274,64 @@ serve(async (req: Request) => {
           message: 'Purchase completed successfully',
           orderData: products
         };
-        
+
+        // GỬI EMAIL XÁC NHẬN ĐƠN HÀNG
+        try {
+          // Lấy email và thông tin user
+          const { data: userProfileData } = await supabase
+            .from('users_with_roles')
+            .select('email,display_name')
+            .eq('id', userId)
+            .maybeSingle();
+
+          // Lấy thông tin đơn hàng đã lưu, lấy tên sản phẩm + thông tin order_items
+          const { data: orderDetails } = await supabase
+            .from('orders')
+            .select('id,total_price,created_at,external_order_id,order_items(*,products:product_id(title))')
+            .eq('id', order.id)
+            .maybeSingle();
+
+          // format thông tin sản phẩm (mặc định chọn sản phẩm đầu tiên)
+          let productName = "Sản phẩm";
+          let productPrice = totalAmount;
+          if (orderDetails?.order_items?.length) {
+            productName = orderDetails.order_items[0]?.products?.title || productName;
+            productPrice = orderDetails.order_items[0].price || productPrice;
+          }
+
+          const orderDate = orderDetails?.created_at
+            ? new Date(orderDetails.created_at).toLocaleString("vi-VN")
+            : new Date().toLocaleString("vi-VN");
+          const orderCode = orderDetails?.external_order_id || orderResponse.order_id;
+
+          // Gửi email nếu có user email
+          if (userProfileData?.email) {
+            await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "apikey": supabaseKey
+              },
+              body: JSON.stringify({
+                to: userProfileData.email,
+                subject: `Xác nhận đơn hàng #${orderCode} – Digital Deals Hub`,
+                type: "order_processed",
+                data: {
+                  orderId: orderCode,
+                  product: productName,
+                  amount: productPrice + " VND",
+                  date: orderDate
+                  // Có thể bổ sung thêm thông tin nếu muốn, như link hỗ trợ
+                }
+                // Nếu muốn gửi PDF: TODO - generate PDF, upload, add as attachment
+              })
+            });
+          }
+        } catch (emailErr) {
+          // Không ảnh hưởng tới kết quả trả về nếu lỗi email.
+          console.error("Failed to send order confirmation email: ", emailErr);
+        }
+      
         return new Response(
           JSON.stringify(result),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
