@@ -4,6 +4,7 @@ import { Loader2, RefreshCcw, XCircle, Home } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface AuthLoadingScreenProps {
   onRetry?: () => void;
@@ -23,6 +24,7 @@ const AuthLoadingScreen = ({
   const navigate = useNavigate();
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isAutoRetrying, setIsAutoRetrying] = useState(false);
+  const [hasShownDebugToast, setHasShownDebugToast] = useState(false);
   
   // Track elapsed time for better user feedback
   useEffect(() => {
@@ -34,11 +36,31 @@ const AuthLoadingScreen = ({
     return () => clearInterval(timer);
   }, []);
   
+  // Debug logging for stuck states
+  useEffect(() => {
+    if (elapsedTime === 10) {
+      console.warn("Auth loading screen has been visible for 10 seconds", { 
+        attempts, isWaitingTooLong, message 
+      });
+    }
+    
+    if (elapsedTime === 20 && !hasShownDebugToast) {
+      console.error("Auth loading screen potentially stuck for 20 seconds");
+      toast.warning("Verification taking longer than expected", {
+        description: "You can try refreshing the page if this continues",
+        duration: 8000,
+      });
+      setHasShownDebugToast(true);
+    }
+  }, [elapsedTime, attempts, isWaitingTooLong, message, hasShownDebugToast]);
+  
   // Auto retry if waiting too long
   useEffect(() => {
     // After 8 seconds with no success, try automatic retry
     if (elapsedTime >= 8 && onRetry && !isAutoRetrying && attempts < 2) {
       setIsAutoRetrying(true);
+      console.log(`Auto-retrying authentication after ${elapsedTime}s of waiting`);
+      
       const timeoutId = setTimeout(() => {
         console.log('Auto-retrying authentication after timeout');
         onRetry();
@@ -49,8 +71,17 @@ const AuthLoadingScreen = ({
     }
   }, [elapsedTime, onRetry, isAutoRetrying, attempts]);
 
+  // Hard failsafe - if we've been stuck for 30+ seconds, offer direct navigation options
+  const isStuckForTooLong = elapsedTime > 30;
+
   const goHome = () => {
+    console.log("User opted to return home from stuck auth screen");
     navigate('/', { replace: true });
+  };
+
+  const forceRefresh = () => {
+    console.log("User forced page refresh from stuck auth screen");
+    window.location.reload();
   };
 
   return (
@@ -102,6 +133,15 @@ const AuthLoadingScreen = ({
               </AlertDescription>
             </Alert>
           )}
+          
+          {isStuckForTooLong && (
+            <Alert variant="destructive" className="mb-4 mt-4 border-2 border-destructive">
+              <AlertTitle>Không thể hoàn tất xác thực</AlertTitle>
+              <AlertDescription>
+                Quá trình xác thực có thể bị treo. Vui lòng thử tải lại trang hoặc quay về trang chủ.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
 
         <div className="flex justify-center space-x-4 pt-2">
@@ -124,6 +164,17 @@ const AuthLoadingScreen = ({
             >
               <Home className="mr-2 h-4 w-4" />
               Về trang chủ
+            </Button>
+          )}
+          
+          {isStuckForTooLong && (
+            <Button
+              variant="default"
+              onClick={forceRefresh}
+              className="flex items-center"
+            >
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Tải lại trang
             </Button>
           )}
           
