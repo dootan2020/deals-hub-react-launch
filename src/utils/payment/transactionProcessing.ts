@@ -1,8 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { processDepositBalance } from './balanceProcessing';
 import { toast } from 'sonner';
-import { generateIdempotencyKey } from '@/utils/idempotencyUtils';
 
 /**
  * Force process a specific PayPal transaction to update user balance
@@ -17,12 +15,6 @@ export const processSpecificTransaction = async (
       return { success: false, error: "Transaction ID is required" };
     }
     
-    // Generate idempotency key for this transaction processing
-    const idempotencyKey = generateIdempotencyKey('process', { 
-      transaction_id: transactionId,
-      timestamp: new Date().toISOString().split('T')[0] // Daily idempotency
-    });
-    
     // Added retry logic for better reliability
     let retryCount = 0;
     const maxRetries = 2;
@@ -32,10 +24,7 @@ export const processSpecificTransaction = async (
       try {
         // First, try the new check-payment function
         const { data: checkData, error: checkError } = await supabase.functions.invoke('check-payment', {
-          body: { 
-            transaction_id: transactionId,
-            idempotency_key: idempotencyKey
-          }
+          body: { transaction_id: transactionId }
         });
         
         if (!checkError && checkData?.success) {
@@ -46,22 +35,16 @@ export const processSpecificTransaction = async (
           };
         }
         
-        // Use the improved paypal-webhook endpoint
+        // If check-payment fails or doesn't exist, try the paypal-webhook function
         const { data, error } = await supabase.functions.invoke('paypal-webhook', {
-          body: { 
-            transaction_id: transactionId,
-            idempotency_key: idempotencyKey
-          }
+          body: { transaction_id: transactionId }
         });
 
         if (error) {
           console.error("Error processing transaction:", error);
           // Try as order_id instead of transaction_id
           const { data: orderData, error: orderError } = await supabase.functions.invoke('paypal-webhook', {
-            body: { 
-              order_id: transactionId,
-              idempotency_key: idempotencyKey
-            }
+            body: { order_id: transactionId }
           });
           
           if (orderError) {
@@ -120,19 +103,10 @@ export const checkDepositStatus = async (
       return { success: false, error: "ID is required" };
     }
     
-    // Generate idempotency key for this status check (this is less critical since it's a read operation)
-    const idempotencyKey = generateIdempotencyKey('status', { 
-      id,
-      timestamp: new Date().toISOString()
-    });
-    
     // First, try the check-payment function
     try {
       const { data: checkData, error: checkError } = await supabase.functions.invoke('check-payment', {
-        body: { 
-          transaction_id: id,
-          idempotency_key: idempotencyKey
-        }
+        body: { transaction_id: id }
       });
       
       if (!checkError && checkData?.success) {
@@ -165,28 +139,12 @@ export const checkDepositStatus = async (
     if (deposit) {
       console.log(`Found deposit with transaction_id ${id}, status: ${deposit.status}`);
       
-      // Use our new retry functionality if deposit isn't completed
       if (deposit.status !== 'completed') {
         console.log(`Deposit ${deposit.id} has status ${deposit.status}, attempting to process...`);
+        const processResult = await processDepositBalance(deposit.id);
+        console.log("Processing result:", processResult);
         
-        // Use the new paypal-webhook function
-        const { data: retryData, error: retryError } = await supabase.functions.invoke('paypal-webhook', {
-          body: { 
-            transaction_id: deposit.transaction_id,
-            idempotency_key: generateIdempotencyKey('retry', {
-              deposit_id: deposit.id,
-              transaction_id: deposit.transaction_id,
-              timestamp: new Date().toISOString()
-            })
-          }
-        });
-        
-        if (retryError) {
-          console.error("Error retrying deposit:", retryError);
-        } else if (retryData && retryData.success) {
-          console.log("Successfully processed deposit via webhook:", retryData);
-          
-          // Get updated deposit
+        if (processResult.success) {
           const { data: updatedDeposit } = await supabase
             .from('deposits')
             .select('*')
@@ -236,25 +194,16 @@ export const processPendingTransactions = async (): Promise<{
 }> => {
   try {
     console.log("Starting to process all pending transactions");
-    
-    // Create an idempotency key for this batch operation with current date
-    // This ensures we only run one batch per hour max
-    const currentHour = new Date();
-    currentHour.setMinutes(0, 0, 0);
-    
-    const idempotencyKey = generateIdempotencyKey('batch', { 
-      hour: currentHour.toISOString(),
-      type: 'pending-transactions'
-    });
-    
-    // Use the new retry-pending-deposits function
-    const { data, error } = await supabase.functions.invoke('retry-pending-deposits', {
-      body: { idempotencyKey }
-    });
-    
+    // Lấy danh sách các giao dịch pending có transaction_id
+    const { data, error } = await supabase
+      .from('deposits')
+      .select('id, transaction_id')
+      .eq('status', 'pending')
+      .not('transaction_id', 'is', null);
+
     if (error) {
-      console.error("Error invoking retry-pending-deposits:", error);
-      toast.error("Không thể xử lý các giao dịch chờ xử lý");
+      console.error("Error fetching pending deposits:", error);
+      toast.error("Không thể lấy danh sách giao dịch chờ xử lý");
       return {
         success: false,
         processed: 0,
@@ -262,22 +211,44 @@ export const processPendingTransactions = async (): Promise<{
         error: error.message
       };
     }
-    
-    if (data.processed > 0) {
-      toast.success(`Đã xử lý thành công ${data.processed} giao dịch`);
-    } else if (data.depositIds?.length === 0) {
-      toast("Không có giao dịch nào cần xử lý lại");
+
+    if (!data || data.length === 0) {
+      console.log("No pending transactions found");
+      toast("Không có giao dịch nào đang chờ xử lý");
+      return {
+        success: true,
+        processed: 0,
+        failed: 0
+      };
     }
-    
-    if (data.failed > 0) {
-      toast.error(`${data.failed} giao dịch không thể xử lý lại`);
+
+    console.log(`Found ${data.length} pending transactions to process`);
+    let processed = 0;
+    let failed = 0;
+
+    // Xử lý từng giao dịch
+    for (const deposit of data) {
+      if (!deposit.transaction_id) continue;
+
+      console.log(`Processing deposit ${deposit.id} with transaction ${deposit.transaction_id}`);
+      const result = await processSpecificTransaction(deposit.transaction_id);
+
+      if (result.success) {
+        processed++;
+        console.log(`Successfully processed deposit ${deposit.id}`);
+        toast.success(`Xử lý thành công giao dịch #${deposit.transaction_id}`);
+      } else {
+        failed++;
+        console.error(`Failed to process deposit ${deposit.id}:`, result.error);
+        toast.error(result.error || "Không thể xử lý giao dịch");
+      }
     }
-    
+
+    console.log(`Processing complete: ${processed} succeeded, ${failed} failed`);
     return {
-      success: data.success,
-      processed: data.processed,
-      failed: data.failed,
-      error: data.error
+      success: true,
+      processed,
+      failed
     };
   } catch (error) {
     console.error("Exception in processPendingTransactions:", error);

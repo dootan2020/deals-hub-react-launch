@@ -1,121 +1,159 @@
-
-import React, { useState } from 'react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button";
-import { formatCurrency } from '@/lib/utils';
-import { useAuth } from '@/context/AuthContext';
-import { toast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useUserBalance } from '@/hooks/useUserBalance';
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Product } from '@/types';
+import { convertVNDtoUSD } from '@/utils/currency';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { DialogHeader } from './purchase-dialog/DialogHeader';
+import { DialogContent as PurchaseDialogContent } from './purchase-dialog/DialogContent';
+import { DialogFooterButtons } from './purchase-dialog/DialogFooterButtons';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 interface PurchaseConfirmDialogProps {
-  productId: string;
-  productTitle: string;
-  productPrice: number;
-  onPurchase: (productId: string) => Promise<void>;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  product?: Product;
+  onConfirm: (quantity: number, promotionCode?: string) => void;
+  isVerifying?: boolean;
+  verifiedStock?: number | null;
+  verifiedPrice?: number | null;
 }
 
-// New interface for the updated component
-interface EnhancedPurchaseConfirmDialogProps {
-  product: Product;
-  onConfirm: (quantity: number, code?: string) => Promise<boolean>;
-  isVerifying: boolean;
-  verifiedStock: number | null;
-  verifiedPrice: number | null;
-  open?: boolean;
-  onOpenChange?: () => void;
-}
-
-// Original component kept for backward compatibility
-const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
-  productId,
-  productTitle,
-  productPrice,
-  onPurchase
+export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
+  open,
+  onOpenChange,
+  product,
+  onConfirm,
+  isVerifying = false,
+  verifiedStock = null,
+  verifiedPrice = null
 }) => {
-  const [open, setOpen] = useState(false);
-  const [isPurchasing, setIsPurchasing] = useState(false);
   const { user } = useAuth();
-  const { userBalance } = useUserBalance();
-  const navigate = useNavigate();
+  const { data: currencySettings } = useCurrencySettings();
+  const rate = currencySettings?.vnd_per_usd ?? 24000;
+  
+  const [quantity, setQuantity] = useState(1);
+  const [promotionCode, setPromotionCode] = useState('');
+  const [userBalance, setUserBalance] = useState<number | null>(null);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handlePurchase = async () => {
-    setIsPurchasing(true);
+  const productPriceUSD = product ? 
+    convertVNDtoUSD(verifiedPrice || product.price, rate) : 0;
+  
+  const totalPriceUSD = productPriceUSD * quantity;
+  
+  const hasEnoughBalance = userBalance !== null && userBalance >= totalPriceUSD;
+
+  useEffect(() => {
+    const fetchUserBalance = async () => {
+      if (!open || !user) return;
+      
+      setIsLoadingBalance(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('balance')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching user balance:', error);
+          setUserBalance(0);
+          return;
+        }
+
+        if (data && typeof data.balance === 'number') {
+          setUserBalance(data.balance);
+        } else {
+          console.warn('No balance data found');
+          setUserBalance(0);
+        }
+      } catch (error) {
+        console.error('Exception in fetchUserBalance:', error);
+        setUserBalance(0);
+      } finally {
+        setIsLoadingBalance(false);
+      }
+    };
+
+    fetchUserBalance();
+  }, [open, user]);
+
+  useEffect(() => {
+    if (!open) {
+      setQuantity(1);
+      setPromotionCode('');
+    }
+  }, [open]);
+
+  const handleQuantityChange = (newQuantity: number) => {
+    const maxQuantity = verifiedStock ?? product?.stockQuantity ?? 1;
+    const validQuantity = Math.min(Math.max(1, newQuantity), maxQuantity);
+    setQuantity(validQuantity);
+    
+    console.log(`Quantity changed: ${validQuantity} (max: ${maxQuantity})`);
+  };
+
+  const handleSubmit = async () => {
+    const maxQuantity = verifiedStock ?? product?.stockQuantity ?? 1;
+    
+    if (quantity < 1) {
+      toast.error("Số lượng không hợp lệ");
+      return;
+    }
+    
+    if (quantity > maxQuantity) {
+      toast.error(`Số lượng không thể vượt quá ${maxQuantity}`);
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      if (!user) {
-        toast.error("Bạn cần đăng nhập để mua sản phẩm này.");
-        navigate('/login');
-        return;
-      }
-
-      if (userBalance < productPrice) {
-        toast.error("Số dư không đủ", "Vui lòng nạp thêm tiền vào tài khoản.");
-        navigate('/account');
-        return;
-      }
-
-      await onPurchase(productId);
-      toast({
-        title: "Mua hàng thành công!",
-        description: `Bạn đã mua thành công ${productTitle}.`
-      });
-      setOpen(false);
-    } catch (error: any) {
-      console.error("Purchase failed:", error);
-      toast({
-        title: "Lỗi",
-        description: error.message || "Đã có lỗi xảy ra trong quá trình mua hàng.",
-        variant: "destructive"
-      });
+      await onConfirm(quantity, promotionCode);
+    } catch (error) {
+      console.error("Error during purchase confirmation:", error);
+      toast.error("Có lỗi xảy ra khi xác nhận mua hàng");
     } finally {
-      setIsPurchasing(false);
+      setIsSubmitting(false);
     }
   };
 
+  if (!product) return null;
+
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant="default">Mua ngay</Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Xác nhận mua hàng</AlertDialogTitle>
-          <AlertDialogDescription>
-            Bạn có chắc chắn muốn mua sản phẩm <b>{productTitle}</b> với giá <b>{formatCurrency(productPrice)}</b>?
-            <br />
-            Số dư hiện tại của bạn là <b>{formatCurrency(userBalance || 0)}</b>.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPurchasing}>Hủy</AlertDialogCancel>
-          <AlertDialogAction onClick={handlePurchase} disabled={isPurchasing}>
-            {isPurchasing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Đang xử lý...
-              </>
-            ) : (
-              "Xác nhận"
-            )}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader isVerifying={isVerifying} />
+        
+        <PurchaseDialogContent
+          product={product}
+          isVerifying={isVerifying}
+          quantity={quantity}
+          verifiedStock={verifiedStock}
+          verifiedPrice={verifiedPrice}
+          priceUSD={productPriceUSD}
+          totalPriceUSD={totalPriceUSD}
+          promotionCode={promotionCode}
+          onQuantityChange={handleQuantityChange}
+          onPromotionCodeChange={setPromotionCode}
+          isLoadingBalance={isLoadingBalance}
+          userBalance={userBalance}
+        />
+        
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <DialogFooterButtons
+            onCancel={() => onOpenChange(false)}
+            onConfirm={handleSubmit}
+            isSubmitting={isSubmitting}
+            isVerifying={isVerifying}
+            hasEnoughBalance={hasEnoughBalance}
+          />
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
-// Export both components
-export { PurchaseConfirmDialog as PurchaseConfirmDialogOld };
 export default PurchaseConfirmDialog;

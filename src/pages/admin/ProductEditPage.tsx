@@ -7,7 +7,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, InfoIcon } from 'lucide-react';
-import { prepareQueryId, castData } from '@/utils/supabaseHelpers';
 
 const ProductEditPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,16 +25,13 @@ const ProductEditPage = () => {
       const { data, error } = await supabase
         .from('products')
         .select('id, title')
-        .eq('id', prepareQueryId(id))
+        .eq('id', id)
         .single();
 
       if (error) throw error;
-      
-      // Use type assertion with safe handling
-      const productData = castData(data, {});
-      setProductExists(!!productData);
-      if (productData?.title) {
-        setProductName(productData.title);
+      setProductExists(!!data);
+      if (data?.title) {
+        setProductName(data.title);
       }
     } catch (error) {
       console.error('Error checking product:', error);

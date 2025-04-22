@@ -11,7 +11,6 @@ import { useEmailValidation } from '@/hooks/auth/use-email-validation';
 import type { RegisterFormValues } from '@/validations/registerSchema';
 import { useState } from 'react';
 import debounce from 'lodash/debounce';
-import { sanitizeHtml } from '@/utils/sanitizeHtml';
 
 interface RegistrationFormProps {
   form: UseFormReturn<RegisterFormValues>;
@@ -59,21 +58,9 @@ export const RegistrationForm = ({
     }
   }, 500);
 
-  const handleSanitizedSubmit = async (values: RegisterFormValues) => {
-    const sanitizedValues: RegisterFormValues = {
-      ...values,
-      displayName: sanitizeHtml(values.displayName.trim()),
-      email: values.email.trim().toLowerCase(),
-      password: values.password,
-      confirmPassword: values.confirmPassword,
-      agreeToTerms: !!values.agreeToTerms
-    };
-    await onSubmit(sanitizedValues);
-  };
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSanitizedSubmit)} noValidate className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="space-y-4">
         {serverError && (
           <Alert variant="destructive">
             <AlertDescription>{serverError}</AlertDescription>

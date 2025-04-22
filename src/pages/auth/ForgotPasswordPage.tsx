@@ -13,7 +13,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useAuthActions } from '@/hooks/auth/use-auth-actions';
 import { Loader2, Mail, ArrowLeft } from 'lucide-react';
-import { sanitizeHtml } from '@/utils/sanitizeHtml';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Email không hợp lệ')
@@ -40,10 +39,7 @@ export default function ForgotPasswordPage() {
     setError(null);
     
     try {
-      // Sanitize email input
-      const sanitizedEmail = sanitizeHtml(values.email.trim().toLowerCase());
-      
-      await resetPassword(sanitizedEmail);
+      await resetPassword(values.email);
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Có lỗi xảy ra. Vui lòng thử lại sau.');

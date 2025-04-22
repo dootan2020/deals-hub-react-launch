@@ -1,30 +1,71 @@
+
+import { Database as OriginalDatabase } from './types';
 import { UserRole } from '@/types/auth.types';
+import { Deposit } from '@/types/deposits';
+import { Json } from './types';
+
+// Define the Invoice interface
+export interface Invoice {
+  id: string;
+  invoice_number: string;
+  user_id: string;
+  order_id: string;
+  amount: number;
+  details: {
+    products: Array<{
+      title: string;
+      price: number;
+      quantity: number;
+    }>;
+    recipient?: {
+      name?: string;
+      email?: string;
+    };
+  };
+  status: string;
+  created_at: string;
+}
 
 export interface UserWithRolesRow {
   id: string;
   email: string;
-  display_name?: string;
   created_at: string;
-  last_sign_in_at?: string;
-  roles?: UserRole[];
-  is_active?: boolean;
-  confirmed_at?: string;
+  last_sign_in_at: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  roles: UserRole[];
 }
 
-export interface UserStatsData {
-  total_users: number;
-  new_users_week: number;
-  new_users_month: number;
-  inactive_users: number;
-}
-
-export interface Invoice {
-  id: string;
-  user_id: string;
-  order_id: string;
-  amount: number;
-  status: string;
-  details: any;
-  invoice_number: string;
-  created_at: string;
+// Extend the original Database type
+export interface Database extends OriginalDatabase {
+  public: {
+    Tables: {
+      invoices: {
+        Row: Invoice;
+        Insert: Omit<Invoice, 'id' | 'created_at'>;
+        Update: Partial<Omit<Invoice, 'id' | 'created_at'>>;
+      };
+    } & OriginalDatabase['public']['Tables'];
+    Views: OriginalDatabase['public']['Views'] & {
+      users_with_roles: {
+        Row: UserWithRolesRow;
+      };
+    };
+    Functions: OriginalDatabase['public']['Functions'] & {
+      get_user_roles: {
+        Args: { user_id_param: string };
+        Returns: UserRole[];
+      };
+      assign_role: {
+        Args: { user_id_param: string; role_param: UserRole };
+        Returns: undefined;
+      };
+      remove_role: {
+        Args: { user_id_param: string; role_param: UserRole };
+        Returns: undefined;
+      };
+    };
+    Enums: OriginalDatabase['public']['Enums'];
+    CompositeTypes: OriginalDatabase['public']['CompositeTypes'];
+  };
 }

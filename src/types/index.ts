@@ -1,55 +1,90 @@
+import { TableHTMLAttributes } from 'react';
 
-// Các kiểu dữ liệu cơ bản
-export type ApiResponse = {
-  success: string;
-  name?: string;
-  price?: string;
-  stock?: string;
-  description?: string;
-  error?: string;
-};
-
-export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom';
-
-export type ProxySettings = {
+export interface Product {
   id: string;
-  proxy_type: ProxyType;
-  custom_url: string | null;
-};
+  title: string;
+  description: string;
+  shortDescription?: string;
+  price: number;
+  originalPrice?: number;
+  images: string[];
+  categoryId: string;
+  categories?: {
+    id: string;
+    name: string;
+    slug: string;
+    [key: string]: any;
+  };
+  rating: number;
+  reviewCount: number;
+  inStock: boolean;
+  stockQuantity: number;
+  badges: string[];
+  slug: string;
+  features: string[];
+  specifications: Record<string, string | number | boolean | object>;
+  salesCount?: number;
+  sales_count?: number;
+  createdAt: string;
+  kiosk_token: string;
+  stock: number;
+}
 
-export type Category = {
+export interface Category {
   id: string;
   name: string;
   description: string;
   slug: string;
   image: string;
-  parent_id?: string | null;
   count: number;
-  created_at?: string;
-  updated_at?: string;
-};
+  parent_id?: string | null;
+  subcategories?: Category[];
+}
 
-export type Product = {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  original_price?: number;
-  in_stock: boolean;
-  slug: string;
-  category_id: string;
-  external_id?: string;
-  images?: string[];
-  stock: number;
-  kiosk_token?: string;
-  badges?: string[];
-  features?: string[];
-  rating?: number;
-  review_count?: number;
-  created_at?: string;
-  updated_at?: string;
-  specifications?: Record<string, any>;
-};
+export type SortOption = 'newest' | 'popular' | 'price-low' | 'price-high';
 
-// Thêm các kiểu auth mới
-export * from './auth.types';
+export interface FilterParams {
+  categoryId?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  ratings?: number[];
+  search?: string;
+  tags?: string[];
+  inStock?: boolean;
+  sort?: string;
+  page?: number;
+  limit?: number;
+  priceRange?: [number, number];
+}
+
+export interface CategoryPageParams extends Record<string, string> {
+  categorySlug?: string;
+  parentCategorySlug?: string;
+}
+
+export interface SubcategoryPageParams extends Record<string, string> {
+  categorySlug?: string;
+  parentCategorySlug?: string;
+}
+
+export interface ProductPageParams extends Record<string, string> {
+  productSlug?: string;
+  categorySlug?: string;
+  parentCategorySlug?: string;
+}
+
+export interface ProductWithCategory extends Product {
+  category: Category;
+}
+
+export interface TableColumn<T> {
+  header: string;
+  accessorKey: keyof T | string;
+  cell?: (info: { row: { original: T } }) => React.ReactNode;
+}
+
+export interface TableProps<T> extends TableHTMLAttributes<HTMLTableElement> {
+  data: T[];
+  columns: TableColumn<T>[];
+  isLoading?: boolean;
+}

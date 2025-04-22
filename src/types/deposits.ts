@@ -1,37 +1,14 @@
 
-/**
- * Interface representing a deposit in the system
- */
 export interface Deposit {
   id: string;
   user_id: string;
   amount: number;
   net_amount: number;
-  status: 'pending' | 'completed' | 'failed';
+  transaction_id: string | null;
   payment_method: string;
-  transaction_id?: string;
-  payer_id?: string;
-  payer_email?: string;
+  status: string;
+  payer_email: string | null;
+  payer_id: string | null;
   created_at: string;
-  updated_at?: string;
-}
-
-/**
- * Status of pending deposits in the system
- */
-export interface PendingDepositsStatus {
-  total_pending: number;
-  needs_retry: number;
-  processed_today: number;
-  failed_today: number;
-}
-
-/**
- * Response type for deposit status RPC calls
- */
-export interface DepositStatusRPCResponse {
-  total_pending: number;
-  needs_retry: number;
-  processed_today: number;
-  failed_today: number;
+  updated_at: string;
 }

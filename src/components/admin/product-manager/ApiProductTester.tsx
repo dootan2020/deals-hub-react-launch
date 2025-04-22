@@ -1,128 +1,321 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, RefreshCw, Info, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { ApiResponse, ProxyConfig } from '@/types';
-import { isHtmlResponse, extractFromHtml, normalizeProductInfo } from '@/utils/apiUtils';
-import { fetchViaProxyWithFallback } from '@/utils/proxyUtils';
+import { ProxyType, fetchProxySettings } from '@/utils/proxyUtils';
+import { fetchActiveApiConfig, fetchProductInfoViaServerless } from '@/utils/apiUtils';
+import { supabase } from "@/integrations/supabase/client";
 
-interface ApiProductTesterProps {
-  onSelectResult?: (result: ApiResponse) => void;
-  initialUrl?: string;
+export interface ApiResponse {
+  success: string;
+  name?: string;
+  price?: string;
+  stock?: string;
+  description?: string;
+  kioskToken?: string;
 }
 
-const ApiProductTester = ({ 
-  onSelectResult, 
-  initialUrl = ''
-}: ApiProductTesterProps) => {
-  const [apiUrl, setApiUrl] = useState(initialUrl);
-  const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
-  const [jsonResult, setJsonResult] = useState<ApiResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+interface ApiProductTesterProps {
+  onApiDataReceived: (data: ApiResponse) => void;
+  initialKioskToken?: string;
+  initialUserToken?: string;
+}
 
-  const handleApiUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setApiUrl(e.target.value);
+export function ApiProductTester({ 
+  onApiDataReceived, 
+  initialKioskToken = '', 
+  initialUserToken = '' 
+}: ApiProductTesterProps) {
+  const [kioskToken, setKioskToken] = useState<string>(initialKioskToken);
+  const [userToken, setUserToken] = useState<string>(initialUserToken);
+  const [selectedProxy, setSelectedProxy] = useState<ProxyType>('allorigins');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
+  const [rawResponse, setRawResponse] = useState<string>('');
+  const [lastUpdated, setLastUpdated] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const [isMockData, setIsMockData] = useState<boolean>(false);
+  const [logs, setLogs] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadApiConfig = async () => {
+      try {
+        const apiConfig = await fetchActiveApiConfig();
+        if (apiConfig) {
+          setUserToken(apiConfig.user_token || '');
+        }
+      } catch (error) {
+        console.error('Error loading API config:', error);
+      }
+    };
+    
+    if (!initialUserToken) {
+      loadApiConfig();
+    }
+  }, [initialUserToken]);
+
+  const addLog = (message: string) => {
+    const now = new Date();
+    const timestamp = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}]`;
+    setLogs(prev => [...prev, `${timestamp} ${message}`]);
   };
 
-  const handleTestApi = async () => {
-    if (!apiUrl) {
-      toast.error("Please enter API URL");
-      return;
-    }
-
+  const handleApiTest = async () => {
     setIsLoading(true);
+    setError(null);
     setApiResponse(null);
+    setRawResponse('');
+    setIsMockData(false);
+
+    addLog('Starting API test using direct serverless function...');
 
     try {
-      const config: ProxyConfig = { proxy_type: 'allorigins' };
-      
-      const result = await fetchViaProxyWithFallback(apiUrl, config);
-      
-      let normalizedData: ApiResponse;
-
-      if (typeof result === 'string' && isHtmlResponse(result)) {
-        normalizedData = extractFromHtml(result);
-      } else {
-        normalizedData = normalizeProductInfo(result);
+      if (!kioskToken) {
+        throw new Error('Kiosk Token is required');
       }
 
-      setApiResponse(normalizedData);
-      setJsonResult(normalizedData);
-      
-      if (normalizedData.success === 'true') {
-        toast.success("API test successful!");
-      } else {
-        toast.error(`API test error: ${normalizedData.error || 'Unknown error'}`);
+      if (!userToken) {
+        throw new Error('User Token is required');
       }
-    } catch (error: any) {
-      console.error('API test error:', error);
-      const errorResponse: ApiResponse = { success: 'false', error: error.message };
-      setApiResponse(errorResponse);
-      toast.error(`API test error: ${error.message}`);
+      
+      // Use Supabase Edge Function directly
+      addLog('Calling serverless API proxy function...');
+      
+      const { data, error: invokeError } = await supabase.functions.invoke('api-proxy', {
+        body: { 
+          endpoint: 'getStock',
+          kioskToken,
+          userToken
+        }
+      });
+      
+      if (invokeError) {
+        throw new Error(`Serverless function error: ${invokeError.message}`);
+      }
+      
+      if (!data) {
+        throw new Error('Empty response from serverless function');
+      }
+      
+      // Log and set the raw response
+      setRawResponse(typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+      addLog(`Raw response received: ${JSON.stringify(data).substring(0, 50)}...`);
+      
+      // Handle the response data
+      if (data.fromHtml || data.parseError || data.fetchError) {
+        addLog('API returned problematic data, but it was handled by the serverless function');
+        setIsMockData(data.fromHtml || data.parseError || data.fetchError);
+      }
+      
+      // Ensure the API response has the kioskToken property as well
+      const responseWithKioskToken = {
+        ...data,
+        kioskToken: kioskToken
+      };
+      
+      setApiResponse(responseWithKioskToken);
+      setLastUpdated(new Date().toLocaleString());
+      
+      if (data.success === "true") {
+        addLog('Successfully processed API response');
+        toast.success('Product data retrieved successfully!');
+      } else {
+        addLog(`API returned error: ${data.error || 'Unknown error'}`);
+        toast.error(`API error: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err: any) {
+      const errorMsg = `API request failed: ${err.message}`;
+      setError(errorMsg);
+      addLog(`Error: ${err.message}`);
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSelectResult = () => {
-    if (apiResponse && onSelectResult) {
-      onSelectResult(apiResponse);
+  const applyApiDataToForm = () => {
+    if (apiResponse) {
+      // Make sure to include the kioskToken in the data sent to the form
+      const dataToSend = {
+        ...apiResponse,
+        kioskToken: kioskToken
+      };
+      
+      onApiDataReceived(dataToSend);
+      toast.success('Data applied to form successfully');
     }
   };
 
+  const clearLogs = () => {
+    setLogs([]);
+    toast.info('Logs cleared');
+  };
+
   return (
-    <Card>
+    <Card className="border border-gray-200">
       <CardContent className="pt-6">
-        <div className="grid gap-4">
+        <h3 className="text-lg font-medium mb-4">API Product Lookup</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <Label htmlFor="apiUrl">API URL</Label>
-            <Input
-              type="text"
-              id="apiUrl"
-              value={apiUrl}
-              onChange={handleApiUrlChange}
+            <Label htmlFor="kioskToken" className="block text-sm font-medium mb-2">
+              Kiosk Token
+            </Label>
+            <Input 
+              id="kioskToken"
+              value={kioskToken}
+              onChange={(e) => setKioskToken(e.target.value)}
+              placeholder="Enter Kiosk Token (e.g., DUP32BXSLWAP4847J84B)"
+              className="w-full"
             />
           </div>
-          <Button onClick={handleTestApi} disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Testing...
-              </>
-            ) : (
-              'Test API'
-            )}
-          </Button>
-
-          {apiResponse && (
-            <div>
-              <Label>API Response</Label>
-              <Textarea value={JSON.stringify(apiResponse, null, 2)} readOnly className="min-h-[100px]" />
-            </div>
-          )}
-
-          {jsonResult && (
-            <div>
-              <Label>Normalized Result</Label>
-              <Textarea value={JSON.stringify(jsonResult, null, 2)} readOnly className="min-h-[100px]" />
-            </div>
-          )}
-
-          {apiResponse && onSelectResult && (
-            <Button onClick={handleSelectResult} variant="secondary">
-              Select Result
-            </Button>
-          )}
+          
+          <div>
+            <Label htmlFor="userToken" className="block text-sm font-medium mb-2">
+              User Token
+            </Label>
+            <Input 
+              id="userToken"
+              value={userToken}
+              onChange={(e) => setUserToken(e.target.value)}
+              placeholder="Enter User Token"
+              className="w-full"
+              type="password"
+            />
+          </div>
         </div>
+        
+        <div className="flex flex-col md:flex-row gap-4 items-end mb-4">
+          <div className="w-full md:w-1/3">
+            <Label htmlFor="corsProxy" className="block text-sm font-medium mb-2">
+              CORS Proxy
+            </Label>
+            <Select 
+              value={selectedProxy} 
+              onValueChange={(value) => setSelectedProxy(value as ProxyType)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select proxy" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="allorigins">AllOrigins</SelectItem>
+                <SelectItem value="corsproxy">CORS Proxy</SelectItem>
+                <SelectItem value="cors-anywhere">CORS Anywhere</SelectItem>
+                <SelectItem value="direct">Direct API Call</SelectItem>
+                <SelectItem value="yproxy">YProxy (AllOrigins Raw)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              onClick={handleApiTest} 
+              disabled={isLoading}
+              variant="secondary"
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {!isLoading && <RefreshCw className="mr-2 h-4 w-4" />}
+              Test API
+            </Button>
+            
+            <Button 
+              onClick={clearLogs} 
+              variant="outline"
+              className="border-gray-300 text-gray-600"
+            >
+              Clear Logs
+            </Button>
+          </div>
+        </div>
+        
+        {error && (
+          <Alert variant="destructive" className="mt-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {isMockData && apiResponse && (
+          <Alert variant="default" className="mt-2 bg-amber-50 border-amber-200">
+            <Info className="h-4 w-4 text-amber-500" />
+            <AlertDescription className="text-amber-700">
+              Displaying sample data because the API returned HTML or encountered a CORS error
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {apiResponse && (
+          <div className="space-y-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <Card className="bg-green-50 border-green-200">
+                <CardContent className="pt-4">
+                  <div className="text-sm text-muted-foreground mb-1">Product name:</div>
+                  <div className="font-medium text-green-700">{apiResponse.name}</div>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="pt-4">
+                  <div className="text-sm text-muted-foreground mb-1">Price:</div>
+                  <div className="font-medium text-blue-700">
+                    {Number(apiResponse.price).toLocaleString()} VND
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-purple-50 border-purple-200">
+                <CardContent className="pt-4">
+                  <div className="text-sm text-muted-foreground mb-1">Stock:</div>
+                  <div className="font-medium text-purple-700">{apiResponse.stock}</div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <Button 
+              onClick={applyApiDataToForm}
+              type="button"
+              className="w-full"
+              variant="secondary"
+            >
+              Apply API Data to Form
+            </Button>
+          </div>
+        )}
+        
+        <ApiLogs logs={logs} />
       </CardContent>
     </Card>
   );
-};
+}
 
-export default ApiProductTester;
-export type { ApiResponse };
+function ApiLogs({ logs }: { logs: string[] }) {
+  if (logs.length === 0) return null;
+  
+  return (
+    <div className="mt-4">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm font-medium">API Request Logs</div>
+        <div className="text-xs text-muted-foreground">{logs.length} entries</div>
+      </div>
+      <div className="bg-black text-green-400 p-4 rounded-md font-mono text-xs overflow-x-auto max-h-[200px] overflow-y-auto">
+        {logs.map((log, index) => (
+          <div key={index}>{log}</div>
+        ))}
+      </div>
+    </div>
+  );
+}

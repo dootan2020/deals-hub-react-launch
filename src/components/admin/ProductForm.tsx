@@ -1,109 +1,50 @@
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { LoaderIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useProductSync } from '@/hooks/use-product-sync';
+import { Form } from '@/components/ui/form';
+import { Category } from '@/types';
+import { KioskTokenField } from './product-form/KioskTokenField';
+import { ProductFormFields } from './product-form/ProductFormFields';
+import { FormFooter } from './product-form/FormFooter';
+import { ApiProductTester, ApiResponse } from '@/components/admin/product-manager/ApiProductTester';
+import { fetchProxySettings } from '@/utils/proxyUtils';
+import { fetchViaProxy } from '@/utils/proxyUtils';
+import { fetchActiveApiConfig } from '@/utils/apiUtils';
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Category, ApiResponse } from '@/types';
-import { prepareTableId, prepareTableInsert, prepareTableUpdate } from '@/utils/databaseTypes';
-import { castArrayData, castData } from '@/utils/supabaseHelpers';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from '@/components/ui/button';
+import { Loader2, RefreshCw } from 'lucide-react';
 
-const ImageUpload = ({ value, onChange }: { value?: string[] | null, onChange: (value: string[]) => void }) => {
-  return (
-    <Textarea 
-      placeholder="Enter image URLs (one per line)"
-      value={(value || []).join('\n')}
-      onChange={(e) => {
-        const urls = e.target.value
-          .split('\n')
-          .map(url => url.trim())
-          .filter(url => url !== '');
-        onChange(urls);
-      }}
-      className="h-32"
-    />
-  );
-};
-
-const ApiProductTester = ({ onSelectResult }: { onSelectResult: (result: ApiResponse) => void }) => {
-  const [apiUrl, setApiUrl] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  const testApi = async () => {
-    setLoading(true);
-    try {
-      // Simulate API test
-      setTimeout(() => {
-        onSelectResult({
-          success: 'true',
-          name: 'Test Product',
-          price: '19.99',
-          stock: '100',
-          description: 'This is a test product from API'
-        });
-        setLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error('API test error:', error);
-      setLoading(false);
-    }
-  };
-  
-  return (
-    <div className="space-y-2">
-      <div className="flex gap-2">
-        <Input 
-          placeholder="Enter API URL to test" 
-          value={apiUrl}
-          onChange={(e) => setApiUrl(e.target.value)}
-          className="flex-1"
-        />
-        <Button onClick={testApi} disabled={loading || !apiUrl}>
-          {loading ? 'Testing...' : 'Test API'}
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-const productFormSchema = z.object({
-  title: z.string().min(2, {
-    message: "Title must be at least 2 characters.",
-  }),
-  description: z.string().min(10, {
-    message: "Description must be at least 10 characters.",
-  }),
-  price: z.number(),
-  original_price: z.number().optional(),
-  in_stock: z.boolean().default(true),
-  slug: z.string().regex(/^[a-z0-9-]+$/, {
-    message: "Slug must be lowercase and contain only letters, numbers, and dashes.",
-  }),
-  external_id: z.string().optional(),
-  category_id: z.string().uuid({
-    message: "Category ID must be a valid UUID.",
-  }),
-  images: z.string().array().default([]),
-  kiosk_token: z.string().optional(),
-  stock: z.number().min(0, {
-    message: "Stock must be a non-negative number.",
-  }),
+const productSchema = z.object({
+  title: z.string().min(3, 'Title must be at least 3 characters.'),
+  description: z.string().min(10, 'Description must be at least 10 characters.'),
+  price: z.coerce.number().min(0, 'Price must be a positive number.'),
+  originalPrice: z.coerce.number().min(0, 'Original price must be positive').optional(),
+  inStock: z.boolean().default(true),
+  slug: z.string().min(3, 'Slug must be at least 3 characters.')
+    .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens.'),
+  externalId: z.string().optional(),
+  categoryId: z.string().min(1, 'Category is required'),
+  images: z.string().optional(),
+  kioskToken: z.string().min(1, 'Kiosk Token is required'),
+  stock: z.number().int().min(0, 'Stock must be a positive number'),
 });
+
+type ProductFormValues = z.infer<typeof productSchema>;
 
 interface ProductFormProps {
   productId?: string;
@@ -111,367 +52,321 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ productId, onSuccess }: ProductFormProps) {
-  const [loading, setLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  
-  const form = useForm<z.infer<typeof productFormSchema>>({
-    resolver: zodResolver(productFormSchema),
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
+  const navigate = useNavigate();
+  const { createProduct, updateProduct } = useProductSync();
+
+  const form = useForm<ProductFormValues>({
+    resolver: zodResolver(productSchema),
     defaultValues: {
       title: '',
       description: '',
       price: 0,
-      original_price: 0,
-      in_stock: true,
+      originalPrice: undefined,
+      inStock: true,
       slug: '',
-      external_id: '',
-      category_id: '',
-      images: [],
-      kiosk_token: '',
+      externalId: '',
+      categoryId: '',
+      images: '',
+      kioskToken: '',
       stock: 0,
     },
+    mode: 'onChange'
   });
 
   useEffect(() => {
-    if (productId) {
-      const fetchProduct = async () => {
-        setLoading(true);
-        try {
-          const { data, error } = await supabase
-            .from('products')
-            .select('*')
-            .eq('id', prepareTableId('products', productId))
-            .single();
-          
-          if (error) {
-            toast.error("Failed to load product");
-            console.error(error);
-          } else if (data) {
-            form.reset({
-              title: data.title,
-              description: data.description,
-              price: data.price,
-              original_price: data.original_price || undefined,
-              in_stock: data.in_stock,
-              slug: data.slug,
-              external_id: data.external_id || '',
-              category_id: data.category_id || '',
-              images: data.images || [],
-              kiosk_token: data.kiosk_token || '',
-              stock: data.stock,
-            });
-          }
-        } catch (error) {
-          console.error("Error fetching product:", error);
-          toast.error("Failed to load product");
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      fetchProduct();
-    }
-  }, [productId, form]);
+    const subscription = form.watch(() => {
+      setFormDirty(true);
+    });
+    return () => subscription.unsubscribe();
+  }, [form.watch]);
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    fetchCategories();
+    
+    if (productId) {
+      fetchProductDetails();
+    }
+  }, [productId]);
+
+  const fetchCategories = async () => {
+    try {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
         .order('name');
-      
-      if (error) {
-        toast.error("Failed to load categories");
-        console.error(error);
-      } else {
-        setCategories(castArrayData<Category>(data));
-      }
-    };
-    
-    fetchCategories();
-  }, []);
 
-  const onSubmit = async (values: z.infer<typeof productFormSchema>) => {
-    setLoading(true);
-    
-    try {
-      const productData = prepareTableUpdate('products', {
-        title: values.title,
-        description: values.description,
-        price: values.price,
-        original_price: values.original_price,
-        in_stock: values.in_stock,
-        slug: values.slug,
-        external_id: values.external_id,
-        category_id: values.category_id,
-        images: values.images,
-        kiosk_token: values.kiosk_token,
-        stock: values.stock,
-      });
-      
-      if (productId) {
-        const { error } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('id', prepareTableId('products', productId));
-          
-        if (error) throw error;
-        
-        toast.success("Product updated successfully");
-      } else {
-        const { error } = await supabase
-          .from('products')
-          .insert(prepareTableInsert('products', productData));
-          
-        if (error) throw error;
-        
-        toast.success("Product created successfully");
-      }
-      
-      if (onSuccess) onSuccess();
-      
-      if (!productId) {
-        form.reset();
-      }
-    } catch (error: any) {
-      toast.error(error.message || "An error occurred");
-      console.error(error);
-    } finally {
-      setLoading(false);
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast.error('Failed to fetch categories');
     }
   };
 
-  const handleApiResult = (result: ApiResponse) => {
-    if (result.success === 'true') {
-      form.setValue('title', result.name || '');
-      form.setValue('price', Number(result.price) || 0);
-      form.setValue('stock', Number(result.stock) || 0);
-      form.setValue('description', result.description || '');
-      toast.success("API data loaded successfully!");
+  const fetchProductDetails = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        form.reset({
+          title: data.title,
+          description: data.description,
+          price: data.price,
+          originalPrice: data.original_price || undefined,
+          inStock: data.in_stock ?? true,
+          slug: data.slug,
+          externalId: data.external_id || '',
+          categoryId: data.category_id || '',
+          images: data.images && data.images.length > 0 ? data.images.join('\n') : '',
+          kioskToken: data.kiosk_token || '',
+          stock: data.stock || 0,
+        });
+        setFormDirty(false);
+      }
+    } catch (error) {
+      console.error('Error fetching product details:', error);
+      toast.error('Failed to fetch product details');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateFormWithApiData = (data: ApiResponse, formData: any) => {
+    if (!data) return formData;
+    
+    const updatedData = { ...formData };
+    
+    updatedData.title = data.name || formData.title;
+    updatedData.description = data.description || `${data.name} - Digital Product` || formData.description;
+    updatedData.price = parseFloat(data.price) || formData.price;
+    updatedData.stock = parseInt(data.stock || '0', 10);
+    updatedData.inStock = parseInt(data.stock || '0', 10) > 0;
+    
+    return updatedData;
+  };
+
+  const onSubmit = async (formData: ProductFormValues) => {
+    setIsLoading(true);
+    try {
+      const productData = {
+        title: formData.title,
+        description: formData.description,
+        price: formData.price,
+        original_price: formData.originalPrice || null,
+        in_stock: formData.inStock,
+        slug: formData.slug,
+        external_id: formData.externalId || null,
+        category_id: formData.categoryId,
+        images: formData.images ? formData.images.split('\n').filter(url => url.trim() !== '') : [],
+        kiosk_token: formData.kioskToken || null,
+        stock: formData.stock || 0,
+      };
+
+      if (productId) {
+        // Fixed: Pass the data directly without converting to a promise
+        updateProduct({ id: productId, ...productData } as any);
+        toast.success('Product updated successfully');
+      } else {
+        // Fixed: Pass the data directly without converting to a promise
+        createProduct(productData as any);
+        toast.success('Product created successfully');
+      }
+
+      setFormDirty(false);
+      
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate('/admin/products');
+      }
+    } catch (error) {
+      console.error('Error saving product:', error);
+      toast.error('Failed to save product');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetForm = () => {
+    if (formDirty) {
+      setShowResetDialog(true);
     } else {
-      toast.error(`API test error: ${result.error || 'Unknown error'}`);
+      resetForm();
+    }
+  };
+
+  const resetForm = () => {
+    form.reset({
+      title: '',
+      description: '',
+      price: 0,
+      originalPrice: undefined,
+      inStock: true,
+      slug: '',
+      externalId: '',
+      categoryId: '',
+      images: '',
+      kioskToken: '',
+      stock: 0,
+    });
+    setFormDirty(false);
+    toast.info('Form has been reset');
+  };
+
+  const handleApiTest = async (kioskToken: string) => {
+    if (!kioskToken) {
+      toast.error('Please enter a kiosk token');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      toast.info('Fetching product data...');
+
+      const proxyConfig = await fetchProxySettings();
+      
+      const apiConfig = await fetchActiveApiConfig();
+      const userToken = apiConfig.user_token;
+      
+      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${userToken}`;
+      const data = await fetchViaProxy(apiUrl, proxyConfig);
+      
+      if (data?.success === "true") {
+        form.setValue('title', data.name);
+        form.setValue('description', `${data.name}\n\n${data.description || ''}`.trim());
+        form.setValue('price', parseFloat(data.price) * 3);
+        form.setValue('stock', parseInt(data.stock || '0', 10));
+        form.setValue('inStock', parseInt(data.stock || '0', 10) > 0);
+        
+        const slug = data.name.toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w\-]+/g, '')
+          .replace(/\-\-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
+        form.setValue('slug', slug);
+        
+        toast.success('Product data fetched successfully!');
+      } else {
+        toast.error(`Failed to fetch product data: ${data?.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('API test error:', error);
+      toast.error(`Error fetching product data: ${(error as Error).message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleApiDataReceived = (data: ApiResponse) => {
+    if (!data) return;
+    
+    console.log("API data received:", data);
+    
+    try {
+      const currentKioskToken = form.getValues('kioskToken') || data.kioskToken;
+      
+      if (data.name) {
+        form.setValue('title', data.name, { shouldValidate: true });
+      }
+      
+      form.setValue('kioskToken', currentKioskToken, { shouldValidate: true });
+      
+      if (data.price) {
+        const originalPrice = parseFloat(data.price) || 0;
+        form.setValue('price', originalPrice * 3, { shouldValidate: true });
+        form.setValue('originalPrice', originalPrice, { shouldValidate: true });
+      }
+      
+      if (data.stock) {
+        const stockValue = parseInt(data.stock) || 0;
+        form.setValue('stock', stockValue, { shouldValidate: true });
+        form.setValue('inStock', stockValue > 0, { shouldValidate: true });
+      }
+      
+      if (data.name && !form.getValues('slug')) {
+        const slug = data.name.toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w\-]+/g, '')
+          .replace(/\-\-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
+        
+        form.setValue('slug', slug, { shouldValidate: true });
+      }
+      
+      if (data.description) {
+        form.setValue('description', data.description, { shouldValidate: true });
+      } else if (data.name) {
+        form.setValue('description', `${data.name} - Digital Product`, { shouldValidate: true });
+      }
+      
+      toast.success('Product data applied successfully');
+    } catch (error) {
+      console.error('Error applying API data:', error);
+      toast.error('Failed to apply API data to form');
     }
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Product title" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Product description"
-                        className="resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="0.00"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="original_price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Original Price</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="0.00"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="stock"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Stock</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="slug"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Slug</FormLabel>
-                      <FormControl>
-                        <Input placeholder="product-slug" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="external_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>External ID</FormLabel>
-                    <FormControl>
-                      <Input placeholder="External ID" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="category_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <FormControl>
-                      <select
-                        {...field}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <option value="">Select a category</option>
-                        {categories.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.name}
-                          </option>
-                        ))}
-                      </select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="kiosk_token"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Kiosk Token</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Kiosk Token" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-          <div>
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="in_stock"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">In Stock</FormLabel>
-                      <FormDescription>
-                        Whether the product is currently in stock.
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="images"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Images</FormLabel>
-                    <FormControl>
-                      <ImageUpload
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-        </div>
+    <>
+      <ApiProductTester 
+        onApiDataReceived={handleApiDataReceived} 
+        initialKioskToken={form.getValues('kioskToken')}
+      />
+      
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <ProductFormFields 
+            categories={categories} 
+            isEditMode={!!productId}
+          />
 
-        <div>
-          <h3 className="text-lg font-semibold mb-4">
-            API Product Tester
-          </h3>
-          <ApiProductTester onSelectResult={handleApiResult} />
-        </div>
+          <div className="flex justify-between">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleResetForm}
+              disabled={isLoading}
+              className="border-gray-300"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reset Form
+            </Button>
+            <FormFooter isLoading={isLoading} productId={productId} />
+          </div>
+        </form>
+      </Form>
 
-        <Button type="submit" disabled={loading}>
-          {loading && <LoaderIcon className="mr-2 h-4 w-4 animate-spin" />}
-          Submit
-        </Button>
-      </form>
-    </Form>
+      <AlertDialog 
+        open={showResetDialog} 
+        onOpenChange={setShowResetDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset form?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear all form fields and unsaved changes. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={resetForm}>
+              Reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
-
-export default ProductForm;

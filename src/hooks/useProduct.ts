@@ -42,32 +42,23 @@ export const useProduct = (productSlug: string | undefined) => {
           id: productData.id,
           title: productData.title,
           description: productData.description,
-          short_description: productData.short_description || '',
+          shortDescription: productData.short_description || '',
           price: Number(productData.price),
-          original_price: productData.original_price ? Number(productData.original_price) : undefined,
+          originalPrice: productData.original_price ? Number(productData.original_price) : undefined,
           images: productData.images || [],
-          category_id: productData.category_id,
+          categoryId: productData.category_id,
           rating: productData.rating || 0,
-          review_count: productData.review_count || 0,
-          in_stock: productData.in_stock === true,
-          stock_quantity: productData.stock_quantity ?? (productData.in_stock === true ? 10 : 0),
+          reviewCount: productData.review_count || 0,
+          inStock: productData.in_stock === true,
+          stockQuantity: productData.stock_quantity ?? (productData.in_stock === true ? 10 : 0),
           badges: productData.badges || [],
           slug: productData.slug,
           features: productData.features || [],
           specifications,
+          salesCount: Number(0),
           stock: productData.stock || 0,
           kiosk_token: productData.kiosk_token || '',
-          createdAt: productData.created_at || new Date().toISOString(),
-          
-          // Add getters for API compatibility
-          get originalPrice() { return this.original_price; },
-          get shortDescription() { return this.short_description || this.description.substring(0, 100); },
-          get categoryId() { return this.category_id; },
-          get inStock() { return this.in_stock; },
-          get stockQuantity() { return this.stock_quantity || this.stock || 0; },
-          get reviewCount() { return this.review_count; },
-          get salesCount() { return 0; },
-          get category() { return productData.categories; }
+          createdAt: productData.created_at || new Date().toISOString()
         };
           
         setProduct(mappedProduct);

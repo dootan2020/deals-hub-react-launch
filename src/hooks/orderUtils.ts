@@ -1,46 +1,50 @@
 
+// Shared types and utilities for Orders
+
+import { Json } from '@/integrations/supabase/types';
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  price: number;
+  quantity: number;
+  created_at: string | null;
+  external_product_id: string | null;
+}
+
 export interface Order {
   id: string;
   user_id: string;
-  external_order_id: string | null;
+  total_price: number;
   status: string;
-  total_amount: number;
-  created_at: string;
+  created_at: string | null;
   updated_at: string;
-  product_title?: string;
-  user: {
+  product_id?: string;
+  qty: number;
+  keys?: Json;
+  promotion_code?: string;
+  external_order_id?: string;
+  user?: { 
     email: string;
     display_name?: string;
-  };
-  product: {
+  } | null;
+  product?: {
     title: string;
-    images?: string[];
+    images?: string[] | null;
   };
-  order_items: {
-    id: string;
-    quantity: number;
-    price: number;
-    created_at: string | null;
-    product_id: string | null;
-    external_product_id: string | null;
-    order_id: string | null;
-  }[];
+  order_items?: OrderItem[];
 }
 
-export type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled' | 'refunded';
-
-export const normalizeUserField = (userField: any): { email: string; display_name?: string } => {
-  // If it's a string (probably just an email), return it as the email
-  if (typeof userField === 'string') {
-    return { email: userField };
+export function normalizeUserField(user: any): { email: string; display_name?: string } {
+  if (
+    user &&
+    typeof user === 'object' &&
+    user !== null &&
+    !('error' in user) &&
+    typeof user.email === 'string'
+  ) {
+    return user as { email: string; display_name?: string };
   }
-  // If it's null/undefined, provide default
-  if (!userField) {
-    return { email: 'Unknown User' };
-  }
-  // If it's an object, extract fields
-  return {
-    email: userField.email || 'Unknown User',
-    display_name: userField.display_name
-  };
-};
+  return { email: 'N/A' };
+}

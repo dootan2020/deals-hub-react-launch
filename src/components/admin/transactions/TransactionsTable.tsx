@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +13,6 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
-import { VirtualizedTable } from '@/components/ui/virtualized-table';
 
 interface Transaction {
   id: string;
@@ -47,88 +47,6 @@ export function TransactionsTable({
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-
-  const columns = [
-    {
-      header: 'ID',
-      accessor: (transaction: Transaction) => transaction.id.substring(0, 8) + '...'
-    },
-    {
-      header: 'Time',
-      accessor: (transaction: Transaction) => formatDate(transaction.created_at)
-    },
-    {
-      header: 'User',
-      accessor: (transaction: Transaction) => 
-        transaction.payer_email || transaction.user?.email || 'N/A'
-    },
-    {
-      header: 'Method',
-      accessor: (transaction: Transaction) => (
-        <Badge variant="outline" className="capitalize">
-          {transaction.payment_method}
-        </Badge>
-      )
-    },
-    {
-      header: 'Amount',
-      accessor: (transaction: Transaction) => new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND'
-      }).format(transaction.amount)
-    },
-    {
-      header: 'Status',
-      accessor: (transaction: Transaction) => getStatusBadge(transaction.status)
-    },
-    {
-      header: 'Actions',
-      accessor: (transaction: Transaction) => (
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleViewDetails(transaction)}
-          >
-            <Eye className="h-4 w-4 mr-1" />
-            Details
-          </Button>
-          {transaction.status === 'pending' && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-green-50 text-green-600 hover:bg-green-100"
-                onClick={() => handleStatusChange(transaction.id, 'completed')}
-                disabled={processingId === transaction.id}
-              >
-                {processingId === transaction.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="h-4 w-4 mr-1" />
-                )}
-                Duyệt
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-red-50 text-red-600 hover:bg-red-100"
-                onClick={() => handleStatusChange(transaction.id, 'cancelled')}
-                disabled={processingId === transaction.id}
-              >
-                {processingId === transaction.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <X className="h-4 w-4 mr-1" />
-                )}
-                Hủy
-              </Button>
-            </>
-          )}
-        </div>
-      )
-    }
-  ];
 
   const handleStatusChange = async (transactionId: string, newStatus: string) => {
     try {
@@ -186,59 +104,140 @@ export function TransactionsTable({
     return (
       <div className="flex justify-center items-center py-10">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-lg">Loading transactions...</span>
+        <span className="ml-2 text-lg">Đang tải danh sách giao dịch...</span>
       </div>
     );
   }
 
   return (
     <>
-      {transactions.length > 0 ? (
-        <VirtualizedTable
-          items={transactions}
-          columns={columns}
-          height={600}
-          itemSize={60}
-          onRowClick={onViewDetails}
-        />
-      ) : (
-        <div className="text-center py-10 text-muted-foreground">
-          <Wallet className="h-12 w-12 mx-auto mb-2 opacity-20" />
-          <h3 className="text-lg font-medium mb-1">No transactions</h3>
-          <p>There are no transactions in the system yet.</p>
-        </div>
-      )}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>ID</TableHead>
+            <TableHead>Thời gian</TableHead>
+            <TableHead>Người dùng</TableHead>
+            <TableHead>Phương thức</TableHead>
+            <TableHead>Số tiền</TableHead>
+            <TableHead>Trạng thái</TableHead>
+            <TableHead>Thao tác</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {transactions.length > 0 ? (
+            transactions.map((transaction) => (
+              <TableRow key={transaction.id}>
+                <TableCell className="font-medium">
+                  {transaction.id.substring(0, 8)}...
+                </TableCell>
+                <TableCell>
+                  {formatDate(transaction.created_at)}
+                </TableCell>
+                <TableCell>
+                  {transaction.payer_email || transaction.user?.email || 'N/A'}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="capitalize">
+                    {transaction.payment_method}
+                  </Badge>
+                </TableCell>
+                <TableCell className="font-medium">
+                  {new Intl.NumberFormat('vi-VN', {
+                    style: 'currency',
+                    currency: 'VND',
+                  }).format(transaction.amount)}
+                </TableCell>
+                <TableCell>{getStatusBadge(transaction.status)}</TableCell>
+                <TableCell>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewDetails(transaction)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      Chi tiết
+                    </Button>
+                    {transaction.status === 'pending' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-green-50 text-green-600 hover:bg-green-100"
+                          onClick={() => handleStatusChange(transaction.id, 'completed')}
+                          disabled={processingId === transaction.id}
+                        >
+                          {processingId === transaction.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4 mr-1" />
+                          )}
+                          Duyệt
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-red-50 text-red-600 hover:bg-red-100"
+                          onClick={() => handleStatusChange(transaction.id, 'cancelled')}
+                          disabled={processingId === transaction.id}
+                        >
+                          {processingId === transaction.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <X className="h-4 w-4 mr-1" />
+                          )}
+                          Hủy
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-10">
+                <div className="flex flex-col items-center justify-center text-muted-foreground">
+                  <Wallet className="h-12 w-12 mb-2 opacity-20" />
+                  <h3 className="text-lg font-medium mb-1">Không có giao dịch</h3>
+                  <p>Chưa có giao dịch nạp tiền nào trong hệ thống.</p>
+                </div>
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Details of transaction #{selectedTransaction?.id.substring(0, 8)}</DialogTitle>
+            <DialogTitle>Chi tiết giao dịch #{selectedTransaction?.id.substring(0, 8)}</DialogTitle>
           </DialogHeader>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">Transaction information</h3>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Thông tin giao dịch</h3>
               <div className="bg-muted/40 p-4 rounded-md space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Status:</span>
+                  <span className="text-muted-foreground">Trạng thái:</span>
                   <span>{getStatusBadge(selectedTransaction?.status || '')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Created at:</span>
+                  <span className="text-muted-foreground">Ngày tạo:</span>
                   <span>{formatDate(selectedTransaction?.created_at || '')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Updated at:</span>
+                  <span className="text-muted-foreground">Cập nhật:</span>
                   <span>{formatDate(selectedTransaction?.updated_at || '')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Payment method:</span>
+                  <span className="text-muted-foreground">Phương thức:</span>
                   <Badge variant="outline" className="capitalize">
                     {selectedTransaction?.payment_method || 'N/A'}
                   </Badge>
                 </div>
                 <div className="flex justify-between font-medium">
-                  <span>Amount:</span>
+                  <span>Số tiền:</span>
                   <span>{selectedTransaction?.amount ? new Intl.NumberFormat('vi-VN', {
                     style: 'currency',
                     currency: 'VND',
@@ -246,7 +245,7 @@ export function TransactionsTable({
                 </div>
                 {selectedTransaction?.net_amount && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Net amount:</span>
+                    <span className="text-muted-foreground">Số tiền thực nhận:</span>
                     <span>{new Intl.NumberFormat('vi-VN', {
                       style: 'currency',
                       currency: 'VND',
@@ -257,10 +256,10 @@ export function TransactionsTable({
             </div>
             
             <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">User information</h3>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Thông tin người dùng</h3>
               <div className="bg-muted/40 p-4 rounded-md space-y-2">
                 <div>
-                  <span className="text-muted-foreground block">User ID:</span>
+                  <span className="text-muted-foreground block">ID người dùng:</span>
                   <span className="text-xs break-all">{selectedTransaction?.user_id || 'N/A'}</span>
                 </div>
                 <div>
@@ -269,13 +268,13 @@ export function TransactionsTable({
                 </div>
                 {selectedTransaction?.payer_id && (
                   <div>
-                    <span className="text-muted-foreground">Payment ID:</span>
+                    <span className="text-muted-foreground">ID người thanh toán:</span>
                     <span className="ml-2">{selectedTransaction.payer_id}</span>
                   </div>
                 )}
                 {selectedTransaction?.transaction_id && (
                   <div>
-                    <span className="text-muted-foreground">Transaction ID:</span>
+                    <span className="text-muted-foreground">Mã giao dịch:</span>
                     <span className="ml-2">{selectedTransaction.transaction_id}</span>
                   </div>
                 )}
@@ -288,7 +287,7 @@ export function TransactionsTable({
               variant="outline" 
               onClick={() => setIsDetailsOpen(false)}
             >
-              Close
+              Đóng
             </Button>
             
             {selectedTransaction?.status === 'pending' && (
@@ -302,7 +301,7 @@ export function TransactionsTable({
                   }}
                 >
                   <Check className="h-4 w-4 mr-1" />
-                  Approve transaction
+                  Duyệt giao dịch
                 </Button>
                 <Button
                   variant="destructive"
@@ -312,7 +311,7 @@ export function TransactionsTable({
                   }}
                 >
                   <X className="h-4 w-4 mr-1" />
-                  Reject
+                  Từ chối
                 </Button>
               </>
             )}

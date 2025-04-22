@@ -39,7 +39,7 @@ export const useOrderHistory = (userId: string) => {
             product_id,
             quantity,
             price,
-            products:product_id (
+            product:products (
               title
             )
           )
@@ -55,12 +55,9 @@ export const useOrderHistory = (userId: string) => {
       const ordersWithProductTitle = orderData?.map(order => {
         let productTitle = 'N/A';
         
-        // Safely access product title
-        if (order.order_items && 
-            order.order_items.length > 0 && 
-            order.order_items[0].products &&
-            typeof order.order_items[0].products === 'object') {
-          productTitle = order.order_items[0].products.title || 'N/A';
+        // Lấy tiêu đề sản phẩm từ product (nếu có)
+        if (order.order_items && order.order_items.length > 0 && order.order_items[0].product) {
+          productTitle = order.order_items[0].product.title;
         }
         
         // Map the database fields to the Order interface

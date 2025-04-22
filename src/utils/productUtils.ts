@@ -8,13 +8,13 @@ export const ensureProductFields = (product: Partial<Product>): Product => {
   return {
     id: product.id || '',
     title: product.title || '',
-    description: product.description || '', // Ensure this is always a string
+    description: product.description || '',
     shortDescription: product.shortDescription || product.description?.substring(0, 200) || '',
     price: product.price || 0,
     originalPrice: product.originalPrice,
     images: product.images || [],
     categoryId: product.categoryId || '',
-    category: product.category,
+    categories: product.categories,
     rating: product.rating || 0,
     reviewCount: product.reviewCount || 0,
     inStock: product.inStock !== undefined ? product.inStock : true,
@@ -25,12 +25,8 @@ export const ensureProductFields = (product: Partial<Product>): Product => {
     specifications: product.specifications || {},
     salesCount: product.salesCount || 0,
     createdAt: product.createdAt || new Date().toISOString(),
-    kiosk_token: product.kiosk_token || '', 
-    stock: product.stock !== undefined ? product.stock : 0,
-    category_id: product.category_id || product.categoryId || '',
-    review_count: product.review_count || product.reviewCount || 0,
-    in_stock: product.in_stock !== undefined ? product.in_stock : product.inStock !== undefined ? product.inStock : true,
-    short_description: product.short_description || product.shortDescription || ''
+    kiosk_token: product.kiosk_token || '', // Added default empty string for kiosk_token
+    stock: product.stock !== undefined ? product.stock : 0
   };
 };
 
@@ -66,3 +62,4 @@ export const getSoldDisplay = (salesCount: number = 0): number => {
   // Generate a random number between 45 and 200 and add it to salesCount
   return salesCount + Math.floor(Math.random() * (200 - 45 + 1) + 45);
 };
+

@@ -1,17 +1,20 @@
 
 /**
- * Calculate payment processing fees
- * PayPal fees are typically 2.9% + $0.30 per transaction
+ * Calculate the PayPal fee for a given amount
  */
-export function calculateFee(amount: number): number {
-  const fee = amount * 0.029 + 0.30;
-  return Number(fee.toFixed(2));
-}
+export const calculateFee = (amount: number): number => {
+  if (isNaN(amount) || amount <= 0) return 0;
+  
+  const feePercentage = 0.039;
+  const fixedFee = 0.30;
+  return Number((amount * feePercentage + fixedFee).toFixed(2));
+};
 
 /**
- * Calculate net amount after fees
+ * Calculate the net amount after PayPal fee
  */
-export function calculateNetAmount(amount: number): number {
-  const fee = calculateFee(amount);
-  return Number((amount - fee).toFixed(2));
-}
+export const calculateNetAmount = (amount: number): number => {
+  if (isNaN(amount) || amount <= 0) return 0;
+  
+  return Number((amount - calculateFee(amount)).toFixed(2));
+};

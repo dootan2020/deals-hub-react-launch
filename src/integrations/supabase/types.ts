@@ -123,15 +123,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "deposits_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users_with_roles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       invoices: {
         Row: {
@@ -172,13 +164,6 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "invoices_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users_with_roles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       notifications: {
@@ -207,47 +192,6 @@ export type Database = {
           type?: string
         }
         Relationships: []
-      }
-      order_activities: {
-        Row: {
-          action: string
-          created_at: string
-          id: string
-          metadata: Json | null
-          new_status: string | null
-          old_status: string | null
-          order_id: string
-          user_id: string | null
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          id?: string
-          metadata?: Json | null
-          new_status?: string | null
-          old_status?: string | null
-          order_id: string
-          user_id?: string | null
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          id?: string
-          metadata?: Json | null
-          new_status?: string | null
-          old_status?: string | null
-          order_id?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "order_activities_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       order_items: {
         Row: {
@@ -340,13 +284,6 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users_with_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -462,15 +399,7 @@ export type Database = {
           id?: string
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "users_with_roles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       proxy_settings: {
         Row: {
@@ -616,15 +545,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "transactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users_with_roles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_details: {
         Row: {
@@ -645,15 +566,7 @@ export type Database = {
           id?: string
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_details_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "users_with_roles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -674,33 +587,11 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_roles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users_with_roles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
-      users_with_roles: {
-        Row: {
-          confirmation_sent_at: string | null
-          confirmed_at: string | null
-          created_at: string | null
-          display_name: string | null
-          email: string | null
-          email_confirmed_at: string | null
-          id: string | null
-          is_active: boolean | null
-          last_sign_in_at: string | null
-          roles: Database["public"]["Enums"]["app_role"][] | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       assign_role: {
@@ -709,10 +600,6 @@ export type Database = {
           role_param: Database["public"]["Enums"]["app_role"]
         }
         Returns: undefined
-      }
-      ban_user: {
-        Args: { user_id_param: string; days?: number }
-        Returns: boolean
       }
       check_email_status: {
         Args: { email_param: string }
@@ -744,20 +631,12 @@ export type Database = {
         }
         Returns: undefined
       }
-      is_user_active: {
-        Args: { user_id_param: string }
-        Returns: boolean
-      }
       remove_role: {
         Args: {
           user_id_param: string
           role_param: Database["public"]["Enums"]["app_role"]
         }
         Returns: undefined
-      }
-      unban_user: {
-        Args: { user_id_param: string }
-        Returns: boolean
       }
       update_category: {
         Args: {

@@ -1,72 +1,81 @@
-import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { ProductFormFields } from '../product-form/ProductFormFields';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { Product, Category } from '@/types';
-import { prepareTableUpdate } from '@/utils/databaseTypes';
-import { castArrayData } from '@/utils/supabaseHelpers';
+import { Category } from '@/types';
+
+// Product schema
+const productSchema = z.object({
+  title: z.string().min(3, 'Title must be at least 3 characters.'),
+  description: z.string().min(10, 'Description must be at least 10 characters.'),
+  price: z.coerce.number().min(0, 'Price must be a positive number.'),
+  originalPrice: z.coerce.number().min(0, 'Original price must be positive').optional(),
+  inStock: z.boolean().default(true),
+  slug: z.string().min(3, 'Slug must be at least 3 characters.')
+    .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens.'),
+  externalId: z.string().optional(),
+  categoryId: z.string().min(1, 'Category is required'),
+  images: z.string().optional(),
+  kioskToken: z.string().min(1, 'Kiosk Token is required'),
+  stock: z.number().int().min(0, 'Stock must be a positive number'),
+});
+
+type ProductFormValues = z.infer<typeof productSchema>;
 
 interface EditProductModalProps {
-  open: boolean;
-  onClose: () => void;
+  isOpen: boolean;
   productId: string;
-  onUpdate?: () => void;
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
-export const EditProductModal = ({ 
-  open,
-  onClose,
-  productId,
-  onUpdate
-}: EditProductModalProps) => {
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [product, setProduct] = useState<Partial<Product>>({
-    id: '',
-    title: '',
-    description: '',
-    price: 0,
-    in_stock: true,
-    slug: '',
-    category_id: '',
-    stock: 0,
-  });
+export function EditProductModal({ 
+  isOpen, 
+  productId, 
+  onClose, 
+  onSuccess 
+}: EditProductModalProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
+  
+  const form = useForm<ProductFormValues>({
+    resolver: zodResolver(productSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      price: 0,
+      originalPrice: undefined,
+      inStock: true,
+      slug: '',
+      externalId: '',
+      categoryId: '',
+      images: '',
+      kioskToken: '',
+      stock: 0,
+    },
+    mode: 'onChange'
+  });
 
   useEffect(() => {
-    if (open && productId) {
-      fetchProduct();
+    if (isOpen && productId) {
+      fetchProductDetails();
       fetchCategories();
     }
-  }, [open, productId]);
-
-  const fetchProduct = async () => {
-    if (!productId) return;
-    
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', productId)
-        .single();
-        
-      if (error) throw error;
-      
-      setProduct(data as Product);
-    } catch (error) {
-      console.error('Error fetching product:', error);
-      toast.error('Failed to load product details');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [isOpen, productId]);
 
   const fetchCategories = async () => {
     try {
@@ -74,251 +83,132 @@ export const EditProductModal = ({
         .from('categories')
         .select('*')
         .order('name');
-        
+
       if (error) throw error;
-      
-      setCategories(castArrayData<Category>(data));
+      setCategories(data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
-      toast.error('Failed to load categories');
+      toast.error('Failed to fetch categories');
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setProduct({ ...product, [name]: value });
-  };
-
-  const handleSwitchChange = (checked: boolean, name: string) => {
-    setProduct({ ...product, [name]: checked });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    
+  const fetchProductDetails = async () => {
+    setIsLoading(true);
     try {
-      // Prepare product data for update
-      const updatedData = {
-        title: product.title,
-        description: product.description,
-        price: product.price,
-        original_price: product.original_price,
-        in_stock: product.in_stock,
-        slug: product.slug,
-        external_id: product.external_id,
-        category_id: product.category_id,
-        images: product.images,
-        kiosk_token: product.kiosk_token,
-        stock: product.stock,
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single();
+
+      if (error) throw error;
+      
+      if (data) {
+        form.reset({
+          title: data.title,
+          description: data.description,
+          price: data.price,
+          originalPrice: data.original_price || undefined,
+          inStock: data.in_stock ?? true,
+          slug: data.slug,
+          externalId: data.external_id || '',
+          categoryId: data.category_id || '',
+          images: data.images && data.images.length > 0 ? data.images.join('\n') : '',
+          kioskToken: data.kiosk_token || '',
+          stock: data.stock || 0,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching product details:', error);
+      toast.error('Failed to fetch product details');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (formData: ProductFormValues) => {
+    setIsSubmitting(true);
+    try {
+      const productData = {
+        title: formData.title,
+        description: formData.description,
+        price: formData.price,
+        original_price: formData.originalPrice || null,
+        in_stock: formData.inStock,
+        slug: formData.slug,
+        external_id: formData.externalId || null,
+        category_id: formData.categoryId,
+        images: formData.images ? formData.images.split('\n').filter(url => url.trim() !== '') : [],
+        kiosk_token: formData.kioskToken || null,
+        stock: formData.stock || 0,
       };
       
       const { error } = await supabase
         .from('products')
-        .update(updatedData)
+        .update(productData)
         .eq('id', productId);
         
       if (error) throw error;
       
       toast.success('Product updated successfully');
-      if (onUpdate) onUpdate();
+      onSuccess();
       onClose();
     } catch (error) {
       console.error('Error updating product:', error);
       toast.error('Failed to update product');
     } finally {
-      setSaving(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[525px]">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Product</DialogTitle>
+          <DialogDescription>
+            Make changes to the product information below.
+          </DialogDescription>
         </DialogHeader>
-
-        {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Loading product details...
+        
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2">Loading product data...</span>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">
-                Title
-              </Label>
-              <Input
-                type="text"
-                id="title"
-                name="title"
-                value={product.title}
-                onChange={handleInputChange}
-                className="col-span-3"
-                required
+          <FormProvider {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 py-4">
+              <ProductFormFields 
+                categories={categories} 
+                isEditMode={true}
               />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">
-                Description
-              </Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={product.description}
-                onChange={handleInputChange}
-                className="col-span-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="price" className="text-right">
-                Price
-              </Label>
-              <Input
-                type="number"
-                id="price"
-                name="price"
-                value={product.price}
-                onChange={(e) => handleInputChange({
-                  ...e,
-                  target: { ...e.target, value: parseFloat(e.target.value) }
-                } as any)}
-                className="col-span-3"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="original_price" className="text-right">
-                Original Price
-              </Label>
-              <Input
-                type="number"
-                id="original_price"
-                name="original_price"
-                value={product.original_price || ''}
-                onChange={(e) => handleInputChange({
-                  ...e,
-                  target: { ...e.target, value: parseFloat(e.target.value) }
-                } as any)}
-                className="col-span-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="stock" className="text-right">
-                Stock
-              </Label>
-              <Input
-                type="number"
-                id="stock"
-                name="stock"
-                value={product.stock}
-                onChange={(e) => handleInputChange({
-                  ...e,
-                  target: { ...e.target, value: parseInt(e.target.value) }
-                } as any)}
-                className="col-span-3"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="slug" className="text-right">
-                Slug
-              </Label>
-              <Input
-                type="text"
-                id="slug"
-                name="slug"
-                value={product.slug}
-                onChange={handleInputChange}
-                className="col-span-3"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="external_id" className="text-right">
-                External ID
-              </Label>
-              <Input
-                type="text"
-                id="external_id"
-                name="external_id"
-                value={product.external_id || ''}
-                onChange={handleInputChange}
-                className="col-span-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="category_id" className="text-right">
-                Category
-              </Label>
-              <select
-                id="category_id"
-                name="category_id"
-                value={product.category_id}
-                onChange={handleInputChange}
-                className="col-span-3 bg-white border rounded px-3 py-2"
-                required
-              >
-                <option value="">Select Category</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="kiosk_token" className="text-right">
-                Kiosk Token
-              </Label>
-              <Input
-                type="text"
-                id="kiosk_token"
-                name="kiosk_token"
-                value={product.kiosk_token || ''}
-                onChange={handleInputChange}
-                className="col-span-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="in_stock" className="text-right">
-                In Stock
-              </Label>
-              <Switch
-                id="in_stock"
-                name="in_stock"
-                checked={product.in_stock}
-                onCheckedChange={(checked) => handleSwitchChange(checked, "in_stock")}
-              />
-            </div>
-
-            <div className="flex justify-end">
-              <Button type="submit" disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save changes"
-                )}
-              </Button>
-            </div>
-          </form>
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || !form.formState.isValid}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : 'Save Changes'}
+                </Button>
+              </div>
+            </form>
+          </FormProvider>
         )}
       </DialogContent>
     </Dialog>
   );
-};
-
-export default EditProductModal;
+}

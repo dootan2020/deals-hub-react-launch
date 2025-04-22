@@ -10,7 +10,6 @@ import LoadingState from '@/components/category/LoadingState';
 import ErrorState from '@/components/category/ErrorState';
 import ProductSorter from '@/components/product/ProductSorter';
 import ViewToggle from '@/components/product/ViewToggle';
-import { useCategoryProducts } from '@/hooks/useCategoryProducts';
 
 const CategoryPage: React.FC = () => {
   const params = useParams<{ categorySlug: string; parentCategorySlug: string }>();
@@ -19,30 +18,22 @@ const CategoryPage: React.FC = () => {
   
   const {
     category,
-    loading: categoryLoading,
-    handleSortChange,
-    activeFilters,
-    subcategories,
-    setSelectedCategory,
-    currentSort
-  } = useCategoryData({
-    slug: params.categorySlug || ''
-  });
-  
-  // Use a separate hook for product data
-  const {
     products,
-    loading: productsLoading,
+    loading,
     loadingMore,
     hasMore,
     loadMore,
-    error
-  } = useCategoryProducts({
-    categoryId: category?.id,
-    sort: currentSort
+    error,
+    handleSortChange,
+    activeFilters,
+    subcategories,
+    setSelectedCategory
+  } = useCategoryData({
+    categorySlug: params.categorySlug,
+    parentCategorySlug: params.parentCategorySlug
   });
   
-  if (categoryLoading || productsLoading) return <LoadingState />;
+  if (loading) return <LoadingState />;
   if (error || !category) return <ErrorState />;
 
   const showSubcategories = !category.parent_id && subcategories.length > 0;
@@ -83,7 +74,7 @@ const CategoryPage: React.FC = () => {
             <ProductGrid
               products={products}
               viewMode={viewMode}
-              isLoading={productsLoading}
+              isLoading={loading}
               loadingMore={loadingMore}
               hasMore={hasMore}
               onLoadMore={loadMore}

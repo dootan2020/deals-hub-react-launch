@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,6 @@ const getLogoType = (title: string): 'gmail' | 'facebook' | 'outlook' | 'default
   const lowercaseTitle = title.toLowerCase();
   if (lowercaseTitle.includes('gmail')) return 'gmail';
   if (lowercaseTitle.includes('facebook')) return 'facebook';
-  if (lowercaseTitle.includes('facebook')) return 'facebook';
   if (lowercaseTitle.includes('outlook')) return 'outlook';
   return 'default';
 };
@@ -34,8 +34,8 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
   const rate = currencySettings?.vnd_per_usd ?? 24000;
   
   const priceUSD = convertVNDtoUSD(product.price, rate);
-  const originalPriceUSD = product.original_price 
-    ? convertVNDtoUSD(product.original_price, rate)
+  const originalPriceUSD = product.originalPrice 
+    ? convertVNDtoUSD(product.originalPrice, rate)
     : undefined;
 
   const containerClasses = viewMode === "list" 
@@ -46,10 +46,15 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
     ? "flex-1"
     : "";
 
-  const stock = Number(product.stock_quantity || product.stock || 0);
-  const salesCount = Number(product.stock_quantity || 0);
+  // Make sure stock value is properly set and converted to number
+  const stock = Number(product.stockQuantity || product.stock || 0);
+  const salesCount = Number(product.salesCount || product.sales_count || 0);
+  
+  // Ensure we have a valid kiosk_token
   const hasKioskToken = Boolean(product.kiosk_token);
-  const isInStock = product.in_stock;
+  
+  // Product is in stock if stock > 0
+  const isInStock = stock > 0;
 
   // For debugging
   console.log(`Product: ${product.title}, Stock: ${stock}, Type: ${typeof stock}, isInStock: ${isInStock}`);
@@ -87,7 +92,7 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
 
         {/* Description */}
         <p className="text-xs md:text-sm text-[#4B5563] line-clamp-2 min-h-[32px] md:min-h-[40px]">
-          {product.short_description || product.description}
+          {product.shortDescription || product.description}
         </p>
 
         {/* Price + Stock */}
@@ -99,16 +104,16 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-2 mt-4">
+        <div className="flex flex-wrap gap-2 mt-2">
           <Button
             variant="outline"
-            size="default"
-            className="h-12 w-full flex items-center justify-center text-sm font-medium border-primary/20 hover:border-primary/40"
+            size="sm"
+            className="flex-1 min-w-[90px] md:min-w-[100px] text-xs md:text-sm font-normal border-primary/20 hover:border-primary/40"
             asChild
           >
             <a href={`/product/${product.slug}`}>
               <span>Chi tiết</span>
-              <ArrowRight className="ml-1.5 h-4 w-4" />
+              <ArrowRight className="ml-1.5 h-3 w-3 md:h-3.5 md:w-3.5" />
             </a>
           </Button>
           
@@ -116,12 +121,12 @@ const ProductCard = ({ product, viewMode = "grid" }: ProductCardProps) => {
             productId={product.id}
             kioskToken={product.kiosk_token}
             variant="default"
-            size="default"
-            className="h-12 w-full flex items-center justify-center text-sm font-medium"
+            size="sm"
+            className="flex-1 min-w-[90px] md:min-w-[100px] bg-gradient-to-r from-primary to-primary-dark text-xs md:text-sm"
             isInStock={isInStock}
             product={product}
           >
-            <ShoppingCart className="mr-1.5 h-4 w-4" />
+            <ShoppingCart className="mr-1.5 h-3 w-3 md:h-3.5 md:w-3.5" />
             Mua ngay
           </BuyNowButton>
         </div>

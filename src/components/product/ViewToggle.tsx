@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Grid, List } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { LayoutGrid, List } from 'lucide-react';
 
 interface ViewToggleProps {
   currentView: 'grid' | 'list';
@@ -10,14 +10,26 @@ interface ViewToggleProps {
 
 const ViewToggle: React.FC<ViewToggleProps> = ({ currentView, onViewChange }) => {
   return (
-    <ToggleGroup type="single" value={currentView} onValueChange={(value) => value && onViewChange(value as 'grid' | 'list')}>
-      <ToggleGroupItem value="grid" aria-label="Grid View">
-        <Grid className="h-4 w-4" />
-      </ToggleGroupItem>
-      <ToggleGroupItem value="list" aria-label="List View">
+    <div className="flex items-center space-x-2">
+      <Button
+        variant={currentView === 'grid' ? 'default' : 'ghost'}
+        size="sm"
+        onClick={() => onViewChange('grid')}
+        className="w-10 h-10 p-0"
+        aria-label="Grid view"
+      >
+        <LayoutGrid className="h-4 w-4" />
+      </Button>
+      <Button
+        variant={currentView === 'list' ? 'default' : 'ghost'}
+        size="sm"
+        onClick={() => onViewChange('list')}
+        className="w-10 h-10 p-0"
+        aria-label="List view"
+      >
         <List className="h-4 w-4" />
-      </ToggleGroupItem>
-    </ToggleGroup>
+      </Button>
+    </div>
   );
 };
 

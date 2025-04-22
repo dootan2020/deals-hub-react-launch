@@ -1,104 +1,72 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Product, Category } from '@/types';
+import { Category, Product } from '@/types';
+import { SubcategoryDisplay } from '@/types/category.types';
 
-interface UseSubcategoriesResult {
-  products: Product[];
-  loading: boolean;
-  error: string | null;
-  subcategories: Category[];
-  featuredProducts: Product[];
-}
-
-export const useSubcategories = (categoryId: string | null): UseSubcategoriesResult => {
-  const [products, setProducts] = useState<Product[]>([]);
+export const useSubcategories = (categoryId?: string) => {
   const [subcategories, setSubcategories] = useState<Category[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!categoryId) {
-        setProducts([]);
-        setSubcategories([]);
-        setFeaturedProducts([]);
-        setLoading(false);
-        return;
-      }
+    const fetchSubcategories = async () => {
+      if (!categoryId) return;
       
-      setLoading(true);
-      
-      try {
-        // Fetch subcategories
-        const { data: subcategoriesData, error: subcategoriesError } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('parent_id', categoryId);
-          
-        if (subcategoriesError) throw subcategoriesError;
-        setSubcategories(subcategoriesData || []);
+      const { data } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('parent_id', categoryId);
         
-        // Fetch products
-        const { data, error: productsError } = await supabase
-          .from('products')
-          .select('*')
-          .eq('category_id', categoryId)
-          .order('created_at', { ascending: false });
-          
-        if (productsError) throw productsError;
-        
-        // Map the database results to the Product type
-        const productList: Product[] = data.map(item => ({
-          id: item.id,
-          title: item.title,
-          description: item.description,
-          price: Number(item.price),
-          original_price: item.original_price ? Number(item.original_price) : undefined,
-          images: item.images || [],
-          category_id: item.category_id,
-          rating: Number(item.rating) || 0,
-          review_count: item.review_count || 0,
-          in_stock: item.in_stock === true,
-          stock_quantity: item.stock_quantity || 0,
-          badges: item.badges || [],
-          slug: item.slug,
-          features: item.features || [],
-          specifications: item.specifications || {},
-          stock: item.stock || 0,
-          kiosk_token: item.kiosk_token || '',
-          short_description: item.short_description || '',
-          createdAt: item.created_at,
-          
-          // Required computed properties
-          shortDescription: item.short_description || item.description.substring(0, 100),
-          categoryId: item.category_id,
-          inStock: item.in_stock === true,
-          stockQuantity: item.stock_quantity || 0,
-          reviewCount: item.review_count || 0,
-          originalPrice: item.original_price ? Number(item.original_price) : undefined,
-          salesCount: 0
+      if (data) {
+        const mappedSubcategories: Category[] = data.map(sub => ({
+          id: sub.id,
+          name: sub.name,
+          slug: sub.slug,
+          description: sub.description,
+          image: sub.image,
+          count: sub.count || 0,
+          parent_id: sub.parent_id
         }));
         
-        setProducts(productList);
-        
-        // Set featured products (first 4 products with highest rating)
-        setFeaturedProducts(
-          [...productList].sort((a, b) => b.rating - a.rating).slice(0, 4)
-        );
-        
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching subcategory data:', err);
-        setError('Failed to load data');
-      } finally {
-        setLoading(false);
+        setSubcategories(mappedSubcategories);
+
+        const { data: featuredData } = await supabase
+          .from('products')
+          .select('*')
+          .in('category_id', data.map(sub => sub.id))
+          .limit(4);
+          
+        if (featuredData) {
+          const mappedProducts: Product[] = featuredData.map(p => ({
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            shortDescription: p.short_description || '',
+            price: Number(p.price),
+            originalPrice: p.original_price ? Number(p.original_price) : undefined,
+            images: p.images || [],
+            categoryId: p.category_id,
+            rating: Number(p.rating || 0),
+            reviewCount: p.review_count || 0,
+            inStock: p.in_stock || false,
+            stockQuantity: p.stock_quantity || 0,
+            badges: p.badges || [],
+            slug: p.slug,
+            features: p.features || [],
+            specifications: p.specifications as Record<string, string | number | boolean | object>,
+            stock: p.stock || 0,
+            kiosk_token: p.kiosk_token || '', // Ensure kiosk_token is set
+            salesCount: p.stock_quantity || 0, // Use stock_quantity instead of sales_count which doesn't exist
+            createdAt: p.created_at
+          }));
+          
+          setFeaturedProducts(mappedProducts);
+        }
       }
     };
-    
-    fetchData();
+
+    fetchSubcategories();
   }, [categoryId]);
-  
-  return { products, loading, error, subcategories, featuredProducts };
+
+  return { subcategories, featuredProducts };
 };

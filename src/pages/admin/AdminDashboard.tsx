@@ -1,138 +1,152 @@
 
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
-import { useDashboardData } from '@/hooks/admin/useDashboardData';
-import { StatCard } from '@/components/admin/dashboard/StatCard';
-import { RevenueChart } from '@/components/admin/dashboard/RevenueChart';
-import { OrdersChart } from '@/components/admin/dashboard/OrdersChart';
-import { TopProductsTable } from '@/components/admin/dashboard/TopProductsTable';
-import { Button } from '@/components/ui/button'; // Fix: import Button from the correct location
-import { toast } from 'sonner';
-import { TrendingUp, TrendingDown, CircleDollarSign, ShoppingCart, Package, PackageOpen, FileBarChart, RefreshCw, BarChart3, ChartPie } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Package2, ShoppingCart, AlertTriangle, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface DashboardStats {
+  totalProducts: number;
+  outOfStockProducts: number;
+  lowStockProducts: number;
+  totalOrders: number;
+  processingOrders: number;
+}
 
 const AdminDashboard = () => {
-  const {
-    stats,
-    revenueDaily,
-    revenueWeekly,
-    revenueMonthly,
-    ordersByStatus,
-    topProducts,
-    isLoading,
-    error,
-    refreshData
-  } = useDashboardData();
-
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalProducts: 0,
+    outOfStockProducts: 0,
+    lowStockProducts: 0,
+    totalOrders: 0,
+    processingOrders: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (error) {
-      toast.error('Lỗi khi tải dữ liệu Dashboard', {
-        description: error.message
-      });
-    }
-  }, [error]);
+    const fetchStats = async () => {
+      setIsLoading(true);
+      try {
+        // Get total products count
+        const { count: totalProducts } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true });
 
-  const handleRefresh = async () => {
+        // Get out of stock products
+        const { count: outOfStockProducts } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq('in_stock', false);
+
+        // Get low stock products (less than 10)
+        const { count: lowStockProducts } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .lte('api_stock', 10)
+          .eq('in_stock', true);
+
+        // Get total orders
+        const { count: totalOrders } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true });
+
+        // Get processing orders
+        const { count: processingOrders } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'processing');
+
+        setStats({
+          totalProducts: totalProducts || 0,
+          outOfStockProducts: outOfStockProducts || 0,
+          lowStockProducts: lowStockProducts || 0,
+          totalOrders: totalOrders || 0,
+          processingOrders: processingOrders || 0
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const handleSyncAll = async () => {
     try {
-      setIsRefreshing(true);
-      await refreshData();
-      toast.success('Dữ liệu đã được cập nhật');
-    } catch (err) {
-      toast.error('Không thể cập nhật dữ liệu');
-    } finally {
-      setIsRefreshing(false);
+      const response = await fetch(`${window.location.origin}/functions/v1/product-sync?action=sync-all`);
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('Sync completed:', result.productsUpdated, 'products updated');
+      } else {
+        console.error('Sync failed:', result.message || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Error syncing products:', error);
     }
-  };
-
-  const formatCurrency = (value?: number) => {
-    if (!value && value !== 0) return '...';
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0
-    }).format(value);
   };
 
   return (
-    <AdminLayout title="Thống kê kinh doanh">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-medium">Tổng quan doanh thu</h2>
-        <Button
-          onClick={handleRefresh}
-          disabled={isLoading || isRefreshing}
-          className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90"
-        >
-          <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-          <span>{isRefreshing ? "Đang cập nhật..." : "Làm mới"}</span>
-        </Button>
+    <AdminLayout title="Admin Dashboard">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <Package2 className="w-4 h-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{isLoading ? '...' : stats.totalProducts}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.outOfStockProducts} out of stock
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Low Stock Products</CardTitle>
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{isLoading ? '...' : stats.lowStockProducts}</div>
+            <p className="text-xs text-muted-foreground">
+              Products with stock less than 10
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Orders</CardTitle>
+            <ShoppingCart className="w-4 h-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{isLoading ? '...' : stats.totalOrders}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.processingOrders} currently processing
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Stats cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard
-          title="Doanh thu hôm nay"
-          value={formatCurrency(stats?.todayRevenue)}
-          icon={CircleDollarSign}
-          iconColor="text-green-500"
-          isLoading={isLoading}
-          description="Tổng doanh thu trong 24 giờ qua"
-        />
-        <StatCard
-          title="Doanh thu tuần này"
-          value={formatCurrency(stats?.weekRevenue)}
-          icon={TrendingUp}
-          iconColor="text-blue-500"
-          isLoading={isLoading}
-          description="Tính từ đầu tuần đến hiện tại"
-          trend="up"
-          trendValue="12% so với tuần trước"
-        />
-        <StatCard
-          title="Đơn hàng thành công"
-          value={stats?.completedOrders ?? '...'}
-          icon={ShoppingCart}
-          iconColor="text-emerald-500"
-          isLoading={isLoading}
-          description="Tổng số đơn đã hoàn thành"
-        />
-        <StatCard
-          title="Đơn hàng thất bại"
-          value={stats?.failedOrders ?? '...'}
-          icon={TrendingDown}
-          iconColor="text-rose-500"
-          isLoading={isLoading}
-          description={`${stats?.processingOrders || 0} đơn đang xử lý`}
-          trend="down"
-          trendValue="5% so với tháng trước"
-        />
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="md:col-span-2">
-          <RevenueChart
-            dailyData={revenueDaily}
-            weeklyData={revenueWeekly}
-            monthlyData={revenueMonthly}
-            isLoading={isLoading}
-          />
-        </div>
-        <div className="md:col-span-1">
-          <OrdersChart 
-            data={ordersByStatus} 
-            isLoading={isLoading} 
-          />
-        </div>
-      </div>
-
-      {/* Top products */}
-      <div className="mb-8">
-        <TopProductsTable 
-          data={topProducts}
-          isLoading={isLoading}
-        />
+      <div className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Product Synchronization</CardTitle>
+            <CardDescription>
+              Manually sync all products with the external API
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <button
+              onClick={handleSyncAll}
+              className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary/90"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Sync All Products
+            </button>
+          </CardContent>
+        </Card>
       </div>
     </AdminLayout>
   );

@@ -14,17 +14,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Lock } from 'lucide-react';
-import { sanitizeHtml } from '@/utils/sanitizeHtml';
 
 const resetPasswordSchema = z.object({
   password: z.string()
     .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
     .regex(/[A-Z]/, 'Mật khẩu phải có ít nhất 1 chữ hoa')
     .regex(/[a-z]/, 'Mật khẩu phải có ít nhất 1 chữ thường')
-    .regex(/[0-9]/, 'Mật khẩu phải có ít nhất 1 chữ số')
-    .transform(val => sanitizeHtml(val)),
+    .regex(/[0-9]/, 'Mật khẩu phải có ít nhất 1 chữ số'),
   confirmPassword: z.string()
-    .transform(val => sanitizeHtml(val))
 }).refine(data => data.password === data.confirmPassword, {
   message: 'Mật khẩu không khớp',
   path: ['confirmPassword']
@@ -74,7 +71,6 @@ export default function ResetPasswordPage() {
     setError(null);
     
     try {
-      // Password is already sanitized via the schema transform
       const { error } = await supabase.auth.updateUser({
         password: values.password
       });

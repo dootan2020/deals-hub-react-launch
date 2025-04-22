@@ -9,7 +9,6 @@ interface OrderData {
   quantity: number;
   promotionCode?: string;
   priceUSD?: number; // Optional price in USD
-  idempotencyKey?: string; // Added this field
 }
 
 export const useOrderApi = () => {
@@ -42,11 +41,6 @@ export const useOrderApi = () => {
       // Add USD price if provided
       if (orderData.priceUSD) {
         payload['priceUSD'] = orderData.priceUSD;
-      }
-      
-      // Add idempotency key if provided
-      if (orderData.idempotencyKey) {
-        payload['idempotencyKey'] = orderData.idempotencyKey;
       }
       
       const { data, error } = await supabase.functions.invoke('order-api', {

@@ -1,12 +1,13 @@
 
 import React from 'react';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowDownAZ, ArrowUpZA, Clock, TrendingUp } from 'lucide-react';
 import { SortOption } from '@/types';
 
 interface ProductSorterProps {
@@ -17,20 +18,36 @@ interface ProductSorterProps {
 const ProductSorter: React.FC<ProductSorterProps> = ({ currentSort, onSortChange }) => {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground whitespace-nowrap">Sort by:</span>
-      <Select
-        value={currentSort}
-        onValueChange={onSortChange}
-      >
-        <SelectTrigger className="w-[150px]">
+      <span className="text-sm text-gray-500 hidden sm:inline">Sort by:</span>
+      <Select value={currentSort} onValueChange={onSortChange}>
+        <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Sort by" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="newest">Newest First</SelectItem>
-          <SelectItem value="price-asc">Price: Low to High</SelectItem>
-          <SelectItem value="price-desc">Price: High to Low</SelectItem>
-          <SelectItem value="name-asc">Name: A-Z</SelectItem>
-          <SelectItem value="name-desc">Name: Z-A</SelectItem>
+          <SelectItem value="price-high">
+            <div className="flex items-center gap-2">
+              <ArrowDownAZ className="h-4 w-4" />
+              Price: High to Low
+            </div>
+          </SelectItem>
+          <SelectItem value="price-low">
+            <div className="flex items-center gap-2">
+              <ArrowUpZA className="h-4 w-4" />
+              Price: Low to High
+            </div>
+          </SelectItem>
+          <SelectItem value="newest">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Newest
+            </div>
+          </SelectItem>
+          <SelectItem value="popular">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Popular
+            </div>
+          </SelectItem>
         </SelectContent>
       </Select>
     </div>

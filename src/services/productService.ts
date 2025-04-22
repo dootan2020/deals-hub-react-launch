@@ -1,13 +1,13 @@
 
 // Mock product service
-import { Product, SortOption } from '@/types';
-import { mockProducts } from '@/data/mockData';
+import { Product } from '@/types';
+import mockProducts from '@/data/mockData';
 
 export interface ProductFilters {
   search?: string;
   category?: string;
   subcategory?: string;
-  sort?: SortOption;
+  sort?: 'newest' | 'price-low' | 'price-high' | 'popular';
   page?: number;
   perPage?: number;
   priceRange?: { min: number; max: number };
@@ -43,23 +43,21 @@ export const fetchProductsWithFilters = async (filters: ProductFilters): Promise
   
   if (filters.category) {
     filteredProducts = filteredProducts.filter(product => 
-      product.category_id === filters.category
+      product.categoryId === filters.category
     );
   }
   
   // Apply sorting
   if (filters.sort) {
     switch (filters.sort) {
-      case 'price-asc':
       case 'price-low':
         filteredProducts.sort((a, b) => a.price - b.price);
         break;
-      case 'price-desc':
       case 'price-high':
         filteredProducts.sort((a, b) => b.price - a.price);
         break;
       case 'popular':
-        filteredProducts.sort((a, b) => (b.review_count || 0) - (a.review_count || 0));
+        filteredProducts.sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
         break;
       case 'newest':
       default:
@@ -88,7 +86,7 @@ export const fetchProductsWithFilters = async (filters: ProductFilters): Promise
   // Apply stock filter
   if (filters.inStock !== undefined) {
     filteredProducts = filteredProducts.filter(product => 
-      product.in_stock === filters.inStock
+      product.inStock === filters.inStock
     );
   }
   
@@ -132,7 +130,7 @@ export const fetchRelatedProducts = async (productId: string): Promise<Product[]
   
   // Get products in the same category, excluding the current product
   const relatedProducts = mockProducts
-    .filter(p => p.category_id === product.category_id && p.id !== productId)
+    .filter(p => p.categoryId === product.categoryId && p.id !== productId)
     .slice(0, 4);
     
   return relatedProducts;
@@ -155,31 +153,22 @@ export const fetchProductBySlug = async (slug: string): Promise<Product> => {
     id: "mock-id",
     title: "Mock Product",
     description: "This is a mock product description",
-    short_description: "Mock product short description",
+    shortDescription: "Mock product short description",
     price: 100000,
-    original_price: 150000,
+    originalPrice: 150000,
     images: [],
-    category_id: "mock-category",
+    stockQuantity: 10,
+    inStock: true,
+    kiosk_token: "mock-token",
+    stock: 10,
+    categoryId: "mock-category",
     rating: 4.5,
-    review_count: 10,
-    in_stock: true,
-    stock_quantity: 10,
+    reviewCount: 10,
     badges: [],
     slug: "mock-product",
     features: [],
     specifications: {},
-    stock: 10,
-    kiosk_token: "mock-token",
-    createdAt: new Date().toISOString(),
-    
-    // Accessor properties for compatibility
-    get originalPrice() { return this.original_price; },
-    get shortDescription() { return this.short_description || this.description.substring(0, 100); },
-    get categoryId() { return this.category_id; },
-    get inStock() { return this.in_stock; },
-    get stockQuantity() { return this.stock_quantity || this.stock || 0; },
-    get reviewCount() { return this.review_count || 0; },
-    get salesCount() { return 0; },
-    get category() { return undefined; }
+    salesCount: 0,
+    createdAt: new Date().toISOString()
   };
 };

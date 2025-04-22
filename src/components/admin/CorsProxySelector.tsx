@@ -1,156 +1,179 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue, 
+} from '@/components/ui/select';
+import { 
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle, 
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { ProxyType, ProxySettings } from '@/types';
-import { castData } from '@/utils/supabaseHelpers';
-import { prepareTableId, prepareTableInsert, prepareTableUpdate } from '@/utils/databaseTypes';
+import { Loader2 } from 'lucide-react';
+import { ProxyType, ProxySettings } from '@/utils/proxyUtils';
 
-// Default proxy settings to use when no settings exist
-const createDefaultProxySettings = (): ProxySettings => ({
-  id: '',
-  proxy_type: 'allorigins',
-  custom_url: null
-});
+export type { ProxyType } from '@/utils/proxyUtils';
 
-export const CorsProxySelector = () => {
-  const [proxyType, setProxyType] = useState<ProxyType>('allorigins');
-  const [customUrl, setCustomUrl] = useState<string>('');
-  const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [settings, setSettings] = useState<ProxySettings | null>(null);
+interface ProxyConfig {
+  type: ProxyType;
+  url?: string;
+}
+
+export function CorsProxySelector() {
+  const [loading, setLoading] = useState(false);
+  const [selectedProxy, setSelectedProxy] = useState<ProxyType>('allorigins');
+  const [customProxyUrl, setCustomProxyUrl] = useState('');
+  const [savedConfig, setSavedConfig] = useState<ProxyConfig | null>(null);
+
+  const proxyOptions = [
+    { value: 'allorigins', label: 'AllOrigins (https://api.allorigins.win/get?url=)' },
+    { value: 'corsproxy', label: 'CORS Proxy (https://corsproxy.io/?)' },
+    { value: 'cors-anywhere', label: 'CORS Anywhere (https://cors-anywhere.herokuapp.com/)' },
+    { value: 'direct', label: 'Direct API Call (No Proxy)' },
+    { value: 'custom', label: 'Custom Proxy URL' },
+  ];
 
   useEffect(() => {
-    loadSettings();
+    fetchCurrentProxy();
   }, []);
 
-  const loadSettings = async () => {
+  const fetchCurrentProxy = async () => {
+    setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: proxySettings, error } = await supabase
         .from('proxy_settings')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-        
+        .limit(1);
+
       if (error) {
-        if (error.code !== 'PGRST116') { // Not found error
-          console.error("Error loading proxy settings:", error);
-          toast.error("Error loading proxy settings");
-        }
+        console.error('Error fetching proxy settings:', error);
+        setLoading(false);
         return;
       }
-      
-      if (data) {
-        // Use castData to safely cast to ProxySettings
-        const safeData = castData<ProxySettings>(data);
-        setSettings(safeData);
-        setProxyType(safeData.proxy_type as ProxyType);
-        setCustomUrl(safeData.custom_url || '');
+
+      if (proxySettings && proxySettings.length > 0) {
+        const settings = proxySettings[0];
+        setSavedConfig({
+          type: settings.proxy_type as ProxyType,
+          url: settings.custom_url || undefined,
+        });
+        setSelectedProxy(settings.proxy_type as ProxyType);
+        setCustomProxyUrl(settings.custom_url || '');
       }
     } catch (error) {
-      console.error("Error loading proxy settings:", error);
-      toast.error("Error loading proxy settings");
-    }
-  };
-
-  const handleSaveSettings = async () => {
-    setIsSaving(true);
-    
-    try {
-      // Create a clean object using prepareUpdate to avoid type issues
-      const proxyData = prepareTableUpdate('proxy_settings', {
-        proxy_type: proxyType,
-        custom_url: proxyType === 'custom' ? customUrl : null
-      });
-      
-      if (settings?.id) {
-        // Update existing settings
-        const { error } = await supabase
-          .from('proxy_settings')
-          .update(proxyData)
-          .eq('id', prepareTableId('proxy_settings', settings.id));
-          
-        if (error) throw error;
-      } else {
-        // Insert new settings
-        const { error } = await supabase
-          .from('proxy_settings')
-          .insert(prepareTableInsert('proxy_settings', proxyData));
-          
-        if (error) throw error;
-      }
-      
-      toast.success("Proxy settings saved successfully");
-      loadSettings();
-    } catch (error: any) {
-      console.error("Error saving proxy settings:", error);
-      toast.error(error.message || "Error saving proxy settings");
+      console.error('Error fetching proxy settings:', error);
     } finally {
-      setIsSaving(false);
+      setLoading(false);
     }
   };
 
-  const handleProxyTypeChange = (value: string) => {
-    setProxyType(value as ProxyType);
+  const saveProxySettings = async () => {
+    setLoading(true);
+    try {
+      // Prepare data for insert
+      const proxyData = {
+        proxy_type: selectedProxy,
+        custom_url: selectedProxy === 'custom' ? customProxyUrl : null,
+      };
+
+      const { error } = await supabase
+        .from('proxy_settings')
+        .insert(proxyData);
+
+      if (error) throw error;
+
+      setSavedConfig({
+        type: selectedProxy,
+        url: selectedProxy === 'custom' ? customProxyUrl : undefined,
+      });
+
+      toast.success('CORS proxy settings saved successfully');
+    } catch (error: any) {
+      console.error('Error saving proxy settings:', error);
+      toast.error(`Failed to save proxy settings: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="mt-8">
-      <h2 className="text-xl font-semibold mb-4">CORS Proxy Selector</h2>
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid gap-4">
-            <div>
-              <Label htmlFor="proxyType">Proxy Type</Label>
-              <RadioGroup value={proxyType} onValueChange={handleProxyTypeChange} className="pt-2">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="allorigins" id="r1" />
-                  <Label htmlFor="r1">AllOrigins</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="corsproxy" id="r2" />
-                  <Label htmlFor="r2">CORS Proxy</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="cors-anywhere" id="r3" />
-                  <Label htmlFor="r3">CORS Anywhere</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="direct" id="r4" />
-                  <Label htmlFor="r4">Direct</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="custom" id="r5" />
-                  <Label htmlFor="r5">Custom</Label>
-                </div>
-              </RadioGroup>
-            </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>CORS Proxy Settings</CardTitle>
+        <CardDescription>
+          Select which proxy to use for API requests to TapHoaMMO
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="proxy-select">Proxy Type</Label>
+          <Select
+            value={selectedProxy}
+            onValueChange={(value) => setSelectedProxy(value as ProxyType)}
+            disabled={loading}
+          >
+            <SelectTrigger id="proxy-select" className="w-full">
+              <SelectValue placeholder="Select a proxy" />
+            </SelectTrigger>
+            <SelectContent>
+              {proxyOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">
+            Different proxies may have varying reliability or rate limits
+          </p>
+        </div>
 
-            {proxyType === 'custom' && (
-              <div>
-                <Label htmlFor="customUrl">Custom URL</Label>
-                <Input
-                  type="text"
-                  id="customUrl"
-                  value={customUrl}
-                  onChange={(e) => setCustomUrl(e.target.value)}
-                />
-              </div>
-            )}
-
-            <Button onClick={handleSaveSettings} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Settings'}
-            </Button>
+        {selectedProxy === 'custom' && (
+          <div className="space-y-2">
+            <Label htmlFor="custom-proxy">Custom Proxy URL</Label>
+            <Input
+              id="custom-proxy"
+              placeholder="https://your-proxy.com/proxy?url="
+              value={customProxyUrl}
+              onChange={(e) => setCustomProxyUrl(e.target.value)}
+              disabled={loading}
+            />
+            <p className="text-sm text-muted-foreground">
+              Enter the full URL including the placeholder where the target URL will be inserted
+            </p>
           </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
+        )}
 
-export default CorsProxySelector;
+        {savedConfig && (
+          <div className="rounded-md bg-muted p-3 mt-2">
+            <p className="text-sm font-medium">Current active setting:</p>
+            <p className="text-sm text-muted-foreground">
+              {proxyOptions.find(opt => opt.value === savedConfig.type)?.label}
+              {savedConfig.type === 'custom' && savedConfig.url && 
+                ` (${savedConfig.url})`
+              }
+            </p>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter>
+        <Button onClick={saveProxySettings} disabled={loading} className="w-full">
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Save Proxy Settings
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}

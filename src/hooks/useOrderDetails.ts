@@ -31,29 +31,11 @@ export function useOrderDetails() {
           .eq('order_id', data.id);
 
         const userValue = normalizeUserField(data.user || null);
-        
-        // Handle product data safely
-        let productValue = { title: 'Unknown Product', images: [] as string[] };
-        if (data.product) {
-          if (typeof data.product === 'object') {
-            productValue = {
-              title: data.product.title || 'Unknown Product',
-              images: Array.isArray(data.product.images) ? data.product.images : []
-            };
-          } else if (typeof data.product === 'string') {
-            productValue = {
-              title: data.product,
-              images: []
-            };
-          }
-        }
 
         const orderWithDetails: Order = {
           ...data,
           user: userValue,
-          product: productValue,
-          order_items: orderItems || [],
-          total_amount: data.total_price || 0
+          order_items: orderItems || []
         };
 
         setSelectedOrder(orderWithDetails);
@@ -62,11 +44,7 @@ export function useOrderDetails() {
       return null;
     } catch (err) {
       console.error('Error fetching order details:', err);
-      toast({
-        title: "Lỗi",
-        description: "Không thể tải thông tin đơn hàng",
-        variant: "destructive"
-      });
+      toast.error("Lỗi", "Không thể tải thông tin đơn hàng");
       return null;
     } finally {
       setLoading(false);

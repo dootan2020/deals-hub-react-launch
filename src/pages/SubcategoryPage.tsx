@@ -9,6 +9,7 @@ import SubcategoryMainContent from '@/components/subcategory/SubcategoryMainCont
 
 const SubcategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   
   const {
     filters,
@@ -46,22 +47,18 @@ const SubcategoryPage = () => {
     <Layout>
       <div className="container mx-auto px-4 sm:px-6 py-8">
         <SubcategoryMainContent
-          title={`Products in ${slug || 'Subcategory'}`}
           products={products}
           isLoading={isLoading}
-          totalProducts={products.length}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          activeSort={filters.sort}
-          onSortChange={handleSortChange}
+          viewMode={viewMode}
+          sortOption={filters.sort}
+          handleSortChange={handleSortChange}
+          stockFilter={filters.stockFilter}
+          handleStockFilterChange={handleStockFilterChange}
+          priceRange={filters.priceRange}
+          handlePriceChange={handlePriceChange}
           subcategories={mockSubcategories}
           activeSubcategories={filters.activeSubcategories}
           onSubcategoryToggle={handleSubcategoryToggle}
-          onPageChange={handlePageChange}
-          onPriceChange={handlePriceChange}
-          onStockFilterChange={handleStockFilterChange}
-          stockFilter={filters.stockFilter}
-          priceRange={filters.priceRange}
         />
       </div>
     </Layout>

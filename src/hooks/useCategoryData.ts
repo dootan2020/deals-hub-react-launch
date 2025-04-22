@@ -1,76 +1,70 @@
 
-import { useState, useEffect } from 'react';
-import { Category, SortOption } from '@/types';
-import { fetchCategoryBySlug } from '@/services/categoryService';
+import { useState } from 'react';
+import { CategoryPageParams } from '@/types/category.types';
+import { useCategory } from './useCategory';
+import { useCategoryProducts } from './useCategoryProducts';
+import { useSubcategories } from './useSubcategories';
+import { SortOption } from '@/utils/productFilters';
 
-export interface UseCategoryDataProps {
-  slug: string;
-}
-
-export const useCategoryData = ({ slug }: UseCategoryDataProps) => {
-  const [category, setCategory] = useState<Category | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [currentSort, setCurrentSort] = useState<SortOption>('newest');
-  const [products, setProducts] = useState<any[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [subcategories, setSubcategories] = useState<Category[]>([]);
-  const [loadingMore, setLoadingMore] = useState<boolean>(false);
-  const [hasMore, setHasMore] = useState<boolean>(false);
-  const [activeFilters, setActiveFilters] = useState({ sort: 'newest' as SortOption });
+export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPageParams) => {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [activeFilters, setActiveFilters] = useState({ sort: 'popular' as SortOption });
   
-  useEffect(() => {
-    const loadCategory = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchCategoryBySlug(slug);
-        setCategory(data);
-        
-        // Fetch subcategories if available
-        if (data && data.subcategories) {
-          setSubcategories(data.subcategories);
-        }
-        
-        setError(null);
-      } catch (error) {
-        console.error('Error fetching category:', error);
-        setError('Failed to load category data');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadCategory();
-  }, [slug]);
+  const { category, loading: categoryLoading, error } = useCategory({ 
+    categorySlug, 
+    parentCategorySlug 
+  });
   
-  const handleSortChange = (newSort: string) => {
-    setCurrentSort(newSort as SortOption);
-  };
-  
-  const loadMore = () => {
-    // Placeholder for loading more products
-    setLoadingMore(true);
-    setTimeout(() => {
-      setLoadingMore(false);
-    }, 500);
-  };
-  
-  const setSelectedCategory = (categoryId: string) => {
-    // Placeholder for setting selected category
-    console.log('Setting selected category:', categoryId);
-  };
-  
-  return {
-    category,
-    loading,
-    currentSort,
-    handleSortChange,
-    products,
-    error,
-    subcategories,
+  const { 
+    products, 
+    loading: productsLoading,
     loadingMore,
     hasMore,
     loadMore,
-    activeFilters,
+    handleSortChange, 
     setSelectedCategory
+  } = useCategoryProducts({
+    categoryId: category?.id,
+    isProductsPage: !categorySlug && !parentCategorySlug,
+    sort: activeFilters.sort
+  });
+
+  const loading = categoryLoading || productsLoading;
+
+  const { subcategories, featuredProducts } = useSubcategories(category?.id);
+  
+  const buildBreadcrumbs = () => {
+    const result = [];
+    if (category?.parent) {
+      result.push(category.parent);
+    }
+    if (category) {
+      result.push(category);
+    }
+    return result;
+  };
+
+  const handleSort = (newSort: string) => {
+    setActiveFilters(prev => ({ ...prev, sort: newSort as SortOption }));
+    handleSortChange(newSort);
+  };
+
+  return {
+    category,
+    products,
+    loading,
+    error,
+    loadingMore,
+    hasMore,
+    loadMore,
+    activeTab,
+    setActiveTab,
+    activeFilters,
+    handleSortChange: handleSort,
+    buildBreadcrumbs,
+    subcategories,
+    featuredProducts,
+    setSelectedCategory,
+    isProductsPage: !categorySlug && !parentCategorySlug
   };
 };

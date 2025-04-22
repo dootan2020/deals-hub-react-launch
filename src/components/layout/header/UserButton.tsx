@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -20,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatCurrency } from "@/lib/utils";
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -32,14 +31,10 @@ export const UserButton = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      toast.success("Đăng xuất thành công", {
-        description: "Hẹn gặp lại bạn!"
-      });
+      toast.success("Đăng xuất thành công", "Hẹn gặp lại bạn!");
       navigate('/login');
     } catch (error) {
-      toast.error("Đăng xuất thất bại", {
-        description: "Vui lòng thử lại"
-      });
+      toast.error("Đăng xuất thất bại", "Vui lòng thử lại");
       console.error("Logout error:", error);
     }
   };
