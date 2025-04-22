@@ -4,12 +4,18 @@
  */
 export type AISource = "openai" | "claude" | "local";
 
+/**
+ * Response structure from the AI Assistant edge function
+ */
 export interface AIAssistantResponse {
   answer: string;
   error?: string;
   details?: string;
 }
 
+/**
+ * Message payload sent to AI Assistant edge function
+ */
 export interface AIMessagePayload {
   userId: string | null;
   question: string;

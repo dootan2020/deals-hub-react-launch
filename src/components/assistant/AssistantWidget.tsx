@@ -5,6 +5,7 @@ import { AssistantChatMessage } from "./AssistantChatMessage";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { AIAssistantResponse, AIMessagePayload } from "@/types/ai";
 
 interface Message {
   sender: "user" | "bot";
@@ -14,7 +15,7 @@ interface Message {
 export const AssistantWidget: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { sender: "bot", message: "Xin chào! Tôi là trợ lý AI của bạn. Bạn cần trợ giúp gì?" }
+    { sender: "bot", message: "Xin chào! Tôi là trợ lý AI của Digital Deals Hub. Bạn cần trợ giúp gì?" }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,66 +30,131 @@ export const AssistantWidget: React.FC = () => {
     }
   }, [messages, open]);
 
+  // Fallback message nếu gặp lỗi quá nhiều lần
+  const getFallbackMessage = (retryCount: number): string => {
+    if (retryCount >= 3) {
+      return "Xin lỗi, hiện tại tôi không thể kết nối với máy chủ. Vui lòng thử lại sau vài phút hoặc liên hệ với nhân viên hỗ trợ qua email support@digitaldealshub.com.";
+    }
+    return "Đã xảy ra lỗi. Vui lòng thử lại sau ít phút!";
+  };
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
+    
     const userMsg = input.trim();
     setMessages(prev => [...prev, { sender: "user", message: userMsg }]);
     setInput("");
     setLoading(true);
 
+    // Thêm loading indicator message
+    const loadingMsgId = `loading-${Date.now()}`;
+    setMessages(prev => [...prev, { sender: "bot", message: "Đang trả lời..." }]);
+
     // Compose payload: include userId, recent messages (max 8), and what page user is on if needed
     try {
+      // Chuẩn bị payload
+      const payload: AIMessagePayload = {
+        userId: user?.id || null,
+        question: userMsg,
+        history: messages.slice(-8), // include only last 8 messages
+      };
+      
       console.log("Sending request to AI assistant with userId:", user?.id || "anonymous");
+      
+      // Gọi edge function
       const res = await fetch("/functions/v1/ai-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user?.id || null,
-          question: userMsg,
-          history: messages.slice(-8), // include only last 8 messages
-        }),
+        body: JSON.stringify(payload),
       });
+
+      // Remove loading message
+      setMessages(prev => prev.filter(msg => msg.message !== "Đang trả lời..."));
 
       if (!res.ok) {
         const errorText = await res.text();
         console.error("AI assistant error response:", res.status, errorText);
+        
+        // Hiện thông báo lỗi khi không thể kết nối với server
+        let errorMessage = "Không thể kết nối với trợ lý AI.";
+        if (res.status === 404) {
+          errorMessage = "Không tìm thấy dịch vụ trợ lý AI.";
+        } else if (res.status >= 500) {
+          errorMessage = "Máy chủ trợ lý AI đang gặp sự cố.";
+        }
+        
+        toast.error("Lỗi kết nối", {
+          description: errorMessage,
+          duration: 5000,
+        });
+        
+        // Thêm thông báo lỗi vào tin nhắn
+        const newRetryCount = retryCount + 1;
+        setRetryCount(newRetryCount);
+        setMessages(prev => [...prev, { 
+          sender: "bot", 
+          message: getFallbackMessage(newRetryCount)
+        }]);
+        
         throw new Error(`Server responded with ${res.status}: ${errorText}`);
       }
 
-      const data = await res.json();
+      const data: AIAssistantResponse = await res.json();
       
       // Kiểm tra nếu có lỗi rõ ràng trong response
       if (data.error) {
         console.error("AI assistant returned error:", data.error);
+        
         // Nếu API đã trả về thông báo lỗi thân thiện, sử dụng nó
         const errorMessage = data.answer || "Đã xảy ra lỗi. Vui lòng thử lại sau!";
         setMessages(prev => [...prev, { sender: "bot", message: errorMessage }]);
+        
         // Hiển thị toast thông báo lỗi cho user biết
         toast.error("Lỗi trợ lý AI", {
-          description: "Đã xảy ra lỗi khi kết nối với trợ lý AI"
+          description: "Đã xảy ra lỗi khi kết nối với trợ lý AI",
+          duration: 5000,
         });
+        
+        // Tăng retry counter
+        setRetryCount(prev => prev + 1);
       } else {
         // Xử lý phản hồi thành công
         setMessages(prev =>
-          [...prev, { sender: "bot", message: data.answer || "Xin lỗi, tôi chưa có câu trả lời phù hợp." }]
+          [...prev, { 
+            sender: "bot", 
+            message: data.answer || "Xin lỗi, tôi chưa có câu trả lời phù hợp. Vui lòng thử lại với câu hỏi khác." 
+          }]
         );
+        
         // Reset retry counter khi thành công
         if (retryCount > 0) setRetryCount(0);
       }
     } catch (error) {
       console.error("Error calling AI assistant:", error);
       
+      // Remove loading message if still present
+      setMessages(prev => prev.filter(msg => msg.message !== "Đang trả lời..."));
+      
       // Kiểm tra và tăng số lần retry
       const newRetryCount = retryCount + 1;
       setRetryCount(newRetryCount);
       
-      // Hiển thị thông báo lỗi khác nhau tùy theo số lần retry
-      let errorMessage = "Đã xảy ra lỗi. Vui lòng thử lại sau!";
+      // Xác định thông báo lỗi phù hợp
+      let errorMessage = "Đã xảy ra lỗi khi kết nối với trợ lý AI.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes("NetworkError") || error.message.includes("Failed to fetch")) {
+          errorMessage = "Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn và thử lại.";
+        } else if (error.message.includes("timeout") || error.message.includes("Timeout")) {
+          errorMessage = "Yêu cầu đã hết thời gian chờ. Vui lòng thử lại sau.";
+        }
+      }
       
       if (newRetryCount >= 3) {
-        errorMessage = "Trợ lý AI đang gặp sự cố kết nối. Vui lòng thử lại sau ít phút.";
+        errorMessage = getFallbackMessage(newRetryCount);
         toast.error("Lỗi kết nối", {
-          description: "Hệ thống trợ lý AI đang gặp sự cố. Vui lòng thử lại sau."
+          description: "Hệ thống trợ lý AI đang gặp sự cố. Vui lòng thử lại sau.",
+          duration: 5000,
         });
       }
       
@@ -112,7 +178,7 @@ export const AssistantWidget: React.FC = () => {
     "Cách mua sản phẩm?",
     "Hướng dẫn nạp tiền",
     "Kiểm tra trạng thái đơn hàng",
-    "FAQ về sản phẩm"
+    "Sản phẩm được bảo hành không?"
   ];
 
   return (
