@@ -1,12 +1,19 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'serverless' | 'direct' | 'custom';
+
+export interface ProxyConfig {
+  type: ProxyType;
+  url?: string;
+}
+
 interface ProxySettings {
   proxy_type: string;
   custom_url?: string;
 }
 
-export async function fetchProxySettings(): Promise<ProxySettings> {
+export async function fetchProxySettings(): Promise<ProxyConfig> {
   try {
     const { data, error } = await supabase
       .from('proxy_settings')
@@ -15,32 +22,61 @@ export async function fetchProxySettings(): Promise<ProxySettings> {
 
     if (error) throw error;
     
-    return data as ProxySettings;
+    return {
+      type: (data.proxy_type as ProxyType) || 'allorigins',
+      url: data.custom_url
+    };
   } catch (error) {
     console.error('Error fetching proxy settings:', error);
     // Default to AllOrigins proxy if settings can't be fetched
-    return { proxy_type: 'allorigins' };
+    return { type: 'allorigins' };
   }
 }
 
-export async function fetchViaProxy(url: string, proxySettings?: ProxySettings): Promise<any> {
-  if (!proxySettings) {
-    proxySettings = await fetchProxySettings();
+export function buildProxyUrl(url: string, proxyType: ProxyType, customUrl?: string): string {
+  switch (proxyType) {
+    case 'allorigins':
+      return `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    case 'corsproxy':
+      return `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    case 'cors-anywhere':
+      return `${customUrl || 'https://cors-anywhere.herokuapp.com/'}${url}`;
+    case 'direct':
+      return url;
+    case 'custom':
+      if (!customUrl) throw new Error('Custom URL is required for custom proxy type');
+      return customUrl.includes('%s') 
+        ? customUrl.replace('%s', encodeURIComponent(url))
+        : `${customUrl}${encodeURIComponent(url)}`;
+    default:
+      return `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+  }
+}
+
+export async function fetchViaProxy(url: string, proxyConfig?: ProxyConfig): Promise<any> {
+  if (!proxyConfig) {
+    proxyConfig = await fetchProxySettings();
   }
   
   try {
-    switch (proxySettings.proxy_type) {
+    switch (proxyConfig.type) {
       case 'allorigins':
         return fetchViaAllOrigins(url);
       case 'cors-anywhere':
-        return fetchViaCorsAnywhere(url, proxySettings.custom_url);
+        return fetchViaCorsAnywhere(url, proxyConfig.url);
       case 'serverless':
         return fetchViaServerless(url);
+      case 'corsproxy':
+        return fetchViaCorsproxy(url);
+      case 'direct':
+        return fetchDirectly(url);
+      case 'custom':
+        return fetchViaCustomProxy(url, proxyConfig.url || '');
       default:
-        throw new Error(`Unsupported proxy type: ${proxySettings.proxy_type}`);
+        throw new Error(`Unsupported proxy type: ${proxyConfig.type}`);
     }
   } catch (error) {
-    console.error(`Error fetching via ${proxySettings.proxy_type} proxy:`, error);
+    console.error(`Error fetching via ${proxyConfig.type} proxy:`, error);
     throw error;
   }
 }
@@ -73,6 +109,48 @@ async function fetchViaCorsAnywhere(url: string, customProxyUrl?: string): Promi
   }
 }
 
+async function fetchViaCorsproxy(url: string): Promise<any> {
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+  const response = await fetch(proxyUrl);
+  
+  try {
+    return await response.json();
+  } catch {
+    const text = await response.text();
+    return { content: text };
+  }
+}
+
+async function fetchDirectly(url: string): Promise<any> {
+  const response = await fetch(url);
+  
+  try {
+    return await response.json();
+  } catch {
+    const text = await response.text();
+    return { content: text };
+  }
+}
+
+async function fetchViaCustomProxy(url: string, customUrl: string): Promise<any> {
+  if (!customUrl) {
+    throw new Error('Custom URL is required for custom proxy type');
+  }
+  
+  const proxyUrl = customUrl.includes('%s') 
+    ? customUrl.replace('%s', encodeURIComponent(url))
+    : `${customUrl}${encodeURIComponent(url)}`;
+    
+  const response = await fetch(proxyUrl);
+  
+  try {
+    return await response.json();
+  } catch {
+    const text = await response.text();
+    return { content: text };
+  }
+}
+
 async function fetchViaServerless(url: string): Promise<any> {
   const { data, error } = await supabase.functions.invoke('proxy', {
     body: { url }
@@ -83,16 +161,16 @@ async function fetchViaServerless(url: string): Promise<any> {
 }
 
 export async function fetchViaProxyWithFallback(url: string): Promise<any> {
-  const proxySettings = await fetchProxySettings();
+  const proxyConfig = await fetchProxySettings();
   
   try {
     // Try primary proxy
-    return await fetchViaProxy(url, proxySettings);
+    return await fetchViaProxy(url, proxyConfig);
   } catch (primaryError) {
     console.error('Primary proxy failed:', primaryError);
     
     // Fallback to serverless if primary fails
-    if (proxySettings.proxy_type !== 'serverless') {
+    if (proxyConfig.type !== 'serverless') {
       try {
         console.log('Falling back to serverless proxy...');
         return await fetchViaServerless(url);
@@ -102,7 +180,7 @@ export async function fetchViaProxyWithFallback(url: string): Promise<any> {
     }
     
     // Fallback to AllOrigins if serverless fails
-    if (proxySettings.proxy_type !== 'allorigins') {
+    if (proxyConfig.type !== 'allorigins') {
       try {
         console.log('Falling back to AllOrigins proxy...');
         return await fetchViaAllOrigins(url);

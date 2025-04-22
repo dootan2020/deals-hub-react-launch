@@ -8,9 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useProductSync } from '@/hooks/use-product-sync';
 import { Category } from '@/types';
-import { fetchProxySettings, fetchViaProxy } from '@/utils/proxyUtils';
-import { fetchActiveApiConfig } from '@/utils/apiUtils';
-import { ApiResponse } from '@/components/admin/product-manager/ApiProductTester';
+import { fetchProxySettings, ProxyType, ProxyConfig } from '@/utils/proxyUtils';
+import { fetchActiveApiConfig, ApiResponse } from '@/utils/apiUtils';
 import { 
   isValidArray, 
   isValidRecord, 
@@ -147,7 +146,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', uuidFilter(productId))
+        .eq('id', toFilterableUUID(productId))
         .maybeSingle();
 
       if (error) throw error;
@@ -190,7 +189,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
         form.setValue('title', data.name, { shouldValidate: true });
       }
       
-      form.setValue('kioskToken', currentKioskToken, { shouldValidate: true });
+      form.setValue('kioskToken', currentKioskToken || '', { shouldValidate: true });
       
       if (data.price) {
         const originalPrice = parseFloat(data.price) || 0;
@@ -248,18 +247,25 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
       
       const userToken = safeString(apiConfig.user_token || '');
       
-      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${userToken}`;
-      const data = await fetchViaProxy(apiUrl, proxyConfig);
-      
-      if (data?.success === "true") {
-        handleApiDataReceived(data);
-        toast.success('Product data fetched successfully!');
-      } else {
-        toast.error(`Failed to fetch product data: ${data?.error || 'Unknown error'}`);
+      if (!userToken) {
+        toast.error('User token not configured');
+        return;
       }
-    } catch (error) {
-      console.error('API test error:', error);
-      toast.error(`Error fetching product data: ${(error as Error).message}`);
+      
+      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${userToken}`;
+      try {
+        const data = await fetchViaProxy(apiUrl, proxyConfig);
+        
+        if (data?.success === "true") {
+          handleApiDataReceived(data);
+          toast.success('Product data fetched successfully!');
+        } else {
+          toast.error(`Failed to fetch product data: ${data?.error || 'Unknown error'}`);
+        }
+      } catch (error) {
+        console.error('API test error:', error);
+        toast.error(`Error fetching product data: ${(error as Error).message}`);
+      }
     } finally {
       setIsLoading(false);
     }

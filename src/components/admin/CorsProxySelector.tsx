@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -21,15 +20,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
-import { ProxyType } from '@/utils/proxyUtils';
+import { ProxyType, ProxyConfig } from '@/utils/proxyUtils';
 import { isValidRecord, isSupabaseRecord, isDataResponse } from '@/utils/supabaseHelpers';
-
-export type { ProxyType } from '@/utils/proxyUtils';
-
-interface ProxyConfig {
-  type: ProxyType;
-  url?: string;
-}
 
 interface ProxySettings {
   proxy_type: string;

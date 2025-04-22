@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +14,7 @@ import {
 import { Loader2 } from 'lucide-react';
 import { 
   isDataResponse, 
-  toFilterableUUID, 
+  toFilterableUUID,
   safeNumber, 
   uuidFilter
 } from '@/utils/supabaseHelpers';
@@ -63,7 +62,7 @@ export function PurchaseConfirmDialog({
       const { data, error } = await supabase
         .from('products')
         .select('price')
-        .eq('id', uuidFilter(productId))
+        .eq('id', toFilterableUUID(productId))
         .single();
 
       if (error) throw error;
@@ -86,7 +85,7 @@ export function PurchaseConfirmDialog({
       const { data, error } = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', uuidFilter(user.id))
+        .eq('id', toFilterableUUID(user.id))
         .single();
       
       if (error) throw error;
@@ -117,10 +116,8 @@ export function PurchaseConfirmDialog({
 
     setIsLoading(true);
     try {
-      // Optimistically update the user's balance
       setUserBalance(prevBalance => prevBalance - productPrice * quantity);
 
-      // Call the serverless function to handle the purchase
       const { data, error } = await supabase.functions.invoke('purchase-product', {
         body: {
           productId: productId,
@@ -143,7 +140,6 @@ export function PurchaseConfirmDialog({
       console.error('Purchase failed:', error);
       toast.error(`Purchase failed: ${error.message}`);
       
-      // Revert the optimistic update if the purchase fails
       setUserBalance(await checkUserBalance());
     } finally {
       setIsLoading(false);

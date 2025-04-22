@@ -6,7 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { isValidArray } from '@/utils/supabaseHelpers';
-import { UserRole } from '@/types/auth.types';
+
+export type UserRole = 'admin' | 'user' | 'editor' | 'manager';
 
 interface RoleGuardProps {
   children: React.ReactNode;
@@ -21,7 +22,7 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
   fallback = null, 
   redirectTo 
 }) => {
-  const { user, userRoles, isLoading: authLoading } = useAuth();
+  const { user, userRoles, isLoading: authLoading = false } = useAuth();
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
 
       // If we have userRoles from context
       if (userRoles && userRoles.length > 0) {
-        const hasRole = roles.some(role => userRoles.includes(role));
+        const hasRole = roles.some(role => userRoles.includes(role as string));
         setIsAuthorized(hasRole);
         setIsLoading(false);
         

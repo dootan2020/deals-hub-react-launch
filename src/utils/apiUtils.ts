@@ -2,7 +2,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import { isValidRecord } from './supabaseHelpers';
 
-export async function fetchActiveApiConfig() {
+export interface ApiConfig {
+  user_token?: string;
+  kiosk_token?: string;
+  [key: string]: any;
+}
+
+export async function fetchActiveApiConfig(): Promise<ApiConfig> {
   try {
     const { data, error } = await supabase
       .from('api_configs')
@@ -57,8 +63,16 @@ export function extractFromHtml(htmlContent: string): any {
   }
 }
 
+export interface ProductInfo {
+  name: string;
+  price: string;
+  stock: string;
+  description: string;
+  kioskToken: string;
+}
+
 // Normalize product information from API response
-export function normalizeProductInfo(data: any): any {
+export function normalizeProductInfo(data: any): ProductInfo | null {
   if (!isValidRecord(data)) return null;
   
   return {
@@ -89,4 +103,14 @@ export async function fetchProductInfoViaServerless(kioskToken: string, userToke
     console.error('Error fetching product info via serverless:', error);
     throw error;
   }
+}
+
+export interface ApiResponse {
+  success: string;
+  name: string;
+  price: string;
+  stock: string;
+  description?: string;
+  kioskToken?: string;
+  error?: string;
 }

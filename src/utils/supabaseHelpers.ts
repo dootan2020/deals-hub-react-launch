@@ -1,198 +1,80 @@
 
-import { PostgrestError, PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
-import { UUID } from 'crypto';
+import { PostgrestError } from '@supabase/supabase-js';
 
-/**
- * Type guard: checks if an object is a Supabase record (not an error).
- */
-export function isSupabaseRecord<T = Record<string, any>>(record: unknown): record is T {
-  return typeof record === 'object' && record !== null && !('error' in (record as any));
+// Type guard to check if a value is a record (object)
+export function isValidRecord<T = Record<string, any>>(value: any): value is T {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/**
- * Type guard: checks if an object has the shape of a record with string keys.
- */
-export function isValidRecord<T = Record<string, any>>(value: unknown): value is T {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+// Type guard to check if a value is an array of a specific type
+export function isValidArray<T = any>(value: any): value is T[] {
+  return Array.isArray(value);
 }
 
-/** Type guard: checks if a value is a valid array */
-export function isValidArray<T>(val: unknown): val is T[] {
-  return Array.isArray(val);
+// Type guard to check if a value is a Supabase record (has id)
+export function isSupabaseRecord<T = Record<string, any>>(value: any): value is T {
+  return isValidRecord(value) && 'id' in value;
 }
 
-/** Type guard: checks if a Supabase response has data and no error */
-export function isDataResponse<T>(response: { data: T | null, error: PostgrestError | null }): response is { data: T, error: null } {
-  return response && response.error === null && response.data !== null;
+// Helper to check if a response contains data and no error
+export function isDataResponse<T = any>(response: { data: T | null, error: PostgrestError | null }): response is { data: T, error: null } {
+  return response.data !== null && response.error === null;
 }
 
-/** Safe cast to string */
-export function safeString(val: unknown): string {
-  return typeof val === 'string' ? val : (val !== null && val !== undefined ? String(val) : '');
+// Helper to format UUID for Supabase queries
+export function uuidFilter(id: string): string {
+  return id.replace(/-/g, '');
 }
 
-/** Safe cast to number */
-export function safeNumber(val: unknown): number {
-  if (typeof val === 'number' && !isNaN(val)) return val;
-  if (val === null || val === undefined) return 0;
-  
-  const num = Number(val);
+// Helper to return a safer UUID format for filtering
+export function toFilterableUUID(id: string | null | undefined): string {
+  if (!id) return '';
+  return id.replace(/-/g, '');
+}
+
+// Helper to safely convert a value to a string
+export function safeString(value: any): string {
+  if (value === null || value === undefined) return '';
+  return String(value);
+}
+
+// Helper to safely convert a value to a number
+export function safeNumber(value: any): number {
+  if (value === null || value === undefined) return 0;
+  const num = Number(value);
   return isNaN(num) ? 0 : num;
 }
 
-/** Safe cast to boolean */
-export function safeBoolean(val: unknown): boolean {
-  if (typeof val === 'boolean') return val;
-  if (val === 'true' || val === 1 || val === '1') return true;
-  return false;
+// Helper to safely convert a value to a boolean
+export function safeBoolean(value: any): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    return value.toLowerCase() === 'true' || value === '1';
+  }
+  return Boolean(value);
 }
 
-/** Safe cast to UUID string */
-export function safeUUID(val: unknown): string {
-  if (typeof val === 'string' && 
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
-    return val;
+// Helper to safely get a UUID string
+export function safeUUID(value: any): string {
+  if (!value) return '';
+  const str = String(value);
+  // Simple UUID validation (basic format check)
+  if (/^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(str)) {
+    return str;
   }
   return '';
 }
 
-/** Helper to safely access properties with fallbacks */
-export function safeProp<T>(obj: unknown, prop: string, defaultVal: T): T {
-  if (obj && typeof obj === 'object' && prop in obj) {
-    const val = (obj as any)[prop];
-    return val !== null && val !== undefined ? val : defaultVal;
-  }
-  return defaultVal;
-}
-
-/** Type guard for Deposit objects */
-export function isDeposit(item: any): item is import('@/types/deposits').Deposit {
-  return isValidRecord(item)
-    && typeof item.id === 'string'
-    && typeof item.amount !== 'undefined'
-    && typeof item.status === 'string'
-    && typeof item.user_id === 'string';
-}
-
-/** Type guard for Order objects */
-export function isOrder(item: any): item is {
-  id: string;
-  user_id: string;
-  created_at: string;
-  status: string;
-  external_order_id?: string;
-  total_price: number;
-} {
-  return isValidRecord(item)
-    && typeof item.id === 'string'
-    && typeof item.user_id === 'string'
-    && typeof item.created_at === 'string'
-    && typeof item.status === 'string'
-    && (typeof item.total_price === 'number' || typeof item.total_price === 'string');
-}
-
-/** Generic record typescript check */
-export function isRecord(obj: unknown): obj is Record<string, unknown> {
-  return isValidRecord(obj);
-}
-
-/**
- * Helper function to safely process Supabase query results
- * @param response The response from a Supabase query
- * @param fallback Default value to return if processing fails
- * @returns Processed data or fallback
- */
-export function processSafeResult<T, F>(response: PostgrestSingleResponse<T>, fallback: F): T | F {
-  if (isDataResponse(response) && response.data) {
-    return response.data;
-  }
-  return fallback;
-}
-
-/**
- * Returns a UUID compatible with Supabase query filters
- * If the input isn't a valid UUID, returns a non-matching UUID
- * to prevent query errors (query will return no results)
- */
-export function toFilterableUUID(id: string | unknown): string {
-  if (typeof id !== 'string') {
-    // Return a valid UUID that won't match anything
-    return '00000000-0000-0000-0000-000000000000';
+// Helper to handle Supabase data safely
+export function handleSupabaseData<T>(response: { data: any, error: PostgrestError | null }): T | null {
+  if (response.error) {
+    console.error('Supabase error:', response.error);
+    return null;
   }
   
-  // Check if it's a valid UUID
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-    return id;
+  if (!response.data) {
+    return null;
   }
   
-  // Return a valid UUID that won't match anything
-  return '00000000-0000-0000-0000-000000000000';
-}
-
-/**
- * Enhanced error handler for Supabase queries
- * Returns an object with helper methods and properly typed data
- */
-export function handleSupabaseData<T>(
-  result: PostgrestSingleResponse<T>
-): {
-  data: T | null;
-  error: PostgrestError | null;
-  hasData: boolean;
-  isError: boolean;
-  safeCast: <R>(mapper: (data: T) => R) => R | null;
-} {
-  const { data, error } = result;
-  
-  return {
-    data,
-    error,
-    hasData: !error && !!data,
-    isError: !!error,
-    safeCast: <R>(mapper: (data: T) => R): R | null => {
-      if (error || !data) return null;
-      try {
-        return mapper(data);
-      } catch (e) {
-        console.error('Error mapping data:', e);
-        return null;
-      }
-    }
-  };
-}
-
-/**
- * Safely extract a property from a complex response object
- * Handles both data and error cases with proper type checking
- */
-export function safeExtract<T, K extends keyof T>(
-  response: PostgrestSingleResponse<T> | { error: PostgrestError | null, data: T | null },
-  key: K,
-  defaultValue: T[K]
-): T[K] {
-  if (response.error || !response.data) return defaultValue;
-  
-  try {
-    const value = response.data[key];
-    return value !== null && value !== undefined ? value : defaultValue;
-  } catch (e) {
-    return defaultValue;
-  }
-}
-
-/**
- * Type-safe UUID parameter for Supabase filter
- * Works with both filter methods and direct object matchers
- */
-export function uuidFilter(id: string | null | undefined): string {
-  if (!id) return '00000000-0000-0000-0000-000000000000';
-  return toFilterableUUID(id);
-}
-
-/**
- * Check if a value is a valid UUID string and return a safely typed UUID
- */
-export function validateUUID(id: unknown): string | null {
-  if (typeof id !== 'string') return null;
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null;
+  return response.data as T;
 }

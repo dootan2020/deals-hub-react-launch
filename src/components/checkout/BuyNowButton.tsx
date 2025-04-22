@@ -1,5 +1,4 @@
 
-// Update the import to use named export instead of default
 import { PurchaseConfirmDialog } from "@/components/checkout/PurchaseConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";

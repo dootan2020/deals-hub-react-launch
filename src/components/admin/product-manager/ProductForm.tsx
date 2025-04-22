@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -37,14 +36,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ApiResponse } from '@/components/admin/product-manager/ApiProductTester';
+import { ApiResponse } from '@/utils/apiUtils';
 import { 
   isSupabaseRecord, 
   safeString, 
   safeNumber, 
   isValidRecord,
   toFilterableUUID,
-  uuidFilter
+  isDataResponse
 } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
@@ -140,12 +139,12 @@ export function ProductForm({
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', uuidFilter(productId))
-        .single();
+        .eq('id', toFilterableUUID(productId))
+        .maybeSingle();
 
       if (error) throw error;
       
-      if (data && isSupabaseRecord(data)) {
+      if (isDataResponse({ data, error }) && data && isSupabaseRecord(data)) {
         form.reset({
           title: safeString(data.title),
           description: safeString(data.description),
@@ -188,20 +187,20 @@ export function ProductForm({
           images: formData.images ? formData.images.split('\n').filter(url => url.trim() !== '') : [],
           kiosk_token: formData.kioskToken || null,
           stock: formData.stock || 0,
-        } as any; // Use type assertion to bypass TS checking for Supabase types
+        };
 
         if (productId) {
           const { error } = await supabase
             .from('products')
             .update(productData)
-            .eq('id', uuidFilter(productId));
+            .eq('id', toFilterableUUID(productId));
 
           if (error) throw error;
           toast.success('Product updated successfully');
         } else {
           const { error } = await supabase
             .from('products')
-            .insert(productData);
+            .insert([productData]);
 
           if (error) throw error;
           toast.success('Product created successfully');
@@ -273,11 +272,11 @@ export function ProductForm({
     if (onApiTest) {
       try {
         setIsLoading(true);
-        const response = await onApiTest(kioskToken);
-        setIsLoading(false);
+        await onApiTest(kioskToken);
       } catch (error) {
-        setIsLoading(false);
         console.error('API test error:', error);
+      } finally {
+        setIsLoading(false);
       }
     }
   };

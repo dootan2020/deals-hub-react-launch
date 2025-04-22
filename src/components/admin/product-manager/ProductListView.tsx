@@ -1,34 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, RefreshCw, PencilIcon, TrashIcon, AlertTriangle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { Category } from '@/types';
-import { isDataResponse, isSupabaseRecord, isValidRecord, safeNumber, safeString, uuidFilter } from '@/utils/supabaseHelpers';
+import { toFilterableUUID } from '@/utils/supabaseHelpers';
 
 interface Product {
   id: string;
@@ -44,8 +17,8 @@ interface Product {
 }
 
 interface ProductListViewProps {
-  onEdit: (product: Product) => void;
-  onSync: (product: Product) => void;
+  onEdit: (product: any) => void;
+  onSync: (product: any) => void;
   onSyncAll: () => void;
   categories: Category[];
 }
@@ -59,60 +32,39 @@ export function ProductListView({
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [syncingProduct, setSyncingProduct] = useState<string | null>(null);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
   const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProducts();
-  }, [categoryFilter, searchQuery]);
+    applyFilters();
+  }, [categoryFilter, searchTerm]);
 
-  const fetchProducts = async () => {
+  const applyFilters = async () => {
     setIsLoading(true);
     try {
       let query = supabase
         .from('products')
         .select('*')
         .order('created_at', { ascending: false });
-        
-      if (categoryFilter !== 'all') {
+      
+      if (categoryFilter && categoryFilter !== 'all') {
         query = query.eq('category_id', categoryFilter);
       }
       
-      if (searchQuery) {
-        query = query.ilike('title', `%${searchQuery}%`);
+      if (searchTerm) {
+        query = query.ilike('title', `%${searchTerm}%`);
       }
-
+      
       const { data, error } = await query;
       
-      if (error) throw error;
-      
-      const typedProducts: Product[] = [];
-      
-      if (data) {
-        data.forEach(item => {
-          if (isSupabaseRecord<Product>(item)) {
-            typedProducts.push({
-              id: safeString(item.id),
-              title: safeString(item.title),
-              price: safeNumber(item.price),
-              stock: safeNumber(item.stock),
-              in_stock: !!item.in_stock,
-              category_id: safeString(item.category_id),
-              api_stock: item.api_stock !== undefined ? safeNumber(item.api_stock) : null,
-              api_price: item.api_price !== undefined ? safeNumber(item.api_price) : null,
-              last_synced_at: item.last_synced_at ? safeString(item.last_synced_at) : null,
-              kiosk_token: item.kiosk_token ? safeString(item.kiosk_token) : null
-            });
-          }
-        });
+      if (error) {
+        console.error('Error fetching products:', error);
+        return;
       }
       
-      setProducts(typedProducts);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      toast.error('Failed to fetch products');
+      setProducts(data || []);
     } finally {
       setIsLoading(false);
     }
@@ -122,7 +74,7 @@ export function ProductListView({
     setSyncingProduct(product.id);
     try {
       await onSync(product);
-      await fetchProducts(); // Refresh the list
+      await applyFilters(); // Refresh the list
     } catch (error) {
       console.error('Error syncing product:', error);
     } finally {
@@ -134,7 +86,7 @@ export function ProductListView({
     setIsSyncingAll(true);
     try {
       await onSyncAll();
-      await fetchProducts(); // Refresh the list after sync
+      await applyFilters(); // Refresh the list after sync
       toast.success('All products have been synchronized');
     } catch (error) {
       console.error('Error syncing all products:', error);
@@ -152,7 +104,7 @@ export function ProductListView({
       const { error: syncLogsError } = await supabase
         .from('sync_logs')
         .delete()
-        .eq('product_id', uuidFilter(productId));
+        .eq('product_id', toFilterableUUID(productId));
 
       if (syncLogsError) throw syncLogsError;
       
@@ -160,12 +112,12 @@ export function ProductListView({
       const { error: productError } = await supabase
         .from('products')
         .delete()
-        .eq('id', uuidFilter(productId));
+        .eq('id', toFilterableUUID(productId));
 
       if (productError) throw productError;
 
       toast.success('Product deleted successfully');
-      fetchProducts();
+      applyFilters();
     } catch (error) {
       console.error('Error deleting product:', error);
       toast.error('Failed to delete product');
@@ -188,8 +140,8 @@ export function ProductListView({
             <Input
               placeholder="Search products..."
               className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           
@@ -214,7 +166,7 @@ export function ProductListView({
         <div className="flex gap-2 flex-shrink-0">
           <Button 
             variant="outline"
-            onClick={fetchProducts}
+            onClick={applyFilters}
             disabled={isLoading}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
