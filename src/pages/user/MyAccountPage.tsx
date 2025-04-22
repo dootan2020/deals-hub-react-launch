@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Wallet, ShoppingBag, Clock, User, Lock, Loader2, RefreshCw, FileText } from "lucide-react";
@@ -24,55 +23,90 @@ const MyAccountPage = () => {
   const [totalDeposited, setTotalDeposited] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
   const [lastLoginAt, setLastLoginAt] = useState<Date | null>(null);
+  
+  // Track mount state to prevent state updates after unmount
+  const isMounted = useRef(true);
+  
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
+  // Redirect if no user
   useEffect(() => {
     if (!user) {
       navigate('/login');
-      return;
     }
+  }, [user, navigate]);
 
-    const fetchUserStats = async () => {
-      setIsLoading(true);
-      try {
+  // Memoize fetchUserStats to prevent unnecessary recreations
+  const fetchUserStats = useCallback(async () => {
+    if (!user?.id) return;
+    
+    setIsLoading(true);
+    try {
+      // Use Promise.all for parallel API calls
+      const [depositData, orderData, authData] = await Promise.all([
         // Fetch total deposits
-        const { data: depositData, error: depositError } = await supabase
+        supabase
           .from('deposits')
           .select('amount')
           .eq('user_id', user.id)
-          .eq('status', 'completed');
-
-        if (depositError) throw depositError;
-        
-        const depositTotal = depositData.reduce((total, item) => total + Number(item.amount), 0);
-        setTotalDeposited(depositTotal);
-
-        // Fetch total orders
-        const { count, error: orderError } = await supabase
+          .eq('status', 'completed'),
+          
+        // Fetch total orders count
+        supabase
           .from('orders')
           .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id);
+          .eq('user_id', user.id),
+          
+        // Get last login info
+        supabase.auth.getSession()
+      ]);
 
-        if (orderError) throw orderError;
-        setTotalOrders(count || 0);
+      // Only update state if component is still mounted
+      if (!isMounted.current) return;
 
-        // Get last login information from auth.users
-        const { data: authData } = await supabase.auth.getSession();
-        if (authData?.session?.user?.last_sign_in_at) {
-          setLastLoginAt(new Date(authData.session.user.last_sign_in_at));
-        }
+      // Handle deposit data
+      if (!depositData.error && depositData.data) {
+        const depositTotal = depositData.data.reduce((total, item) => 
+          total + Number(item.amount), 0);
+        setTotalDeposited(depositTotal);
+      }
 
-        // Refresh user balance
-        await refreshUserBalance();
-      } catch (error) {
-        console.error("Error fetching user stats:", error);
-        toast.error("Failed to load user information");
-      } finally {
+      // Handle order count
+      if (!orderData.error) {
+        setTotalOrders(orderData.count || 0);
+      }
+
+      // Handle last login
+      if (authData?.data?.session?.user?.last_sign_in_at) {
+        setLastLoginAt(new Date(authData.data.session.user.last_sign_in_at));
+      }
+
+      // Refresh balance
+      await refreshUserBalance();
+      
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      if (isMounted.current) {
+        toast("Không thể tải thông tin tài khoản", {
+          description: "Vui lòng thử lại sau",
+        });
+      }
+    } finally {
+      if (isMounted.current) {
         setIsLoading(false);
       }
-    };
+    }
+  }, [user?.id, refreshUserBalance]);
 
+  // Load user stats on mount and when user changes
+  useEffect(() => {
     fetchUserStats();
-  }, [user, navigate, refreshUserBalance]);
+  }, [fetchUserStats]);
 
   const handleRefreshBalance = async () => {
     if (!user || isRefreshingBalance) return;
@@ -80,14 +114,21 @@ const MyAccountPage = () => {
     setIsRefreshingBalance(true);
     try {
       await refreshUserBalance();
-      toast.success("Số dư đã được cập nhật");
+      if (isMounted.current) {
+        toast("Số dư đã được cập nhật");
+      }
     } catch (error) {
-      toast.error("Không thể cập nhật số dư");
+      if (isMounted.current) {
+        toast("Không thể cập nhật số dư");
+      }
     } finally {
-      setIsRefreshingBalance(false);
+      if (isMounted.current) {
+        setIsRefreshingBalance(false);
+      }
     }
   };
 
+  // Edge case: no user
   if (!user) return null;
 
   return (
