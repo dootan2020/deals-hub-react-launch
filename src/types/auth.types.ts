@@ -1,62 +1,83 @@
 
-import { ReactNode } from 'react';
-import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import { Database } from './database.types';
 
-export type UserRole = 'user' | 'admin' | 'staff' | 'guest';
+export type UserRole = 'admin' | 'staff' | 'user' | 'guest';
 
-export interface User {
+export interface UserProfile {
   id: string;
-  email: string | null; // Changed to optional to match Supabase's type
-  email_confirmed_at?: string | null;
-  user_metadata: { // Required to match Supabase's type
-    display_name?: string;
-    avatar_url?: string;
-  };
-  role?: UserRole;
-  app_metadata: any; // Required to match Supabase's type
-  aud: string; // Changed from optional to required
-  created_at: string; // Changed from optional to required
+  email: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  roles: UserRole[];
+  balance: number;
+  emailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuthTokens {
+  access: string | null;
+  refresh: string | null;
+  expires: number | null;
 }
 
 export interface AuthState {
-  user: User | null;
-  session: any;
+  initialized: boolean;
   loading: boolean;
-  isAdmin: boolean;
-  isStaff: boolean;
-  userRoles: UserRole[];
-  userBalance: number;
-  setUserBalance: (balance: number) => void;
-  fetchUserBalance: (userId: string) => Promise<number>;
-  refreshUserData: () => Promise<void>;
-  isLoadingBalance: boolean;
-  authError: Error | null;
+  error: Error | null;
+  user: UserProfile | null;
+  tokens: AuthTokens;
+  isAuthenticated: boolean;
 }
 
-export interface AuthContextType {
-  user: User | null;
-  session: any;
+export interface AuthSession {
+  user: UserProfile | null;
+  tokens: AuthTokens;
+  expires: number | null;
+}
+
+export interface AuthError extends Error {
+  status?: number;
+  code?: string;
+}
+
+export type AuthContextType = {
+  initialized: boolean;
   loading: boolean;
+  user: UserProfile | null;
+  error: AuthError | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isStaff: boolean;
-  userRoles: UserRole[];
-  userBalance: number;
-  refreshUserBalance: () => Promise<void>;
-  refreshUserProfile: () => Promise<void>;
-  refreshBalance: () => Promise<void>;
-  login: (email: string, password: string) => Promise<any>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (email: string, password: string, options?: any) => Promise<any>;
-  checkUserRole: (role: UserRole) => boolean;
-  isEmailVerified: boolean;
-  resendVerificationEmail: (email: string) => Promise<boolean>;
-  isLoadingBalance: boolean;
-  signIn: (email: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  signUp: (email: string, password?: string) => Promise<void>;
-  assignRole: (userId: string, role: UserRole) => Promise<boolean>;
-  removeRole: (userId: string, role: UserRole) => Promise<boolean>;
-  toggleUserStatus: (userId: string, currentStatus?: boolean) => Promise<boolean>;
-  refreshSession: () => Promise<void>;
+  register: (email: string, password: string, data?: any) => Promise<void>;
+  refreshSession: () => Promise<boolean>;
+  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+};
+
+export interface DatabaseUserProfile extends Database['public']['Tables']['profiles']['Row'] {
+  roles?: UserRole[];
+  display_name?: string | null;
+  email_verified?: boolean;
+}
+
+// API Response types
+export interface ApiResponse<T = any> {
+  data?: T;
+  error?: string;
+  message?: string;
+  status: number;
+}
+
+// Proxy types
+export type ProxyType = 'allorigins' | 'cors-anywhere' | 'custom';
+
+export interface ProxySettings {
+  id: string;
+  proxy_type: ProxyType;
+  custom_url?: string;
+  created_at?: string;
+  updated_at?: string;
 }
