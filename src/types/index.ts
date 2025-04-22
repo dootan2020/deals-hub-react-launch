@@ -60,4 +60,5 @@ export interface FilterParams {
   priceMin?: number;
   priceMax?: number;
   subcategories?: string[];
+  limit?: number; // Add the limit property to fix the TypeScript error
 }
