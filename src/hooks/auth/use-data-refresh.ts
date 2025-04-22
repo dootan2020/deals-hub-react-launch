@@ -22,8 +22,7 @@ export const useDataRefresh = (
       return roles;
     } catch (error) {
       console.error('Error refreshing user data:', error);
-      toast({
-        title: 'Không thể cập nhật thông tin người dùng',
+      toast.error('Không thể cập nhật thông tin người dùng', {
         description: 'Vui lòng tải lại trang'
       });
       throw error;

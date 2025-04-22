@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSessionManagement } from './use-session-management';
@@ -77,8 +76,7 @@ export const useAuthState = () => {
           setLoading(false);
         }
         
-        toast({
-          title: 'Lỗi khởi tạo xác thực',
+        toast.error('Lỗi khởi tạo xác thực', {
           description: 'Không thể khởi tạo phiên đăng nhập. Vui lòng tải lại trang.'
         });
       }
@@ -111,4 +109,3 @@ export const useAuthState = () => {
     authError
   };
 };
-
