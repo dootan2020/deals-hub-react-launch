@@ -1,6 +1,5 @@
-
 import { Route } from "react-router-dom";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { ProtectedRoute } from "@/components/routing/ProtectedRoute";
 
 // Admin pages
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -90,4 +89,3 @@ export const adminRoutes = [
     </ProtectedRoute>
   } />
 ];
-

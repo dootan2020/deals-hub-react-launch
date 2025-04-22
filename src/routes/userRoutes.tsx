@@ -1,6 +1,5 @@
-
 import { Route } from "react-router-dom";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { ProtectedRoute } from "@/components/routing/ProtectedRoute";
 
 // Pages
 import Index from "@/pages/Index";
@@ -108,4 +107,3 @@ export const userRoutes = [
   
   <Route key="not-found" path="*" element={<NotFound />} />
 ];
-
