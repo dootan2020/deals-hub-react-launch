@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -122,7 +121,7 @@ serve(async (req) => {
   }
 
   try {
-    const { question, userId, history, assistantName = "Trợ lý" } = await req.json();
+    const { question, userId, history, assistantName = "Trợ lý", aiModel: clientModel } = await req.json();
 
     console.log(`[${requestId}] Request received. userId: ${userId || 'anonymous'}, name: ${assistantName}, question length: ${question?.length || 0}`);
     
@@ -168,6 +167,48 @@ serve(async (req) => {
       userId ? getUserOrderInfo(userId) : ""
     ]);
 
+    // Điều chỉnh model mặc định và hợp lệ
+    const allowedModels = [
+      "gpt-3.5-turbo",
+      "gpt-4",
+      "gpt-4-1106-preview",
+      "gpt-4-turbo",
+      "claude-2"
+    ];
+
+    // --- Bắt đầu lấy model từ Supabase settings nếu có ---
+    // Gọi Supabase API để lấy ai_model từ site_settings (nếu userId truyền vào)
+    let backendModel: string | undefined = undefined;
+
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+      if (supabaseUrl && anonKey) {
+        const res = await fetch(`${supabaseUrl}/rest/v1/site_settings?key=eq.ai_model&select=value`, {
+          headers: {
+            apikey: anonKey,
+            Authorization: `Bearer ${anonKey}`,
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // value sẽ là { ai_model: "gpt-4" }, hoặc tùy admin set
+          if (Array.isArray(data) && data.length > 0) {
+            backendModel = data[0]?.value?.ai_model || undefined;
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`[${requestId}] Không lấy được model cấu hình từ site_settings:`, err);
+    }
+
+    // --- Chọn model ưu tiên: client -> backend -> default ---
+    let chosenModel = clientModel || backendModel || "gpt-3.5-turbo";
+    if (!allowedModels.includes(chosenModel)) {
+      console.warn(`[${requestId}] Model ${chosenModel} không hợp lệ, chuyển về gpt-3.5-turbo`);
+      chosenModel = "gpt-3.5-turbo";
+    }
+
     const prompt = buildPrompt({
       question,
       userId,
@@ -192,7 +233,7 @@ serve(async (req) => {
           headers["OpenAI-Organization"] = OPENAI_ORG_ID;
         }
 
-        console.log(`[${requestId}] Calling OpenAI API with gpt-4o-mini model...`);
+        console.log(`[${requestId}] Calling OpenAI API with model: ${chosenModel}...`);
 
         // Set timeout to prevent long-running requests
         const controller = new AbortController();
@@ -204,7 +245,7 @@ serve(async (req) => {
             headers,
             signal: controller.signal,
             body: JSON.stringify({
-              model: "gpt-4o-mini",
+              model: chosenModel,
               messages: [
                 { role: "system", content: `Bạn là trợ lý AI tên là ${assistantName}, luôn tự xưng tên mình và là hỗ trợ viên cho acczen.net.` },
                 { role: "user", content: prompt }
