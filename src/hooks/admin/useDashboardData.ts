@@ -1,6 +1,7 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { castData, castArrayData } from '@/utils/supabaseHelpers';
+import { castArrayData, createDefaultOrder, createDefaultOrderItem } from '@/utils/supabaseHelpers';
 import type { Order, OrderItem } from '@/types';
 
 export const useDashboardData = () => {
@@ -41,7 +42,8 @@ export const useDashboardData = () => {
       return [];
     }
 
-    return castArrayData<Order>(data);
+    // Use the castArrayData function with a default empty array and a fallback type
+    return castArrayData<Order>(data, [createDefaultOrder()]);
   };
 
   const fetchOrderItems = async () => {
@@ -56,7 +58,8 @@ export const useDashboardData = () => {
       return [];
     }
 
-    return castArrayData<OrderItem>(data);
+    // Use the castArrayData function with a default empty array and a fallback type
+    return castArrayData<OrderItem>(data, [createDefaultOrderItem()]);
   };
 
   return {

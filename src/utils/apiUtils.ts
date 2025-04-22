@@ -1,5 +1,6 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { fetchViaProxy, isHtmlResponse, normalizeProductInfo } from './proxyUtils';
+import { fetchViaProxy, isHtmlResponse } from './proxyUtils';
 
 /**
  * Fetches the active API configuration from Supabase
@@ -72,11 +73,11 @@ export function processApiResponse(response: any): any {
 }
 
 /**
- * Extracts data from HTML response - placeholder implementation
+ * Extracts data from HTML response
  * @param html The HTML content
  * @returns Extracted data
  */
-function extractDataFromHtml(html: string): any {
+export function extractDataFromHtml(html: string): any {
   // Implementation would depend on the specific HTML structure
   // This is just a placeholder
   return {
@@ -99,15 +100,30 @@ function extractValue(html: string, className: string): string {
   return match ? match[1].trim() : '';
 }
 
-export function isHtmlResponse(response: string): boolean {
-  const htmlPattern = /<(!DOCTYPE|html|head|body|div|script)/i;
-  return htmlPattern.test(response.trim());
-}
-
-export function extractFromHtml(html: string, selector: string): string | null {
+export function extractFromHtml(html: string, selector: string = 'body'): any {
   try {
+    // Basic extraction logic - this would need to be improved for real use
     const match = new RegExp(`<${selector}[^>]*>([\\s\\S]*?)<\\/${selector}>`, 'i').exec(html);
-    return match ? match[1].trim() : null;
+    
+    if (match && match[1]) {
+      const content = match[1].trim();
+      
+      // Try to extract structured data
+      const nameMatch = /<[^>]*class=["']product-name["'][^>]*>([^<]+)</.exec(content);
+      const priceMatch = /<[^>]*class=["']product-price["'][^>]*>([^<]+)</.exec(content);
+      const stockMatch = /<[^>]*class=["']product-stock["'][^>]*>([^<]+)</.exec(content);
+      const descMatch = /<[^>]*class=["']product-description["'][^>]*>([^<]+)</.exec(content);
+      
+      return {
+        name: nameMatch ? nameMatch[1].trim() : 'Unknown Product',
+        price: priceMatch ? priceMatch[1].trim() : '0',
+        stock: stockMatch ? stockMatch[1].trim() : '0',
+        description: descMatch ? descMatch[1].trim() : '',
+        success: 'true' // Indicate successful extraction
+      };
+    }
+    
+    return null;
   } catch (error) {
     console.error('Error extracting from HTML:', error);
     return null;
@@ -115,13 +131,22 @@ export function extractFromHtml(html: string, selector: string): string | null {
 }
 
 export function normalizeProductInfo(data: any): any {
-  if (!data) return null;
+  if (!data) return {
+    name: 'Unknown Product',
+    description: 'No description available',
+    price: '0',
+    stock: '0',
+    success: 'false'
+  };
   
   return {
-    name: data.name || data.title || data.productName,
-    description: data.description || data.desc || data.productDescription,
+    name: data.name || data.title || data.productName || 'Unknown Product',
+    description: data.description || data.desc || data.productDescription || '',
     price: data.price || data.productPrice || '0',
     stock: data.stock || data.quantity || data.inventory || '0',
-    kioskToken: data.kioskToken || data.token
+    kioskToken: data.kioskToken || data.token || '',
+    success: data.success || 'true'
   };
 }
+
+export { isHtmlResponse };  // Re-export from proxyUtils for backwards compatibility

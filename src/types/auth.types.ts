@@ -1,5 +1,6 @@
 
 import { ReactNode } from 'react';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 export type UserRole = 'user' | 'admin' | 'staff' | 'guest';
 
@@ -51,4 +52,11 @@ export interface AuthContextType {
   isEmailVerified: boolean;
   resendVerificationEmail: (email: string) => Promise<boolean>;
   isLoadingBalance: boolean;
+  signIn: (email: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  signUp: (email: string, password?: string) => Promise<void>;
+  assignRole: (userId: string, role: UserRole) => Promise<boolean>;
+  removeRole: (userId: string, role: UserRole) => Promise<boolean>;
+  toggleUserStatus: (userId: string, currentStatus?: boolean) => Promise<boolean>;
+  refreshSession: () => Promise<void>;
 }

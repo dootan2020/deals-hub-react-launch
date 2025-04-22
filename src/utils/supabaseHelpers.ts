@@ -1,171 +1,186 @@
 
-import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '@/types/database.types';
+import { PostgrestError } from '@supabase/supabase-js';
 
 /**
- * Helper utilities for working with Supabase and TypeScript
- * to solve common type issues and provide safer data access
- */
-
-/**
- * Safely cast any database result to your expected type
- * @param data The data returned from Supabase query
- * @param defaultValue Optional default value if data is null/undefined
- * @returns The data cast to your expected type
+ * Casts Supabase data response to a specific type with a default fallback
+ * @param data Data from a Supabase query
+ * @param defaultValue Default value to use if data is null or has an error
  */
 export function castData<T>(data: any, defaultValue: T): T {
-  if (!data) return defaultValue;
+  // If data is null, undefined, or has an error property, return the default value
+  if (!data || data.error || (typeof data === 'object' && 'error' in data)) {
+    return defaultValue;
+  }
   return data as T;
 }
 
 /**
- * Cast array data returned from Supabase to an array of your expected type
- * @param data The data array returned from Supabase
- * @param defaultValue Optional default empty array if data is null/undefined
- * @returns The data array cast to your expected type
+ * Casts Supabase array data response to a specific type
+ * @param data Data from a Supabase query returning multiple items
+ * @param defaultValue Default array to return if data is null or has an error
  */
 export function castArrayData<T>(data: any, defaultValue: T[] = []): T[] {
-  if (!data) return defaultValue;
+  // If data is null, undefined, or has an error property, return an empty array or default
+  if (!data || data.error || (typeof data === 'object' && 'error' in data)) {
+    return defaultValue;
+  }
+  
+  // Ensure we're returning an array
+  if (!Array.isArray(data)) {
+    console.warn('Expected array data from Supabase but got:', typeof data);
+    return defaultValue;
+  }
+  
   return data as T[];
 }
 
 /**
- * Safely access a property from a potentially undefined object
- * @param obj The object to access property from
- * @param key The property key to access
- * @param defaultValue Optional default value if property doesn't exist
- * @returns The property value or default
+ * Safely gets a property from an object that might be an error or null
+ * @param obj The object to access
+ * @param prop The property to access
+ * @param defaultValue Default value if property doesn't exist
  */
-export function safeGet<T, K extends keyof T>(
-  obj: T | null | undefined,
-  key: K,
-  defaultValue: T[K] | null = null
-): T[K] {
-  if (!obj) return defaultValue as T[K];
-  return (obj[key] !== undefined ? obj[key] : defaultValue) as T[K];
+export function safeGet<T, K extends keyof T>(obj: any, prop: K, defaultValue: any): T[K] {
+  if (!obj || typeof obj !== 'object' || obj.error) {
+    return defaultValue;
+  }
+  return (obj as T)[prop] !== undefined ? (obj as T)[prop] : defaultValue;
 }
 
 /**
- * Prepare ID for Supabase query to avoid type errors with .eq() method
- * @param id The ID to prepare for query
- * @returns The ID cast to any type to satisfy TypeScript
+ * Prepares an ID for use in Supabase queries by ensuring it's converted to a string
+ * @param id The ID to prepare (UUID, string, or other)
  */
-export function prepareQueryId(id: string | number | undefined | null): any {
-  return id as any;
+export function prepareQueryId(id: string | unknown): string {
+  if (!id) return '';
+  return String(id);
 }
 
 /**
- * Create a safe wrapper for Supabase single() query to handle type errors
- * @param query The Supabase query to execute
- * @returns A promise with the properly typed result
+ * Prepares data for insertion by removing undefined values
+ * @param data Data object to prepare
  */
-export async function safeSingleQuery<T>(query: any): Promise<{ data: T | null; error: any }> {
+export function prepareDataForInsert<T extends Record<string, any>>(data: T): T {
+  const result: Record<string, any> = {};
+  
+  for (const key in data) {
+    if (data[key] !== undefined) {
+      result[key] = data[key];
+    }
+  }
+  
+  return result as T;
+}
+
+/**
+ * Runs a Supabase query and handles various error types safely
+ * @param queryFn Function that returns a Supabase query
+ * @param defaultValue Default value to return on error
+ */
+export async function safeQuery<T>(queryFn: () => Promise<{ data: any; error: PostgrestError | null }>, defaultValue: T): Promise<T> {
   try {
-    const { data, error } = await query.single();
-    return { data: data as T, error };
-  } catch (error) {
-    return { data: null, error };
+    const { data, error } = await queryFn();
+    if (error) {
+      console.error('Database query error:', error);
+      return defaultValue;
+    }
+    return (data as T) || defaultValue;
+  } catch (err) {
+    console.error('Error executing query:', err);
+    return defaultValue;
   }
 }
 
 /**
- * Prepare data object for insert/update operations to match the expected schema
- * @param data The data object to prepare
- * @returns The prepared data object cast to any to satisfy TypeScript
+ * Checks if a Supabase response contains an error
+ * @param response The Supabase response to check
  */
-export function prepareDataForInsert<T>(data: T): any {
-  return data as any;
+export function hasSupabaseError(response: any): boolean {
+  return !response || response.error || (typeof response === 'object' && 'error' in response);
 }
 
 /**
- * Type guard to check if the Supabase result has an error
- * @param result The result object from Supabase query
- * @returns Boolean indicating if there's an error
- */
-export function hasSupabaseError(result: { error: any }): boolean {
-  return !!result.error;
-}
-
-/**
- * Extract error message from Supabase error object
- * @param error The error object from Supabase
- * @returns A readable error message
+ * Extracts a readable error message from a Supabase error
+ * @param error The error to extract a message from
  */
 export function extractErrorMessage(error: any): string {
   if (!error) return 'Unknown error';
-  if (typeof error === 'string') return error;
-  if (error.message) return error.message;
-  if (error.error_description) return error.error_description;
-  return JSON.stringify(error);
+  
+  if (typeof error === 'string') {
+    return error;
+  }
+  
+  if (error.message) {
+    return error.message;
+  }
+  
+  if (error.error_description) {
+    return error.error_description;
+  }
+  
+  if (error.details) {
+    return error.details;
+  }
+  
+  return 'An unexpected error occurred';
 }
 
 /**
- * Wrapper for Supabase select query with proper type casting
- * @param supabase The Supabase client
- * @param table The table to select from
- * @param query Additional query builder functions
- * @returns Promise with properly typed result
+ * Creates a default product object with empty values
+ * For use when a product can't be loaded
  */
-export async function safeSelect<T>(
-  supabase: SupabaseClient<Database>,
-  table: string,
-  query?: (queryBuilder: any) => any
-): Promise<{ data: T[]; error: any }> {
-  try {
-    let queryBuilder = supabase.from(table).select('*');
-    if (query) {
-      queryBuilder = query(queryBuilder);
-    }
-    const { data, error } = await queryBuilder;
-    return { data: castArrayData<T>(data), error };
-  } catch (error) {
-    return { data: [], error };
-  }
+export function createDefaultProduct() {
+  return {
+    id: '',
+    title: '',
+    description: '',
+    price: 0,
+    original_price: null,
+    in_stock: true,
+    slug: '',
+    external_id: null,
+    category_id: '',
+    images: [],
+    kiosk_token: '',
+    stock: 0,
+    api_name: '',
+    api_price: 0,
+    api_stock: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
 }
 
 /**
- * Type-safe wrapper for Supabase insert operation
- * @param supabase The Supabase client
- * @param table The table to insert into
- * @param data The data to insert
- * @returns Promise with the insert result
+ * Creates a default order object with empty values
  */
-export async function safeInsert<T, R>(
-  supabase: SupabaseClient<Database>,
-  table: string,
-  data: T
-): Promise<{ data: R | null; error: any }> {
-  try {
-    const { data: result, error } = await supabase.from(table).insert(prepareDataForInsert(data));
-    return { data: result as unknown as R, error };
-  } catch (error) {
-    return { data: null, error };
-  }
+export function createDefaultOrder() {
+  return {
+    id: '',
+    user_id: '',
+    product_id: null,
+    qty: 0,
+    total_price: 0,
+    status: 'pending',
+    external_order_id: null,
+    promotion_code: null,
+    keys: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
 }
 
 /**
- * Type-safe wrapper for Supabase update operation
- * @param supabase The Supabase client
- * @param table The table to update
- * @param data The data to update
- * @param matchColumn The column to match for update
- * @param matchValue The value to match for update
- * @returns Promise with the update result
+ * Creates a default order item object with empty values
  */
-export async function safeUpdate<T, R>(
-  supabase: SupabaseClient<Database>,
-  table: string,
-  data: T,
-  matchColumn: string,
-  matchValue: any
-): Promise<{ data: R | null; error: any }> {
-  try {
-    const { data: result, error } = await supabase
-      .from(table)
-      .update(prepareDataForInsert(data))
-      .eq(matchColumn, prepareQueryId(matchValue));
-    return { data: result as unknown as R, error };
-  } catch (error) {
-    return { data: null, error };
-  }
+export function createDefaultOrderItem() {
+  return {
+    id: '',
+    order_id: '',
+    product_id: null,
+    quantity: 0,
+    price: 0,
+    external_product_id: null,
+    created_at: new Date().toISOString()
+  };
 }

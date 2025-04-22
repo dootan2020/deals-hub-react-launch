@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { buildProxyUrl } from '@/utils/proxyUtils';
+import { buildProxyUrl, ProxyType, ProxyConfig } from '@/utils/proxyUtils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,12 +16,19 @@ import {
   SelectValue
 } from '@/components/ui/select';
 
-// Define the enum here since we're using it as a value
+// Define the enum for UI display
 enum ProxyTypeEnum {
   Mobile = 'Mobile',
   Residential = 'Residential',
   Dedicated = 'Dedicated'
 }
+
+// Mapping between UI enum and actual ProxyType
+const proxyTypeMapping: Record<ProxyTypeEnum, ProxyType> = {
+  [ProxyTypeEnum.Mobile]: 'allorigins',
+  [ProxyTypeEnum.Residential]: 'corsproxy',
+  [ProxyTypeEnum.Dedicated]: 'cors-anywhere'
+};
 
 export const ProxyTester = () => {
   const [proxyType, setProxyType] = useState<ProxyTypeEnum>(ProxyTypeEnum.Mobile);
@@ -37,9 +45,11 @@ export const ProxyTester = () => {
     setTestResult(null);
 
     try {
-      // Properly pass proxy type as ProxyType
-      const proxyTypeValue = proxyType as unknown as ProxyType; 
-      const proxyResult = buildProxyUrl('https://api.example.com/test', { type: proxyTypeValue });
+      // Convert UI enum to actual ProxyType
+      const proxyTypeValue = proxyTypeMapping[proxyType]; 
+      const proxyConfig: ProxyConfig = { proxy_type: proxyTypeValue };
+      
+      const proxyResult = buildProxyUrl('https://api.example.com/test', proxyConfig);
       setProxyUrl(proxyResult.url);
 
       const response = await fetch(proxyResult.url, {
@@ -69,7 +79,7 @@ export const ProxyTester = () => {
     <div className="mt-8">
       <h2 className="text-xl font-semibold mb-4">Proxy Tester</h2>
       <Card>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="grid gap-4">
             <div>
               <Label htmlFor="proxyType">Proxy Type</Label>

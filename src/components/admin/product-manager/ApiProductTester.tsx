@@ -6,21 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, InfoIcon, Loader2, CheckCircle } from 'lucide-react';
-import { fetchViaProxy, isHtmlResponse } from '@/utils/proxyUtils';
+import { fetchViaProxy } from '@/utils/proxyUtils';
+import { isHtmlResponse } from '@/utils/apiUtils';
 import { fetchActiveApiConfig } from '@/utils/apiUtils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-
-export interface ApiResponse {
-  name?: string;
-  description?: string;
-  price?: string;
-  stock?: string;
-  success?: string;
-  error?: string;
-  kioskToken?: string;
-  [key: string]: any;
-}
+import { ApiResponse } from '@/types';
 
 interface ApiProductTesterProps {
   initialKioskToken?: string;
@@ -51,7 +42,7 @@ export function ApiProductTester({ initialKioskToken = '', onApiDataReceived }: 
     try {
       toast.info('Fetching product data...');
       
-      let data: any;
+      let data: ApiResponse;
       
       // Get the user token from API config
       const apiConfig = await fetchActiveApiConfig();
@@ -68,18 +59,18 @@ export function ApiProductTester({ initialKioskToken = '', onApiDataReceived }: 
         });
         
         if (error) throw new Error(`Serverless function error: ${error.message}`);
-        data = result;
+        data = result as ApiResponse;
       } else {
         // Use direct proxy
         const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${userToken}`;
-        const response = await fetchViaProxy(apiUrl, { proxy_type: proxyType });
+        const response = await fetchViaProxy(apiUrl, { proxy_type: proxyType as any });
         
         // Check if we got an HTML response
         if (typeof response === 'string' && isHtmlResponse(response)) {
           throw new Error('HTML response received. Try a different proxy method.');
         }
         
-        data = response;
+        data = response as ApiResponse;
       }
       
       if (data && data.success === "true") {
@@ -99,12 +90,12 @@ export function ApiProductTester({ initialKioskToken = '', onApiDataReceived }: 
         
         toast.success('Product data retrieved successfully!');
       } else {
-        setApiResponse(data || { error: 'Empty response received' });
+        setApiResponse(data || { error: 'Empty response received' } as ApiResponse);
         toast.error(`Failed to retrieve data: ${data?.error || 'Unknown error'}`);
       }
     } catch (error: any) {
       console.error('API test error:', error);
-      setApiResponse({ error: error.message });
+      setApiResponse({ error: error.message } as ApiResponse);
       toast.error(`Error: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -146,7 +137,7 @@ export function ApiProductTester({ initialKioskToken = '', onApiDataReceived }: 
                   <SelectItem value="serverless">Serverless Function (Recommended)</SelectItem>
                   <SelectItem value="allorigins">AllOrigins Proxy</SelectItem>
                   <SelectItem value="corsproxy">CORS Proxy IO</SelectItem>
-                  <SelectItem value="corsanywhere">CORS Anywhere</SelectItem>
+                  <SelectItem value="cors-anywhere">CORS Anywhere</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">

@@ -14,16 +14,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, RefreshCw, Info, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { ProxyType, ProxyConfig, fetchProxySettings, fetchViaProxy, fetchViaProxyWithFallback } from '@/utils/proxyUtils';
+import { ProxyType, ProxyConfig, fetchViaProxy, fetchProxySettings } from '@/utils/proxyUtils';
 import { isHtmlResponse, extractFromHtml, normalizeProductInfo } from '@/utils/apiUtils';
-
-interface ApiResponse {
-  success: string;
-  name: string;
-  price: string;
-  stock: string;
-  description?: string;
-}
+import { ApiResponse } from '@/types';
 
 interface ApiTesterProps {
   onApiDataReceived: (data: ApiResponse) => void;
@@ -64,7 +57,7 @@ export function ApiTester({ onApiDataReceived, initialKioskToken = '', initialUs
       }
 
       // Create proper proxy configuration object
-      const proxyConfig: ProxyConfig = { type: selectedProxy };
+      const proxyConfig: ProxyConfig = { proxy_type: selectedProxy };
       
       // Format the API URL properly
       const url = `https://api.taphoammo.net/kioskapi.php?kiosk=${kioskToken}&usertoken=${userToken}`;
@@ -79,12 +72,14 @@ export function ApiTester({ onApiDataReceived, initialKioskToken = '', initialUs
           responseData = await fetchViaProxy(url, proxyConfig);
           addLog(`Received response from ${selectedProxy} proxy`);
         } catch (proxyError) {
-          // If that fails, try with the fallback method
+          // If that fails, try with another method
           addLog(`${selectedProxy} proxy failed: ${(proxyError as Error).message}`);
-          addLog('Attempting fallback method...');
+          addLog('Attempting alternative method...');
           
-          responseData = await fetchViaProxyWithFallback(url, proxyConfig);
-          addLog('Fallback method succeeded');
+          // Try with a different proxy type
+          const alternativeProxy: ProxyConfig = { proxy_type: 'allorigins' };
+          responseData = await fetchViaProxy(url, alternativeProxy);
+          addLog('Alternative method succeeded');
         }
         
         // Save the raw response for debugging
@@ -95,8 +90,15 @@ export function ApiTester({ onApiDataReceived, initialKioskToken = '', initialUs
         if (typeof responseData === 'string' && isHtmlResponse(responseData)) {
           addLog('Response is HTML, attempting to extract product information');
           const extractedData = extractFromHtml(responseData);
-          setApiResponse(extractedData);
-          onApiDataReceived(extractedData);
+          
+          if (extractedData) {
+            const normalizedData = normalizeProductInfo(extractedData);
+            setApiResponse(normalizedData);
+            onApiDataReceived(normalizedData);
+          } else {
+            throw new Error('Could not extract data from HTML response');
+          }
+          
           setIsMockData(true);
         } else {
           // Handle JSON responses
@@ -115,7 +117,7 @@ export function ApiTester({ onApiDataReceived, initialKioskToken = '', initialUs
       addLog(`Error: ${err.message}`);
       
       // Show mock data when an error occurs
-      const mockData = {
+      const mockData: ApiResponse = {
         success: 'mock',
         name: 'Sample Product (Mock)',
         price: '150000',
@@ -165,7 +167,7 @@ export function ApiTester({ onApiDataReceived, initialKioskToken = '', initialUs
       setError(`Serverless request failed: ${err.message}`);
       addLog(`Error: ${err.message}`);
       
-      const mockData = {
+      const mockData: ApiResponse = {
         success: 'mock',
         name: 'Sample Product (Mock)',
         price: '150000',

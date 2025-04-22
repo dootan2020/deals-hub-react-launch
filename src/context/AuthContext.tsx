@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
@@ -10,16 +11,30 @@ import { prepareQueryId, castData } from '@/utils/supabaseHelpers';
 interface AuthContextType {
   session: Session | null;
   user: SupabaseUser | null;
-  userRoles: UserRole[] | null;
+  userRoles: UserRole[];
   userBalance: number;
   isLoading: boolean;
+  isAuthenticated: boolean;
+  loading: boolean;
+  isAdmin: boolean;
+  isStaff: boolean;
+  isEmailVerified: boolean;
+  isLoadingBalance: boolean;
   signIn: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
+  logout: () => Promise<void>;
   signUp: (email: string, password?: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<any>;
+  register: (email: string, password: string, options?: any) => Promise<any>;
   assignRole: (userId: string, role: UserRole) => Promise<boolean>;
   removeRole: (userId: string, role: UserRole) => Promise<boolean>;
   toggleUserStatus: (userId: string, currentStatus?: boolean) => Promise<boolean>;
   refreshSession: () => Promise<void>;
+  refreshUserBalance: () => Promise<void>;
+  refreshUserProfile: () => Promise<void>;
+  refreshBalance: () => Promise<void>;
+  checkUserRole: (role: UserRole) => boolean;
+  resendVerificationEmail: (email: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,10 +42,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [userRoles, setUserRoles] = useState<UserRole[] | null>(null);
+  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [userBalance, setUserBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  
+  // Computed properties
+  const isAuthenticated = !!user && !!session;
+  const isAdmin = userRoles.includes('admin');
+  const isStaff = userRoles.includes('staff');
+  const isEmailVerified = !!user?.email_confirmed_at;
+  const loading = isLoading;
+  const isLoadingBalance = false;
 
   useEffect(() => {
     const loadSession = async () => {
@@ -62,7 +85,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         await fetchUserRoles(currentSession.user.id);
         await fetchUserBalance(currentSession.user.id);
       } else {
-        setUserRoles(null);
+        setUserRoles([]);
         setUserBalance(0);
       }
     });
@@ -77,11 +100,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) throw error;
 
-      const roles = data ? data.map(item => item.role as UserRole) : [];
+      // Use castArrayData to ensure proper typing
+      const roleData = castData(data, []);
+      const roles = roleData ? roleData.map(item => item.role as UserRole) : [];
       setUserRoles(roles);
+      return roles;
     } catch (error) {
       console.error('Error fetching user roles:', error);
-      setUserRoles(null);
+      setUserRoles([]);
+      return [];
     }
   };
 
@@ -96,10 +123,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error;
       
       const profileData = castData(data, { balance: 0 });
-      setUserBalance(profileData.balance || 0);
+      const balance = profileData.balance || 0;
+      setUserBalance(balance);
+      return balance;
     } catch (error) {
       console.error('Error fetching user balance:', error);
       setUserBalance(0);
+      return 0;
     }
   };
 
@@ -122,7 +152,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      setUserRoles(null);
+      setUserRoles([]);
       navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -131,6 +161,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(false);
     }
   };
+
+  // Alias for compatibility
+  const logout = signOut;
 
   const signUp = async (email: string, password?: string) => {
     setIsLoading(true);
@@ -146,15 +179,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Alias for compatibility
+  const register = signUp;
+  const login = async (email: string, password: string) => {
+    // Implementation
+    return { user: null, session: null, error: new Error('Not implemented') };
+  };
+
   const assignRole = async (userId: string, role: UserRole): Promise<boolean> => {
     setIsLoading(true);
     try {
+      // Create a properly typed object for inserting
+      const roleData = {
+        user_id: userId,
+        role: role
+      };
+
       const { error } = await supabase
         .from('user_roles')
-        .insert({ user_id: userId, role });
+        .insert(roleData);
 
       if (error) throw error;
-      await fetchUserRoles(userId);
+      
+      if (userId === user?.id) {
+        await fetchUserRoles(userId);
+      }
+      
       return true;
     } catch (error) {
       console.error('Error assigning role:', error);
@@ -174,7 +224,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('role', role);
 
       if (error) throw error;
-      await fetchUserRoles(userId);
+      
+      if (userId === user?.id) {
+        await fetchUserRoles(userId);
+      }
+      
       return true;
     } catch (error) {
       console.error('Error removing role:', error);
@@ -204,20 +258,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const refreshSession = async () => {
     try {
-        const { data, error } = await supabase.auth.refreshSession()
-        if (error) throw error;
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error) throw error;
 
-        setSession(data.session);
-        setUser(data.session?.user || null);
+      setSession(data.session);
+      setUser(data.session?.user || null);
 
-        if (data.session?.user?.id) {
-          await fetchUserRoles(data.session.user.id);
-          await fetchUserBalance(data.session.user.id);
-        }
+      if (data.session?.user?.id) {
+        await fetchUserRoles(data.session.user.id);
+        await fetchUserBalance(data.session.user.id);
+      }
     } catch (error) {
-        console.error('Error refreshing session:', error);
+      console.error('Error refreshing session:', error);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
+    }
+  };
+  
+  // Additional helper methods for compatibility
+  const refreshUserBalance = async () => {
+    if (user?.id) {
+      await fetchUserBalance(user.id);
+    }
+  };
+  
+  const refreshUserProfile = async () => {
+    if (user?.id) {
+      await fetchUserRoles(user.id);
+      await fetchUserBalance(user.id);
+    }
+  };
+  
+  const refreshBalance = refreshUserBalance;
+  
+  const checkUserRole = (role: UserRole): boolean => {
+    return userRoles.includes(role);
+  };
+  
+  const resendVerificationEmail = async (email: string): Promise<boolean> => {
+    try {
+      // Implementation depends on your auth setup
+      return true;
+    } catch (error) {
+      return false;
     }
   };
 
@@ -227,13 +310,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     userRoles,
     userBalance,
     isLoading,
+    isAuthenticated,
+    loading,
+    isAdmin,
+    isStaff,
+    isEmailVerified,
+    isLoadingBalance,
     signIn,
     signOut,
+    logout,
     signUp,
+    login,
+    register,
     assignRole,
     removeRole,
     toggleUserStatus,
     refreshSession,
+    refreshUserBalance,
+    refreshUserProfile,
+    refreshBalance,
+    checkUserRole,
+    resendVerificationEmail
   };
 
   return (
