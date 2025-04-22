@@ -15,6 +15,8 @@ export interface AIAssistantResponse {
   errorType?: string;
   errorSource?: string;
   stackTrace?: string;
+  requestId?: string;
+  duration?: number;
 }
 
 /**

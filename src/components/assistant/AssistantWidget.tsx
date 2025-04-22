@@ -35,6 +35,7 @@ export const AssistantWidget: React.FC = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [lastRequestId, setLastRequestId] = useState<string | null>(null);
   const { user } = useAuth();
   const chatBodyRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +52,31 @@ export const AssistantWidget: React.FC = () => {
       return `Xin lỗi, hiện tại tôi không thể kết nối với máy chủ. Bạn có thể thử lại sau vài phút hoặc nhấn vào đây để liên hệ với nhân viên hỗ trợ.`;
     }
     return "Đã xảy ra lỗi. Vui lòng thử lại sau ít phút!";
+  };
+
+  // Chuyển đổi lỗi kỹ thuật sang lỗi thân thiện với người dùng
+  const getUserFriendlyErrorMessage = (error: AIAssistantResponse): string => {
+    // Nếu có error detail và không phải là lỗi unknown, hiển thị lỗi chi tiết
+    if (error.error && !error.error.includes("Unknown error") && error.errorSource) {
+      switch (error.errorSource) {
+        case "configuration":
+          return "Lỗi cấu hình hệ thống AI. Vui lòng thông báo cho nhân viên kỹ thuật.";
+        case "validation":
+          return "Câu hỏi không hợp lệ. Vui lòng nhập câu hỏi cụ thể.";
+        case "edge_function":
+          if (error.errorType === "timeout") {
+            return `Máy chủ AI đang phản hồi chậm, vui lòng thử lại sau (Mã: TIMEOUT-${error.requestId?.substring(0, 4) || 'ERR'})`;
+          } else if (error.errorType === "network") {
+            return "Lỗi kết nối mạng đến máy chủ AI. Kiểm tra kết nối internet của bạn.";
+          } else if (error.errorType === "quota") {
+            return "Hệ thống AI đang quá tải. Vui lòng thử lại sau ít phút.";
+          }
+          break;
+      }
+    }
+
+    // Lỗi mặc định
+    return `Lỗi kết nối với ${assistantName} (${error.code || "Lỗi kết nối"})`;
   };
 
   const handleSend = async () => {
@@ -81,7 +107,7 @@ export const AssistantWidget: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
         // Thêm timeout ngăn chặn treo quá lâu
-        signal: AbortSignal.timeout(15000), // 15 giây timeout
+        signal: AbortSignal.timeout(25000), // 25 giây timeout (tăng lên để tránh timeout quá sớm)
       });
 
       setMessages(prev => prev.filter(msg => msg.message !== "Đang trả lời..."));
@@ -93,44 +119,57 @@ export const AssistantWidget: React.FC = () => {
         const newRetryCount = retryCount + 1;
         setRetryCount(newRetryCount);
         
-        let detailedError = "Lỗi kết nối";
+        let errorResponse: AIAssistantResponse = { 
+          answer: "Đã xảy ra lỗi kết nối", 
+          error: `HTTP Error ${res.status}` 
+        };
+        
         try {
           // Cố gắng parse lỗi chi tiết từ server
-          const errorJson = JSON.parse(errorText);
-          if (errorJson.error) {
-            detailedError = errorJson.error;
+          errorResponse = JSON.parse(errorText);
+          if (errorResponse.requestId) {
+            setLastRequestId(errorResponse.requestId);
           }
         } catch (e) {
           // Nếu không parse được thì giữ nguyên lỗi ban đầu
-          detailedError = `Lỗi máy chủ (${res.status})`;
+          console.error("Error parsing error response:", e);
         }
         
-        // Log lỗi chi tiết để debug
-        console.error("Lỗi chi tiết:", detailedError);
+        // Hiển thị thông báo lỗi thân thiện với người dùng
+        const userFriendlyError = getUserFriendlyErrorMessage(errorResponse);
         
         setMessages(prev => [...prev, {
           sender: "bot",
-          message: `Đã xảy ra lỗi khi kết nối với trợ lý AI acczen.net. (Mã: ${res.status}, Chi tiết: ${detailedError.substring(0, 100)})`
+          message: userFriendlyError
         }]);
         
-        toast.error("Lỗi kết nối với acczen AI", {
-          description: getFallbackMessage(newRetryCount),
+        // Hiển thị toast thông báo lỗi
+        toast.error(`Lỗi trợ lý AI acczen.net`, {
+          description: userFriendlyError,
           duration: 6000,
         });
         
-        throw new Error(`Server responded with ${res.status}: ${errorText}`);
+        throw new Error(`Server responded with ${res.status}: ${errorResponse.error || errorText}`);
       }
 
       const data: AIAssistantResponse = await res.json();
+      
+      // Lưu request ID nếu có
+      if (data.requestId) {
+        setLastRequestId(data.requestId);
+      }
 
       if (data.error) {
         console.error("AI assistant returned error:", data.error);
-        const errorMessage = data.answer || "Đã xảy ra lỗi. Vui lòng thử lại sau!";
+        const errorMessage = getUserFriendlyErrorMessage(data) || data.answer || "Đã xảy ra lỗi. Vui lòng thử lại sau!";
+        
         setMessages(prev => [...prev, { sender: "bot", message: errorMessage }]);
+        
         toast.error("Lỗi trợ lý AI acczen.net", {
           description: errorMessage,
           duration: 6000,
         });
+        
         setRetryCount(prev => prev + 1);
       } else {
         setMessages(prev =>
@@ -148,16 +187,23 @@ export const AssistantWidget: React.FC = () => {
       setRetryCount(newRetryCount);
 
       let errorMessage = "Đã xảy ra lỗi khi kết nối với trợ lý AI acczen.net.";
+      
       // Xác định lỗi mạng
       if (error instanceof Error) {
-        if (error.message.includes("NetworkError") || error.message.includes("Failed to fetch") || error.message.includes("AbortError")) {
+        if (error.message.includes("NetworkError") || error.message.includes("Failed to fetch") || error.message.includes("network")) {
           errorMessage = "Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn và thử lại.";
-        } else if (error.message.includes("timeout") || error.message.includes("Timeout") || error.message.includes("TimeoutError")) {
-          errorMessage = "Yêu cầu đã hết thời gian chờ. Vui lòng thử lại sau.";
+        } else if (error.message.includes("timeout") || error.message.includes("Timeout") || error.message.includes("TimeoutError") || error.message.includes("AbortError")) {
+          errorMessage = `${assistantName} đã không phản hồi sau 25 giây. Máy chủ có thể đang quá tải, vui lòng thử lại sau.`;
+        } else if (error.message.includes("quota") || error.message.includes("rate limit")) {
+          errorMessage = "Hệ thống AI đã đạt giới hạn truy cập. Vui lòng thử lại sau ít phút.";
         }
         
-        // Log để debug
-        console.error("Chi tiết lỗi:", error.message);
+        // Log RequestID nếu có
+        if (lastRequestId) {
+          console.error(`Lỗi chi tiết (RequestID: ${lastRequestId}):`, error.message);
+        } else {
+          console.error("Chi tiết lỗi:", error.message);
+        }
       }
       
       if (newRetryCount >= 3) {
@@ -167,6 +213,7 @@ export const AssistantWidget: React.FC = () => {
           duration: 6000,
         });
       }
+      
       setMessages(prev =>
         [...prev, { sender: "bot", message: errorMessage }]
       );
