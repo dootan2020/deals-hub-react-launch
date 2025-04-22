@@ -20,10 +20,11 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
     const fetchDeposits = async () => {
       setIsLoading(true);
       try {
+        // Use type assertion with as uuid for userId to resolve TypeScript error
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', userId)
+          .eq('user_id', userId as any) // Using type assertion to fix TypeScript error
           .order('created_at', { ascending: false });
 
         if (error) throw error;
