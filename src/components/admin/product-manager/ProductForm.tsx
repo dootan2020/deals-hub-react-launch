@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -38,7 +37,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ApiResponse } from '@/components/admin/product-manager/ApiProductTester';
-import { isSupabaseRecord, safeString, safeNumber } from '@/utils/supabaseHelpers';
+import { 
+  isSupabaseRecord, 
+  safeString, 
+  safeNumber, 
+  isValidRecord,
+  toFilterableUUID 
+} from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
@@ -133,7 +138,7 @@ export function ProductForm({
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId)
+        .eq('id', toFilterableUUID(productId))
         .single();
 
       if (error) throw error;
@@ -186,15 +191,15 @@ export function ProductForm({
         if (productId) {
           const { error } = await supabase
             .from('products')
-            .update(productData)
-            .eq('id', productId);
+            .update(productData as any)
+            .eq('id', toFilterableUUID(productId));
 
           if (error) throw error;
           toast.success('Product updated successfully');
         } else {
           const { error } = await supabase
             .from('products')
-            .insert(productData);
+            .insert(productData as any);
 
           if (error) throw error;
           toast.success('Product created successfully');

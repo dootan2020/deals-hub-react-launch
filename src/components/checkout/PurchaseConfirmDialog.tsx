@@ -1,159 +1,179 @@
-
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
-import { Product } from '@/types';
-import { convertVNDtoUSD } from '@/utils/currency';
-import { useCurrencySettings } from '@/hooks/useCurrencySettings';
-import { DialogHeader } from './purchase-dialog/DialogHeader';
-import { DialogContent as PurchaseDialogContent } from './purchase-dialog/DialogContent';
-import { DialogFooterButtons } from './purchase-dialog/DialogFooterButtons';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { isSupabaseRecord, safeNumber } from '@/utils/supabaseHelpers';
+import { Button } from '@/components/ui/button';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import { Loader2 } from 'lucide-react';
+import { isDataResponse, toFilterableUUID } from '@/utils/supabaseHelpers';
 
 interface PurchaseConfirmDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  product?: Product;
-  onConfirm: (quantity: number, promotionCode?: string) => void;
-  isVerifying?: boolean;
-  verifiedStock?: number | null;
-  verifiedPrice?: number | null;
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+  productId: string;
+  quantity: number;
+  onPurchaseSuccess: () => void;
 }
 
-export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
-  open,
-  onOpenChange,
-  product,
-  onConfirm,
-  isVerifying = false,
-  verifiedStock = null,
-  verifiedPrice = null
-}) => {
+export function PurchaseConfirmDialog({ 
+  isOpen, 
+  setIsOpen, 
+  productId, 
+  quantity, 
+  onPurchaseSuccess 
+}: PurchaseConfirmDialogProps) {
   const { user } = useAuth();
-  const { data: currencySettings } = useCurrencySettings();
-  const rate = currencySettings?.vnd_per_usd ?? 24000;
-  
-  const [quantity, setQuantity] = useState(1);
-  const [promotionCode, setPromotionCode] = useState('');
-  const [userBalance, setUserBalance] = useState<number | null>(null);
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const productPriceUSD = product ? 
-    convertVNDtoUSD(verifiedPrice || product.price, rate) : 0;
-  
-  const totalPriceUSD = productPriceUSD * quantity;
-  
-  const hasEnoughBalance = userBalance !== null && userBalance >= totalPriceUSD;
+  const [isLoading, setIsLoading] = useState(false);
+  const [productPrice, setProductPrice] = useState<number>(0);
+  const [userBalance, setUserBalance] = useState<number>(0);
 
   useEffect(() => {
-    const fetchUserBalance = async () => {
-      if (!open || !user) return;
-      
-      setIsLoadingBalance(true);
+    const loadData = async () => {
+      if (!isOpen) return;
+      setIsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('balance')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error fetching user balance:', error);
-          setUserBalance(0);
-          return;
-        }
-
-        if (data && isSupabaseRecord<{balance: number}>(data)) {
-          setUserBalance(safeNumber(data.balance));
-        } else {
-          console.warn('No balance data found');
-          setUserBalance(0);
-        }
-      } catch (error) {
-        console.error('Exception in fetchUserBalance:', error);
-        setUserBalance(0);
+        const price = await fetchProductPrice();
+        setProductPrice(price);
+        
+        const balance = await checkUserBalance();
+        setUserBalance(balance);
       } finally {
-        setIsLoadingBalance(false);
+        setIsLoading(false);
       }
     };
 
-    fetchUserBalance();
-  }, [open, user]);
+    loadData();
+  }, [isOpen, user?.id, productId]);
 
-  useEffect(() => {
-    if (!open) {
-      setQuantity(1);
-      setPromotionCode('');
-    }
-  }, [open]);
-
-  const handleQuantityChange = (newQuantity: number) => {
-    const maxQuantity = verifiedStock ?? product?.stock ?? 0;
-    const validQuantity = Math.min(Math.max(1, newQuantity), maxQuantity);
-    setQuantity(validQuantity);
-  };
-
-  const handleSubmit = async () => {
-    const maxQuantity = verifiedStock ?? product?.stock ?? 0;
-    
-    if (quantity < 1) {
-      toast.error("Invalid quantity");
-      return;
-    }
-    
-    if (quantity > maxQuantity) {
-      toast.error(`Quantity cannot exceed ${maxQuantity}`);
-      return;
-    }
-
-    setIsSubmitting(true);
+  const fetchProductPrice = async () => {
     try {
-      await onConfirm(quantity, promotionCode);
+      const { data, error } = await supabase
+        .from('products')
+        .select('price')
+        .eq('id', productId)
+        .single();
+
+      if (error) throw error;
+      
+      if (isDataResponse({ data, error }) && data.price !== undefined) {
+        return data.price;
+      }
+
+      return 0;
     } catch (error) {
-      console.error("Error during purchase confirmation:", error);
-      toast.error("An error occurred while confirming purchase");
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error fetching product price:', error);
+      return 0;
     }
   };
 
-  if (!product) return null;
+  const checkUserBalance = async () => {
+    if (!user) return 0;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', toFilterableUUID(user.id))
+        .single();
+      
+      if (error) throw error;
+      
+      if (isDataResponse({ data, error }) && data.balance !== undefined) {
+        const balance = typeof data.balance === 'number' ? data.balance : parseFloat(data.balance);
+        return isNaN(balance) ? 0 : balance;
+      }
+      
+      return 0;
+    } catch (error) {
+      console.error('Error fetching user balance:', error);
+      return 0;
+    }
+  };
+
+  const handlePurchase = async () => {
+    if (!user) {
+      toast.error('You must be logged in to make a purchase.');
+      return;
+    }
+
+    if (userBalance < productPrice * quantity) {
+      toast.error('Insufficient balance. Please deposit funds.');
+      setIsOpen(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Optimistically update the user's balance
+      setUserBalance(prevBalance => prevBalance - productPrice * quantity);
+
+      // Call the serverless function to handle the purchase
+      const { data, error } = await supabase.functions.invoke('purchase-product', {
+        body: {
+          productId: productId,
+          quantity: quantity,
+          userId: user.id
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data?.success) {
+        toast.success('Purchase successful!');
+        onPurchaseSuccess();
+      } else {
+        throw new Error(data?.message || 'Purchase failed');
+      }
+    } catch (error: any) {
+      console.error('Purchase failed:', error);
+      toast.error(`Purchase failed: ${error.message}`);
+      
+      // Revert the optimistic update if the purchase fails
+      setUserBalance(await checkUserBalance());
+    } finally {
+      setIsLoading(false);
+      setIsOpen(false);
+    }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader isVerifying={isVerifying} />
-        
-        <PurchaseDialogContent
-          product={product}
-          isVerifying={isVerifying}
-          quantity={quantity}
-          verifiedStock={verifiedStock}
-          verifiedPrice={verifiedPrice}
-          priceUSD={productPriceUSD}
-          totalPriceUSD={totalPriceUSD}
-          promotionCode={promotionCode}
-          onQuantityChange={handleQuantityChange}
-          onPromotionCodeChange={setPromotionCode}
-          isLoadingBalance={isLoadingBalance}
-          userBalance={userBalance}
-        />
-        
-        <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          <DialogFooterButtons
-            onCancel={() => onOpenChange(false)}
-            onConfirm={handleSubmit}
-            isSubmitting={isSubmitting}
-            isVerifying={isVerifying}
-            hasEnoughBalance={hasEnoughBalance}
-          />
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Confirm Purchase</DialogTitle>
+          <DialogDescription>
+            {isLoading ? (
+              <>
+                Processing...
+                <Loader2 className="inline ml-2 h-4 w-4 animate-spin" />
+              </>
+            ) : (
+              <>
+                Are you sure you want to purchase {quantity} item(s) for a total of {(productPrice * quantity).toLocaleString()} VND?
+                <br />
+                Your current balance: {userBalance.toLocaleString()} VND
+              </>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="secondary" disabled={isLoading} onClick={() => setIsOpen(false)}>
+            Cancel
+          </Button>
+          <Button type="button" disabled={isLoading || userBalance < productPrice * quantity} onClick={handlePurchase}>
+            Confirm Purchase
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-};
-
-export default PurchaseConfirmDialog;
+}

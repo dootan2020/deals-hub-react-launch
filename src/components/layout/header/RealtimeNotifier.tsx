@@ -76,7 +76,8 @@ export function RealtimeNotifier() {
           if (notification.type && notification.message) {
             showNotification(
               notification.type as NotificationType, 
-              notification.message
+              notification.message,
+              notification.description
             );
           }
         }
@@ -108,44 +109,65 @@ export function RealtimeNotifier() {
   }, [ready, user, userRoles, connectionStatus]);
 
   // Function to display notification
-  const showNotification = (type: NotificationType, message: string) => {
+  const showNotification = (
+    type: NotificationType, 
+    message: string, 
+    description?: string
+  ) => {
+    const options: any = {};
+    
+    if (description) {
+      options.description = description;
+    }
+    
     switch (type) {
       case 'error':
-        toast.error(message);
+        toast.error(message, options);
         break;
       case 'success':
-        toast.success(message);
+        toast.success(message, options);
         break;
       case 'warning':
-        toast.warning(message);
+        toast.warning(message, options);
         break;
       case 'notification':
-        toast(message);
+        toast(message, options);
         break;
       case 'systemAlert':
         toast.error(message, {
+          ...options,
           icon: <AlertCircle className="h-5 w-5" />
         });
         break;
       case 'payment_successful':
       case 'deposit_completed':
         toast.success(message, {
+          ...options,
           duration: 6000
         });
         break;
       case 'payment_failed':
       case 'deposit_failed':
         toast.error(message, {
+          ...options,
           duration: 6000
         });
         break;
       case 'welcome':
         toast(message, {
+          ...options,
           icon: <Info className="h-5 w-5 text-blue-500" />
         });
         break;
+      case 'connection_change':
+        if (message.includes('lost')) {
+          toast.error(message, options);
+        } else {
+          toast.success(message, options);
+        }
+        break;
       default:
-        toast(message);
+        toast(message, options);
     }
   };
 

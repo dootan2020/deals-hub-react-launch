@@ -3,8 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client'; 
-import { Alert, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { isValidArray } from '@/utils/supabaseHelpers';
 
 interface RoleGuardProps {
   children: React.ReactNode;
@@ -56,7 +57,7 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
           
         if (error) throw error;
         
-        const userRoleValues = data ? data.map((r: any) => r.toString()) : [];
+        const userRoleValues = isValidArray(data) ? data.map((r: any) => r.toString()) : [];
         const hasRole = roles.some(role => userRoleValues.includes(role));
         
         setIsAuthorized(hasRole);
@@ -93,7 +94,7 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
       <Alert variant="destructive" className="my-4">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Access Denied</AlertTitle>
-        <p>You don't have permission to access this page.</p>
+        <AlertDescription>You don't have permission to access this page.</AlertDescription>
       </Alert>
     );
   }

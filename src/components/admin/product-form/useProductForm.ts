@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -11,7 +10,16 @@ import { Category } from '@/types';
 import { fetchProxySettings, fetchViaProxy } from '@/utils/proxyUtils';
 import { fetchActiveApiConfig } from '@/utils/apiUtils';
 import { ApiResponse } from '@/components/admin/product-manager/ApiProductTester';
-import { isValidArray, isValidRecord, isDataResponse, isSupabaseRecord, safeString, safeNumber, safeUUID } from '@/utils/supabaseHelpers';
+import { 
+  isValidArray, 
+  isValidRecord, 
+  isDataResponse, 
+  isSupabaseRecord, 
+  safeString, 
+  safeNumber, 
+  safeUUID, 
+  toFilterableUUID 
+} from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
@@ -136,7 +144,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId)
+        .eq('id', toFilterableUUID(productId))
         .maybeSingle();
 
       if (error) throw error;

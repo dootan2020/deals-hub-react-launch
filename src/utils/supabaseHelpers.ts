@@ -1,5 +1,6 @@
 
 import { PostgrestError } from '@supabase/supabase-js';
+import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 
 /**
  * Type guard: checks if an object is a Supabase record (not an error).
@@ -92,3 +93,35 @@ export function isRecord(obj: unknown): obj is Record<string, unknown> {
   return isValidRecord(obj);
 }
 
+/**
+ * Helper function to safely process Supabase query results
+ * @param response The response from a Supabase query
+ * @param fallback Default value to return if processing fails
+ * @returns Processed data or fallback
+ */
+export function processSafeResult<T, F>(response: PostgrestSingleResponse<T>, fallback: F): T | F {
+  if (isDataResponse(response) && response.data) {
+    return response.data;
+  }
+  return fallback;
+}
+
+/**
+ * Returns a UUID compatible with Supabase query filters
+ * If the input isn't a valid UUID, returns a non-matching UUID
+ * to prevent query errors (query will return no results)
+ */
+export function toFilterableUUID(id: string | unknown): string {
+  if (typeof id !== 'string') {
+    // Return a valid UUID that won't match anything
+    return '00000000-0000-0000-0000-000000000000';
+  }
+  
+  // Check if it's a valid UUID
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return id;
+  }
+  
+  // Return a valid UUID that won't match anything
+  return '00000000-0000-0000-0000-000000000000';
+}
