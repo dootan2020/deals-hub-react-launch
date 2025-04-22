@@ -1,3 +1,4 @@
+
 import React, { useRef, useCallback } from 'react';
 import { Product } from '@/types';
 import ProductCard from './ProductCard';
@@ -48,8 +49,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     return 3; // Desktop
   }, []);
 
-  const renderCell = useCallback(({ columnIndex, rowIndex, style, data }: GridChildComponentProps<Product[]>) => {
-    const itemIndex = rowIndex * calculateColumns() + columnIndex;
+  const renderCell = useCallback(({ columnIndex, rowIndex, style, data }: GridChildComponentProps) => {
+    const columnCount = calculateColumns();
+    const itemIndex = rowIndex * columnCount + columnIndex;
     if (itemIndex >= products.length) return null;
 
     const product = products[itemIndex];
@@ -62,7 +64,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         />
       </div>
     );
-  }, [products, viewMode]);
+  }, [products, viewMode, calculateColumns]);
 
   if (isLoading) {
     return (
@@ -85,15 +87,17 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       
       {products.length > 0 ? (
         <div className="relative">
-          <VirtualizedGrid
-            items={products}
-            columnCount={calculateColumns()}
-            columnWidth={300}
-            rowHeight={400}
-            height={800}
-            renderCell={renderCell}
-            className="bg-background"
-          />
+          <div className="h-[800px]">
+            <VirtualizedGrid
+              items={products}
+              columnCount={calculateColumns()}
+              columnWidth={300}
+              rowHeight={400}
+              height={800}
+              renderCell={renderCell}
+              className="bg-background"
+            />
+          </div>
           
           {hasMore && (
             <div className="flex justify-center mt-6 md:mt-8">

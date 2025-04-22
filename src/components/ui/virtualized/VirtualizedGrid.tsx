@@ -3,7 +3,7 @@ import { forwardRef } from 'react';
 import { FixedSizeGrid, GridChildComponentProps } from 'react-window';
 import { cn } from '@/lib/utils';
 
-interface VirtualizedGridProps<T> {
+export interface VirtualizedGridProps<T> {
   items: T[];
   columnCount: number;
   columnWidth: number;

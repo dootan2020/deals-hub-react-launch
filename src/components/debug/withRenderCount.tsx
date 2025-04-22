@@ -13,7 +13,7 @@ export function withRenderCount<P extends object>(
       <div className="relative">
         <WrappedComponent {...props} />
         <div 
-          className="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded"
+          className="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-bl"
           title={`Avg: ${metrics.avgTime.toFixed(1)}ms, Total: ${metrics.totalTime.toFixed(1)}ms`}
         >
           renders: {metrics.count}

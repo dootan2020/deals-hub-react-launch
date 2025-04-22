@@ -3,13 +3,13 @@ import { forwardRef } from 'react';
 import { FixedSizeList, ListChildComponentProps } from 'react-window';
 import { cn } from '@/lib/utils';
 
-interface VirtualizedListProps<T> {
+export interface VirtualizedListProps<T> {
   items: T[];
   height: number;
   itemSize: number;
   width?: number | string;
   className?: string;
-  renderItem: (props: ListChildComponentProps<T>) => React.ReactElement;
+  renderItem: (props: ListChildComponentProps<T[]>) => React.ReactElement;
   overscanCount?: number;
 }
 

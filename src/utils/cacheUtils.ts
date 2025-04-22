@@ -15,14 +15,14 @@ export const TTL = {
   ORDERS: 60 * 1000 // 1 minute
 } as const;
 
-type CacheData<T> = {
+interface CacheData<T> {
   data: T;
   timestamp: number;
-};
+}
 
-type GetCacheOptions = {
+interface GetCacheOptions {
   ttl?: number;
-};
+}
 
 export function getCachedData<T>(key: string, options: GetCacheOptions = {}): T | null {
   try {
