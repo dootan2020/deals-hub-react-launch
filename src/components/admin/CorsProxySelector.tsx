@@ -54,10 +54,10 @@ export const CorsProxySelector = () => {
     setIsSaving(true);
     
     try {
-      const proxyData = {
+      const proxyData = prepareUpdate<ProxySettings>({
         proxy_type: proxyType,
         custom_url: proxyType === 'custom' ? customUrl : null
-      };
+      });
       
       if (settings?.id) {
         // Update existing settings
@@ -71,7 +71,7 @@ export const CorsProxySelector = () => {
         // Insert new settings
         const { error } = await supabase
           .from('proxy_settings')
-          .insert(proxyData);
+          .insert([proxyData]);
           
         if (error) throw error;
       }

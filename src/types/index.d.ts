@@ -1,4 +1,5 @@
 
+
 // Product type
 export interface Product {
   id: string;
@@ -126,3 +127,4 @@ export interface ProxyConfig {
   proxy_type: ProxyType;
   custom_url?: string;
 }
+

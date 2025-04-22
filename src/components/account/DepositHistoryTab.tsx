@@ -6,7 +6,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Wallet, Loader2, AlertCircle } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Deposit } from '@/types';
-import { prepareInsert, castArrayData } from '@/utils/supabaseHelpers';
+import { castArrayData } from '@/utils/supabaseHelpers';
 
 interface DepositHistoryTabProps {
   userId: string;
@@ -21,10 +21,11 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
     const fetchDeposits = async () => {
       setIsLoading(true);
       try {
+        // Use explicit type casting with Supabase
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', userId)
+          .eq('user_id', userId as string)
           .order('created_at', { ascending: false });
 
         if (error) throw error;

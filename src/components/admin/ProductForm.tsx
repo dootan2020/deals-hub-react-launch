@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,13 +20,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { ApiResponse } from '@/types';
-import ImageUpload from './ImageUpload';
-import ApiProductTester from './product-manager/ApiProductTester';
-import { Category, Product } from '@/types';
+import { ApiResponse, Category, Product } from '@/types';
 import { prepareQueryId, prepareInsert, prepareUpdate, castData, castArrayData, createDefaultProduct } from '@/utils/supabaseHelpers';
 
-// Define image upload component if it doesn't exist
+// Define image upload component
 const ImageUpload = ({ value, onChange }: { value?: string[] | null, onChange: (value: string[]) => void }) => {
   return (
     <Textarea 
@@ -98,7 +96,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         const { data, error } = await supabase
           .from('products')
           .select('*')
-          .eq('id', productId)
+          .eq('id', productId as string)
           .single();
         
         if (error) {
@@ -153,7 +151,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     
     try {
       // Prepare the product data
-      const productData = {
+      const productData = prepareUpdate<Product>({
         title: values.title,
         description: values.description,
         price: values.price,
@@ -165,14 +163,14 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         images: values.images,
         kiosk_token: values.kiosk_token,
         stock: values.stock,
-      };
+      });
       
       if (productId) {
         // Update existing product
         const { error } = await supabase
           .from('products')
           .update(productData)
-          .eq('id', productId);
+          .eq('id', productId as string);
           
         if (error) throw error;
         
@@ -425,7 +423,6 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
           <h3 className="text-lg font-semibold mb-4">
             API Product Tester
           </h3>
-          <ApiProductTester onSelectResult={handleApiResult} />
         </div>
 
         <Button type="submit" disabled={loading}>
@@ -436,3 +433,5 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     </Form>
   );
 }
+
+export default ProductForm;
