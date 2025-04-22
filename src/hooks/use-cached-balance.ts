@@ -26,7 +26,10 @@ export function useCachedBalance({
 
   // Function to fetch balance from Supabase
   const fetchBalance = useCallback(async (forceRefresh = false) => {
-    if (!userId) return;
+    if (!userId) {
+      console.warn('Tried to fetch balance but no userId provided');
+      return;
+    }
     
     // Check if we need to use cache
     const now = Date.now();
@@ -40,21 +43,23 @@ export function useCachedBalance({
       setError(null);
       
       // First try with direct profile query
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', userId as any)
+        .eq('id', userId)
         .single();
       
-      if (error) {
-        console.error('Error fetching balance:', error);
-        throw error;
+      if (fetchError) {
+        console.error('Error fetching balance:', fetchError);
+        throw fetchError;
       }
       
-      if (data && 'balance' in data) {
+      if (data && typeof data.balance === 'number') {
         console.log('Balance fetched successfully:', data.balance);
         setBalance(data.balance);
         setLastRefreshed(now);
+      } else {
+        throw new Error('Invalid balance data received');
       }
     } catch (err) {
       console.error('Exception in fetchBalance:', err);
@@ -79,7 +84,7 @@ export function useCachedBalance({
         
         if (refreshError) {
           console.error('Edge function refresh error:', refreshError);
-        } else if (refreshData && refreshData.balance !== undefined) {
+        } else if (refreshData && typeof refreshData.balance === 'number') {
           console.log('Balance refreshed from edge function:', refreshData.balance);
           setBalance(refreshData.balance);
           setLastRefreshed(now);
@@ -115,8 +120,8 @@ export function useCachedBalance({
         { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
         (payload) => {
           console.log('Profile realtime update:', payload);
-          if (payload.new && 'balance' in payload.new) {
-            setBalance(payload.new.balance as number);
+          if (payload.new && 'balance' in payload.new && typeof payload.new.balance === 'number') {
+            setBalance(payload.new.balance);
             setLastRefreshed(Date.now());
           }
         }

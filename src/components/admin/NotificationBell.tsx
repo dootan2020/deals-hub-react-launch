@@ -49,17 +49,21 @@ export const NotificationBell: React.FC = () => {
         return;
       }
       
-      // Use type assertion after validating the data structure
-      const typedOrders: NewOrder[] = (data || []).map(item => ({
-        id: item.id,
-        user_id: item.user_id,
-        created_at: item.created_at,
-        status: item.status,
-        external_order_id: item.external_order_id,
-        total_price: item.total_price
-      }));
-      
-      setOrders(typedOrders);
+      if (data) {
+        // Use type assertion after validating the data structure
+        const typedOrders: NewOrder[] = data.map(item => ({
+          id: item.id as string,
+          user_id: item.user_id as string,
+          created_at: item.created_at as string,
+          status: item.status as string,
+          external_order_id: item.external_order_id as string | undefined,
+          total_price: item.total_price as number
+        }));
+        
+        setOrders(typedOrders);
+      } else {
+        setOrders([]);
+      }
     } catch (err) {
       console.error("Unexpected error in fetchNewOrders:", err);
       setError("Đã xảy ra lỗi khi tải đơn hàng");

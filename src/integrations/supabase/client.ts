@@ -37,7 +37,7 @@ export const supabase = createClient<Database>(
       },
       // Add more reliable reconnection parameters
       heartbeatIntervalMs: 15000,
-      reconnectAttempts: 10,
+      reconnectAttempts: Infinity,  // Keep trying to reconnect
       reconnectIntervalMs: 3000,
     },
     global: {
@@ -74,7 +74,7 @@ supabase.auth.onAuthStateChange((event, session) => {
   }
 });
 
-// Implement a global error handler for failed Supabase operations
+// Implement better error handling for failed Supabase operations
 const originalFrom = supabase.from.bind(supabase);
 supabase.from = function(table: string) {
   const result = originalFrom(table);
@@ -100,3 +100,18 @@ supabase.from = function(table: string) {
   return result;
 };
 
+// Helper function to check if Supabase is working correctly
+export async function checkSupabaseConnection(): Promise<boolean> {
+  try {
+    // Try a simple query to see if Supabase is available
+    const { error } = await supabase
+      .from('site_settings')
+      .select('key')
+      .limit(1);
+    
+    return !error;
+  } catch (err) {
+    console.error('Failed to connect to Supabase:', err);
+    return false;
+  }
+}

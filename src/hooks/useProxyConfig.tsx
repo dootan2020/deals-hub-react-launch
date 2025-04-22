@@ -6,7 +6,7 @@ import { fetchProxySettings, ProxyConfig } from '@/utils/proxyUtils';
  * Hook to fetch and provide proxy configuration settings
  */
 export const useProxyConfig = () => {
-  const { data: proxyConfig, isLoading, error } = useQuery({
+  const { data: proxyConfig, isLoading, error, refetch } = useQuery({
     queryKey: ['proxy-settings'],
     queryFn: async (): Promise<ProxyConfig> => {
       try {
@@ -19,11 +19,14 @@ export const useProxyConfig = () => {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3,
+    refetchOnWindowFocus: false,
   });
 
   return {
     proxyConfig: proxyConfig || { type: 'allorigins' },
     isLoading,
-    error
+    error,
+    refetch
   };
 };

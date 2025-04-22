@@ -48,7 +48,7 @@ export const SubcategoriesTable: React.FC<SubcategoriesTableProps> = ({
       const { data: products, error: checkError } = await supabase
         .from('products')
         .select('id')
-        .eq('category_id', category.id)
+        .eq('category_id', category.id as any)
         .limit(1);
 
       if (checkError) throw checkError;
@@ -84,7 +84,7 @@ export const SubcategoriesTable: React.FC<SubcategoriesTableProps> = ({
           Filter by Main Category
         </label>
         <Select 
-          value={selectedParentId || undefined} 
+          value={selectedParentId || "all"} 
           onValueChange={(value) => setSelectedParentId(value === "all" ? null : value)}
         >
           <SelectTrigger className="w-[300px]">

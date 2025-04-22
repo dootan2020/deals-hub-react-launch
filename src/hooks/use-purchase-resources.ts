@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useCachedBalance } from './use-cached-balance';
 import { useProductStock } from './use-product-stock';
 import { useAuth } from '@/context/AuthContext';
@@ -18,6 +18,7 @@ export function usePurchaseResources({
   initialFetch = true,
 }: UsePurchaseResourcesOptions = {}) {
   const { user } = useAuth();
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   
   // Use our optimized cache hooks
   const { 
@@ -28,7 +29,7 @@ export function usePurchaseResources({
     lastRefreshed: balanceLastRefreshed
   } = useCachedBalance({ 
     userId: user?.id,
-    initialRefresh: initialFetch,
+    initialRefresh: initialFetch && !!user?.id,
     strategy: 'auto',
     refreshInterval: 60000, // 1 minute
     cacheTime: 30000 // 30 seconds
@@ -42,30 +43,50 @@ export function usePurchaseResources({
     lastFetched: stockLastRefreshed
   } = useProductStock({
     kioskToken,
-    initialFetch,
+    initialFetch: initialFetch && !!kioskToken,
     cacheDuration: 30000, // 30 seconds
     retryOnError: true
   });
   
   // Function to refresh both resources in parallel
   const refreshResources = useCallback(async () => {
+    if (!user?.id || !kioskToken) {
+      console.warn('Cannot refresh resources: missing user ID or kiosk token');
+      return;
+    }
+    
+    setHasAttemptedFetch(true);
     const promises = [];
     
     if (refreshBalance) {
-      promises.push(refreshBalance());
+      promises.push(refreshBalance().catch(err => {
+        console.error('Error refreshing balance:', err);
+        return null;
+      }));
     }
     
     if (refreshStock) {
-      promises.push(refreshStock());
+      promises.push(refreshStock().catch(err => {
+        console.error('Error refreshing stock:', err);
+        return null;
+      }));
     }
     
     try {
-      return await Promise.all(promises);
+      await Promise.allSettled(promises);
+      return true;
     } catch (error) {
       console.error('Error refreshing resources:', error);
-      return Promise.reject(error);
+      return false;
     }
-  }, [refreshBalance, refreshStock]);
+  }, [refreshBalance, refreshStock, user?.id, kioskToken]);
+  
+  // Run initial fetch on mount or when dependencies change
+  useEffect(() => {
+    if (initialFetch && !hasAttemptedFetch && user?.id && kioskToken) {
+      refreshResources();
+    }
+  }, [initialFetch, user?.id, kioskToken, hasAttemptedFetch, refreshResources]);
   
   // Check if user can afford product
   const canPurchase = useCallback(() => {
@@ -98,6 +119,9 @@ export function usePurchaseResources({
     
     // Additional info
     missingFunds: stockInfo?.price ? Math.max(0, stockInfo.price - (balance || 0)) : 0,
-    isInStock: (stockInfo?.stock || 0) > 0
+    isInStock: (stockInfo?.stock || 0) > 0,
+    
+    // Debug info
+    hasAttemptedFetch
   };
 }

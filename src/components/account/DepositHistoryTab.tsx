@@ -28,7 +28,12 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
 
         if (error) throw error;
         
-        setDeposits((data || []) as Deposit[]);
+        // Use type assertion with proper error checking
+        if (data) {
+          setDeposits(data as Deposit[]);
+        } else {
+          setDeposits([]);
+        }
       } catch (error) {
         console.error("Error fetching deposits:", error);
         setError('Failed to load deposit history');
@@ -146,3 +151,31 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
 };
 
 export default DepositHistoryTab;
+
+// Helper functions
+const renderPaymentMethod = (method: string) => {
+  switch (method.toLowerCase()) {
+    case 'paypal':
+      return <span className="flex items-center"><span className="w-2 h-2 bg-blue-500 rounded-full mr-1.5"></span>PayPal</span>;
+    case 'binance':
+      return <span className="flex items-center"><span className="w-2 h-2 bg-yellow-500 rounded-full mr-1.5"></span>Binance</span>;
+    case 'crypto':
+    case 'usdt':
+      return <span className="flex items-center"><span className="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>Crypto</span>;
+    default:
+      return <span className="flex items-center"><span className="w-2 h-2 bg-gray-500 rounded-full mr-1.5"></span>{method}</span>;
+  }
+};
+
+const renderDepositStatus = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'completed':
+      return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Completed</span>;
+    case 'pending':
+      return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pending</span>;
+    case 'failed':
+      return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Failed</span>;
+    default:
+      return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">{status}</span>;
+  }
+};
