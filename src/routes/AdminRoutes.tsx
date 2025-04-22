@@ -1,22 +1,23 @@
 
 import { Route } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { withLazy } from '@/utils/lazyUtils';
 
-// Admin pages
-import AdminDashboard from "@/pages/admin/AdminDashboard";
-import CategoryAdmin from "@/pages/admin/CategoryAdmin";
-import OrdersAdmin from "@/pages/admin/OrdersAdmin";
-import TransactionsAdmin from "@/pages/admin/TransactionsAdmin";
-import ApiConfigAdmin from "@/pages/admin/ApiConfigAdmin";
-import SyncLogsAdmin from "@/pages/admin/SyncLogsAdmin";
-import ApiTesterPage from '@/pages/admin/ApiTesterPage';
-import ProductManagerPage from '@/pages/admin/ProductManagerPage';
-import ProductCreatePage from '@/pages/admin/ProductCreatePage';
-import ProductEditPage from '@/pages/admin/ProductEditPage';
-import ProductFormWithTester from '@/pages/admin/ProductFormWithTester';
-import ProxySettingsPage from '@/pages/admin/ProxySettingsPage';
-import UsersManagementPage from '@/pages/admin/UsersManagementPage';
-import SiteSettingsPage from '@/pages/admin/SiteSettingsPage';
+// Lazy load admin components
+const AdminDashboard = withLazy(() => import("@/pages/admin/AdminDashboard"));
+const CategoryAdmin = withLazy(() => import("@/pages/admin/CategoryAdmin"));
+const OrdersAdmin = withLazy(() => import("@/pages/admin/OrdersAdmin"));
+const TransactionsAdmin = withLazy(() => import("@/pages/admin/TransactionsAdmin"));
+const ApiConfigAdmin = withLazy(() => import("@/pages/admin/ApiConfigAdmin"));
+const SyncLogsAdmin = withLazy(() => import("@/pages/admin/SyncLogsAdmin"));
+const ApiTesterPage = withLazy(() => import('@/pages/admin/ApiTesterPage'));
+const ProductManagerPage = withLazy(() => import('@/pages/admin/ProductManagerPage'));
+const ProductCreatePage = withLazy(() => import('@/pages/admin/ProductCreatePage'));
+const ProductEditPage = withLazy(() => import('@/pages/admin/ProductEditPage'));
+const ProductFormWithTester = withLazy(() => import('@/pages/admin/ProductFormWithTester'));
+const ProxySettingsPage = withLazy(() => import('@/pages/admin/ProxySettingsPage'));
+const UsersManagementPage = withLazy(() => import('@/pages/admin/UsersManagementPage'));
+const SiteSettingsPage = withLazy(() => import('@/pages/admin/SiteSettingsPage'));
 
 const AdminRoutes = () => {
   return (

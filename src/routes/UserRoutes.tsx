@@ -1,15 +1,16 @@
 
 import { Route } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { withLazy } from '@/utils/lazyUtils';
 
-// User pages
-import DashboardPage from "@/pages/user/DashboardPage";
-import MyAccountPage from "@/pages/user/MyAccountPage";
-import OrderSuccessPage from "@/pages/OrderSuccessPage";
-import DepositPage from "@/pages/DepositPage";
-import PayPalDepositPage from "@/pages/PayPalDepositPage";
-import DepositHistoryPage from "@/pages/DepositHistoryPage";
-import CheckoutPage from "@/pages/CheckoutPage";
+// Lazy load user pages
+const DashboardPage = withLazy(() => import("@/pages/user/DashboardPage"));
+const MyAccountPage = withLazy(() => import("@/pages/user/MyAccountPage"));
+const OrderSuccessPage = withLazy(() => import("@/pages/OrderSuccessPage"));
+const DepositPage = withLazy(() => import("@/pages/DepositPage"));
+const PayPalDepositPage = withLazy(() => import("@/pages/PayPalDepositPage"));
+const DepositHistoryPage = withLazy(() => import("@/pages/DepositHistoryPage"));
+const CheckoutPage = withLazy(() => import("@/pages/CheckoutPage"));
 
 const UserRoutes = () => {
   return (
