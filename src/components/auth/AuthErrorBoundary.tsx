@@ -1,9 +1,9 @@
 
-import React, { Component, ErrorInfo } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { toast } from 'sonner';
 
 interface Props {
-  children: React.ReactNode;
+  children: ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 

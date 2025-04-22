@@ -3,12 +3,16 @@ import { createContext, useContext, useMemo, ReactNode, memo } from 'react';
 import { useSessionState } from '@/hooks/auth/use-session-state';
 import { useSessionEvents } from '@/hooks/auth/use-session-events';
 import { useAuthRefresh } from '@/hooks/auth/use-auth-refresh';
-import { useAuthRetry } from '@/hooks/auth/use-auth-retry';
 import { useAuthErrors } from '@/hooks/auth/use-auth-errors';
 import { useAsyncEffect } from '@/utils/asyncUtils';
+import { useAuthTokens } from '@/hooks/auth/useAuthTokens';
+import { useUserProfile } from '@/hooks/auth/useUserProfile';
+import { useSessionMonitoring } from '@/hooks/auth/useSessionMonitoring';
+import { useAuthActions } from '@/hooks/auth/useAuthActions';
 import type { AuthContextType, User } from '@/types/auth.types';
+import { AuthErrorBoundary } from '@/components/auth/AuthErrorBoundary';
 
-// Separate contexts for different types of data
+// Separate contexts for different types of data to prevent unnecessary rerenders
 const UserContext = createContext<User | null>(null);
 const AuthStateContext = createContext<Omit<AuthContextType, 'user'> | null>(null);
 
@@ -20,79 +24,69 @@ const UserProvider = memo(({ children, user }: { children: ReactNode; user: User
 UserProvider.displayName = 'UserProvider';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const { tokens, setTokens, refreshToken, clearTokens } = useAuthTokens();
+  const { profile, loading: profileLoading, error: profileError, clearProfile } = useUserProfile();
+  const { isOnline } = useSessionMonitoring(
+    () => console.log('Offline detected'),
+    () => console.log('Back online, refreshing session')
+  );
+
   const {
-    user,
-    session,
-    loading,
-    authInitialized,
-    updateSession,
-    initializeAuth,
-    setLoading
-  } = useSessionState();
+    login,
+    logout,
+    register,
+    refreshSession,
+    refreshUserProfile,
+    refreshUserBalance
+  } = useAuthActions();
 
-  const { handleAuthError, clearError } = useAuthErrors();
-  
-  const { attemptRefresh, refreshing } = useAuthRefresh({
-    maxAttempts: 3,
-    baseDelay: 2000,
-    maxDelay: 16000
-  });
-  
-  const {
-    attempts,
-    showRetry,
-    scheduleRetry,
-    cleanup: cleanupRetry
-  } = useAuthRetry({
-    maxAttempts: 3,
-    baseDelay: 2000,
-    maxDelay: 16000
-  });
-
-  useAsyncEffect(async () => {
-    const unsubscribe = await useSessionEvents(updateSession, initializeAuth);
-    return () => {
-      unsubscribe?.();
-      cleanupRetry();
-    };
-  }, []);
-
-  // Memoize auth state values that change together
+  // Memoized auth state values
   const authStateValue = useMemo(() => ({
-    session,
-    loading,
-    authInitialized,
-    refreshing,
-    showRetry,
-    attemptRefresh: async () => {
-      try {
-        const success = await attemptRefresh();
-        if (!success) {
-          scheduleRetry(attemptRefresh);
-        }
-        return success;
-      } catch (error) {
-        handleAuthError(error);
-        return false;
-      }
+    loading: profileLoading,
+    error: profileError,
+    isAuthenticated: !!tokens.access && !!profile,
+    isAdmin: profile?.roles?.includes('admin') ?? false,
+    isStaff: profile?.roles?.includes('staff') ?? false,
+    tokens,
+    isOnline,
+    login,
+    logout: async () => {
+      await logout();
+      clearTokens();
+      clearProfile();
     },
-    retryAuth: () => {
-      clearError();
-      cleanupRetry();
-      return attemptRefresh();
-    }
-  }), [session, loading, authInitialized, refreshing, showRetry, attemptRefresh, 
-       scheduleRetry, handleAuthError, clearError, cleanupRetry]);
+    register,
+    refreshSession,
+    refreshUserProfile,
+    refreshUserBalance,
+    updateProfile: refreshUserProfile
+  }), [
+    profileLoading,
+    profileError,
+    tokens,
+    profile,
+    isOnline,
+    login,
+    logout,
+    register,
+    refreshSession,
+    refreshUserProfile,
+    refreshUserBalance,
+    clearTokens,
+    clearProfile
+  ]);
 
-  // Only render when not loading
-  if (loading) return null;
+  // Don't render anything while initializing auth
+  if (profileLoading && !profile) return null;
 
   return (
-    <AuthStateContext.Provider value={authStateValue}>
-      <UserProvider user={user}>
-        {children}
-      </UserProvider>
-    </AuthStateContext.Provider>
+    <AuthErrorBoundary>
+      <AuthStateContext.Provider value={authStateValue}>
+        <UserProvider user={profile}>
+          {children}
+        </UserProvider>
+      </AuthStateContext.Provider>
+    </AuthErrorBoundary>
   );
 };
 
