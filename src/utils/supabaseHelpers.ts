@@ -1,119 +1,57 @@
 
-import { Database } from '@/integrations/supabase/types';
-
-type TableName = keyof Database['public']['Tables'];
-type DbResult<T> = T | null;
-type DbResultOk<T> = Exclude<DbResult<T>, null | undefined>;
+/**
+ * Utility functions for working with Supabase data types
+ */
 
 /**
- * Safely cast data to the specified type with optional default value
+ * Safely casts data to a specified type with optional default value
+ * @param data The data to cast
+ * @param defaultValue Optional default value if data is null or undefined
+ * @returns The cast data
  */
-export function castData<T>(data: unknown, defaultValue?: T): T {
-  if (!data && defaultValue !== undefined) {
-    return defaultValue;
+export function castData<T>(data: any, defaultValue: any = null): T {
+  if (data === null || data === undefined) {
+    return defaultValue as T;
   }
   return data as T;
 }
 
 /**
- * Safely cast array data to the specified type
+ * Safely casts an array of data to a specified type
+ * @param data The array data to cast
+ * @returns The cast array data
  */
-export function castArrayData<T>(data: unknown[] | null): T[] {
-  if (!data) {
-    return [];
+export function castArrayData<T>(data: any[]): T[] {
+  if (!Array.isArray(data)) {
+    return [] as T[];
   }
   return data as T[];
 }
 
 /**
- * Safely get a property from a database result
+ * Prepares a query ID for use with Supabase
+ * @param id The ID to prepare
+ * @returns The prepared ID
  */
-export function safeGet<T, K extends keyof T>(
-  obj: DbResult<T>,
-  key: K,
-  defaultValue?: T[K]
-): T[K] | undefined {
-  if (!obj) return defaultValue;
-  return obj[key] ?? defaultValue;
+export function prepareQueryId(id: string | null | undefined): string {
+  if (!id) return '';
+  return id.toString();
 }
 
 /**
- * Prepare a filter value for Supabase query
+ * Prepares an object for update with Supabase
+ * @param obj The object to prepare
+ * @returns The prepared object
  */
-export function prepareFilter<T>(value: T): T {
-  if (typeof value === 'string') {
-    // Ensure string values are properly typed for Supabase filters
-    return value as T;
-  }
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return value;
-  }
-  if (value instanceof Date) {
-    return value.toISOString() as unknown as T;
-  }
-  return value;
+export function prepareUpdate(obj: Record<string, any>): Record<string, any> {
+  return { ...obj };
 }
 
 /**
- * Prepare an object for Supabase table insertion by removing unwanted fields
+ * Prepares an object for insert with Supabase
+ * @param obj The object to prepare
+ * @returns The prepared object
  */
-export function prepareInsert<T extends Record<string, any>>(object: T): T {
-  const result = { ...object };
-  // Remove any keys that would cause issues with Supabase insertion
-  delete result.id; // Let Supabase generate the ID
-  delete result.created_at; // Let Supabase set the created_at
-  delete result.updated_at; // Let Supabase set the updated_at
-  return result;
+export function prepareInsert(obj: Record<string, any>): Record<string, any> {
+  return { ...obj };
 }
-
-/**
- * Prepare an object for Supabase table update by removing unwanted fields
- */
-export function prepareUpdate<T extends Record<string, any>>(object: T): Partial<T> {
-  const result = { ...object };
-  // Remove any keys that would cause issues with Supabase updating
-  delete result.id; // Don't update the ID
-  delete result.created_at; // Don't update the created_at
-  delete result.updated_at; // Let Supabase handle updated_at
-  return result;
-}
-
-/**
- * Prepare a query ID for Supabase
- */
-export function prepareQueryId(id: string): string {
-  return id;
-}
-
-/**
- * Creates default settings for proxy
- */
-export function createDefaultProxySettings(): {
-  id: string;
-  proxy_type: string;
-  custom_url: string | null;
-  created_at: string;
-  updated_at: string;
-} {
-  return {
-    id: '',
-    proxy_type: 'allorigins',
-    custom_url: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-}
-
-/**
- * Type safe wrapper for Supabase row level insertion
- */
-export function prepareRowLevelData<T extends Record<string, any>>(
-  data: T,
-  userId: string
-): T & { user_id: string } {
-  return {
-    ...prepareInsert(data),
-    user_id: userId,
-  };
-}
-

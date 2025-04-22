@@ -1,41 +1,35 @@
 
-import { Database } from '@/integrations/supabase/types';
-
-type SchemaName = keyof Database;
-type TableName<S extends SchemaName = 'public'> = keyof Database[S]['Tables'];
+/**
+ * Utility functions for working with database types
+ */
 
 /**
- * Helper for table ID handling
+ * Prepares a table ID for use with Supabase
+ * @param tableName The table name
+ * @param id The ID to prepare
+ * @returns The prepared ID
  */
-export function prepareTableId<
-  S extends SchemaName = 'public',
-  T extends TableName<S> = TableName<S>
->(tableName: T, id: string): string {
-  // Ensure consistent ID handling across the application
-  return id;
+export function prepareTableId(tableName: string, id: string | null | undefined): string {
+  if (!id) return '';
+  return id.toString();
 }
 
 /**
- * Helper for table insert preparation
+ * Prepares an object for update with Supabase for a specific table
+ * @param tableName The table name
+ * @param obj The object to prepare
+ * @returns The prepared object
  */
-export function prepareTableInsert<
-  S extends SchemaName = 'public',
-  T extends TableName<S> = TableName<S>
->(tableName: T, data: Record<string, any>): Record<string, any> {
-  // Remove system fields and ensure data conforms to table schema
-  const { id, created_at, updated_at, ...rest } = data;
-  return rest;
+export function prepareTableUpdate(tableName: string, obj: Record<string, any>): Record<string, any> {
+  return { ...obj };
 }
 
 /**
- * Helper for table update preparation
+ * Prepares an object for insert with Supabase for a specific table
+ * @param tableName The table name
+ * @param obj The object to prepare
+ * @returns The prepared object
  */
-export function prepareTableUpdate<
-  S extends SchemaName = 'public',
-  T extends TableName<S> = TableName<S>
->(tableName: T, data: Record<string, any>): Record<string, any> {
-  // Remove system fields for update operations
-  const { id, created_at, updated_at, ...rest } = data;
-  return rest;
+export function prepareTableInsert(tableName: string, obj: Record<string, any>): Record<string, any> {
+  return { ...obj };
 }
-

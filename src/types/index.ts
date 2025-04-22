@@ -1,64 +1,55 @@
 
-// Define the SortOption type for product sorting
-export type SortOption = 'newest' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc' | 'popular' | 'price-low' | 'price-high';
+// Các kiểu dữ liệu cơ bản
+export type ApiResponse = {
+  success: string;
+  name?: string;
+  price?: string;
+  stock?: string;
+  description?: string;
+  error?: string;
+};
 
-// Define other types needed in the application
-export interface Category {
+export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom';
+
+export type ProxySettings = {
+  id: string;
+  proxy_type: ProxyType;
+  custom_url: string | null;
+};
+
+export type Category = {
   id: string;
   name: string;
   description: string;
-  image: string;
   slug: string;
-  count: number;
+  image: string;
   parent_id?: string | null;
-  subcategories?: Category[];
-}
+  count: number;
+  created_at?: string;
+  updated_at?: string;
+};
 
-export interface ProductWithCategory extends Product {
-  category: Category;
-}
-
-export interface Product {
+export type Product = {
   id: string;
   title: string;
   description: string;
   price: number;
-  images: string[];
-  category_id: string;
-  rating: number;
-  review_count: number;
+  original_price?: number;
   in_stock: boolean;
-  stock_quantity?: number;
-  badges?: string[];
   slug: string;
-  features?: string[];
-  specifications: Record<string, string | number | boolean | object>;
+  category_id: string;
+  external_id?: string;
+  images?: string[];
   stock: number;
   kiosk_token?: string;
-  original_price?: number;
-  short_description?: string;
-  createdAt: string;
-  category?: Category;
-  
-  // Properties to ensure compatibility with both naming conventions
-  readonly originalPrice?: number;
-  readonly shortDescription: string;
-  readonly categoryId: string;
-  readonly inStock: boolean;
-  readonly stockQuantity: number;
-  readonly reviewCount: number;
-  readonly salesCount: number;
-}
+  badges?: string[];
+  features?: string[];
+  rating?: number;
+  review_count?: number;
+  created_at?: string;
+  updated_at?: string;
+  specifications?: Record<string, any>;
+};
 
-export interface FilterParams {
-  sort: SortOption;
-  category?: string;
-  categoryId?: string;
-  search?: string;
-  inStock?: boolean;
-  page?: number;
-  priceMin?: number;
-  priceMax?: number;
-  subcategories?: string[];
-  limit?: number; // Add the limit property to fix the TypeScript error
-}
+// Thêm các kiểu auth mới
+export * from './auth.types';
