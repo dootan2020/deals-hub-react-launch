@@ -99,13 +99,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } else {
           console.log('❌ No existing session found');
+          // Make sure to set hydrated even if no session is found
+          setHydrated(true);
         }
       } catch (err) {
         console.error('Exception during session check:', err);
+        // Make sure to set hydrated even if there's an error
+        setHydrated(true);
       } finally {
         console.log('🏁 Session check completed');
         setManualSessionCheck(false);
-        setHydrated(true);
       }
     };
     
@@ -167,6 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isEmailVerified = user?.email_confirmed_at !== null;
 
+  // CRITICAL FIX: Compute isAuthenticated directly from user existence
   const isAuthenticated = !!user;
   
   console.debug('AuthContext state update:', { 
@@ -174,13 +178,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userId: user?.id || 'none',
     hasSession: !!session,
     loading,
-    hydrated
+    hydrated,
+    manualSessionCheck
   });
 
   const contextValue = useMemo(() => ({
     user,
     session,
-    loading, // Not including manualSessionCheck
+    // IMPORTANT: Do not include manualSessionCheck in loading state
+    loading, 
     isAuthenticated,
     isAdmin,
     isStaff,
@@ -202,6 +208,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout, register, checkUserRole, isEmailVerified, resendVerificationEmail, isAuthenticated
   ]);
 
+  // Show loading indicator only during initial hydration
   if (!hydrated) {
     return (
       <div className="flex justify-center items-center h-screen">

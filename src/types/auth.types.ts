@@ -1,10 +1,11 @@
+
 import { ReactNode } from 'react';
 
 export type UserRole = 'user' | 'admin' | 'staff' | 'guest';
 
 export interface User {
   id: string;
-  email: string | null; // Changed from required to optional matching Supabase's type
+  email: string | null; // Changed to optional to match Supabase's type
   email_confirmed_at?: string | null;
   user_metadata: { // Required to match Supabase's type
     display_name?: string;
@@ -51,5 +52,3 @@ export interface AuthContextType {
   resendVerificationEmail: (email: string) => Promise<boolean>;
   isLoadingBalance: boolean;
 }
-
-
