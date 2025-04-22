@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ProxyType, ProxySettings } from '@/types';
-import { prepareInsert, prepareUpdate, prepareQueryId, castData, createDefaultProxySettings } from '@/utils/supabaseHelpers';
+import { prepareInsert, prepareUpdate, castData, createDefaultProxySettings } from '@/utils/supabaseHelpers';
 
 export const CorsProxySelector = () => {
   const [proxyType, setProxyType] = useState<ProxyType>('allorigins');
@@ -54,24 +54,24 @@ export const CorsProxySelector = () => {
     setIsSaving(true);
     
     try {
-      const proxyData = prepareUpdate<ProxySettings>({
+      const proxyData = {
         proxy_type: proxyType,
         custom_url: proxyType === 'custom' ? customUrl : null
-      });
+      };
       
       if (settings?.id) {
         // Update existing settings
         const { error } = await supabase
           .from('proxy_settings')
           .update(proxyData)
-          .eq('id', prepareQueryId(settings.id));
+          .eq('id', settings.id);
           
         if (error) throw error;
       } else {
         // Insert new settings
         const { error } = await supabase
           .from('proxy_settings')
-          .insert(prepareInsert(proxyData));
+          .insert(proxyData);
           
         if (error) throw error;
       }

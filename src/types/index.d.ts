@@ -74,7 +74,9 @@ export interface Deposit {
   updated_at?: string;
 }
 
-// Proxy Settings type
+// ProxyType and ProxySettings
+export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom';
+
 export interface ProxySettings {
   id: string;
   proxy_type: ProxyType;
@@ -118,9 +120,6 @@ export interface FilterParams {
   subcategories?: string[];
   limit?: number;
 }
-
-// ProxyType definition
-export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom';
 
 // ProxyConfig interface
 export interface ProxyConfig {

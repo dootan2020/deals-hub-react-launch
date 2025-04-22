@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
@@ -5,7 +6,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Wallet, Loader2, AlertCircle } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Deposit } from '@/types';
-import { prepareQueryId, castArrayData } from '@/utils/supabaseHelpers';
+import { prepareInsert, castArrayData } from '@/utils/supabaseHelpers';
 
 interface DepositHistoryTabProps {
   userId: string;
@@ -23,7 +24,7 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', prepareQueryId(userId))
+          .eq('user_id', userId)
           .order('created_at', { ascending: false });
 
         if (error) throw error;

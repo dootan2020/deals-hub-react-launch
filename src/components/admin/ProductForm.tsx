@@ -25,6 +25,18 @@ import ApiProductTester from './product-manager/ApiProductTester';
 import { Category, Product } from '@/types';
 import { prepareQueryId, prepareInsert, prepareUpdate, castData, castArrayData, createDefaultProduct } from '@/utils/supabaseHelpers';
 
+// Define image upload component if it doesn't exist
+const ImageUpload = ({ value, onChange }: { value?: string[] | null, onChange: (value: string[]) => void }) => {
+  return (
+    <Textarea 
+      value={value ? value.join('\n') : ''} 
+      onChange={(e) => onChange(e.target.value.split('\n').filter(Boolean))}
+      placeholder="Enter image URLs, one per line"
+      className="min-h-[100px]"
+    />
+  );
+};
+
 // Define form schema
 const productFormSchema = z.object({
   title: z.string().min(2, {
@@ -86,7 +98,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         const { data, error } = await supabase
           .from('products')
           .select('*')
-          .eq('id', prepareQueryId(productId))
+          .eq('id', productId)
           .single();
         
         if (error) {
@@ -141,7 +153,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
     
     try {
       // Prepare the product data
-      const productData = prepareUpdate({
+      const productData = {
         title: values.title,
         description: values.description,
         price: values.price,
@@ -153,14 +165,14 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         images: values.images,
         kiosk_token: values.kiosk_token,
         stock: values.stock,
-      });
+      };
       
       if (productId) {
         // Update existing product
         const { error } = await supabase
           .from('products')
           .update(productData)
-          .eq('id', prepareQueryId(productId));
+          .eq('id', productId);
           
         if (error) throw error;
         
@@ -169,7 +181,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         // Insert new product
         const { error } = await supabase
           .from('products')
-          .insert([prepareInsert(productData)]);
+          .insert([productData]);
           
         if (error) throw error;
         

@@ -7,9 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ApiResponse } from '@/types';
+import { ApiResponse, ProxyConfig } from '@/types';
 import { isHtmlResponse, extractFromHtml, normalizeProductInfo } from '@/utils/apiUtils';
-import { ProxyConfig, fetchViaProxyWithFallback } from '@/utils/proxyUtils';
+import { fetchViaProxyWithFallback } from '@/utils/proxyUtils';
 
 interface ApiProductTesterProps {
   onSelectResult?: (result: ApiResponse) => void;

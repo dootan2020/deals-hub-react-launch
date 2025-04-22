@@ -108,7 +108,7 @@ export function createDefaultDeposit(): Deposit {
 }
 
 /**
- * Prepares an ID for use in Supabase queries by converting it to the appropriate type
+ * Prepares an ID for use in Supabase queries by ensuring it's in string format
  * This helps with UUID type compatibility
  */
 export function prepareQueryId(id: string | null | undefined): string | null {
