@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -136,6 +137,7 @@ export function ProductForm({
         .single();
 
       if (error) throw error;
+      
       if (data) {
         const productData = castData(data, {});
         form.reset({

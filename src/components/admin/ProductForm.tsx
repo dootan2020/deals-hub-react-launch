@@ -126,6 +126,7 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
         .single();
 
       if (error) throw error;
+      
       if (data) {
         const productData = castData(data, {});
         form.reset({

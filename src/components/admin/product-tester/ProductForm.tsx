@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { sanitizeHtml } from '@/utils/sanitizeHtml';
+import { castArrayData } from '@/utils/supabaseHelpers';
 import {
   Select,
   SelectContent,
@@ -73,9 +74,11 @@ export const ProductFormComponent = () => {
         }
 
         if (data) {
-          setCategories(data);
-          if (data.length > 0) {
-            form.setValue('category_id', data[0].id);
+          // Cast the data to the expected type
+          const categoriesData = castArrayData<{ id: string; name: string }>(data);
+          setCategories(categoriesData);
+          if (categoriesData.length > 0) {
+            form.setValue('category_id', categoriesData[0].id);
           }
         }
       } catch (error: any) {

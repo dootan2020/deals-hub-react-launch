@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -77,21 +76,6 @@ export function EditProductModal({
     }
   }, [isOpen, productId]);
 
-  const fetchCategories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-      setCategories(castArrayData<Category>(data));
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      toast.error('Failed to fetch categories');
-    }
-  };
-
   const fetchProductDetails = async () => {
     setIsLoading(true);
     try {
@@ -124,6 +108,21 @@ export function EditProductModal({
       toast.error('Failed to fetch product details');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setCategories(castArrayData<Category>(data));
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast.error('Failed to fetch categories');
     }
   };
 
