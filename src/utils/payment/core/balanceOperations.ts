@@ -18,7 +18,7 @@ export const updateUserBalance = async (
     console.log(`Updating balance for user ${userId}: ${amount > 0 ? '+' : ''}${amount}`);
     
     // Start a transaction
-    const { data: balanceResult, error: balanceError } = await supabase.rpc<boolean>(
+    const { data: balanceResult, error: balanceError } = await supabase.rpc(
       'update_user_balance',
       {
         user_id_param: userId,

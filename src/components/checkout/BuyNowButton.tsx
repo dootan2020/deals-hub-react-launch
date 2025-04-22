@@ -68,7 +68,8 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
         badges: [],
         features: [],
         slug: '',
-        inStock: true
+        inStock: true,
+        createdAt: new Date().toISOString() // Add missing required field
       });
       
       // Open the purchase dialog with the minimal product
