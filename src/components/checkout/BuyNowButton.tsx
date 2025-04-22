@@ -54,7 +54,7 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
       openDialog(product);
     } else {
       // Construct a minimal product with all required fields
-      const minimalProduct = ensureProductFields({
+      const minimalProduct: Product = {
         id: productId || '',
         kiosk_token: kioskToken || '',
         title: 'Product',
@@ -69,10 +69,10 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
         features: [],
         slug: '',
         inStock: true,
-        createdAt: new Date().toISOString(), // Add missing required field
-        stock: 0, // Add missing required field
-        specifications: {} // Add missing required field
-      });
+        createdAt: new Date().toISOString(),
+        stock: 0,
+        specifications: {}
+      };
       
       // Open the purchase dialog with the minimal product
       openDialog(minimalProduct);

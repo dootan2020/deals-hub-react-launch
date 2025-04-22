@@ -11,19 +11,19 @@ export const createTransactionRecord = async (
   transactionId?: string | null
 ): Promise<boolean> => {
   try {
-    // Avoid type instantiation by using simpler query approach
-    const { data: existingTransaction, error: queryError } = await supabase
+    // Tìm giao dịch hiện có mà không sử dụng kiểu dữ liệu cụ thể
+    const { data, error } = await supabase
       .from('transactions')
       .select('id')
       .eq('reference_id', depositId)
-      .maybeSingle();
+      .single();
       
-    if (queryError) {
-      console.error("Error checking for existing transaction:", queryError);
+    if (error) {
+      console.error("Error checking for existing transaction:", error);
       return false;
     }
       
-    if (!existingTransaction) {
+    if (!data) {
       const { error } = await supabase.from('transactions').insert({
         user_id: userId,
         amount: amount,
@@ -63,7 +63,7 @@ export const processDepositBalance = async (
       .from('deposits')
       .select('id, user_id, net_amount, status, transaction_id')
       .eq('id', depositId)
-      .maybeSingle();
+      .single();
       
     if (error) {
       console.error("Error fetching deposit:", error);
@@ -100,14 +100,11 @@ export const processDepositBalance = async (
     if (deposit.status === 'completed' || deposit.transaction_id) {
       console.log(`Calling update_user_balance for user ${deposit.user_id} with amount ${deposit.net_amount}`);
       
-      // Correctly call the RPC function without type instantiation
-      const { data, error: balanceError } = await supabase.rpc(
-        'update_user_balance',
-        {
-          user_id_param: deposit.user_id,
-          amount_param: deposit.net_amount
-        }
-      );
+      // Gọi RPC mà không cần chỉ định kiểu dữ liệu
+      const { data, error: balanceError } = await supabase.rpc('update_user_balance', {
+        user_id_param: deposit.user_id,
+        amount_param: deposit.net_amount
+      });
       
       if (balanceError) {
         console.error("Error updating user balance:", balanceError);
