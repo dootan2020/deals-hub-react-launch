@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -36,6 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { deleteProduct } from '@/services/product/productService';
+import { castArrayData, castData, prepareQueryId } from '@/utils/supabaseHelpers';
 
 interface ProductWithCategory {
   id: string;

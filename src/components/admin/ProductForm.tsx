@@ -128,7 +128,22 @@ export function ProductForm({ productId, onSuccess }: ProductFormProps) {
       if (error) throw error;
       
       if (data) {
-        const productData = castData(data, {});
+        const defaultProductData = {
+          title: '',
+          description: '',
+          price: 0,
+          original_price: undefined,
+          in_stock: true,
+          slug: '',
+          external_id: '',
+          category_id: '',
+          images: [],
+          kiosk_token: '',
+          stock: 0,
+        };
+        
+        const productData = { ...defaultProductData, ...castData(data, {}) };
+        
         form.reset({
           title: productData.title || '',
           description: productData.description || '',

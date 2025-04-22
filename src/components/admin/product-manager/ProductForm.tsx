@@ -139,7 +139,24 @@ export function ProductForm({
       if (error) throw error;
       
       if (data) {
-        const productData = castData(data, {});
+        // Create a default product data structure with all expected properties
+        const defaultProductData = {
+          title: '',
+          description: '',
+          price: 0,
+          original_price: undefined,
+          in_stock: true,
+          slug: '',
+          external_id: '',
+          category_id: '',
+          images: [],
+          kiosk_token: '',
+          stock: 0,
+        };
+        
+        // Cast and merge with the default
+        const productData = { ...defaultProductData, ...castData(data, {}) };
+        
         form.reset({
           title: productData.title || '',
           description: productData.description || '',

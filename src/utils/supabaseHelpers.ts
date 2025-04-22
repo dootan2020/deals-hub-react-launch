@@ -13,8 +13,8 @@ import { Database } from '@/types/database.types';
  * @param defaultValue Optional default value if data is null/undefined
  * @returns The data cast to your expected type
  */
-export function castData<T>(data: any, defaultValue: T | null = null): T {
-  if (!data) return defaultValue as T;
+export function castData<T>(data: any, defaultValue: T): T {
+  if (!data) return defaultValue;
   return data as T;
 }
 
