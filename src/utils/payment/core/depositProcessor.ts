@@ -1,5 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
+import { BalanceUpdateResponse } from '@/types/rpc';
 
 /**
  * Simple response type for transaction operations
@@ -74,7 +74,7 @@ export const processDepositBalance = async (
   try {
     console.log(`Processing deposit balance for deposit ID: ${depositId}`);
     
-    // Get deposit details with a direct fetch approach
+    // Get deposit details with explicit typing
     const depositResponse = await supabase
       .from('deposits')
       .select('id, user_id, net_amount, status, transaction_id')
@@ -94,11 +94,9 @@ export const processDepositBalance = async (
     
     console.log(`Deposit found:`, deposit);
     
-    // If deposit has transaction ID but is not completed, mark it as completed
     let statusUpdated = false;
     if (deposit.transaction_id && deposit.status !== 'completed') {
-      console.log(`Updating deposit ${depositId} status to completed`);
-      
+      // Update deposit status with explicit typing
       const updateResponse = await supabase
         .from('deposits')
         .update({ status: 'completed' })
@@ -113,23 +111,20 @@ export const processDepositBalance = async (
       console.log(`Deposit ${depositId} status updated to completed`);
     }
     
-    // Always update the balance if status is completed or has transaction_id,
-    // regardless of whether we just updated the status
     if (deposit.status === 'completed' || deposit.transaction_id) {
       console.log(`Calling update_user_balance for user ${deposit.user_id} with amount ${deposit.net_amount}`);
       
-      // Direct RPC call without complex generic types
+      // RPC call with explicit typing using "as"
       const balanceResponse = await supabase.rpc('update_user_balance', {
         user_id_param: deposit.user_id,
         amount_param: deposit.net_amount
-      });
+      }) as BalanceUpdateResponse;
       
       if (balanceResponse.error) {
         console.error("Error updating user balance:", balanceResponse.error);
         return { success: false, error: balanceResponse.error.message, updated: false };
       }
       
-      // If result is false, it means no row was found/updated
       if (balanceResponse.data === false) {
         console.warn("Balance update did not affect any rows");
         return { success: false, error: "User profile not found", updated: false };
@@ -137,7 +132,6 @@ export const processDepositBalance = async (
       
       console.log(`Successfully updated balance for user ${deposit.user_id}`);
       
-      // Record a transaction entry if one doesn't exist for this deposit
       await createTransactionRecord(
         deposit.user_id,
         deposit.net_amount,

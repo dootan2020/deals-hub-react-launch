@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { BalanceUpdateResponse } from '@/types/rpc';
 
 /**
  * Safely update user balance by a given amount
@@ -17,23 +18,22 @@ export const updateUserBalance = async (
   try {
     console.log(`Updating balance for user ${userId}: ${amount > 0 ? '+' : ''}${amount}`);
     
-    // Direct RPC call without complex generic types
+    // RPC call with explicit typing using "as"
     const balanceResponse = await supabase.rpc('update_user_balance', {
       user_id_param: userId,
       amount_param: amount
-    });
+    }) as BalanceUpdateResponse;
     
     if (balanceResponse.error) {
       console.error("Error updating user balance:", balanceResponse.error);
       return { success: false, error: balanceResponse.error.message };
     }
     
-    // If result is false, it means no row was found/updated
     if (balanceResponse.data === false) {
       return { success: false, error: "User profile not found" };
     }
     
-    // Record the transaction - direct approach
+    // Record transaction with explicit typing
     const transactionResponse = await supabase.from('transactions').insert({
       user_id: userId,
       amount: amount,
@@ -45,10 +45,9 @@ export const updateUserBalance = async (
     
     if (transactionResponse.error) {
       console.error("Error recording transaction:", transactionResponse.error);
-      // Don't fail the operation if transaction recording fails
     }
     
-    // Fetch the new balance - direct approach
+    // Fetch new balance with explicit typing
     const profileResponse = await supabase
       .from('profiles')
       .select('balance')
@@ -60,7 +59,10 @@ export const updateUserBalance = async (
       return { success: true };
     }
     
-    return { success: true, newBalance: profileResponse.data.balance };
+    return { 
+      success: true, 
+      newBalance: profileResponse.data.balance 
+    };
   } catch (error) {
     console.error("Exception in updateUserBalance:", error);
     return { 
