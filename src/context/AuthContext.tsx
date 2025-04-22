@@ -1,10 +1,10 @@
-
 import { createContext, useContext, ReactNode } from 'react';
 import { useSessionState } from '@/hooks/auth/use-session-state';
 import { useSessionEvents } from '@/hooks/auth/use-session-events';
 import { useAuthRefresh } from '@/hooks/auth/use-auth-refresh';
 import { useAuthRetry } from '@/hooks/auth/use-auth-retry';
 import { useAuthErrors } from '@/hooks/auth/use-auth-errors';
+import { useAsyncEffect } from '@/utils/asyncUtils';
 import type { AuthContextType } from '@/types/auth.types';
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -37,7 +37,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     cleanup: cleanupRetry
   } = useAuthRetry(RETRY_CONFIG);
 
-  useSessionEvents(updateSession, initializeAuth);
+  useAsyncEffect(async () => {
+    const unsubscribe = await useSessionEvents(updateSession, initializeAuth);
+    return () => {
+      unsubscribe?.();
+      cleanupRetry();
+    };
+  }, []);
 
   const contextValue: AuthContextType = {
     user,

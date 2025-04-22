@@ -1,12 +1,11 @@
-
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { UserRole } from '@/types/auth.types';
 import AuthLoadingScreen from './loading/AuthLoadingScreen';
-import { EmailVerificationGate } from "./EmailVerificationGate";
-import { useAuthRefresh } from '@/hooks/auth/use-auth-refresh';
+import { EmailVerificationGate } from './EmailVerificationGate';
 import { RoleChecker } from './roles/RoleChecker';
+import { safeAsync, useAsyncEffect } from '@/utils/asyncUtils';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -59,38 +58,22 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
   }, [cleanupRefreshAttempts]);
 
   // Handle session refresh if needed - with safeguards against infinite loops
-  useEffect(() => {
-    // If authenticated, already loading or refresh already attempted, skip
+  useAsyncEffect(async () => {
     if (isAuthenticated || authLoading || refreshAttempted.current) return;
     
-    // Set the flag to prevent multiple attempts in the same render cycle
     refreshAttempted.current = true;
     
-    // Check if session might be valid but not detected
-    const attemptSessionRestore = async () => {
-      try {
-        console.log("Attempting session restore...");
-        const success = await refreshSession();
-        
-        // If refresh failed and component still mounted, try the refresh mechanism
-        if (!success && !authLoading && isMounted.current) {
-          attemptRefresh();
-        }
-      } catch (error) {
-        console.error("Error attempting session restore:", error);
+    const success = await safeAsync(async () => {
+      const sessionRestored = await refreshSession();
+      if (!sessionRestored) {
+        return attemptRefresh();
       }
-    };
-    
-    // Wait a small delay before attempting to avoid immediate attempts during navigation
-    const delayTimer = setTimeout(() => {
-      attemptSessionRestore();
-    }, 50);
-    
-    timeoutIds.current.push(delayTimer);
-    
-    return () => {
-      clearTimeout(delayTimer);
-    };
+      return true;
+    });
+
+    if (!success && isMounted.current) {
+      setAuthTimeout(true);
+    }
   }, [isAuthenticated, authLoading, refreshSession, attemptRefresh]);
 
   // Set up authentication timeouts with debouncing
