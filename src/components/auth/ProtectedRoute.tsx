@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { UserRole } from '@/types/auth.types';
@@ -19,6 +19,10 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
   const [authTimeout, setAuthTimeout] = useState(false);
   const [waitingTooLong, setWaitingTooLong] = useState(false);
   const [roleCheckComplete, setRoleCheckComplete] = useState(requiredRoles.length === 0);
+  
+  // Track mount state to prevent updates after unmount
+  const isMounted = useRef(true);
+  const timeoutIds = useRef<NodeJS.Timeout[]>([]);
 
   const {
     refreshing,
@@ -28,77 +32,66 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
     handleRetry
   } = useAuthRefresh();
 
+  // Set up role check completion
   useEffect(() => {
     if (requiredRoles.length > 0 && userRoles.length > 0) {
       setRoleCheckComplete(true);
     }
   }, [requiredRoles, userRoles]);
 
+  // Clear all timeouts on unmount
   useEffect(() => {
-    // Don't start timeout if we already have a valid user/session
+    return () => {
+      isMounted.current = false;
+      timeoutIds.current.forEach(clearTimeout);
+      timeoutIds.current = [];
+    };
+  }, []);
+
+  // Set up authentication timeouts with debouncing
+  useEffect(() => {
+    // Skip if already authenticated or not loading
     if (user && isAuthenticated) return;
-    
-    // Only start timeouts if we're actually loading
     if (!authLoading && !refreshing) return;
-    
-    console.debug('ProtectedRoute: Setting up auth timeouts', { 
-      authLoading, 
-      refreshing,
-      hasUser: !!user, 
-      isAuthenticated 
-    });
-    
-    const timeoutId = setTimeout(() => {
+
+    const addTimeout = (callback: () => void, delay: number) => {
+      const timeoutId = setTimeout(() => {
+        if (isMounted.current) {
+          callback();
+        }
+      }, delay);
+      timeoutIds.current.push(timeoutId);
+      return timeoutId;
+    };
+
+    // Warning timeout (5s)
+    addTimeout(() => {
       if ((authLoading || refreshing) && !isAuthenticated) {
-        console.log('Authentication verification taking longer than expected');
-        console.debug('Auth state debug:', {
-          authLoading,
-          isAuthenticated,
-          hasUser: !!user,
-          hasSession: !!session,
-          refreshing,
-          attempts,
-        });
         setWaitingTooLong(true);
       }
     }, 5000);
 
-    const hardTimeoutId = setTimeout(() => {
+    // Hard timeout (15s - reduced from 20s)
+    addTimeout(() => {
       if ((authLoading || refreshing) && !isAuthenticated) {
-        console.error('Authentication timeout reached');
-        console.debug('Auth state on timeout:', {
-          authLoading,
-          isAuthenticated,
-          hasUser: !!user,
-          hasSession: !!session,
-          refreshing,
-          attempts,
-        });
         setAuthTimeout(true);
       }
-    }, 20000);
-    
+    }, 15000);
+
     return () => {
-      clearTimeout(timeoutId);
-      clearTimeout(hardTimeoutId);
+      timeoutIds.current.forEach(clearTimeout);
+      timeoutIds.current = [];
     };
   }, [authLoading, isAuthenticated, user, session, refreshing, attempts]);
 
-  // Debug logging to trace authentication state changes
-  useEffect(() => {
-    console.debug('ProtectedRoute state update:', {
-      isAuthenticated,
-      hasUser: !!user,
-      hasSession: !!session,
-      authLoading,
-      refreshing,
-      attempts
-    });
-  }, [isAuthenticated, user, session, authLoading, refreshing, attempts]);
+  // CRITICAL: Authenticated user check with proper validation
+  const isFullyAuthenticated = user && 
+    isAuthenticated && 
+    session?.access_token && 
+    session.expires_at * 1000 > Date.now();
 
-  // CRITICAL: If we have a valid user and isAuthenticated, render content immediately
-  if (user && isAuthenticated) {
-    console.debug('ProtectedRoute: User authenticated, rendering content');
+  // Return authenticated content immediately if possible
+  if (isFullyAuthenticated) {
     return (
       <RoleChecker
         userRoles={userRoles}
@@ -112,15 +105,13 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
     );
   }
 
-  // Only timeout after our hard limit
+  // Handle timeout
   if (authTimeout) {
-    console.debug('ProtectedRoute: Auth timeout reached, redirecting to login');
     return <Navigate to="/login" state={{ from: location, authError: 'timeout' }} replace />;
   }
 
-  // Show loading screen during authentication or refresh attempts
+  // Show loading screen during authentication or refresh
   if ((authLoading || refreshing) && !authTimeout) {
-    console.debug('ProtectedRoute: Still loading or refreshing, showing loading screen');
     return (
       <AuthLoadingScreen 
         onRetry={showRetry ? handleRetry : undefined}
@@ -131,14 +122,12 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
     );
   }
 
-  // If authentication failed and we're not loading, redirect to login
+  // Redirect to login if not authenticated
   if (!isAuthenticated || !user) {
-    console.log('User not authenticated - redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Fallback (should not reach here, but just in case)
-  console.debug('ProtectedRoute: Fallback render path (should not be reached)');
+  // Fallback render with role and email verification checks
   return (
     <RoleChecker
       userRoles={userRoles}
