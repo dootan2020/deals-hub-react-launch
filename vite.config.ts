@@ -6,10 +6,23 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: './', // Add this line to ensure assets are loaded with relative paths
+  base: './', // Sử dụng đường dẫn tương đối để tài nguyên luôn được tìm thấy
   server: {
     host: "::",
     port: 8080,
+    cors: true, // Bật CORS cho development server
+    headers: {
+      "Access-Control-Allow-Origin": "*", // Cho phép truy cập từ bất kỳ nguồn nào
+      "Cross-Origin-Embedder-Policy": "require-corp",
+      "Cross-Origin-Opener-Policy": "same-origin",
+    }
+  },
+  preview: {
+    port: 8080,
+    cors: true, // Bật CORS cho preview server
+    headers: {
+      "Access-Control-Allow-Origin": "*", // Cho phép truy cập từ bất kỳ nguồn nào 
+    }
   },
   build: {
     outDir: "dist",
