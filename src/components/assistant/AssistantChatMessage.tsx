@@ -16,9 +16,13 @@ export const AssistantChatMessage: React.FC<AssistantChatMessageProps> = ({ mess
             <Bot size={22} />
           </span>
         )}
-        <div className={`rounded-lg px-4 py-2 shadow-sm text-base leading-relaxed ${sender === "user"
-            ? "bg-accent text-accent-foreground rounded-br-none"
-            : "bg-background text-gray-900 rounded-bl-none border"}>
+        <div 
+          className={`rounded-lg px-4 py-2 shadow-sm text-base leading-relaxed ${
+            sender === "user"
+              ? "bg-accent text-accent-foreground rounded-br-none"
+              : "bg-background text-gray-900 rounded-bl-none border"
+          }`}
+        >
           {message}
         </div>
         {sender === "user" && (
