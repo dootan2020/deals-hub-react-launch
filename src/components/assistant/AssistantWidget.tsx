@@ -4,6 +4,7 @@ import { Bot } from "lucide-react";
 import { AssistantChatMessage } from "./AssistantChatMessage";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface Message {
   sender: "user" | "bot";
@@ -17,6 +18,7 @@ export const AssistantWidget: React.FC = () => {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const { user } = useAuth();
   const chatBodyRef = useRef<HTMLDivElement>(null);
 
@@ -36,6 +38,7 @@ export const AssistantWidget: React.FC = () => {
 
     // Compose payload: include userId, recent messages (max 8), and what page user is on if needed
     try {
+      console.log("Sending request to AI assistant with userId:", user?.id || "anonymous");
       const res = await fetch("/functions/v1/ai-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -45,13 +48,52 @@ export const AssistantWidget: React.FC = () => {
           history: messages.slice(-8), // include only last 8 messages
         }),
       });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("AI assistant error response:", res.status, errorText);
+        throw new Error(`Server responded with ${res.status}: ${errorText}`);
+      }
+
       const data = await res.json();
+      
+      // Kiểm tra nếu có lỗi rõ ràng trong response
+      if (data.error) {
+        console.error("AI assistant returned error:", data.error);
+        // Nếu API đã trả về thông báo lỗi thân thiện, sử dụng nó
+        const errorMessage = data.answer || "Đã xảy ra lỗi. Vui lòng thử lại sau!";
+        setMessages(prev => [...prev, { sender: "bot", message: errorMessage }]);
+        // Hiển thị toast thông báo lỗi cho user biết
+        toast.error("Lỗi trợ lý AI", {
+          description: "Đã xảy ra lỗi khi kết nối với trợ lý AI"
+        });
+      } else {
+        // Xử lý phản hồi thành công
+        setMessages(prev =>
+          [...prev, { sender: "bot", message: data.answer || "Xin lỗi, tôi chưa có câu trả lời phù hợp." }]
+        );
+        // Reset retry counter khi thành công
+        if (retryCount > 0) setRetryCount(0);
+      }
+    } catch (error) {
+      console.error("Error calling AI assistant:", error);
+      
+      // Kiểm tra và tăng số lần retry
+      const newRetryCount = retryCount + 1;
+      setRetryCount(newRetryCount);
+      
+      // Hiển thị thông báo lỗi khác nhau tùy theo số lần retry
+      let errorMessage = "Đã xảy ra lỗi. Vui lòng thử lại sau!";
+      
+      if (newRetryCount >= 3) {
+        errorMessage = "Trợ lý AI đang gặp sự cố kết nối. Vui lòng thử lại sau ít phút.";
+        toast.error("Lỗi kết nối", {
+          description: "Hệ thống trợ lý AI đang gặp sự cố. Vui lòng thử lại sau."
+        });
+      }
+      
       setMessages(prev =>
-        [...prev, { sender: "bot", message: data.answer || "Xin lỗi, tôi chưa có câu trả lời phù hợp." }]
-      );
-    } catch {
-      setMessages(prev =>
-        [...prev, { sender: "bot", message: "Đã xảy ra lỗi. Vui lòng thử lại hoặc gửi lại câu hỏi!" }]
+        [...prev, { sender: "bot", message: errorMessage }]
       );
     } finally {
       setLoading(false);
@@ -112,7 +154,7 @@ export const AssistantWidget: React.FC = () => {
               className="flex-1 overflow-y-auto px-4 py-2 bg-gray-50 scrollbar-thin"
               style={{ minHeight: 220, maxHeight: 350 }}>
               {messages.map((msg, idx) => (
-                <AssistantChatMessage key={idx + msg.sender} {...msg} />
+                <AssistantChatMessage key={idx + msg.sender + (msg.message.substring(0, 10))} {...msg} />
               ))}
               {loading && (
                 <AssistantChatMessage sender="bot" message="Đang trả lời..." />

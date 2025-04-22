@@ -85,14 +85,14 @@ serve(async (req) => {
   try {
     const { question, userId, history } = await req.json();
 
+    // Kiểm tra và ghi log các biến môi trường để debug
+    console.log("OPENAI_API_KEY exists:", !!OPENAI_API_KEY);
+    console.log("OPENAI_ORG_ID exists:", !!OPENAI_ORG_ID);
+    console.log("OPENAI_ORG_ID value (first 4 chars):", OPENAI_ORG_ID ? OPENAI_ORG_ID.substring(0, 4) : "not set");
+
     if (!OPENAI_API_KEY) {
+      console.error("Missing OpenAI API Key");
       return new Response(JSON.stringify({ error: "OpenAI API Key is not configured." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    }
-    if (!OPENAI_ORG_ID) {
-      return new Response(JSON.stringify({ error: "OpenAI Organization ID is not configured." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
@@ -111,13 +111,20 @@ serve(async (req) => {
     });
 
     // Call OpenAI API (gpt-4o-mini)
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    };
+    
+    // Chỉ thêm Organization ID vào headers nếu nó tồn tại và không rỗng
+    if (OPENAI_ORG_ID && OPENAI_ORG_ID.trim() !== "") {
+      console.log("Adding OpenAI-Organization header");
+      headers["OpenAI-Organization"] = OPENAI_ORG_ID;
+    }
+
     const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-        "OpenAI-Organization": OPENAI_ORG_ID
-      },
+      headers,
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
@@ -128,14 +135,45 @@ serve(async (req) => {
         temperature: 0.6,
       })
     });
+
+    // Kiểm tra nếu response không thành công
+    if (!aiRes.ok) {
+      const errorData = await aiRes.text();
+      console.error("OpenAI API error:", aiRes.status, errorData);
+      return new Response(JSON.stringify({ 
+        error: "Lỗi khi gọi OpenAI API", 
+        details: `Status: ${aiRes.status}`,
+        answer: "Xin lỗi, tôi đang gặp vấn đề kết nối. Vui lòng thử lại sau ít phút."
+      }), {
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    
     const aiData = await aiRes.json();
-    const answer = aiData.choices?.[0]?.message?.content || "Xin lỗi, tôi chưa có câu trả lời phù hợp.";
+    
+    // Kiểm tra cấu trúc aiData để đảm bảo chúng ta có thể truy cập đúng dữ liệu
+    if (!aiData.choices || !aiData.choices[0] || !aiData.choices[0].message) {
+      console.error("Invalid OpenAI response structure:", JSON.stringify(aiData));
+      return new Response(JSON.stringify({ 
+        error: "Cấu trúc phản hồi không hợp lệ từ OpenAI API",
+        answer: "Xin lỗi, tôi đang gặp sự cố kỹ thuật. Vui lòng thử lại sau."
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    
+    const answer = aiData.choices[0].message.content || "Xin lỗi, tôi chưa có câu trả lời phù hợp.";
     return new Response(JSON.stringify({ answer }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   } catch (err) {
     console.error("Error in ai-assistant function:", err);
-    return new Response(JSON.stringify({ error: (err instanceof Error ? err.message : "Unknown error") }), {
+    return new Response(JSON.stringify({ 
+      error: (err instanceof Error ? err.message : "Unknown error"),
+      answer: "Xin lỗi, đã xảy ra lỗi khi xử lý yêu cầu của bạn. Vui lòng thử lại." 
+    }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
