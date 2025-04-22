@@ -49,16 +49,28 @@ export function usePurchaseResources({
   
   // Function to refresh both resources in parallel
   const refreshResources = useCallback(async () => {
-    return Promise.all([
-      refreshBalance(),
-      refreshStock()
-    ]);
+    const promises = [];
+    
+    if (refreshBalance) {
+      promises.push(refreshBalance());
+    }
+    
+    if (refreshStock) {
+      promises.push(refreshStock());
+    }
+    
+    try {
+      return await Promise.all(promises);
+    } catch (error) {
+      console.error('Error refreshing resources:', error);
+      return Promise.reject(error);
+    }
   }, [refreshBalance, refreshStock]);
   
   // Check if user can afford product
   const canPurchase = useCallback(() => {
-    if (!balance || !stockInfo || !stockInfo.price) return false;
-    return balance >= stockInfo.price && stockInfo.stock > 0;
+    if (balance === null || !stockInfo || stockInfo.price === undefined) return false;
+    return balance >= stockInfo.price && (stockInfo.stock || 0) > 0;
   }, [balance, stockInfo]);
 
   return {

@@ -23,12 +23,12 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', userId)
+          .eq('user_id', userId as any)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
         
-        setDeposits(data as Deposit[]);
+        setDeposits((data || []) as Deposit[]);
       } catch (error) {
         console.error("Error fetching deposits:", error);
         setError('Failed to load deposit history');

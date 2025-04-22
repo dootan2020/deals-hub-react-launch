@@ -34,19 +34,38 @@ export const NotificationBell: React.FC = () => {
     setError(null);
     // 24 hours ago in ISO
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data, error } = await supabase
-      .from("orders")
-      .select("id,user_id,created_at,status,external_order_id,total_price")
-      .gte("created_at", since)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      setError("Không thể lấy đơn hàng mới");
+    
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("id,user_id,created_at,status,external_order_id,total_price")
+        .gte("created_at", since)
+        .order("created_at", { ascending: false });
+  
+      if (error) {
+        setError("Không thể lấy đơn hàng mới");
+        console.error("Error fetching orders:", error);
+        setLoading(false);
+        return;
+      }
+      
+      // Use type assertion after validating the data structure
+      const typedOrders: NewOrder[] = (data || []).map(item => ({
+        id: item.id,
+        user_id: item.user_id,
+        created_at: item.created_at,
+        status: item.status,
+        external_order_id: item.external_order_id,
+        total_price: item.total_price
+      }));
+      
+      setOrders(typedOrders);
+    } catch (err) {
+      console.error("Unexpected error in fetchNewOrders:", err);
+      setError("Đã xảy ra lỗi khi tải đơn hàng");
+    } finally {
       setLoading(false);
-      return;
     }
-    setOrders(data || []);
-    setLoading(false);
   }
 
   return (

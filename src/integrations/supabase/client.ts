@@ -28,7 +28,8 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      storage: localStorage
+      storage: localStorage,
+      flowType: 'implicit'
     },
     realtime: {
       params: {
@@ -36,7 +37,7 @@ export const supabase = createClient<Database>(
       },
       // Add more reliable reconnection parameters
       heartbeatIntervalMs: 15000,
-      reconnectAttempts: 5,
+      reconnectAttempts: 10,
       reconnectIntervalMs: 3000,
     },
     global: {
@@ -49,6 +50,12 @@ export const supabase = createClient<Database>(
         if (options) {
           options.cache = 'no-cache';
           options.credentials = 'same-origin';
+          // Add more headers that might help with CORS
+          if (!options.headers) options.headers = {};
+          Object.assign(options.headers, {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+          });
         }
         return fetch(url, options);
       }
@@ -66,3 +73,30 @@ supabase.auth.onAuthStateChange((event, session) => {
     // We'll rely on the refresh functions in context to handle the proper updates
   }
 });
+
+// Implement a global error handler for failed Supabase operations
+const originalFrom = supabase.from.bind(supabase);
+supabase.from = function(table: string) {
+  const result = originalFrom(table);
+  
+  // Add global error handling for debugging purposes
+  const originalSelect = result.select.bind(result);
+  result.select = function(...args: any[]) {
+    const query = originalSelect(...args);
+    
+    const originalThen = query.then.bind(query);
+    query.then = function(onFulfilled: any, onRejected: any) {
+      return originalThen((response: any) => {
+        if (response.error) {
+          console.error(`Error in Supabase query on table '${table}':`, response.error);
+        }
+        return onFulfilled?.(response);
+      }, onRejected);
+    };
+    
+    return query;
+  };
+  
+  return result;
+};
+

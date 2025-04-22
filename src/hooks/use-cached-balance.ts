@@ -43,7 +43,7 @@ export function useCachedBalance({
       const { data, error } = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', userId)
+        .eq('id', userId as any)
         .single();
       
       if (error) {
@@ -63,9 +63,17 @@ export function useCachedBalance({
       // Try to recover by using refresh-balance function
       try {
         console.log('Attempting to recover using refresh-balance function');
+        // Get current session token
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData?.session?.access_token;
+        
+        if (!accessToken) {
+          throw new Error('No active session found');
+        }
+        
         const { data: refreshData, error: refreshError } = await supabase.functions.invoke('refresh-balance', {
           headers: {
-            Authorization: `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token)}`
+            Authorization: `Bearer ${accessToken}`
           }
         });
         
@@ -115,6 +123,10 @@ export function useCachedBalance({
       )
       .subscribe((status) => {
         console.log('Profile balance subscription status:', status);
+        
+        if (status !== 'SUBSCRIBED') {
+          console.warn('Failed to subscribe to profile updates, falling back to polling');
+        }
       });
     
     // Set up auto-refresh interval if strategy is 'auto'
