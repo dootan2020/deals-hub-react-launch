@@ -1,4 +1,3 @@
-
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -16,6 +15,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import NotificationBell from "@/components/admin/NotificationBell";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -79,10 +79,9 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
       
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        <header className="bg-white shadow">
-          <div className="px-4 py-6 mx-auto">
-            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-          </div>
+        <header className="bg-white shadow flex items-center justify-between px-4 py-6 mx-auto">
+          <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+          <NotificationBell />
         </header>
         <main className="p-6">
           {children}

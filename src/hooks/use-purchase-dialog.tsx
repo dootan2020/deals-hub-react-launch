@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -138,12 +137,10 @@ export const usePurchaseDialog = () => {
     try {
       const totalAmount = (verifiedPrice || selectedProduct.price) * quantity;
 
-      // Check if this is suspicious activity
       if (user?.id) {
         const isSuspicious = await recordPurchaseActivity(user.id, totalAmount, selectedProduct.id);
         
         if (isSuspicious) {
-          // Also check for broader user behavior anomalies
           const behaviorAnomaly = await checkUserBehaviorAnomaly(user.id);
           
           if (behaviorAnomaly) {
@@ -153,7 +150,6 @@ export const usePurchaseDialog = () => {
               "Hoạt động đáng ngờ được phát hiện. Vui lòng liên hệ hỗ trợ."
             );
             
-            // Log the suspicious activity
             await supabase.functions.invoke("fraud-detection", {
               body: {
                 action: "report-suspicious",
@@ -172,37 +168,25 @@ export const usePurchaseDialog = () => {
         }
       }
       
-      // Continue with normal order processing
       const orderResult = await createOrder({
         kioskToken: selectedProduct.kiosk_token,
         productId: selectedProduct.id,
         quantity: quantity,
         promotionCode: promotionCode,
-        priceUSD: totalAmount / 24000 // Convert VND to USD (approximate rate)
+        priceUSD: totalAmount / 24000
       });
 
       if (orderResult?.success) {
-        toast({
-          title: 'Đặt hàng thành công',
-          description: orderResult.message || 'Đơn hàng đã được tạo thành công',
-        });
+        toast.success('Mua thành công', 'Đơn hàng đã được tạo thành công.');
         setOpen(false);
         return true;
       } else {
-        toast({
-          title: 'Không thể tạo đơn hàng',
-          description: orderResult?.message || 'Có lỗi xảy ra khi tạo đơn hàng',
-          variant: 'destructive',
-        });
+        toast.error('Không thể tạo đơn hàng', orderResult?.message || 'Có lỗi xảy ra khi tạo đơn hàng');
         return false;
       }
     } catch (err: any) {
       console.error('Order creation failed:', err);
-      toast({
-        title: 'Không thể tạo đơn hàng',
-        description: err.message || 'Có lỗi xảy ra khi tạo đơn hàng',
-        variant: 'destructive',
-      });
+      toast.error('Không thể tạo đơn hàng', err.message || 'Có lỗi xảy ra khi tạo đơn hàng');
       return false;
     } finally {
       setSubmitting(false);
