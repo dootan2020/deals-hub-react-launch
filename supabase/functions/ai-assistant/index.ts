@@ -2,15 +2,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
-// SECURE: Get OpenAI key
+// SECURE: Get OpenAI key and Organization ID
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+const OPENAI_ORG_ID = Deno.env.get('OPENAI_ORGANIZATION_ID') || ""; // fallback empty if not set
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, OpenAI-Organization",
 };
 
-async function getUserOrderInfo(userId) {
+async function getUserOrderInfo(userId: string) {
   if (!userId) return "";
   // Query user's recent orders (limit 5)
   // NOTE: This DB query is for context. Edit as needed for your schema
@@ -18,11 +19,13 @@ async function getUserOrderInfo(userId) {
     `${Deno.env.get("SUPABASE_URL")}/rest/v1/orders?user_id=eq.${userId}&select=id,created_at,status,product:products(title),order_items(*,product:products(title))&order=created_at.desc&limit=5`,
     {
       headers: {
-        apikey: Deno.env.get("SUPABASE_ANON_KEY"),
-        Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+        apikey: Deno.env.get("SUPABASE_ANON_KEY") || "",
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY") || ""}`,
       },
     }
-  ).then(r => r.json()).then(d => ({ data: d, error: null })).catch(e => ({ data: null, error: e }));
+  ).then(r => r.json())
+   .then(d => ({ data: d, error: null }))
+   .catch(e => ({ data: null, error: e }));
 
   if (!data) return "";
   // Map last 3 purchases as string
@@ -48,7 +51,7 @@ async function getFaqContext() {
 }
 
 // Compose prompt for OpenAI
-function buildPrompt({ question, userId, history, orderInfo, faq }) {
+function buildPrompt({ question, userId, history, orderInfo, faq }: {question:string, userId:string | null, history:any[], orderInfo:string, faq:string}) {
   const conversation =
     history
       ?.map((msg: any) => (msg.sender === "user" ? `Khách: ${msg.message}` : `Bot: ${msg.message}`))
@@ -82,6 +85,19 @@ serve(async (req) => {
   try {
     const { question, userId, history } = await req.json();
 
+    if (!OPENAI_API_KEY) {
+      return new Response(JSON.stringify({ error: "OpenAI API Key is not configured." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+    if (!OPENAI_ORG_ID) {
+      return new Response(JSON.stringify({ error: "OpenAI Organization ID is not configured." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     const [faq, orderInfo] = await Promise.all([
       getFaqContext(),
       userId ? getUserOrderInfo(userId) : ""
@@ -97,7 +113,11 @@ serve(async (req) => {
     // Call OpenAI API (gpt-4o-mini)
     const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+        "OpenAI-Organization": OPENAI_ORG_ID
+      },
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
@@ -114,9 +134,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error("Error in ai-assistant function:", err);
+    return new Response(JSON.stringify({ error: (err instanceof Error ? err.message : "Unknown error") }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
