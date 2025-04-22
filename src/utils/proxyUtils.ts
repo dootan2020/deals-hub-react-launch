@@ -11,6 +11,7 @@ export interface ProxyConfig {
 export interface ProxySettings {
   proxy_type: ProxyType;
   custom_url: string | null;
+  id: string;
 }
 
 /**
@@ -31,9 +32,11 @@ export async function fetchProxySettings(): Promise<ProxyConfig> {
     }
 
     if (data) {
+      // Cast data to ProxySettings to ensure it has the expected shape
+      const settings = data as ProxySettings;
       return {
-        type: (data.proxy_type as ProxyType) || 'allorigins',
-        url: data.custom_url || undefined
+        type: (settings.proxy_type as ProxyType) || 'allorigins',
+        url: settings.custom_url || undefined
       };
     }
 

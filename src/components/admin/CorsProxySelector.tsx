@@ -65,21 +65,25 @@ export function CorsProxySelector() {
       }
 
       if (proxySettings) {
-        // Validate the properties before using them
-        const proxyType = typeof proxySettings.proxy_type === 'string' 
-          ? proxySettings.proxy_type as ProxyType 
-          : 'allorigins';
+        // Properly type-check the data
+        if (typeof proxySettings === 'object' && proxySettings !== null) {
+          const settings = proxySettings as Record<string, any>;
+          // Safely extract the values
+          const proxyType = typeof settings.proxy_type === 'string' 
+            ? settings.proxy_type as ProxyType 
+            : 'allorigins';
+            
+          const customUrl = typeof settings.custom_url === 'string' 
+            ? settings.custom_url 
+            : '';
           
-        const customUrl = typeof proxySettings.custom_url === 'string' 
-          ? proxySettings.custom_url 
-          : null;
-        
-        setSavedConfig({
-          type: proxyType,
-          url: customUrl || undefined,
-        });
-        setSelectedProxy(proxyType);
-        setCustomProxyUrl(customUrl || '');
+          setSavedConfig({
+            type: proxyType,
+            url: customUrl || undefined,
+          });
+          setSelectedProxy(proxyType);
+          setCustomProxyUrl(customUrl || '');
+        }
       }
     } catch (error) {
       console.error('Error fetching proxy settings:', error);
@@ -93,13 +97,13 @@ export function CorsProxySelector() {
     try {
       // Prepare data for insert with proper typing
       const proxyData = {
-        proxy_type: selectedProxy as string,
+        proxy_type: selectedProxy,
         custom_url: selectedProxy === 'custom' ? customProxyUrl : null,
       };
 
       const { error } = await supabase
         .from('proxy_settings')
-        .insert(proxyData as any);
+        .insert(proxyData);
 
       if (error) throw error;
 

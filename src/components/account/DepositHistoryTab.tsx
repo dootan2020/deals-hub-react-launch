@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
@@ -22,25 +23,34 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', userId)
+          .eq('user_id', userId as string)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
         
         if (data) {
-          const typedDeposits = data.map(item => ({
-            id: item.id,
-            user_id: item.user_id,
-            amount: item.amount,
-            net_amount: item.net_amount,
-            payment_method: item.payment_method,
-            status: item.status,
-            transaction_id: item.transaction_id,
-            payer_email: item.payer_email,
-            payer_id: item.payer_id,
-            created_at: item.created_at,
-            updated_at: item.updated_at
-          })) as Deposit[];
+          // Explicitly type check and map each property to ensure type safety
+          const typedDeposits = data.map(item => {
+            // Ensure each item has the required fields before mapping to Deposit
+            if (!item || typeof item !== 'object') {
+              console.error('Invalid deposit data item:', item);
+              return null;
+            }
+
+            return {
+              id: String(item.id || ''),
+              user_id: String(item.user_id || ''),
+              amount: Number(item.amount || 0),
+              net_amount: Number(item.net_amount || 0),
+              payment_method: String(item.payment_method || ''),
+              status: String(item.status || ''),
+              transaction_id: item.transaction_id ? String(item.transaction_id) : null,
+              payer_email: item.payer_email ? String(item.payer_email) : null,
+              payer_id: item.payer_id ? String(item.payer_id) : null,
+              created_at: String(item.created_at || ''),
+              updated_at: String(item.updated_at || ''),
+            } as Deposit;
+          }).filter((deposit): deposit is Deposit => deposit !== null);
           
           setDeposits(typedDeposits);
         } else {
@@ -183,30 +193,3 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
 };
 
 export default DepositHistoryTab;
-
-const renderPaymentMethod = (method: string) => {
-  switch (method.toLowerCase()) {
-    case 'paypal':
-      return <span className="flex items-center"><span className="w-2 h-2 bg-blue-500 rounded-full mr-1.5"></span>PayPal</span>;
-    case 'binance':
-      return <span className="flex items-center"><span className="w-2 h-2 bg-yellow-500 rounded-full mr-1.5"></span>Binance</span>;
-    case 'crypto':
-    case 'usdt':
-      return <span className="flex items-center"><span className="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>Crypto</span>;
-    default:
-      return <span className="flex items-center"><span className="w-2 h-2 bg-gray-500 rounded-full mr-1.5"></span>{method}</span>;
-  }
-};
-
-const renderDepositStatus = (status: string) => {
-  switch (status.toLowerCase()) {
-    case 'completed':
-      return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Completed</span>;
-    case 'pending':
-      return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pending</span>;
-    case 'failed':
-      return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Failed</span>;
-    default:
-      return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">{status}</span>;
-  }
-};

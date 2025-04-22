@@ -56,7 +56,7 @@ export function usePurchaseResources({
     }
     
     setHasAttemptedFetch(true);
-    const promises = [];
+    const promises: Promise<any>[] = [];
     
     // Only attempt to refresh balance if we have a user ID
     if (refreshBalance && user?.id) {

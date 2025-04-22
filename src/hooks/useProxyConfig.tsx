@@ -16,7 +16,7 @@ export const useProxyConfig = () => {
         return config;
       } catch (error) {
         console.error('Error fetching proxy settings:', error);
-        // Return default configuration
+        // Return default configuration on error
         return { type: 'allorigins' };
       }
     },

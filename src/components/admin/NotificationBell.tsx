@@ -36,41 +36,39 @@ export const NotificationBell: React.FC = () => {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     
     try {
-      const { data, error } = await supabase
+      const { data, error: depositsError } = await supabase
         .from("orders")
         .select("id,user_id,created_at,status,external_order_id,total_price")
         .gte("created_at", since)
         .order("created_at", { ascending: false });
   
-      if (error) {
+      if (depositsError) {
         setError("Không thể lấy đơn hàng mới");
-        console.error("Error fetching orders:", error);
+        console.error("Error fetching orders:", depositsError);
         setLoading(false);
         return;
       }
       
       if (data && Array.isArray(data)) {
-        // Check each item in the array to ensure it has the required properties
-        const validOrders = data.filter(item => (
-          typeof item === 'object' && 
-          item !== null && 
-          'id' in item &&
-          'user_id' in item &&
-          'created_at' in item &&
-          'status' in item
-        ));
+        // Map and validate each order item
+        const validOrders = data
+          .filter(item => (
+            typeof item === 'object' && 
+            item !== null
+          ))
+          .map(item => {
+            // Ensure proper typing for each field
+            return {
+              id: String(item.id || ''),
+              user_id: String(item.user_id || ''),
+              created_at: String(item.created_at || ''),
+              status: String(item.status || ''),
+              external_order_id: item.external_order_id ? String(item.external_order_id) : undefined,
+              total_price: Number(item.total_price || 0)
+            } as NewOrder;
+          });
         
-        // Map to properly typed objects
-        const typedOrders: NewOrder[] = validOrders.map(item => ({
-          id: String(item.id),
-          user_id: String(item.user_id),
-          created_at: String(item.created_at),
-          status: String(item.status),
-          external_order_id: item.external_order_id ? String(item.external_order_id) : undefined,
-          total_price: Number(item.total_price || 0)
-        }));
-        
-        setOrders(typedOrders);
+        setOrders(validOrders);
       } else {
         setOrders([]);
       }
