@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -42,7 +43,8 @@ import {
   safeString, 
   safeNumber, 
   isValidRecord,
-  toFilterableUUID 
+  toFilterableUUID,
+  uuidFilter
 } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
@@ -138,7 +140,7 @@ export function ProductForm({
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', toFilterableUUID(productId))
+        .eq('id', uuidFilter(productId))
         .single();
 
       if (error) throw error;
@@ -186,20 +188,20 @@ export function ProductForm({
           images: formData.images ? formData.images.split('\n').filter(url => url.trim() !== '') : [],
           kiosk_token: formData.kioskToken || null,
           stock: formData.stock || 0,
-        };
+        } as any; // Use type assertion to bypass TS checking for Supabase types
 
         if (productId) {
           const { error } = await supabase
             .from('products')
-            .update(productData as any)
-            .eq('id', toFilterableUUID(productId));
+            .update(productData)
+            .eq('id', uuidFilter(productId));
 
           if (error) throw error;
           toast.success('Product updated successfully');
         } else {
           const { error } = await supabase
             .from('products')
-            .insert(productData as any);
+            .insert(productData);
 
           if (error) throw error;
           toast.success('Product created successfully');

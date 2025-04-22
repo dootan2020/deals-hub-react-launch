@@ -6,10 +6,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { isValidArray } from '@/utils/supabaseHelpers';
+import { UserRole } from '@/types/auth.types';
 
 interface RoleGuardProps {
   children: React.ReactNode;
-  roles: string[];
+  roles: UserRole[];
   fallback?: React.ReactNode;
   redirectTo?: string;
 }
@@ -57,7 +58,9 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
           
         if (error) throw error;
         
-        const userRoleValues = isValidArray(data) ? data.map((r: any) => r.toString()) : [];
+        const userRoleValues: UserRole[] = isValidArray<string>(data) ? 
+          data.map((r: any) => r as UserRole) : [];
+        
         const hasRole = roles.some(role => userRoleValues.includes(role));
         
         setIsAuthorized(hasRole);

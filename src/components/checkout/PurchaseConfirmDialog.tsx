@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +13,12 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
-import { isDataResponse, toFilterableUUID } from '@/utils/supabaseHelpers';
+import { 
+  isDataResponse, 
+  toFilterableUUID, 
+  safeNumber, 
+  uuidFilter
+} from '@/utils/supabaseHelpers';
 
 interface PurchaseConfirmDialogProps {
   isOpen: boolean;
@@ -57,13 +63,13 @@ export function PurchaseConfirmDialog({
       const { data, error } = await supabase
         .from('products')
         .select('price')
-        .eq('id', productId)
+        .eq('id', uuidFilter(productId))
         .single();
 
       if (error) throw error;
       
       if (isDataResponse({ data, error }) && data.price !== undefined) {
-        return data.price;
+        return safeNumber(data.price);
       }
 
       return 0;
@@ -80,7 +86,7 @@ export function PurchaseConfirmDialog({
       const { data, error } = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', toFilterableUUID(user.id))
+        .eq('id', uuidFilter(user.id))
         .single();
       
       if (error) throw error;

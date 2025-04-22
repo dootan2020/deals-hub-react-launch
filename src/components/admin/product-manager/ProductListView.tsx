@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,7 +28,7 @@ import { Loader2, Search, RefreshCw, PencilIcon, TrashIcon, AlertTriangle } from
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Category } from '@/types';
-import { isDataResponse, isSupabaseRecord, isValidRecord, safeNumber, safeString } from '@/utils/supabaseHelpers';
+import { isDataResponse, isSupabaseRecord, isValidRecord, safeNumber, safeString, uuidFilter } from '@/utils/supabaseHelpers';
 
 interface Product {
   id: string;
@@ -63,6 +62,7 @@ export function ProductListView({
   const [searchQuery, setSearchQuery] = useState('');
   const [syncingProduct, setSyncingProduct] = useState<string | null>(null);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -144,24 +144,33 @@ export function ProductListView({
     }
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
-      return;
-    }
-    
+  const handleDeleteProduct = async (productId: string) => {
     try {
-      const { error } = await supabase
+      setDeletingProduct(productId);
+      
+      // First delete all sync logs for this product
+      const { error: syncLogsError } = await supabase
+        .from('sync_logs')
+        .delete()
+        .eq('product_id', uuidFilter(productId));
+
+      if (syncLogsError) throw syncLogsError;
+      
+      // Then delete the product
+      const { error: productError } = await supabase
         .from('products')
         .delete()
-        .eq('id', id);
-        
-      if (error) throw error;
-      
+        .eq('id', uuidFilter(productId));
+
+      if (productError) throw productError;
+
       toast.success('Product deleted successfully');
-      await fetchProducts(); // Refresh the list
-    } catch (error: any) {
+      fetchProducts();
+    } catch (error) {
       console.error('Error deleting product:', error);
-      toast.error(`Failed to delete product: ${error.message}`);
+      toast.error('Failed to delete product');
+    } finally {
+      setDeletingProduct(null);
     }
   };
 
@@ -329,7 +338,11 @@ export function ProductListView({
                             onClick={() => handleDeleteProduct(product.id)}
                             className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
-                            <TrashIcon className="h-3.5 w-3.5" />
+                            {deletingProduct === product.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <TrashIcon className="h-3.5 w-3.5" />
+                            )}
                           </Button>
                         </div>
                       </TableCell>

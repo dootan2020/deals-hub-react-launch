@@ -1,130 +1,117 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { isSupabaseRecord } from './supabaseHelpers';
-
-export type ProxyType = 'allorigins' | 'corsproxy' | 'corsanywhere' | 'direct' | 'custom' | 'yproxy';
-
-export interface ProxyConfig {
-  type: ProxyType;
-  url?: string;
-}
 
 interface ProxySettings {
   proxy_type: string;
   custom_url?: string;
 }
 
-export async function fetchProxySettings(): Promise<ProxyConfig> {
+export async function fetchProxySettings(): Promise<ProxySettings> {
   try {
     const { data, error } = await supabase
       .from('proxy_settings')
       .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .single();
 
-    if (error) {
-      console.error('Error fetching proxy settings:', error);
-      return { type: 'allorigins' };
-    }
-
-    if (data && isSupabaseRecord<ProxySettings>(data)) {
-      return {
-        type: data.proxy_type as ProxyType,
-        url: data.custom_url
-      };
-    }
-
-    return { type: 'allorigins' };
+    if (error) throw error;
+    
+    return data as ProxySettings;
   } catch (error) {
-    console.error('Failed to fetch proxy settings:', error);
-    return { type: 'allorigins' };
+    console.error('Error fetching proxy settings:', error);
+    // Default to AllOrigins proxy if settings can't be fetched
+    return { proxy_type: 'allorigins' };
   }
 }
 
-export function buildProxyUrl(targetUrl: string, proxyConfig: ProxyConfig): string {
-  switch (proxyConfig.type) {
-    case 'allorigins':
-      return `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-    case 'corsproxy':
-      return `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-    case 'corsanywhere':
-      return `https://cors-anywhere.herokuapp.com/${targetUrl}`;
-    case 'yproxy':
-      return `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-    case 'custom':
-      if (proxyConfig.url) {
-        return `${proxyConfig.url}${encodeURIComponent(targetUrl)}`;
-      }
-      return targetUrl;
-    case 'direct':
-    default:
-      return targetUrl;
+export async function fetchViaProxy(url: string, proxySettings?: ProxySettings): Promise<any> {
+  if (!proxySettings) {
+    proxySettings = await fetchProxySettings();
   }
-}
-
-export async function fetchViaProxy(url: string, proxyConfig: ProxyConfig): Promise<any> {
+  
   try {
-    const proxyUrl = buildProxyUrl(url, proxyConfig);
-    const response = await fetch(proxyUrl);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+    switch (proxySettings.proxy_type) {
+      case 'allorigins':
+        return fetchViaAllOrigins(url);
+      case 'cors-anywhere':
+        return fetchViaCorsAnywhere(url, proxySettings.custom_url);
+      case 'serverless':
+        return fetchViaServerless(url);
+      default:
+        throw new Error(`Unsupported proxy type: ${proxySettings.proxy_type}`);
     }
-    
+  } catch (error) {
+    console.error(`Error fetching via ${proxySettings.proxy_type} proxy:`, error);
+    throw error;
+  }
+}
+
+async function fetchViaAllOrigins(url: string): Promise<any> {
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+  const response = await fetch(proxyUrl);
+  const data = await response.json();
+  
+  if (data.contents) {
+    try {
+      return JSON.parse(data.contents);
+    } catch {
+      return { content: data.contents };
+    }
+  }
+  
+  throw new Error('Failed to retrieve data from proxy');
+}
+
+async function fetchViaCorsAnywhere(url: string, customProxyUrl?: string): Promise<any> {
+  const proxyUrl = customProxyUrl || 'https://cors-anywhere.herokuapp.com/';
+  const response = await fetch(`${proxyUrl}${url}`);
+  
+  try {
+    return await response.json();
+  } catch {
     const text = await response.text();
-    
-    if (proxyConfig.type === 'allorigins') {
-      try {
-        const allOriginsData = JSON.parse(text);
-        if (allOriginsData.contents) {
-          return JSON.parse(allOriginsData.contents);
-        }
-      } catch (e) {
-        console.error('Failed to parse AllOrigins response:', e);
-        throw new Error('Invalid response format from AllOrigins');
-      }
-    } else {
-      try {
-        return JSON.parse(text);
-      } catch (e) {
-        console.error('Failed to parse direct response:', e);
-        throw new Error('Invalid JSON response');
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching via proxy:', error);
-    throw error;
+    return { content: text };
   }
 }
 
-// Add the missing function
-export async function fetchViaProxyWithFallback(url: string, proxyConfig: ProxyConfig): Promise<any> {
+async function fetchViaServerless(url: string): Promise<any> {
+  const { data, error } = await supabase.functions.invoke('proxy', {
+    body: { url }
+  });
+  
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function fetchViaProxyWithFallback(url: string): Promise<any> {
+  const proxySettings = await fetchProxySettings();
+  
   try {
-    // Try different proxy methods in sequence
-    const fallbackProxies: ProxyType[] = ['allorigins', 'corsproxy', 'yproxy', 'direct'];
+    // Try primary proxy
+    return await fetchViaProxy(url, proxySettings);
+  } catch (primaryError) {
+    console.error('Primary proxy failed:', primaryError);
     
-    // Start with the requested proxy
-    const proxyTypes = [proxyConfig.type, ...fallbackProxies.filter(p => p !== proxyConfig.type)];
-    
-    let lastError = null;
-    
-    for (const proxyType of proxyTypes) {
+    // Fallback to serverless if primary fails
+    if (proxySettings.proxy_type !== 'serverless') {
       try {
-        const currentConfig = { ...proxyConfig, type: proxyType as ProxyType };
-        const result = await fetchViaProxy(url, currentConfig);
-        return result;
-      } catch (error) {
-        console.warn(`Proxy ${proxyType} failed, trying next...`, error);
-        lastError = error;
-        // Continue to next proxy
+        console.log('Falling back to serverless proxy...');
+        return await fetchViaServerless(url);
+      } catch (serverlessError) {
+        console.error('Serverless proxy also failed:', serverlessError);
       }
     }
     
-    // If we get here, all proxies failed
-    throw lastError || new Error('All proxy methods failed');
-  } catch (error) {
-    console.error('Error in fetchViaProxyWithFallback:', error);
-    throw error;
+    // Fallback to AllOrigins if serverless fails
+    if (proxySettings.proxy_type !== 'allorigins') {
+      try {
+        console.log('Falling back to AllOrigins proxy...');
+        return await fetchViaAllOrigins(url);
+      } catch (allOriginsError) {
+        console.error('AllOrigins proxy also failed:', allOriginsError);
+      }
+    }
+    
+    // All methods failed, rethrow the original error
+    throw primaryError;
   }
 }

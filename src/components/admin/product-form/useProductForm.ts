@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -18,7 +19,9 @@ import {
   safeString, 
   safeNumber, 
   safeUUID, 
-  toFilterableUUID 
+  uuidFilter,
+  toFilterableUUID,
+  handleSupabaseData
 } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
@@ -144,7 +147,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', toFilterableUUID(productId))
+        .eq('id', uuidFilter(productId))
         .maybeSingle();
 
       if (error) throw error;
@@ -329,7 +332,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
     setShowResetDialog,
     resetForm,
     onSubmit,
-    handleApiTest,
+    handleApiTest: handleApiTest,
     handleApiDataReceived
   };
 }
