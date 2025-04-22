@@ -16,20 +16,66 @@ export function isSupabaseRecord<T = Record<string, any>>(value: any): value is 
   return isValidRecord(value) && 'id' in value;
 }
 
+// Type definition for order data structure
+export interface OrderData {
+  id: string | number;
+  user_id: string;
+  created_at: string;
+  status: string;
+  external_order_id?: string;
+  total_price: number;
+}
+
+// Type guard for order data
+export function isOrder(value: any): value is OrderData {
+  return (
+    isValidRecord(value) &&
+    'id' in value &&
+    'user_id' in value &&
+    'created_at' in value &&
+    'status' in value &&
+    'total_price' in value
+  );
+}
+
+// Type definition for deposit data structure
+export interface DepositData {
+  id: string | number;
+  user_id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  payment_method: string;
+  transaction_id?: string;
+}
+
+// Type guard for deposit data
+export function isDeposit(value: any): value is DepositData {
+  return (
+    isValidRecord(value) &&
+    'id' in value &&
+    'user_id' in value &&
+    'amount' in value &&
+    'status' in value &&
+    'created_at' in value
+  );
+}
+
 // Helper to check if a response contains data and no error
 export function isDataResponse<T = any>(response: { data: T | null, error: PostgrestError | null }): response is { data: T, error: null } {
   return response.data !== null && response.error === null;
 }
 
-// Helper to format UUID for Supabase queries
-export function uuidFilter(id: string): string {
+// Helper to format UUID for Supabase queries (removes hyphens)
+export function uuidFilter(id: string | null | undefined): string {
+  if (!id) return '';
   return id.replace(/-/g, '');
 }
 
 // Helper to return a safer UUID format for filtering
 export function toFilterableUUID(id: string | null | undefined): string {
   if (!id) return '';
-  return id.replace(/-/g, '');
+  return id;
 }
 
 // Helper to safely convert a value to a string

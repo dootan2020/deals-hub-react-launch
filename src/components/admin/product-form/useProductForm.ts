@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -8,8 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useProductSync } from '@/hooks/use-product-sync';
 import { Category } from '@/types';
-import { fetchProxySettings, ProxyType, ProxyConfig } from '@/utils/proxyUtils';
-import { fetchActiveApiConfig, ApiResponse } from '@/utils/apiUtils';
+import { fetchProxySettings } from '@/utils/proxyUtils';
+import { fetchActiveApiConfig, ApiResponse, fetchViaProxy } from '@/utils/apiUtils';
 import { 
   isValidArray, 
   isValidRecord, 
@@ -146,7 +145,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', toFilterableUUID(productId))
+        .eq('id', productId)
         .maybeSingle();
 
       if (error) throw error;
@@ -338,7 +337,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
     setShowResetDialog,
     resetForm,
     onSubmit,
-    handleApiTest: handleApiTest,
+    handleApiTest,
     handleApiDataReceived
   };
 }

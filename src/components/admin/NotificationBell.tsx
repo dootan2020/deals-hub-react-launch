@@ -4,19 +4,10 @@ import { Bell, AlertTriangle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { isOrder, isValidArray } from "@/utils/supabaseHelpers";
-
-interface NewOrder {
-  id: string;
-  user_id: string;
-  created_at: string;
-  status: string;
-  external_order_id?: string;
-  total_price: number;
-}
+import { isValidArray, isOrder, OrderData } from "@/utils/supabaseHelpers";
 
 export const NotificationBell: React.FC = () => {
-  const [orders, setOrders] = useState<NewOrder[]>([]);
+  const [orders, setOrders] = useState<OrderData[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +39,7 @@ export const NotificationBell: React.FC = () => {
         return;
       }
 
-      const validOrders: NewOrder[] = [];
+      const validOrders: OrderData[] = [];
       if (isValidArray(data)) {
         data.forEach(item => {
           if (isOrder(item)) {
@@ -115,7 +106,7 @@ export const NotificationBell: React.FC = () => {
               )}>
                 <div className="flex justify-between items-center">
                   <span className="font-medium">
-                    Đơn #{order.external_order_id || order.id.slice(0,8)}
+                    Đơn #{order.external_order_id || order.id.toString().slice(0,8)}
                   </span>
                   {order.status === "completed" ? (
                     <Check className="w-4 h-4 text-green-500" />

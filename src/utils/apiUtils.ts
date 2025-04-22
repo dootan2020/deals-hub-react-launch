@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { isValidRecord } from './supabaseHelpers';
+import { fetchViaProxy, ProxyConfig } from './proxyUtils';
 
 export interface ApiConfig {
   user_token?: string;
@@ -68,7 +69,9 @@ export interface ProductInfo {
   price: string;
   stock: string;
   description: string;
-  kioskToken: string;
+  kioskToken?: string;
+  success?: string;
+  error?: string;
 }
 
 // Normalize product information from API response
@@ -80,7 +83,9 @@ export function normalizeProductInfo(data: any): ProductInfo | null {
     price: data.price || data.productPrice || '0',
     stock: data.stock || data.quantity || data.inventory || '0',
     description: data.description || data.details || '',
-    kioskToken: data.kioskToken || data.token || ''
+    kioskToken: data.kioskToken || data.token || '',
+    success: data.success || 'true',
+    error: data.error || ''
   };
 }
 
@@ -113,4 +118,17 @@ export interface ApiResponse {
   description?: string;
   kioskToken?: string;
   error?: string;
+}
+
+// Convert ProductInfo to ApiResponse
+export function productInfoToApiResponse(info: ProductInfo): ApiResponse {
+  return {
+    success: info.success || 'true',
+    name: info.name,
+    price: info.price,
+    stock: info.stock,
+    description: info.description,
+    kioskToken: info.kioskToken,
+    error: info.error
+  };
 }
