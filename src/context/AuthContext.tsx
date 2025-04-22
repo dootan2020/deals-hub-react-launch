@@ -5,8 +5,9 @@ import { useBalanceListener } from '@/hooks/use-balance-listener';
 import { AuthContextType, User, UserRole } from '@/types/auth.types';
 import { toast } from 'sonner';
 import { useSessionTimeout } from '@/hooks/auth/use-session-timeout';
-import { useSessionMonitor } from '@/hooks/auth/use-session-monitoring';
+import { useSessionMonitoring } from '@/hooks/auth/use-session-monitoring';
 import { useSessionRefresh } from '@/hooks/auth/use-session-refresh';
+import { useSessionManagement } from '@/hooks/auth/use-session-management';
 import { supabase } from '@/integrations/supabase/client';
 
 const AuthContext = createContext<AuthContextType>({
@@ -54,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { login: authLogin, logout, register, resendVerificationEmail } = useAuthActions();
 
   useSessionTimeout(!!user, user?.id, session?.access_token, logout);
-  useSessionMonitor(session, logout);
+  useSessionMonitoring(session);
   useSessionRefresh(session);
 
   useEffect(() => {
