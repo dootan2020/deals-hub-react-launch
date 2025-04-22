@@ -1,28 +1,41 @@
 
-/**
- * Helper functions for type-safe database ID handling
- */
+import { Database } from '@/integrations/supabase/types';
+
+type SchemaName = keyof Database;
+type TableName<S extends SchemaName = 'public'> = keyof Database[S]['Tables'];
 
 /**
- * Prepares a table ID for use with Supabase
- * Ensures consistent type handling across the application
+ * Helper for table ID handling
  */
-export function prepareTableId(tableName: string, id: string): string {
+export function prepareTableId<
+  S extends SchemaName = 'public',
+  T extends TableName<S> = TableName<S>
+>(tableName: T, id: string): string {
+  // Ensure consistent ID handling across the application
   return id;
 }
 
 /**
- * Prepares an object for insertion into a Supabase table
- * Ensures consistent type handling across the application
+ * Helper for table insert preparation
  */
-export function prepareTableInsert(tableName: string, data: Record<string, any>): Record<string, any> {
-  return data;
+export function prepareTableInsert<
+  S extends SchemaName = 'public',
+  T extends TableName<S> = TableName<S>
+>(tableName: T, data: Record<string, any>): Record<string, any> {
+  // Remove system fields and ensure data conforms to table schema
+  const { id, created_at, updated_at, ...rest } = data;
+  return rest;
 }
 
 /**
- * Prepares an object for updating a Supabase table
- * Ensures consistent type handling across the application
+ * Helper for table update preparation
  */
-export function prepareTableUpdate(tableName: string, data: Record<string, any>): Record<string, any> {
-  return data;
+export function prepareTableUpdate<
+  S extends SchemaName = 'public',
+  T extends TableName<S> = TableName<S>
+>(tableName: T, data: Record<string, any>): Record<string, any> {
+  // Remove system fields for update operations
+  const { id, created_at, updated_at, ...rest } = data;
+  return rest;
 }
+
