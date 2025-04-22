@@ -164,104 +164,98 @@ serve(async (req) => {
 
     console.log(`Prompt created, length: ${prompt.length} characters, assistant: ${assistantName}`);
 
-    // Gọi OpenAI API (gpt-4o-mini)
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    };
+    try {
+      // Gọi OpenAI API (gpt-4o-mini)
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      };
 
-    if (OPENAI_ORG_ID && OPENAI_ORG_ID.trim() !== "") {
-      console.log("Adding OpenAI-Organization header");
-      headers["OpenAI-Organization"] = OPENAI_ORG_ID;
-    }
-
-    console.log("Calling OpenAI API...");
-    const startTime = Date.now();
-
-    const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: `Bạn là trợ lý AI tên là ${assistantName}, luôn tự xưng tên mình và là hỗ trợ viên cho acczen.net.` },
-          { role: "user", content: prompt }
-        ],
-        max_tokens: 400,
-        temperature: 0.6,
-      })
-    });
-
-    const requestTime = Date.now() - startTime;
-    console.log(`OpenAI API response received in ${requestTime}ms, status: ${aiRes.status}`);
-
-    if (!aiRes.ok) {
-      const errorText = await aiRes.text();
-      console.error(`OpenAI API error: status=${aiRes.status}, response=${errorText}`);
-
-      let errorMessage = "Lỗi khi gọi dịch vụ AI.";
-      try {
-        const errorData = JSON.parse(errorText);
-        if (errorData.error && errorData.error.type) {
-          switch (errorData.error.type) {
-            case "invalid_request_error":
-              errorMessage = "Yêu cầu không hợp lệ đến dịch vụ AI.";
-              break;
-            case "authentication_error":
-              errorMessage = "Lỗi xác thực với dịch vụ AI.";
-              break;
-            case "rate_limit_error":
-              errorMessage = "Dịch vụ AI đang quá tải. Vui lòng thử lại sau.";
-              break;
-            default:
-              errorMessage = "Lỗi từ dịch vụ AI: " + errorData.error.type;
-          }
-        }
-      } catch (e) {
-        console.error("Error parsing OpenAI error response:", e);
+      if (OPENAI_ORG_ID && OPENAI_ORG_ID.trim() !== "") {
+        console.log("Adding OpenAI-Organization header");
+        headers["OpenAI-Organization"] = OPENAI_ORG_ID;
       }
-      return new Response(JSON.stringify({
-        error: `OpenAI API error: ${aiRes.status}`,
-        details: errorText.substring(0, 300),
-        answer: `Xin lỗi, tôi là ${assistantName}. Tôi đang gặp sự cố kết nối AI (${errorMessage}). Bạn vui lòng thử lại hoặc liên hệ nhân viên hỗ trợ acczen.net qua email hotro@acczen.net nhé!`
-      }), {
-        status: 502,
+
+      console.log("Calling OpenAI API...");
+      const startTime = Date.now();
+
+      const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: `Bạn là trợ lý AI tên là ${assistantName}, luôn tự xưng tên mình và là hỗ trợ viên cho acczen.net.` },
+            { role: "user", content: prompt }
+          ],
+          max_tokens: 400,
+          temperature: 0.6,
+        })
+      });
+
+      const requestTime = Date.now() - startTime;
+      console.log(`OpenAI API response received in ${requestTime}ms, status: ${aiRes.status}`);
+
+      if (!aiRes.ok) {
+        const errorText = await aiRes.text();
+        console.error(`OpenAI API error: status=${aiRes.status}, response=${errorText}`);
+
+        let errorMessage = "Lỗi khi gọi dịch vụ AI.";
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.error && errorData.error.type) {
+            switch (errorData.error.type) {
+              case "invalid_request_error":
+                errorMessage = "Yêu cầu không hợp lệ đến dịch vụ AI.";
+                break;
+              case "authentication_error":
+                errorMessage = "Lỗi xác thực với dịch vụ AI.";
+                break;
+              case "rate_limit_error":
+                errorMessage = "Dịch vụ AI đang quá tải. Vui lòng thử lại sau.";
+                break;
+              default:
+                errorMessage = "Lỗi từ dịch vụ AI: " + errorData.error.type;
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing OpenAI error response:", e);
+        }
+        
+        throw new Error(`OpenAI API error (${aiRes.status}): ${errorMessage}`);
+      }
+
+      const aiData = await aiRes.json();
+      console.log("OpenAI response structure:", JSON.stringify(Object.keys(aiData)));
+
+      if (!aiData.choices || !aiData.choices[0] || !aiData.choices[0].message) {
+        console.error("Invalid OpenAI response structure:", JSON.stringify(aiData));
+        throw new Error("Cấu trúc phản hồi không hợp lệ từ OpenAI API");
+      }
+
+      // Chống prompt injection, tiền xử lý thêm nếu cần
+      let rawAnswer = aiData.choices[0].message.content || "";
+      // Đảm bảo tên trợ lý xuất hiện ở đầu trả lời
+      if (rawAnswer && !rawAnswer.trim().startsWith(assistantName)) {
+        rawAnswer = `${assistantName}: ${rawAnswer.trim()}`;
+      }
+      const sanitizedAnswer = rawAnswer
+        .replace(/\[.*?\]/g, "")
+        .replace(/\{.*?\}/g, "")
+        .replace(/system:/gi, "")
+        .replace(/prompt:/gi, "");
+
+      const answer = sanitizedAnswer.trim() || `Xin lỗi, tôi là ${assistantName} của acczen.net. Hiện tôi chưa có câu trả lời phù hợp. Bạn thử lại hoặc liên hệ nhân viên nhé!`;
+
+      console.log("Successfully generated response, length:", answer.length);
+      return new Response(JSON.stringify({ answer }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
+      
+    } catch (apiError) {
+      console.error("API call error:", apiError);
+      throw apiError; // Re-throw để xử lý trong catch bên ngoài
     }
-
-    const aiData = await aiRes.json();
-    console.log("OpenAI response structure:", JSON.stringify(Object.keys(aiData)));
-
-    if (!aiData.choices || !aiData.choices[0] || !aiData.choices[0].message) {
-      console.error("Invalid OpenAI response structure:", JSON.stringify(aiData));
-      return new Response(JSON.stringify({
-        error: "Cấu trúc phản hồi không hợp lệ từ OpenAI API",
-        answer: `Xin lỗi, tôi là ${assistantName}. Tôi đang gặp sự cố kỹ thuật. Vui lòng thử lại hoặc liên hệ hotro@acczen.net nhé!`
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    }
-
-    // Chống prompt injection, tiền xử lý thêm nếu cần
-    let rawAnswer = aiData.choices[0].message.content || "";
-    // Đảm bảo tên trợ lý xuất hiện ở đầu trả lời
-    if (rawAnswer && !rawAnswer.trim().startsWith(assistantName)) {
-      rawAnswer = `${assistantName}: ${rawAnswer.trim()}`;
-    }
-    const sanitizedAnswer = rawAnswer
-      .replace(/\[.*?\]/g, "")
-      .replace(/\{.*?\}/g, "")
-      .replace(/system:/gi, "")
-      .replace(/prompt:/gi, "");
-
-    const answer = sanitizedAnswer.trim() || `Xin lỗi, tôi là ${assistantName} của acczen.net. Hiện tôi chưa có câu trả lời phù hợp. Bạn thử lại hoặc liên hệ nhân viên nhé!`;
-
-    console.log("Successfully generated response, length:", answer.length);
-    return new Response(JSON.stringify({ answer }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
   } catch (err) {
     console.error("Unhandled error in ai-assistant function:", err);
 

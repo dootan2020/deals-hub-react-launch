@@ -1,4 +1,5 @@
 
+
 /**
  * Available AI source engines for chatbot/recommendation features
  */
@@ -11,6 +12,8 @@ export interface AIAssistantResponse {
   answer: string;
   error?: string;
   details?: string;
+  code?: number;
+  errorType?: string;
 }
 
 /**
@@ -24,3 +27,4 @@ export interface AIMessagePayload {
     message: string;
   }[];
 }
+

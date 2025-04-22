@@ -80,6 +80,8 @@ export const AssistantWidget: React.FC = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        // Thêm timeout ngăn chặn treo quá lâu
+        signal: AbortSignal.timeout(15000), // 15 giây timeout
       });
 
       setMessages(prev => prev.filter(msg => msg.message !== "Đang trả lời..."));
@@ -90,14 +92,32 @@ export const AssistantWidget: React.FC = () => {
 
         const newRetryCount = retryCount + 1;
         setRetryCount(newRetryCount);
+        
+        let detailedError = "Lỗi kết nối";
+        try {
+          // Cố gắng parse lỗi chi tiết từ server
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.error) {
+            detailedError = errorJson.error;
+          }
+        } catch (e) {
+          // Nếu không parse được thì giữ nguyên lỗi ban đầu
+          detailedError = `Lỗi máy chủ (${res.status})`;
+        }
+        
+        // Log lỗi chi tiết để debug
+        console.error("Lỗi chi tiết:", detailedError);
+        
         setMessages(prev => [...prev, {
           sender: "bot",
-          message: getFallbackMessage(newRetryCount)
+          message: `Đã xảy ra lỗi khi kết nối với trợ lý AI acczen.net. (Mã: ${res.status}, Chi tiết: ${detailedError.substring(0, 100)})`
         }]);
+        
         toast.error("Lỗi kết nối với acczen AI", {
           description: getFallbackMessage(newRetryCount),
           duration: 6000,
         });
+        
         throw new Error(`Server responded with ${res.status}: ${errorText}`);
       }
 
@@ -130,12 +150,16 @@ export const AssistantWidget: React.FC = () => {
       let errorMessage = "Đã xảy ra lỗi khi kết nối với trợ lý AI acczen.net.";
       // Xác định lỗi mạng
       if (error instanceof Error) {
-        if (error.message.includes("NetworkError") || error.message.includes("Failed to fetch")) {
+        if (error.message.includes("NetworkError") || error.message.includes("Failed to fetch") || error.message.includes("AbortError")) {
           errorMessage = "Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn và thử lại.";
-        } else if (error.message.includes("timeout") || error.message.includes("Timeout")) {
+        } else if (error.message.includes("timeout") || error.message.includes("Timeout") || error.message.includes("TimeoutError")) {
           errorMessage = "Yêu cầu đã hết thời gian chờ. Vui lòng thử lại sau.";
         }
+        
+        // Log để debug
+        console.error("Chi tiết lỗi:", error.message);
       }
+      
       if (newRetryCount >= 3) {
         errorMessage = getFallbackMessage(newRetryCount);
         toast.error("Lỗi kết nối acczen.net", {
