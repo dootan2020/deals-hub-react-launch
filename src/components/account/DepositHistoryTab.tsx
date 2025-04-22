@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
@@ -23,14 +22,27 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', userId as any)
+          .eq('user_id', userId)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
         
-        // Use type assertion with proper error checking
         if (data) {
-          setDeposits(data as Deposit[]);
+          const typedDeposits = data.map(item => ({
+            id: item.id,
+            user_id: item.user_id,
+            amount: item.amount,
+            net_amount: item.net_amount,
+            payment_method: item.payment_method,
+            status: item.status,
+            transaction_id: item.transaction_id,
+            payer_email: item.payer_email,
+            payer_id: item.payer_id,
+            created_at: item.created_at,
+            updated_at: item.updated_at
+          })) as Deposit[];
+          
+          setDeposits(typedDeposits);
         } else {
           setDeposits([]);
         }
@@ -115,36 +127,56 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
         <CardDescription>View your account funding history</CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Transaction ID</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Method</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Net Amount</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {deposits.map((deposit) => (
-              <TableRow key={deposit.id}>
-                <TableCell className="font-medium">{(deposit.transaction_id || deposit.id).slice(0, 8)}...</TableCell>
-                <TableCell>
-                  {new Date(deposit.created_at).toLocaleString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                  })}
-                </TableCell>
-                <TableCell>{renderPaymentMethod(deposit.payment_method)}</TableCell>
-                <TableCell>{formatCurrency(deposit.amount)}</TableCell>
-                <TableCell>{formatCurrency(deposit.net_amount)}</TableCell>
-                <TableCell>{renderDepositStatus(deposit.status)}</TableCell>
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+            <span>Loading deposit history...</span>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-64 text-red-500">
+            <AlertCircle className="h-6 w-6 mr-2" />
+            <span>{error}</span>
+          </div>
+        ) : deposits.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 p-6">
+            <Wallet className="h-12 w-12 text-gray-300 mb-2" />
+            <h3 className="text-lg font-medium text-gray-500">No Deposits Yet</h3>
+            <p className="text-gray-400 text-center mt-2">
+              You haven't made any deposits yet. Add funds to your account to see your transaction history here.
+            </p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Transaction ID</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Method</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Net Amount</TableHead>
+                <TableHead>Status</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {deposits.map((deposit) => (
+                <TableRow key={deposit.id}>
+                  <TableCell className="font-medium">{(deposit.transaction_id || deposit.id).slice(0, 8)}...</TableCell>
+                  <TableCell>
+                    {new Date(deposit.created_at).toLocaleString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </TableCell>
+                  <TableCell>{renderPaymentMethod(deposit.payment_method)}</TableCell>
+                  <TableCell>{formatCurrency(deposit.amount)}</TableCell>
+                  <TableCell>{formatCurrency(deposit.net_amount)}</TableCell>
+                  <TableCell>{renderDepositStatus(deposit.status)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );
@@ -152,7 +184,6 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
 
 export default DepositHistoryTab;
 
-// Helper functions
 const renderPaymentMethod = (method: string) => {
   switch (method.toLowerCase()) {
     case 'paypal':

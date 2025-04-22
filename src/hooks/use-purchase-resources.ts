@@ -50,31 +50,39 @@ export function usePurchaseResources({
   
   // Function to refresh both resources in parallel
   const refreshResources = useCallback(async () => {
-    if (!user?.id || !kioskToken) {
+    if (!user?.id && !kioskToken) {
       console.warn('Cannot refresh resources: missing user ID or kiosk token');
-      return;
+      return false;
     }
     
     setHasAttemptedFetch(true);
     const promises = [];
     
-    if (refreshBalance) {
+    // Only attempt to refresh balance if we have a user ID
+    if (refreshBalance && user?.id) {
       promises.push(refreshBalance().catch(err => {
         console.error('Error refreshing balance:', err);
         return null;
       }));
     }
     
-    if (refreshStock) {
+    // Only attempt to refresh stock if we have a kiosk token
+    if (refreshStock && kioskToken) {
       promises.push(refreshStock().catch(err => {
         console.error('Error refreshing stock:', err);
         return null;
       }));
     }
     
+    // If we have no promises to execute, return early
+    if (promises.length === 0) {
+      return false;
+    }
+    
     try {
-      await Promise.allSettled(promises);
-      return true;
+      const results = await Promise.allSettled(promises);
+      // Check if at least one promise succeeded
+      return results.some(result => result.status === 'fulfilled' && result.value !== null);
     } catch (error) {
       console.error('Error refreshing resources:', error);
       return false;
@@ -83,7 +91,7 @@ export function usePurchaseResources({
   
   // Run initial fetch on mount or when dependencies change
   useEffect(() => {
-    if (initialFetch && !hasAttemptedFetch && user?.id && kioskToken) {
+    if (initialFetch && !hasAttemptedFetch && (user?.id || kioskToken)) {
       refreshResources();
     }
   }, [initialFetch, user?.id, kioskToken, hasAttemptedFetch, refreshResources]);

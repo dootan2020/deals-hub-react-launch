@@ -55,7 +55,8 @@ export function CorsProxySelector() {
         .from('proxy_settings')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(1);
+        .limit(1)
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching proxy settings:', error);
@@ -63,22 +64,22 @@ export function CorsProxySelector() {
         return;
       }
 
-      if (proxySettings && proxySettings.length > 0) {
-        const settings = proxySettings[0];
-        // Safely type check the properties before accessing them
-        if (settings && 'proxy_type' in settings && 'custom_url' in settings) {
-          const proxyType = settings.proxy_type as ProxyType;
-          const customUrl = settings.custom_url as string | null;
+      if (proxySettings) {
+        // Validate the properties before using them
+        const proxyType = typeof proxySettings.proxy_type === 'string' 
+          ? proxySettings.proxy_type as ProxyType 
+          : 'allorigins';
           
-          setSavedConfig({
-            type: proxyType,
-            url: customUrl || undefined,
-          });
-          setSelectedProxy(proxyType);
-          setCustomProxyUrl(customUrl || '');
-        } else {
-          console.error('Unexpected proxy settings format:', settings);
-        }
+        const customUrl = typeof proxySettings.custom_url === 'string' 
+          ? proxySettings.custom_url 
+          : null;
+        
+        setSavedConfig({
+          type: proxyType,
+          url: customUrl || undefined,
+        });
+        setSelectedProxy(proxyType);
+        setCustomProxyUrl(customUrl || '');
       }
     } catch (error) {
       console.error('Error fetching proxy settings:', error);
@@ -90,15 +91,15 @@ export function CorsProxySelector() {
   const saveProxySettings = async () => {
     setLoading(true);
     try {
-      // Prepare data for insert
+      // Prepare data for insert with proper typing
       const proxyData = {
-        proxy_type: selectedProxy,
+        proxy_type: selectedProxy as string,
         custom_url: selectedProxy === 'custom' ? customProxyUrl : null,
       };
 
       const { error } = await supabase
         .from('proxy_settings')
-        .insert(proxyData);
+        .insert(proxyData as any);
 
       if (error) throw error;
 

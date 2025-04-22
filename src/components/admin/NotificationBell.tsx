@@ -49,15 +49,25 @@ export const NotificationBell: React.FC = () => {
         return;
       }
       
-      if (data) {
-        // Use type assertion after validating the data structure
-        const typedOrders: NewOrder[] = data.map(item => ({
-          id: item.id as string,
-          user_id: item.user_id as string,
-          created_at: item.created_at as string,
-          status: item.status as string,
-          external_order_id: item.external_order_id as string | undefined,
-          total_price: item.total_price as number
+      if (data && Array.isArray(data)) {
+        // Check each item in the array to ensure it has the required properties
+        const validOrders = data.filter(item => (
+          typeof item === 'object' && 
+          item !== null && 
+          'id' in item &&
+          'user_id' in item &&
+          'created_at' in item &&
+          'status' in item
+        ));
+        
+        // Map to properly typed objects
+        const typedOrders: NewOrder[] = validOrders.map(item => ({
+          id: String(item.id),
+          user_id: String(item.user_id),
+          created_at: String(item.created_at),
+          status: String(item.status),
+          external_order_id: item.external_order_id ? String(item.external_order_id) : undefined,
+          total_price: Number(item.total_price || 0)
         }));
         
         setOrders(typedOrders);
@@ -109,7 +119,7 @@ export const NotificationBell: React.FC = () => {
             </div>
           )}
           {!loading &&
-            orders.map((order, idx) => (
+            orders.map((order) => (
               <div key={order.id} className={cn(
                 "p-3 border-b last:border-b-0 flex flex-col gap-1",
                 order.status === "completed" ? "bg-green-50" : "bg-yellow-50"

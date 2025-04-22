@@ -10,7 +10,10 @@ export const useProxyConfig = () => {
     queryKey: ['proxy-settings'],
     queryFn: async (): Promise<ProxyConfig> => {
       try {
-        return await fetchProxySettings();
+        console.log('Fetching proxy settings...');
+        const config = await fetchProxySettings();
+        console.log('Retrieved proxy settings:', config);
+        return config;
       } catch (error) {
         console.error('Error fetching proxy settings:', error);
         // Return default configuration

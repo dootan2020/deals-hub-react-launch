@@ -22,17 +22,18 @@ export async function fetchProxySettings(): Promise<ProxyConfig> {
       .from('proxy_settings')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(1);
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching proxy settings:', error);
       return { type: 'allorigins' };
     }
 
-    if (data && data.length > 0 && data[0]) {
+    if (data) {
       return {
-        type: (data[0].proxy_type as ProxyType) || 'allorigins',
-        url: data[0].custom_url || undefined
+        type: (data.proxy_type as ProxyType) || 'allorigins',
+        url: data.custom_url || undefined
       };
     }
 

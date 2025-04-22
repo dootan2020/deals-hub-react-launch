@@ -37,7 +37,7 @@ export const supabase = createClient<Database>(
       },
       // Add more reliable reconnection parameters
       heartbeatIntervalMs: 15000,
-      reconnectAttempts: Infinity,  // Keep trying to reconnect
+      reconnectAttempts: 5,  // Limited number of attempts to avoid infinite loops
       reconnectIntervalMs: 3000,
     },
     global: {
@@ -71,6 +71,15 @@ supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
     console.log('Refreshing session and access rights...');
     // We'll rely on the refresh functions in context to handle the proper updates
+  }
+  
+  // Log if session expires or auth error occurs
+  if (event === 'TOKEN_REFRESHED') {
+    console.log('Token refreshed successfully at', new Date().toISOString());
+  }
+  
+  if (event === 'SIGNED_OUT') {
+    console.log('User signed out');
   }
 });
 
@@ -112,6 +121,21 @@ export async function checkSupabaseConnection(): Promise<boolean> {
     return !error;
   } catch (err) {
     console.error('Failed to connect to Supabase:', err);
+    return false;
+  }
+}
+
+// Add a helper function to refresh the auth token if needed
+export async function refreshSupabaseAuth(): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) {
+      console.error('Error refreshing auth session:', error);
+      return false;
+    }
+    return !!data.session;
+  } catch (err) {
+    console.error('Failed to refresh auth session:', err);
     return false;
   }
 }
