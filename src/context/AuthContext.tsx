@@ -1,14 +1,12 @@
-
 import React, { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
 import { useAuthState } from '@/hooks/auth/use-auth-state';
 import { useAuthActions } from '@/hooks/auth/use-auth-actions';
 import { useBalanceListener } from '@/hooks/use-balance-listener';
-import { AuthContextType, User } from '@/types/auth.types';
+import { AuthContextType, User, UserRole } from '@/types/auth.types';
 import { toast } from 'sonner';
 import { useSessionTimeout } from '@/hooks/auth/use-session-timeout';
-import { useSessionMonitor } from '@/hooks/auth/use-session-monitor';
+import { useSessionMonitor } from '@/hooks/auth/use-session-monitoring';
 import { useSessionRefresh } from '@/hooks/auth/use-session-refresh';
-import { UserRole } from '@/types/auth.types';
 import { supabase } from '@/integrations/supabase/client';
 
 const AuthContext = createContext<AuthContextType>({
