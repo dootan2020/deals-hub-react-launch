@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { fetchViaProxy, isHtmlResponse, normalizeProductInfo } from './proxyUtils';
 
@@ -98,4 +97,31 @@ function extractValue(html: string, className: string): string {
   const regex = new RegExp(`class=["']${className}["'][^>]*>([^<]+)<`);
   const match = regex.exec(html);
   return match ? match[1].trim() : '';
+}
+
+export function isHtmlResponse(response: string): boolean {
+  const htmlPattern = /<(!DOCTYPE|html|head|body|div|script)/i;
+  return htmlPattern.test(response.trim());
+}
+
+export function extractFromHtml(html: string, selector: string): string | null {
+  try {
+    const match = new RegExp(`<${selector}[^>]*>([\\s\\S]*?)<\\/${selector}>`, 'i').exec(html);
+    return match ? match[1].trim() : null;
+  } catch (error) {
+    console.error('Error extracting from HTML:', error);
+    return null;
+  }
+}
+
+export function normalizeProductInfo(data: any): any {
+  if (!data) return null;
+  
+  return {
+    name: data.name || data.title || data.productName,
+    description: data.description || data.desc || data.productDescription,
+    price: data.price || data.productPrice || '0',
+    stock: data.stock || data.quantity || data.inventory || '0',
+    kioskToken: data.kioskToken || data.token
+  };
 }
