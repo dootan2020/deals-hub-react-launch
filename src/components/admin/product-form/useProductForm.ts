@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -11,7 +10,7 @@ import { Category } from '@/types';
 import { fetchProxySettings, fetchViaProxy } from '@/utils/proxyUtils';
 import { fetchActiveApiConfig } from '@/utils/apiUtils';
 import { ApiResponse } from '@/components/admin/product-manager/ApiProductTester';
-import { isValidArray, isValidRecord, isDataResponse } from '@/utils/supabaseHelpers';
+import { isValidArray, isValidRecord, isDataResponse, isSupabaseRecord } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
@@ -79,17 +78,21 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
         .order('name');
 
       if (error) throw error;
-      // Type cast the data to Category[]
       if (isValidArray(data)) {
-        const typedCategories: Category[] = data.filter(isValidRecord).map(item => ({
-          id: String(item.id ?? ''),
-          name: String(item.name ?? ''),
-          description: String(item.description ?? ''),
-          slug: String(item.slug ?? ''),
-          image: String(item.image ?? ''),
-          count: Number(item.count ?? 0),
-          parent_id: item.parent_id ? String(item.parent_id) : null
-        }));
+        const typedCategories: Category[] = [];
+        data.forEach(item => {
+          if (isSupabaseRecord(item) && isValidRecord(item)) {
+            typedCategories.push({
+              id: String(item.id ?? ''),
+              name: String(item.name ?? ''),
+              description: String(item.description ?? ''),
+              slug: String(item.slug ?? ''),
+              image: String(item.image ?? ''),
+              count: Number(item.count ?? 0),
+              parent_id: item.parent_id ? String(item.parent_id) : null
+            });
+          }
+        });
         setCategories(typedCategories);
       } else {
         setCategories([]);
@@ -110,7 +113,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
         .maybeSingle();
 
       if (error) throw error;
-      if (isValidRecord(data)) {
+      if (data && isSupabaseRecord(data) && isValidRecord(data)) {
         form.reset({
           title: data.title ?? '',
           description: data.description ?? '',
@@ -125,6 +128,9 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
           stock: Number(data.stock ?? 0),
         });
         setFormDirty(false);
+      } else {
+        toast.error('No valid product found');
+        return;
       }
     } catch (error) {
       toast.error('Failed to fetch product details');

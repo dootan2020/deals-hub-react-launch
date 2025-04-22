@@ -6,7 +6,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Wallet, Loader2, AlertCircle } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Deposit } from '@/types/deposits';
-import { isDeposit, isValidArray, isValidRecord } from '@/utils/supabaseHelpers';
+import { isDeposit, isValidArray, isSupabaseRecord } from '@/utils/supabaseHelpers';
 
 interface DepositHistoryTabProps {
   userId: string;
@@ -24,16 +24,18 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', userId as string) // Fix: cast về string
+          .eq('user_id', userId as string)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
 
         if (isValidArray(data)) {
-          const typedDeposits = data
-            .filter(isDeposit)
-            .map(item => ({ ...item, id: String(item.id) }));
-
+          const typedDeposits: Deposit[] = [];
+          data.forEach(item => {
+            if (isSupabaseRecord<Deposit>(item) && isDeposit(item)) {
+              typedDeposits.push({ ...item, id: String(item.id) });
+            }
+          });
           setDeposits(typedDeposits);
         } else {
           setDeposits([]);

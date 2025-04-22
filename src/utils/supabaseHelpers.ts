@@ -1,5 +1,11 @@
-
 import { PostgrestError } from '@supabase/supabase-js';
+
+/**
+ * Type guard: kiểm tra object có phải record trả về từ supabase (không phải lỗi).
+ */
+export function isSupabaseRecord<T = Record<string, any>>(record: unknown): record is T {
+  return typeof record === 'object' && record !== null && !('error' in (record as any));
+}
 
 /**
  * Type guard: kiểm tra object có dạng record với các keys thuộc string.
