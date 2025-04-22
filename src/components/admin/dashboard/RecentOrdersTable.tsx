@@ -8,6 +8,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { FileDown } from "lucide-react";
+import { exportToExcel, formatOrderForExport } from "@/utils/exportUtils";
 
 interface RecentOrder {
   id: string;
@@ -27,10 +30,23 @@ interface RecentOrdersTableProps {
 }
 
 export function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
+  const handleExport = () => {
+    const exportData = orders.map(formatOrderForExport);
+    exportToExcel(exportData, `orders-export-${new Date().toISOString().split('T')[0]}`);
+  };
+
   return (
     <Card className="col-span-4">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Đơn hàng gần đây</CardTitle>
+        <Button 
+          variant="outline" 
+          onClick={handleExport}
+          className="flex items-center gap-2"
+        >
+          <FileDown className="h-4 w-4" />
+          Xuất Excel
+        </Button>
       </CardHeader>
       <CardContent>
         <Table>

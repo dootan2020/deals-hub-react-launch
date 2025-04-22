@@ -1,9 +1,9 @@
-
 import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { StatsCard } from '@/components/admin/dashboard/StatsCard';
 import { RevenueChart } from '@/components/admin/dashboard/RevenueChart';
 import { RecentOrdersTable } from '@/components/admin/dashboard/RecentOrdersTable';
+import { DateRangePicker } from '@/components/admin/dashboard/DateRangePicker';
 import { supabase } from '@/integrations/supabase/client';
 import { TrendingDown, TrendingUp, Package2, ShoppingCart, DollarSign } from 'lucide-react';
 
@@ -19,12 +19,16 @@ const AdminDashboard = () => {
   const [revenueData, setRevenueData] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dateRange, setDateRange] = useState({
+    from: new Date(new Date().setDate(new Date().getDate() - 7)),
+    to: new Date()
+  });
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        // Fetch recent orders
+        // Fetch recent orders within date range
         const { data: orders } = await supabase
           .from('orders')
           .select(`
@@ -35,24 +39,23 @@ const AdminDashboard = () => {
             user:user_id(email),
             product:product_id(title)
           `)
+          .gte('created_at', dateRange.from.toISOString())
+          .lte('created_at', dateRange.to.toISOString())
           .order('created_at', { ascending: false })
           .limit(5);
 
         setRecentOrders(orders || []);
 
-        // Fetch weekly revenue data
-        const today = new Date();
-        const weekAgo = new Date(today);
-        weekAgo.setDate(weekAgo.getDate() - 7);
-
-        const { data: weeklyOrders } = await supabase
+        // Fetch revenue data for the chart
+        const { data: revenueData } = await supabase
           .from('orders')
           .select('total_price, created_at')
-          .gte('created_at', weekAgo.toISOString())
+          .gte('created_at', dateRange.from.toISOString())
+          .lte('created_at', dateRange.to.toISOString())
           .order('created_at', { ascending: true });
 
         // Group by date and calculate daily revenue
-        const dailyRevenue = (weeklyOrders || []).reduce((acc: any, order: any) => {
+        const dailyRevenue = (revenueData || []).reduce((acc: any, order: any) => {
           const date = new Date(order.created_at).toISOString().split('T')[0];
           acc[date] = (acc[date] || 0) + order.total_price;
           return acc;
@@ -66,9 +69,9 @@ const AdminDashboard = () => {
         setRevenueData(chartData);
 
         // Calculate today's stats
-        const todayStr = today.toISOString().split('T')[0];
+        const todayStr = new Date().toISOString().split('T')[0];
         const todayRevenue = dailyRevenue[todayStr] || 0;
-        const weeklyOrderCount = (weeklyOrders || []).length;
+        const weeklyOrderCount = (revenueData || []).length;
 
         setStats({
           todayRevenue,
@@ -87,11 +90,15 @@ const AdminDashboard = () => {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [dateRange]);
 
   return (
     <AdminLayout title="Dashboard">
       <div className="space-y-6">
+        <div className="flex justify-end">
+          <DateRangePicker onRangeChange={setDateRange} />
+        </div>
+
         <div className="grid gap-4 md:grid-cols-3">
           <StatsCard
             title="Doanh thu hôm nay"
