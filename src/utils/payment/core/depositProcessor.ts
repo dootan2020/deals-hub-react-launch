@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 // Remove unnecessary interface to avoid circular references
@@ -61,19 +60,22 @@ export const processDepositBalance = async (
   try {
     console.log(`Processing deposit balance for deposit ID: ${depositId}`);
     
-    // Remove excessive type assertion for response; check data shape at runtime instead
+    // Use explicit type casting to avoid deep type inference
     const depositResponse = await supabase
       .from('deposits')
       .select('id, user_id, net_amount, status, transaction_id')
       .eq('id', depositId)
-      .maybeSingle();
-      
+      .maybeSingle() as unknown as {
+        data: DepositData | null;
+        error: { message: string } | null;
+      };
+    
     if (depositResponse.error) {
       console.error("Error fetching deposit:", depositResponse.error);
       return { success: false, error: depositResponse.error.message, updated: false };
     }
     
-    const deposit = depositResponse.data as DepositData | null;
+    const deposit = depositResponse.data;
     
     if (!deposit) {
       return { success: false, error: "Deposit not found", updated: false };
