@@ -34,8 +34,10 @@ const SiteSettingsPage = () => {
       .select('value')
       .eq('key', 'ai_model')
       .single()
-      .then(({ data }) => {
-        if (data?.value?.ai_model) setAiModel(data.value.ai_model);
+      .then(({ data, error }) => {
+        if (data?.value && typeof data.value === 'object' && 'ai_model' in data.value) {
+          setAiModel(data.value.ai_model as string);
+        }
       });
   }, [currencySettings, isLoadingSettings]);
 
@@ -63,11 +65,11 @@ const SiteSettingsPage = () => {
       // update hoặc insert nếu chưa có
       const { error: existErr, data: modelSetting } = await supabase
         .from('site_settings')
-        .select('id')
+        .select('*')
         .eq('key', 'ai_model')
         .single();
 
-      if (modelSetting?.id) {
+      if (!existErr && modelSetting) {
         // update
         const { error } = await supabase
           .from('site_settings')
