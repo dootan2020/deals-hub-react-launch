@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +5,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Wallet, Loader2, AlertCircle } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Deposit } from '@/types/deposits';
-import { isRecord } from '@/utils/supabaseHelpers';
+import { isRecord, isDeposit } from '@/utils/supabaseHelpers';
 
 interface DepositHistoryTabProps {
   userId: string;
@@ -21,36 +20,19 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
     const fetchDeposits = async () => {
       setIsLoading(true);
       try {
-        // Using cast to ensure TypeScript knows userId is a valid UUID
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', userId)
+          .eq('user_id', userId as any)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        
-        if (data) {
-          // Explicitly type check and map each property to ensure type safety
+
+        if (data && Array.isArray(data)) {
           const typedDeposits = data
-            .filter(isRecord)
-            .map(item => {
-              // Create a properly typed deposit object
-              return {
-                id: String(item.id || ''),
-                user_id: String(item.user_id || ''),
-                amount: Number(item.amount || 0),
-                net_amount: Number(item.net_amount || 0),
-                payment_method: String(item.payment_method || ''),
-                status: String(item.status || ''),
-                transaction_id: item.transaction_id ? String(item.transaction_id) : null,
-                payer_email: item.payer_email ? String(item.payer_email) : null,
-                payer_id: item.payer_id ? String(item.payer_id) : null,
-                created_at: String(item.created_at || ''),
-                updated_at: String(item.updated_at || ''),
-              } as Deposit;
-            });
-          
+            .filter(isDeposit)
+            .map(item => ({ ...item, id: String(item.id) }));
+
           setDeposits(typedDeposits);
         } else {
           setDeposits([]);

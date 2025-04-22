@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from "react";
 import { Bell, AlertTriangle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { isRecord } from "@/utils/supabaseHelpers";
+import { isRecord, isOrder } from "@/utils/supabaseHelpers";
 
 interface NewOrder {
   id: string;
@@ -33,39 +32,34 @@ export const NotificationBell: React.FC = () => {
   async function fetchNewOrders() {
     setLoading(true);
     setError(null);
-    // 24 hours ago in ISO
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    
+
     try {
       const { data, error: depositsError } = await supabase
         .from("orders")
         .select("id,user_id,created_at,status,external_order_id,total_price")
         .gte("created_at", since)
         .order("created_at", { ascending: false });
-  
+
       if (depositsError) {
         setError("Không thể lấy đơn hàng mới");
         console.error("Error fetching orders:", depositsError);
         setLoading(false);
         return;
       }
-      
+
       if (data && Array.isArray(data)) {
-        // Map and validate each order item
-        const validOrders = data
-          .filter((item): item is Record<string, any> => isRecord(item))
-          .map(item => {
-            // Ensure proper typing for each field
-            return {
-              id: String(item.id || ''),
-              user_id: String(item.user_id || ''),
-              created_at: String(item.created_at || ''),
-              status: String(item.status || ''),
-              external_order_id: item.external_order_id ? String(item.external_order_id) : undefined,
-              total_price: Number(item.total_price || 0)
-            } as NewOrder;
-          });
-        
+        const validOrders: NewOrder[] = data
+          .filter(item => isOrder(item))
+          .map(item => ({
+            id: String(item.id || ''),
+            user_id: String(item.user_id || ''),
+            created_at: String(item.created_at || ''),
+            status: String(item.status || ''),
+            external_order_id: item.external_order_id ? String(item.external_order_id) : undefined,
+            total_price: Number(item.total_price || 0)
+          }));
+
         setOrders(validOrders);
       } else {
         setOrders([]);

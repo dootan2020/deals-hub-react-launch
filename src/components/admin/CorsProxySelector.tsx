@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -66,15 +65,14 @@ export function CorsProxySelector() {
       }
 
       if (proxySettings && isRecord(proxySettings)) {
-        // Safely extract the values with proper type checking
-        const proxyType = typeof proxySettings.proxy_type === 'string' 
-          ? proxySettings.proxy_type as ProxyType 
+        const proxyType = typeof proxySettings.proxy_type === 'string'
+          ? proxySettings.proxy_type as ProxyType
           : 'allorigins';
-          
-        const customUrl = typeof proxySettings.custom_url === 'string' 
-          ? proxySettings.custom_url 
+
+        const customUrl = typeof proxySettings.custom_url === 'string'
+          ? proxySettings.custom_url
           : '';
-        
+
         setSavedConfig({
           type: proxyType,
           url: customUrl || undefined,
@@ -92,16 +90,14 @@ export function CorsProxySelector() {
   const saveProxySettings = async () => {
     setLoading(true);
     try {
-      // Prepare data for insert
-      const proxyData = {
+      const proxyData: any = {
         proxy_type: selectedProxy,
         custom_url: selectedProxy === 'custom' ? customProxyUrl : null,
       };
 
-      // Use explicit type casting for the insert operation
       const { error } = await supabase
         .from('proxy_settings')
-        .insert(proxyData as any);
+        .insert([proxyData]);
 
       if (error) throw error;
 
