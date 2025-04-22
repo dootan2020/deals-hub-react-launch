@@ -27,7 +27,6 @@ import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import DepositPage from "./pages/DepositPage";
 import PayPalDepositPage from "./pages/PayPalDepositPage";
 import DepositHistoryPage from "./pages/DepositHistoryPage";
-import CheckoutPage from "./pages/CheckoutPage";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -164,11 +163,6 @@ const App = () => {
                 <Route path="/product/:productSlug" element={<ProductPage />} />
                 <Route path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />
                 <Route path="/products" element={<ProductsPage />} />
-                <Route path="/checkout/:slug" element={
-                  <ProtectedRoute>
-                    <CheckoutPage />
-                  </ProtectedRoute>
-                } />
                 
                 {/* Static pages with SEO-friendly URLs */}
                 <Route path="/page/support" element={<SupportPage />} />
