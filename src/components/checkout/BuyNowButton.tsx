@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { ShoppingBag, Loader2 } from 'lucide-react';
 import { usePurchaseDialog } from '@/hooks/use-purchase-dialog';
 import PurchaseConfirmDialog from './PurchaseConfirmDialog';
-import { ensureProductFields } from '@/utils/productUtils';
 import { Product } from '@/types';
 
 interface BuyNowButtonProps {
@@ -47,28 +46,19 @@ export const BuyNowButton: React.FC<BuyNowButtonProps> = ({
 
   // Handle button click - open dialog
   const handleClick = () => {
-    // Make sure we have a complete product object
     // If product is directly provided, use it. Otherwise construct minimal product
     if (product) {
       // Use the provided product directly
       openDialog(product);
     } else {
-      // Construct a minimal product with all required fields
+      // Construct a minimal product with required fields based on our updated type
       const minimalProduct: Product = {
         id: productId || '',
         kiosk_token: kioskToken || '',
         title: 'Product',
         price: 0,
-        stockQuantity: 10,
-        description: '',
-        images: [],
-        categoryId: '',
-        rating: 0,
-        reviewCount: 0,
-        badges: [],
-        features: [],
-        slug: '',
         inStock: true,
+        slug: '',
         createdAt: new Date().toISOString(),
         stock: 0,
         specifications: {}

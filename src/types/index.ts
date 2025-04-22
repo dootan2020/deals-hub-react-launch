@@ -1,33 +1,17 @@
+
 import { TableHTMLAttributes } from 'react';
 
 export interface Product {
   id: string;
   title: string;
-  description: string;
-  shortDescription?: string;
   price: number;
-  originalPrice?: number;
-  images: string[];
-  categoryId: string;
-  categories?: {
-    id: string;
-    name: string;
-    slug: string;
-    [key: string]: any;
-  };
-  rating: number;
-  reviewCount: number;
-  inStock: boolean;
-  stockQuantity: number;
-  badges: string[];
-  slug: string;
-  features: string[];
-  specifications: Record<string, string | number | boolean | object>;
-  salesCount?: number;
-  sales_count?: number;
-  createdAt: string;
   kiosk_token: string;
   stock: number;
+  inStock: boolean;
+  slug: string;
+  createdAt: string;
+  // Remove fields not in actual schema: images, categoryId, rating, etc.
+  specifications: Record<string, string | number | boolean | object>;
 }
 
 export interface Category {

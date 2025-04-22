@@ -11,12 +11,12 @@ export const createTransactionRecord = async (
   transactionId?: string | null
 ): Promise<boolean> => {
   try {
-    // Tìm giao dịch hiện có mà không sử dụng kiểu dữ liệu cụ thể
+    // Check if a transaction with the given reference_id already exists
     const { data, error } = await supabase
       .from('transactions')
       .select('id')
       .eq('reference_id', depositId)
-      .single();
+      .maybeSingle();
       
     if (error) {
       console.error("Error checking for existing transaction:", error);
@@ -63,7 +63,7 @@ export const processDepositBalance = async (
       .from('deposits')
       .select('id, user_id, net_amount, status, transaction_id')
       .eq('id', depositId)
-      .single();
+      .maybeSingle();
       
     if (error) {
       console.error("Error fetching deposit:", error);
@@ -100,7 +100,6 @@ export const processDepositBalance = async (
     if (deposit.status === 'completed' || deposit.transaction_id) {
       console.log(`Calling update_user_balance for user ${deposit.user_id} with amount ${deposit.net_amount}`);
       
-      // Gọi RPC mà không cần chỉ định kiểu dữ liệu
       const { data, error: balanceError } = await supabase.rpc('update_user_balance', {
         user_id_param: deposit.user_id,
         amount_param: deposit.net_amount
