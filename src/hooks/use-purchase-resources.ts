@@ -102,6 +102,7 @@ export function usePurchaseResources({
     return balance >= stockInfo.price && (stockInfo.stock || 0) > 0;
   }, [balance, stockInfo]);
 
+  // Pre-compute values to avoid redundant calculations
   const stockQty = stockInfo?.stock || 0;
   const stockPrice = stockInfo?.price || 0;
 

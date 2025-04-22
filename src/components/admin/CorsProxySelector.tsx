@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { ProxyType, ProxySettings } from '@/utils/proxyUtils';
+import { isRecord } from '@/utils/supabaseHelpers';
 
 export type { ProxyType } from '@/utils/proxyUtils';
 
@@ -64,26 +65,22 @@ export function CorsProxySelector() {
         return;
       }
 
-      if (proxySettings) {
-        // Properly type-check the data
-        if (typeof proxySettings === 'object' && proxySettings !== null) {
-          const settings = proxySettings as Record<string, any>;
-          // Safely extract the values
-          const proxyType = typeof settings.proxy_type === 'string' 
-            ? settings.proxy_type as ProxyType 
-            : 'allorigins';
-            
-          const customUrl = typeof settings.custom_url === 'string' 
-            ? settings.custom_url 
-            : '';
+      if (proxySettings && isRecord(proxySettings)) {
+        // Safely extract the values with proper type checking
+        const proxyType = typeof proxySettings.proxy_type === 'string' 
+          ? proxySettings.proxy_type as ProxyType 
+          : 'allorigins';
           
-          setSavedConfig({
-            type: proxyType,
-            url: customUrl || undefined,
-          });
-          setSelectedProxy(proxyType);
-          setCustomProxyUrl(customUrl || '');
-        }
+        const customUrl = typeof proxySettings.custom_url === 'string' 
+          ? proxySettings.custom_url 
+          : '';
+        
+        setSavedConfig({
+          type: proxyType,
+          url: customUrl || undefined,
+        });
+        setSelectedProxy(proxyType);
+        setCustomProxyUrl(customUrl || '');
       }
     } catch (error) {
       console.error('Error fetching proxy settings:', error);
@@ -95,18 +92,16 @@ export function CorsProxySelector() {
   const saveProxySettings = async () => {
     setLoading(true);
     try {
-      // Prepare data for insert with proper typing
-      const proxyData: {
-        proxy_type: ProxyType;
-        custom_url: string | null;
-      } = {
+      // Prepare data for insert
+      const proxyData = {
         proxy_type: selectedProxy,
         custom_url: selectedProxy === 'custom' ? customProxyUrl : null,
       };
 
+      // Use explicit type casting for the insert operation
       const { error } = await supabase
         .from('proxy_settings')
-        .insert(proxyData);
+        .insert(proxyData as any);
 
       if (error) throw error;
 

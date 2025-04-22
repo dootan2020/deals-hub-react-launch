@@ -4,6 +4,7 @@ import { Bell, AlertTriangle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { isRecord } from "@/utils/supabaseHelpers";
 
 interface NewOrder {
   id: string;
@@ -52,10 +53,7 @@ export const NotificationBell: React.FC = () => {
       if (data && Array.isArray(data)) {
         // Map and validate each order item
         const validOrders = data
-          .filter((item): item is Record<string, any> => (
-            item !== null && 
-            typeof item === 'object'
-          ))
+          .filter((item): item is Record<string, any> => isRecord(item))
           .map(item => {
             // Ensure proper typing for each field
             return {

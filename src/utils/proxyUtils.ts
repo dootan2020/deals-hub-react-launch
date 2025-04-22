@@ -1,7 +1,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { isRecord } from './supabaseHelpers';
 
-export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom' | 'yproxy';
+export type ProxyType = 'allorigins' | 'corsproxy' | 'cors-anywhere' | 'direct' | 'custom';
 
 export interface ProxyConfig {
   type: ProxyType;
@@ -9,13 +10,13 @@ export interface ProxyConfig {
 }
 
 export interface ProxySettings {
-  proxy_type: ProxyType;
-  custom_url: string | null;
-  id: string;
+  proxyUrl: string;
+  appendMode: 'prefix' | 'suffix' | 'path';
 }
 
 /**
- * Fetches the current proxy settings from the database
+ * Fetch the current proxy settings from the database
+ * @returns Promise<ProxyConfig> the proxy configuration
  */
 export async function fetchProxySettings(): Promise<ProxyConfig> {
   try {
@@ -26,95 +27,115 @@ export async function fetchProxySettings(): Promise<ProxyConfig> {
       .limit(1)
       .maybeSingle();
 
-    if (error) {
-      console.error('Error fetching proxy settings:', error);
-      return { type: 'allorigins' };
-    }
+    if (error) throw error;
 
-    if (data) {
-      // Cast data to ProxySettings to ensure it has the expected shape
-      const settings = data as ProxySettings;
+    if (data && isRecord(data)) {
+      const proxyType = typeof data.proxy_type === 'string' 
+        ? data.proxy_type as ProxyType 
+        : 'allorigins';
+
+      const customUrl = typeof data.custom_url === 'string' 
+        ? data.custom_url 
+        : undefined;
+
       return {
-        type: (settings.proxy_type as ProxyType) || 'allorigins',
-        url: settings.custom_url || undefined
+        type: proxyType,
+        url: customUrl
       };
     }
 
+    // Return default if no configuration is found
     return { type: 'allorigins' };
-  } catch (err) {
-    console.error('Failed to fetch proxy settings:', err);
-    return { type: 'allorigins' };
+  } catch (error) {
+    console.error('Error fetching proxy settings:', error);
+    return { type: 'allorigins' }; // Default to allorigins on error
   }
 }
 
 /**
- * Applies the appropriate proxy to the given URL
+ * Create a proxy URL based on the specified proxy type and target URL
+ * @param targetUrl The URL to proxy
+ * @param proxyConfig The proxy configuration
+ * @returns The proxied URL
  */
-export function applyProxy(url: string, proxyConfig: ProxyConfig): string {
+export function createProxyUrl(targetUrl: string, proxyConfig: ProxyConfig): string {
   switch (proxyConfig.type) {
     case 'allorigins':
-      return `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      return `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+    
     case 'corsproxy':
-      return `https://corsproxy.io/?${encodeURIComponent(url)}`;
+      return `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+      
     case 'cors-anywhere':
-      return `https://cors-anywhere.herokuapp.com/${url}`;
-    case 'yproxy':
-      return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+      return `https://cors-anywhere.herokuapp.com/${targetUrl}`;
+      
     case 'custom':
-      return proxyConfig.url ? `${proxyConfig.url}${encodeURIComponent(url)}` : url;
+      if (proxyConfig.url) {
+        return `${proxyConfig.url}${encodeURIComponent(targetUrl)}`;
+      }
+      // Fallback to allorigins if custom URL is missing
+      return `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+      
     case 'direct':
-      return url;
+      return targetUrl;
+      
     default:
-      return `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      // Default to allorigins
+      return `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
   }
 }
 
 /**
- * Process API response based on the proxy used
+ * Process a response from a proxied request based on the proxy type
+ * @param response The response from the proxied request
+ * @param proxyType The type of proxy used
+ * @returns The processed response content
  */
-export function processProxyResponse(response: any, proxyConfig: ProxyConfig): any {
-  if (proxyConfig.type === 'allorigins' && response?.contents) {
-    try {
-      return JSON.parse(response.contents);
-    } catch (e) {
-      console.error('Error parsing AllOrigins response:', e);
-      return response.contents;
-    }
-  }
+export async function processProxyResponse(response: Response, proxyType: ProxyType): Promise<any> {
+  const contentType = response.headers.get('content-type');
+  const isJson = contentType?.includes('application/json');
   
-  return response;
-}
-
-/**
- * Fetch data via a proxy
- */
-export async function fetchViaProxy(url: string, proxyConfig: ProxyConfig): Promise<any> {
   try {
-    const proxiedUrl = applyProxy(url, proxyConfig);
-    const response = await fetch(proxiedUrl);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    switch (proxyType) {
+      case 'allorigins': {
+        const data = await response.json();
+        // AllOrigins returns { contents: string, status: { ... } }
+        if (data?.contents) {
+          try {
+            return JSON.parse(data.contents);
+          } catch (e) {
+            return data.contents;
+          }
+        }
+        return data;
+      }
+      
+      case 'corsproxy':
+      case 'cors-anywhere':
+      case 'direct':
+        return isJson ? await response.json() : await response.text();
+        
+      case 'custom':
+        // Try to detect format and parse appropriately
+        if (isJson) {
+          const data = await response.json();
+          // Check if this might be an allorigins-like response
+          if (data?.contents) {
+            try {
+              return JSON.parse(data.contents);
+            } catch (e) {
+              return data.contents;
+            }
+          }
+          return data;
+        }
+        return await response.text();
+        
+      default:
+        return isJson ? await response.json() : await response.text();
     }
-    
-    const data = await response.json();
-    return processProxyResponse(data, proxyConfig);
   } catch (error) {
-    console.error(`Error fetching via proxy (${proxyConfig.type}):`, error);
-    throw error;
-  }
-}
-
-/**
- * Fetch with fallback to another proxy if the first one fails
- */
-export async function fetchViaProxyWithFallback(url: string, proxyConfig: ProxyConfig): Promise<any> {
-  try {
-    return await fetchViaProxy(url, proxyConfig);
-  } catch (error) {
-    console.warn(`Primary proxy failed, trying fallback...`);
-    // Try with allorigins as fallback
-    const fallbackConfig: ProxyConfig = { type: 'allorigins' };
-    return await fetchViaProxy(url, fallbackConfig);
+    console.error('Error processing proxy response:', error);
+    throw new Error('Failed to process proxy response');
   }
 }

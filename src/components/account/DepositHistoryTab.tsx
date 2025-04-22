@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Wallet, Loader2, AlertCircle } from 'lucide-react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Deposit } from '@/types/deposits';
+import { isRecord } from '@/utils/supabaseHelpers';
 
 interface DepositHistoryTabProps {
   userId: string;
@@ -20,7 +21,7 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
     const fetchDeposits = async () => {
       setIsLoading(true);
       try {
-        // Cast userId to UUID type for Supabase query
+        // Using cast to ensure TypeScript knows userId is a valid UUID
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
@@ -31,23 +32,24 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
         
         if (data) {
           // Explicitly type check and map each property to ensure type safety
-          const typedDeposits = data.map(item => {
-            if (!item) return null;
-            
-            return {
-              id: String(item.id || ''),
-              user_id: String(item.user_id || ''),
-              amount: Number(item.amount || 0),
-              net_amount: Number(item.net_amount || 0),
-              payment_method: String(item.payment_method || ''),
-              status: String(item.status || ''),
-              transaction_id: item.transaction_id ? String(item.transaction_id) : null,
-              payer_email: item.payer_email ? String(item.payer_email) : null,
-              payer_id: item.payer_id ? String(item.payer_id) : null,
-              created_at: String(item.created_at || ''),
-              updated_at: String(item.updated_at || ''),
-            } as Deposit;
-          }).filter((deposit): deposit is Deposit => deposit !== null);
+          const typedDeposits = data
+            .filter(isRecord)
+            .map(item => {
+              // Create a properly typed deposit object
+              return {
+                id: String(item.id || ''),
+                user_id: String(item.user_id || ''),
+                amount: Number(item.amount || 0),
+                net_amount: Number(item.net_amount || 0),
+                payment_method: String(item.payment_method || ''),
+                status: String(item.status || ''),
+                transaction_id: item.transaction_id ? String(item.transaction_id) : null,
+                payer_email: item.payer_email ? String(item.payer_email) : null,
+                payer_id: item.payer_id ? String(item.payer_id) : null,
+                created_at: String(item.created_at || ''),
+                updated_at: String(item.updated_at || ''),
+              } as Deposit;
+            });
           
           setDeposits(typedDeposits);
         } else {
