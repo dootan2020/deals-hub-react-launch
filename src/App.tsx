@@ -2,7 +2,6 @@
 import React from 'react';
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BrowserRouter } from "react-router-dom";
 import { CategoriesProvider } from "@/context/CategoriesContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { LanguageProvider } from "@/context/LanguageContext";
@@ -18,13 +17,11 @@ const App = () => {
       <LanguageProvider>
         <AuthProvider>
           <CategoriesProvider>
-            <BrowserRouter>
-              <TooltipProvider>
-                <Toaster />
-                <AppRouter />
-                <AssistantWidget />
-              </TooltipProvider>
-            </BrowserRouter>
+            <TooltipProvider>
+              <Toaster />
+              <AppRouter />
+              <AssistantWidget />
+            </TooltipProvider>
           </CategoriesProvider>
         </AuthProvider>
       </LanguageProvider>
