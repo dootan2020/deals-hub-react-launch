@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Product } from '@/types';
@@ -90,25 +89,21 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
   }, [open]);
 
   const handleQuantityChange = (newQuantity: number) => {
-    // Use product.stock as the primary source for stockQuantity, 
-    // falling back to verifiedStock if available
     const maxQuantity = verifiedStock ?? product?.stock ?? 0;
     const validQuantity = Math.min(Math.max(1, newQuantity), maxQuantity);
     setQuantity(validQuantity);
-    
-    console.log(`Quantity changed: ${validQuantity} (max: ${maxQuantity})`);
   };
 
   const handleSubmit = async () => {
     const maxQuantity = verifiedStock ?? product?.stock ?? 0;
     
     if (quantity < 1) {
-      toast.error("Số lượng không hợp lệ");
+      toast.error("Invalid quantity");
       return;
     }
     
     if (quantity > maxQuantity) {
-      toast.error(`Số lượng không thể vượt quá ${maxQuantity}`);
+      toast.error(`Quantity cannot exceed ${maxQuantity}`);
       return;
     }
 
@@ -117,7 +112,7 @@ export const PurchaseConfirmDialog: React.FC<PurchaseConfirmDialogProps> = ({
       await onConfirm(quantity, promotionCode);
     } catch (error) {
       console.error("Error during purchase confirmation:", error);
-      toast.error("Có lỗi xảy ra khi xác nhận mua hàng");
+      toast.error("An error occurred while confirming purchase");
     } finally {
       setIsSubmitting(false);
     }

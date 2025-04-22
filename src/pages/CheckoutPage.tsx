@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Input } from '@/components/ui/input';
@@ -12,6 +11,7 @@ import { fetchProductBySlug } from '@/services/product/productService';
 import { fetchProductStock } from '@/services/orderService';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ShoppingBag, Tag } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function CheckoutPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -21,14 +21,12 @@ export default function CheckoutPage() {
   const [stockInfo, setStockInfo] = useState<any>(null);
   const [stockLoading, setStockLoading] = useState(false);
   
-  // Fetch product details
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', slug],
     queryFn: () => fetchProductBySlug(slug || ''),
     enabled: !!slug,
   });
 
-  // Handle quantity change
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
     if (value > 0) {
@@ -36,7 +34,6 @@ export default function CheckoutPage() {
     }
   };
   
-  // Check stock information from API
   const checkRealTimeStock = async () => {
     if (!product?.kiosk_token) {
       return;
@@ -54,7 +51,6 @@ export default function CheckoutPage() {
     }
   };
   
-  // Format price in VND
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -69,8 +65,8 @@ export default function CheckoutPage() {
       <Layout>
         <div className="container-custom py-12">
           <div className="animate-pulse space-y-4">
-            <div className="h-8 w-64 bg-gray-200 rounded"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
+            <div className="h-8 w-64 bg-muted rounded"></div>
+            <div className="h-64 bg-muted rounded"></div>
           </div>
         </div>
       </Layout>
@@ -82,14 +78,14 @@ export default function CheckoutPage() {
       <Layout>
         <div className="container-custom py-12">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-red-500">Error Loading Product</h2>
-            <p className="mt-4">Unable to load the product details. Please try again later.</p>
-            <button
+            <h2 className="text-2xl font-bold text-destructive">Error Loading Product</h2>
+            <p className="mt-4 text-muted-foreground">Unable to load the product details. Please try again later.</p>
+            <Button
               onClick={() => navigate('/')}
-              className="mt-6 inline-flex items-center px-4 py-2 border rounded-md shadow-sm text-sm font-medium bg-primary text-white hover:bg-primary-dark"
+              className="mt-6 inline-flex items-center"
             >
               <ArrowLeft className="h-4 w-4 mr-2" /> Go back to home
-            </button>
+            </Button>
           </div>
         </div>
       </Layout>
@@ -99,9 +95,8 @@ export default function CheckoutPage() {
   return (
     <Layout>
       <div className="container-custom py-12">
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Product Summary Column */}
-          <div className="w-full md:w-2/3 space-y-6">
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="w-full lg:w-2/3 space-y-6">
             <div className="flex items-center gap-2 mb-6">
               <button
                 onClick={() => navigate(-1)}
@@ -131,15 +126,15 @@ export default function CheckoutPage() {
                       className="w-24 h-24 object-cover rounded-md border"
                     />
                   ) : (
-                    <div className="w-24 h-24 bg-gray-200 rounded-md flex items-center justify-center">
-                      <ShoppingBag className="h-8 w-8 text-gray-400" />
+                    <div className="w-24 h-24 bg-muted rounded-md flex items-center justify-center">
+                      <ShoppingBag className="h-8 w-8 text-muted-foreground" />
                     </div>
                   )}
                   
                   <div className="flex-1">
                     <h3 className="font-medium text-lg">{product.title}</h3>
                     <p className="text-sm text-muted-foreground line-clamp-2">
-                      {product.shortDescription || product.description.substring(0, 100)}
+                      {product.shortDescription || product.description?.substring(0, 100)}
                     </p>
                     
                     <div className="mt-2 flex items-center gap-2">
@@ -187,28 +182,30 @@ export default function CheckoutPage() {
                   </div>
                 </div>
                 
-                {product.kiosk_token && (
+                {stockInfo && (
                   <>
                     <Separator className="my-4" />
                     
                     <div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">Stock Information</span>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={checkRealTimeStock}
+                          className="text-xs"
                           disabled={stockLoading}
-                          className="text-xs text-primary hover:underline"
                         >
                           {stockLoading ? 'Checking...' : 'Check real-time stock'}
-                        </button>
+                        </Button>
                       </div>
                       
                       {stockInfo ? (
                         <div className="mt-2 p-3 bg-muted rounded-md text-sm">
                           <p className="font-medium">{stockInfo.name}</p>
                           <div className="flex justify-between mt-1">
-                            <span>Còn lại: {stockInfo.stock}</span>
-                            <span>Giá: {stockInfo.price}đ</span>
+                            <span>Available: {stockInfo.stock}</span>
+                            <span>Price: {stockInfo.price}đ</span>
                           </div>
                         </div>
                       ) : (
@@ -232,8 +229,7 @@ export default function CheckoutPage() {
             </Card>
           </div>
           
-          {/* Payment Column */}
-          <div className="w-full md:w-1/3">
+          <div className="w-full lg:w-1/3">
             <Card>
               <CardHeader>
                 <CardTitle>Complete Purchase</CardTitle>
