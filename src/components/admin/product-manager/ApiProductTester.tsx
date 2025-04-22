@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,22 +7,22 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ProxyConfig, fetchViaProxy, isHtmlResponse } from '@/utils/proxyUtils';
-import { extractFromHtml, normalizeProductInfo } from '@/utils/apiUtils';
 import { ApiResponse } from '@/types';
+import { isHtmlResponse, extractFromHtml, normalizeProductInfo } from '@/utils/apiUtils';
+import { ProxyType, ProxyConfig, fetchViaProxyWithFallback } from '@/utils/proxyUtils';
 
 interface ApiProductTesterProps {
   onSelectResult?: (result: ApiResponse) => void;
   initialUrl?: string;
 }
 
-export const ApiProductTester: React.FC<ApiProductTesterProps> = ({ 
+const ApiProductTester = ({ 
   onSelectResult, 
   initialUrl = ''
-}) => {
+}: ApiProductTesterProps) => {
   const [apiUrl, setApiUrl] = useState(initialUrl);
   const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
-  const [jsonResult, setJsonResult] = useState<any>(null);
+  const [jsonResult, setJsonResult] = useState<ApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleApiUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,7 +41,7 @@ export const ApiProductTester: React.FC<ApiProductTesterProps> = ({
     try {
       const config: ProxyConfig = { proxy_type: 'allorigins' };
       
-      const result = await fetchViaProxy(apiUrl, config);
+      const result = await fetchViaProxyWithFallback(apiUrl, config);
       
       let normalizedData: ApiResponse;
 
@@ -60,7 +61,8 @@ export const ApiProductTester: React.FC<ApiProductTesterProps> = ({
       }
     } catch (error: any) {
       console.error('API test error:', error);
-      setApiResponse({ success: 'false', error: error.message });
+      const errorResponse: ApiResponse = { success: 'false', error: error.message };
+      setApiResponse(errorResponse);
       toast.error(`API test error: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -68,7 +70,7 @@ export const ApiProductTester: React.FC<ApiProductTesterProps> = ({
   };
 
   const handleSelectResult = () => {
-    if (onSelectResult && apiResponse) {
+    if (apiResponse && onSelectResult) {
       onSelectResult(apiResponse);
     }
   };
@@ -84,7 +86,6 @@ export const ApiProductTester: React.FC<ApiProductTesterProps> = ({
               id="apiUrl"
               value={apiUrl}
               onChange={handleApiUrlChange}
-              placeholder="Enter API URL"
             />
           </div>
           <Button onClick={handleTestApi} disabled={isLoading}>

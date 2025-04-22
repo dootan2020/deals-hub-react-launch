@@ -73,3 +73,24 @@ export interface ApiResponse {
   error?: string;
   [key: string]: any;
 }
+
+// Define the SortOption type for product sorting
+export type SortOption = 'newest' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc' | 'popular' | 'price-low' | 'price-high';
+
+// Define other types needed in the application
+export interface ProductWithCategory extends Product {
+  category: Category;
+}
+
+export interface FilterParams {
+  sort: SortOption;
+  category?: string;
+  categoryId?: string;
+  search?: string;
+  inStock?: boolean;
+  page?: number;
+  priceMin?: number;
+  priceMax?: number;
+  subcategories?: string[];
+  limit?: number;
+}

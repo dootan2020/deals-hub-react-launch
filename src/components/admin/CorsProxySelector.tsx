@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ProxyType, ProxySettings } from '@/utils/proxyUtils';
-import { prepareInsert } from '@/utils/supabaseHelpers';
+import { prepareInsert, castData } from '@/utils/supabaseHelpers';
 
 export const CorsProxySelector = () => {
   const [proxyType, setProxyType] = useState<ProxyType>('allorigins');
@@ -37,9 +38,11 @@ export const CorsProxySelector = () => {
       }
       
       if (data) {
-        setSettings(data as ProxySettings);
-        setProxyType(data.proxy_type as ProxyType);
-        setCustomUrl(data.custom_url || '');
+        // Use castData to safely cast to ProxySettings
+        const safeData = castData<ProxySettings>(data);
+        setSettings(safeData);
+        setProxyType(safeData.proxy_type as ProxyType);
+        setCustomUrl(safeData.custom_url || '');
       }
     } catch (error) {
       console.error("Error loading proxy settings:", error);
@@ -51,10 +54,10 @@ export const CorsProxySelector = () => {
     setIsSaving(true);
     
     try {
-      const proxyData = prepareInsert({
+      const proxyData = {
         proxy_type: proxyType,
         custom_url: proxyType === 'custom' ? customUrl : null
-      });
+      };
       
       if (settings?.id) {
         // Update existing settings
@@ -68,7 +71,7 @@ export const CorsProxySelector = () => {
         // Insert new settings
         const { error } = await supabase
           .from('proxy_settings')
-          .insert([proxyData]);
+          .insert(proxyData);
           
         if (error) throw error;
       }
@@ -83,6 +86,10 @@ export const CorsProxySelector = () => {
     }
   };
 
+  const handleProxyTypeChange = (value: string) => {
+    setProxyType(value as ProxyType);
+  };
+
   return (
     <div className="mt-8">
       <h2 className="text-xl font-semibold mb-4">CORS Proxy Selector</h2>
@@ -91,7 +98,7 @@ export const CorsProxySelector = () => {
           <div className="grid gap-4">
             <div>
               <Label htmlFor="proxyType">Proxy Type</Label>
-              <RadioGroup defaultValue={proxyType} onValueChange={setProxyType} className="pt-2">
+              <RadioGroup value={proxyType} onValueChange={handleProxyTypeChange} className="pt-2">
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="allorigins" id="r1" />
                   <Label htmlFor="r1">AllOrigins</Label>

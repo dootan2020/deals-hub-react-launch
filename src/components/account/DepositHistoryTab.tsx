@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
@@ -21,16 +20,14 @@ const DepositHistoryTab = ({ userId }: DepositHistoryTabProps) => {
     const fetchDeposits = async () => {
       setIsLoading(true);
       try {
-        // Use our helper function to avoid TypeScript errors with the userId
         const { data, error } = await supabase
           .from('deposits')
           .select('*')
-          .eq('user_id', prepareQueryId(userId)) // Using helper to handle type mismatch
+          .eq('user_id', userId)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
         
-        // Use castArrayData to safely cast the query result to Deposit[]
         setDeposits(castArrayData<Deposit>(data));
       } catch (error) {
         console.error("Error fetching deposits:", error);

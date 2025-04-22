@@ -80,6 +80,7 @@ export function asDbValue<T>(value: any, fallback: T): T {
 
 /**
  * Prepares a record for insertion into the database with proper typing
+ * Returns a regular object that can be used with Supabase insert
  */
 export function prepareInsert<T extends Record<string, any>>(data: Partial<T>): Record<string, any> {
   return Object.fromEntries(
@@ -89,6 +90,7 @@ export function prepareInsert<T extends Record<string, any>>(data: Partial<T>): 
 
 /**
  * Prepares a record for update in the database with proper typing
+ * Returns a regular object that can be used with Supabase update
  */
 export function prepareUpdate<T extends Record<string, any>>(data: Partial<T>): Record<string, any> {
   return Object.fromEntries(
