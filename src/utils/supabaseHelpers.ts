@@ -75,7 +75,7 @@ export function uuidFilter(id: string | null | undefined): string {
 // Helper to return a safer UUID format for filtering
 export function toFilterableUUID(id: string | null | undefined): string {
   if (!id) return '';
-  return id;
+  return id.toString();
 }
 
 // Helper to safely convert a value to a string
@@ -123,4 +123,19 @@ export function handleSupabaseData<T>(response: { data: any, error: PostgrestErr
   }
   
   return response.data as T;
+}
+
+// Helper to safely use .eq() method with UUID strings
+export function safeEq(query: any, field: string, value: string | null | undefined): any {
+  if (!value) return query;
+  return query.eq(field, toFilterableUUID(value));
+}
+
+// Helper to safely handle data with potential errors
+export function safeDataAccess<T = any>(data: any, fallback: T): T {
+  if (data === null || data === undefined || 
+      (typeof data === 'object' && 'error' in data)) {
+    return fallback;
+  }
+  return data as T;
 }

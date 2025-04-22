@@ -157,4 +157,7 @@ export const ApiProductTester: React.FC<ApiProductTesterProps> = ({
   );
 };
 
+// Export ApiResponse type for use in other components
+export type { ApiResponse };
+
 export default ApiProductTester;

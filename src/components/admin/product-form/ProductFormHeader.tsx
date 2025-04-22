@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { ApiProductTester, ApiResponse } from '@/components/admin/product-manager/ApiProductTester';
+import ApiProductTester from '@/components/admin/product-manager/ApiProductTester';
+import { ApiResponse } from '@/utils/apiUtils';
 
 interface ProductFormHeaderProps {
   onApiDataReceived: (data: ApiResponse) => void;

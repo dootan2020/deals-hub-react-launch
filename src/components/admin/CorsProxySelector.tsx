@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -72,8 +73,8 @@ export function CorsProxySelector() {
           : '';
 
         setSavedConfig({
-          type: proxyType,
-          url: customUrl || undefined,
+          proxyType: proxyType,
+          customUrl: customUrl || undefined,
         });
         setSelectedProxy(proxyType);
         setCustomProxyUrl(customUrl || '');
@@ -100,8 +101,8 @@ export function CorsProxySelector() {
       if (error) throw error;
 
       setSavedConfig({
-        type: selectedProxy,
-        url: selectedProxy === 'custom' ? customProxyUrl : undefined,
+        proxyType: selectedProxy,
+        customUrl: selectedProxy === 'custom' ? customProxyUrl : undefined,
       });
 
       toast.success('CORS proxy settings saved successfully');
@@ -164,9 +165,9 @@ export function CorsProxySelector() {
           <div className="rounded-md bg-muted p-3 mt-2">
             <p className="text-sm font-medium">Current active setting:</p>
             <p className="text-sm text-muted-foreground">
-              {proxyOptions.find(opt => opt.value === savedConfig.type)?.label}
-              {savedConfig.type === 'custom' && savedConfig.url && 
-                ` (${savedConfig.url})`
+              {proxyOptions.find(opt => opt.value === savedConfig.proxyType)?.label}
+              {savedConfig.proxyType === 'custom' && savedConfig.customUrl && 
+                ` (${savedConfig.customUrl})`
               }
             </p>
           </div>

@@ -43,7 +43,8 @@ import {
   safeNumber, 
   isValidRecord,
   toFilterableUUID,
-  isDataResponse
+  isDataResponse,
+  safeDataAccess
 } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
@@ -144,8 +145,8 @@ export function ProductForm({
 
       if (error) throw error;
       
-      if (isDataResponse({ data, error }) && data && isSupabaseRecord(data)) {
-        form.reset({
+      if (isDataResponse({ data, error }) && data) {
+        const safeData = {
           title: safeString(data.title),
           description: safeString(data.description),
           price: safeNumber(data.price),
@@ -157,7 +158,9 @@ export function ProductForm({
           images: Array.isArray(data.images) && data.images.length > 0 ? data.images.join('\n') : '',
           kioskToken: data.kiosk_token ? safeString(data.kiosk_token) : '',
           stock: safeNumber(data.stock),
-        });
+        };
+        
+        form.reset(safeData);
         setFormDirty(false);
       }
     } catch (error) {

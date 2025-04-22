@@ -74,6 +74,17 @@ export interface ProductInfo {
   error?: string;
 }
 
+// Defining ApiResponse interface to ensure consistency
+export interface ApiResponse {
+  success: string;
+  name: string;
+  price: string;
+  stock: string;
+  description?: string;
+  kioskToken?: string;
+  error?: string;
+}
+
 // Normalize product information from API response
 export function normalizeProductInfo(data: any): ProductInfo | null {
   if (!isValidRecord(data)) return null;
@@ -110,16 +121,6 @@ export async function fetchProductInfoViaServerless(kioskToken: string, userToke
   }
 }
 
-export interface ApiResponse {
-  success: string;
-  name: string;
-  price: string;
-  stock: string;
-  description?: string;
-  kioskToken?: string;
-  error?: string;
-}
-
 // Convert ProductInfo to ApiResponse
 export function productInfoToApiResponse(info: ProductInfo): ApiResponse {
   return {
@@ -132,3 +133,6 @@ export function productInfoToApiResponse(info: ProductInfo): ApiResponse {
     error: info.error
   };
 }
+
+// Export the fetchViaProxy function to make it available
+export { fetchViaProxy };
