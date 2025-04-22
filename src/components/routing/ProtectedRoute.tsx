@@ -1,10 +1,10 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { UserRole } from '@/types/auth.types';
 import AuthLoadingScreen from '@/components/auth/AuthLoadingScreen';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ProtectedRouteProps {
@@ -24,9 +24,55 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
   // Debug logging
   useEffect(() => {
     console.log('ProtectedRoute - Path:', location.pathname);
-    console.log('ProtectedRoute - Auth state:', { isAuthenticated, loading, user, userRoles });
+    console.log('ProtectedRoute - Auth state:', { 
+      isAuthenticated, 
+      loading, 
+      user, 
+      userRoles,
+      session: session ? {
+        expires_at: new Date(session.expires_at * 1000).toLocaleString(),
+        token: session.access_token.substring(0, 15) + '...'
+      } : 'No session'
+    });
     console.log('ProtectedRoute - Required roles:', requiredRoles);
-  }, [location.pathname, isAuthenticated, loading, user, userRoles, requiredRoles]);
+  }, [location.pathname, isAuthenticated, loading, user, userRoles, requiredRoles, session]);
+
+  // Create an optimized refresh function
+  const refreshAuth = useCallback(async () => {
+    if (!user?.id || isRefreshing) return;
+    
+    try {
+      setIsRefreshing(true);
+      console.log("ProtectedRoute - Refreshing auth data");
+      
+      // First try to refresh the session if needed
+      if (session?.expires_at) {
+        const now = Math.floor(Date.now() / 1000);
+        // If token expires in less than 5 minutes, refresh it
+        if (session.expires_at - now < 300) {
+          console.log("Token expiring soon, refreshing session");
+          const { data, error } = await supabase.auth.refreshSession();
+          if (error) {
+            console.error("Session refresh failed:", error);
+            throw error;
+          } else {
+            console.log("Session refreshed successfully");
+          }
+        }
+      }
+      
+      // Then refresh user profile with updated session
+      await refreshUserProfile();
+      setHasTriedRefresh(true);
+      console.log("Profile refreshed successfully in ProtectedRoute");
+      
+    } catch (err) {
+      console.error("Failed to refresh auth in ProtectedRoute:", err);
+      setHasTriedRefresh(true);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [user?.id, isRefreshing, session?.expires_at, refreshUserProfile]);
 
   // Handle timeout logic (fallback for stuck loading)
   useEffect(() => {
@@ -86,31 +132,13 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
     }
   }, [sessionInvalid, isRefreshing, logout, navigate, location, refreshUserProfile]);
 
-  // Try to refresh roles if we're authenticated but missing needed roles
+  // Initial role check and refresh on mount
   useEffect(() => {
-    if (isAuthenticated && user && requiredRoles.length > 0 && !hasTriedRefresh && !isRefreshing) {
-      const hasRequiredRole = requiredRoles.length === 0 || 
-                             requiredRoles.some(role => userRoles.includes(role));
-
-      if (!hasRequiredRole) {
-        console.log("Missing required roles, attempting to refresh user profile");
-        setIsRefreshing(true);
-        refreshUserProfile()
-          .then(() => {
-            console.log("Profile refreshed, new roles:", userRoles);
-            setHasTriedRefresh(true);
-          })
-          .catch(err => {
-            console.error("Error refreshing profile for role check:", err);
-            setHasTriedRefresh(true);
-          })
-          .finally(() => {
-            setIsRefreshing(false);
-          });
-      }
+    if (isAuthenticated && user && !isRefreshing && !hasTriedRefresh) {
+      refreshAuth();
     }
-  }, [isAuthenticated, user, requiredRoles, userRoles, refreshUserProfile, hasTriedRefresh, isRefreshing]);
-
+  }, [isAuthenticated, user, isRefreshing, hasTriedRefresh, refreshAuth]);
+  
   if (authTimeout) {
     return <Navigate to="/login" state={{ from: location, authError: 'timeout' }} replace />;
   }

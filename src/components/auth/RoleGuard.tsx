@@ -2,9 +2,9 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { UserRole } from '@/types/auth.types';
 import { useAuth } from '@/context/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import AuthLoadingScreen from '@/components/auth/AuthLoadingScreen';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 interface RoleGuardProps {
   children: ReactNode;
@@ -22,6 +22,7 @@ export const RoleGuard = ({
   fallback 
 }: RoleGuardProps) => {
   const { userRoles, isAuthenticated, refreshUserProfile, loading, user } = useAuth();
+  const location = useLocation();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
   
@@ -46,7 +47,9 @@ export const RoleGuard = ({
         })
         .catch(err => {
           console.error('Error refreshing profile in RoleGuard:', err);
-          toast.error("Không thể cập nhật thông tin quyền hạn");
+          toast.error("Không thể cập nhật thông tin quyền hạn", {
+            description: "Vui lòng thử tải lại trang"
+          });
           setHasTriedRefresh(true);
         })
         .finally(() => {
@@ -70,6 +73,7 @@ export const RoleGuard = ({
 
   if (!hasRequiredRole) {
     console.error(`Access denied - User has roles: [${userRoles.join(', ')}] but needs one of: [${requiredRoles.join(', ')}]`);
+    console.log('Redirecting to unauthorized page');
     return fallback ? <>{fallback}</> : <Navigate to="/unauthorized" replace />;
   }
 

@@ -19,7 +19,7 @@ if (typeof globalThis !== 'undefined') {
 const SUPABASE_URL = "https://xcpwyvrlutlslgaueokd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjcHd5dnJsdXRsc2xnYXVlb2tkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTMwMDAsImV4cCI6MjA2MDMyOTAwMH0.6uScHil1Q02Mz-x6p_GQui7vchxIYLRcOCd8UsNiOp0";
 
-// Configure client with explicit auth settings
+// Configure client with explicit auth settings and improved realtime settings
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
   SUPABASE_PUBLISHABLE_KEY,
@@ -33,11 +33,24 @@ export const supabase = createClient<Database>(
     realtime: {
       params: {
         eventsPerSecond: 10
-      }
+      },
+      // Add more reliable reconnection parameters
+      heartbeatIntervalMs: 15000,
+      reconnectAttempts: 5,
+      reconnectIntervalMs: 3000,
     },
     global: {
       headers: {
-        'X-Client-Info': 'Digital Deals Hub Admin'
+        'X-Client-Info': 'Digital Deals Hub Admin',
+        'Content-Type': 'application/json'
+      },
+      // Add fetch options to avoid CORS issues
+      fetch: (url, options) => {
+        if (options) {
+          options.cache = 'no-cache';
+          options.credentials = 'same-origin';
+        }
+        return fetch(url, options);
       }
     }
   }
@@ -46,5 +59,10 @@ export const supabase = createClient<Database>(
 // Add debugging listener for auth state changes
 supabase.auth.onAuthStateChange((event, session) => {
   console.log('Supabase Auth State Change:', event, session?.user?.id);
+  
+  // Refresh session token if login or token refresh
+  if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+    console.log('Refreshing session and access rights...');
+    // We'll rely on the refresh functions in context to handle the proper updates
+  }
 });
-

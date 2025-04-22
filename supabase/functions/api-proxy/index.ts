@@ -3,7 +3,9 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, accept',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 }
 
 serve(async (req) => {
@@ -68,15 +70,18 @@ serve(async (req) => {
     try {
       console.log(`Fetching from: ${apiUrl}`);
       
-      // Make the request directly from the edge function
+      // Make the request directly from the edge function with enhanced headers
       const response = await fetch(apiUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'application/json, text/plain, */*',
           'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
+          'Origin': 'https://taphoammo.net',
+          'Referer': 'https://taphoammo.net/',
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache',
-        }
+        },
+        cache: 'no-store'
       });
       
       // Log the response status
@@ -128,7 +133,7 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Server error:", error);
     return new Response(
       JSON.stringify({ 
