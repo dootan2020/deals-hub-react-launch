@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Category } from '@/types';
-import { prepareQueryId, castData, castArrayData } from '@/utils/supabaseHelpers';
+import { prepareQueryId, castData, castArrayData, prepareDataForInsert } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
@@ -145,8 +145,8 @@ export function EditProductModal({
       
       const { error } = await supabase
         .from('products')
-        .update(productData)
-        .eq('id', productId);
+        .update(prepareDataForInsert(productData))
+        .eq('id', prepareQueryId(productId));
         
       if (error) throw error;
       

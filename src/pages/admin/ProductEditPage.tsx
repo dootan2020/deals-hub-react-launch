@@ -1,4 +1,3 @@
-
 import { useParams } from 'react-router-dom';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { ProductForm } from '@/components/admin/ProductForm';
@@ -7,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, InfoIcon } from 'lucide-react';
+import { prepareQueryId, castData } from '@/utils/supabaseHelpers';
 
 const ProductEditPage = () => {
   const { id } = useParams<{ id: string }>();
