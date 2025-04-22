@@ -1,3 +1,4 @@
+
 import { memo, useCallback, useMemo, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
@@ -5,6 +6,7 @@ import { UserRole } from '@/types/auth.types';
 import { EmailVerificationGate } from './EmailVerificationGate';
 import { RoleChecker } from './roles/RoleChecker';
 import { useRenderCount } from '@/hooks/useRenderCount';
+import { withRenderCount } from '@/components/debug/withRenderCount'; // Thêm import này
 
 const AuthLoadingScreen = memo(() => (
   <div className="flex justify-center items-center h-screen">
@@ -106,3 +108,4 @@ export const ProtectedRoute = memo(({
 ProtectedRoute.displayName = 'ProtectedRoute';
 
 export default withRenderCount(ProtectedRoute, 'ProtectedRoute');
+
