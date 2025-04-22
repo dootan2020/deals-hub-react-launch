@@ -8,9 +8,16 @@ interface AuthLoadingScreenProps {
   onCancel?: () => void;
   message?: string;
   attempts?: number;
+  isWaitingTooLong?: boolean;
 }
 
-const AuthLoadingScreen = ({ onRetry, onCancel, message, attempts = 0 }: AuthLoadingScreenProps) => {
+const AuthLoadingScreen = ({ 
+  onRetry, 
+  onCancel, 
+  message, 
+  attempts = 0,
+  isWaitingTooLong = false
+}: AuthLoadingScreenProps) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background">
       <div className="w-full max-w-md p-8 space-y-6 bg-card rounded-lg shadow-lg">
@@ -20,7 +27,9 @@ const AuthLoadingScreen = ({ onRetry, onCancel, message, attempts = 0 }: AuthLoa
             {message || "Đang xác minh phiên đăng nhập"}
           </h2>
           <p className="text-muted-foreground mb-6">
-            Vui lòng đợi trong khi chúng tôi xác thực tài khoản...
+            {isWaitingTooLong 
+              ? "Quá trình này đang mất nhiều thời gian hơn dự kiến..." 
+              : "Vui lòng đợi trong khi chúng tôi xác thực tài khoản..."}
           </p>
 
           {attempts > 0 && (
@@ -28,6 +37,15 @@ const AuthLoadingScreen = ({ onRetry, onCancel, message, attempts = 0 }: AuthLoa
               <AlertTitle>Kết nối đang gặp vấn đề</AlertTitle>
               <AlertDescription>
                 Đã thử {attempts}/3 lần. {attempts >= 3 ? 'Vui lòng thử lại thủ công.' : 'Đang cố gắng kết nối...'}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {isWaitingTooLong && (
+            <Alert variant="default" className="mb-4">
+              <AlertTitle>Đừng lo lắng</AlertTitle>
+              <AlertDescription>
+                Nếu bạn đã đăng nhập trước đó, hệ thống đang cố gắng khôi phục phiên làm việc của bạn.
               </AlertDescription>
             </Alert>
           )}

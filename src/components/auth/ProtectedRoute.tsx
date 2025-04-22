@@ -14,11 +14,12 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteProps) => {
-  const { isAuthenticated, loading, userRoles, user, session } = useAuth();
+  const { isAuthenticated, loading: authLoading, userRoles, user, session } = useAuth();
   const location = useLocation();
   const [authTimeout, setAuthTimeout] = useState(false);
   const [sessionInvalid, setSessionInvalid] = useState(false);
   const [roleCheckComplete, setRoleCheckComplete] = useState(requiredRoles.length === 0);
+  const [waitingTooLong, setWaitingTooLong] = useState(false);
   
   const {
     refreshing,
@@ -30,30 +31,41 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
 
   // Check if session needs refresh
   useEffect(() => {
-    if (loading) return;
+    if (authLoading) return;
     
     const checkAndRefreshSession = async () => {
       if (!isAuthenticated && !refreshing) {
+        console.log('Session not detected, attempting refresh...');
         await attemptRefresh();
       }
     };
     
     checkAndRefreshSession();
-  }, [loading, isAuthenticated, refreshing, attemptRefresh]);
+  }, [authLoading, isAuthenticated, refreshing, attemptRefresh]);
 
-  // Handle timeouts
+  // Handle timeouts - shorter timeout for better UX
   useEffect(() => {
-    if (!loading) return;
+    if (!authLoading) return;
     
     const timeoutId = setTimeout(() => {
-      if (loading && !isAuthenticated) {
+      if (authLoading && !isAuthenticated) {
+        console.log('Authentication verification taking longer than expected');
+        setWaitingTooLong(true);
+      }
+    }, 3000); // Show additional message after 3 seconds
+
+    const hardTimeoutId = setTimeout(() => {
+      if (authLoading && !isAuthenticated) {
         console.error('Authentication timeout reached');
         setAuthTimeout(true);
       }
-    }, 8000);
+    }, 8000); // Hard timeout after 8 seconds
 
-    return () => clearTimeout(timeoutId);
-  }, [loading, isAuthenticated]);
+    return () => {
+      clearTimeout(timeoutId);
+      clearTimeout(hardTimeoutId);
+    };
+  }, [authLoading, isAuthenticated]);
 
   // Check roles when available
   useEffect(() => {
@@ -73,21 +85,23 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
     }
   }, [user, session]);
 
-  if (authTimeout) {
-    return <Navigate to="/login" state={{ from: location, authError: 'timeout' }} replace />;
-  }
-
   if (sessionInvalid) {
     return <Navigate to="/login" state={{ from: location, authError: 'expired' }} replace />;
   }
 
-  if (loading || refreshing) {
+  if (authTimeout) {
+    return <Navigate to="/login" state={{ from: location, authError: 'timeout' }} replace />;
+  }
+
+  // Show loading screen with appropriate messaging
+  if (authLoading || refreshing) {
     return (
       <AuthLoadingScreen 
         onRetry={showRetry ? handleRetry : undefined}
         onCancel={() => null}
         message={refreshing ? "Đang khôi phục phiên đăng nhập..." : "Đang xác minh phiên đăng nhập..."}
         attempts={attempts}
+        isWaitingTooLong={waitingTooLong}
       />
     );
   }

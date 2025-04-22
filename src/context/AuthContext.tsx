@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
 import { useAuthState } from '@/hooks/use-auth-state';
 import { useAuthActions } from '@/hooks/auth/use-auth-actions';
@@ -54,10 +55,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useSessionMonitor(session, logout);
   useSessionRefresh(session);
 
+  // Initial hydration - happens only once
   useEffect(() => {
     setHydrated(true);
+    console.log('AuthContext hydrated');
   }, []);
 
+  // Handle authentication errors
   useEffect(() => {
     if (authError) {
       console.error('Authentication error:', authError);
@@ -65,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [authError]);
 
+  // Setup balance listener for real-time updates
   useBalanceListener(user?.id, (newBalance) => {
     if (typeof newBalance === 'number') {
       console.log('Balance updated via listener:', newBalance);
@@ -72,6 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
+  // Refresh user balance on demand
   const refreshUserBalance = useCallback(async (): Promise<void> => {
     if (!user?.id) return;
     console.log('Manually refreshing user balance for ID:', user.id);
@@ -86,10 +92,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user?.id, fetchUserBalance, setUserBalance]);
 
+  // Alias for refreshUserBalance
   const refreshBalance = useCallback(async (): Promise<void> => {
     await refreshUserBalance();
   }, [refreshUserBalance]);
 
+  // Refresh full user profile
   const refreshUserProfile = useCallback(async () => {
     if (!user?.id) return;
     console.log('Refreshing full user profile for ID:', user.id);
@@ -103,16 +111,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user?.id, refreshUserData]);
 
+  // Login function
   const login = async (email: string, password: string): Promise<void> => {
     await authLogin(email, password);
   };
 
+  // Role check utility
   const checkUserRole = useCallback((role: UserRole): boolean => {
     return userRoles.includes(role);
   }, [userRoles]);
 
   const isEmailVerified = user?.email_confirmed_at !== null;
 
+  // Memoize context value to prevent unnecessary rerenders
   const contextValue = useMemo(() => ({
     user,
     session,
@@ -138,6 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout, register, checkUserRole, isEmailVerified, resendVerificationEmail
   ]);
 
+  // Don't render until hydrated to avoid SSR/hydration mismatch
   if (!hydrated) {
     return null;
   }

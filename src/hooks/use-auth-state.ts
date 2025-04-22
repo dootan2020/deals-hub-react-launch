@@ -14,6 +14,7 @@ export const useAuthState = () => {
   const [authError, setAuthError] = useState<Error | null>(null);
   const [authInitialized, setAuthInitialized] = useState(false);
   const authListenerRef = useRef<{ data: { subscription: { unsubscribe: () => void } } } | null>(null);
+  const initializationTimeRef = useRef<number>(Date.now());
 
   // Computed properties
   const isAdmin = userRoles.includes('admin');
@@ -78,7 +79,11 @@ export const useAuthState = () => {
       await fetchUserBalance(user.id);
     } catch (error) {
       console.error('Error refreshing user data:', error);
-      toast.error('Không thể cập nhật thông tin người dùng', 'Vui lòng tải lại trang');
+      toast({
+        title: 'Không thể cập nhật thông tin người dùng',
+        description: 'Vui lòng tải lại trang',
+        variant: 'destructive'
+      });
     }
   }, [user?.id, fetchUserRoles, fetchUserBalance]);
 
@@ -86,19 +91,37 @@ export const useAuthState = () => {
   const handleAuthStateChange = useCallback(async (event: string, currentSession: any) => {
     console.debug('Auth state change event:', event);
     
+    // Always update the session state immediately
     setSession(currentSession);
     
     if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
       if (currentSession?.user) {
         console.log('User signed in or token refreshed:', currentSession.user.email);
+        
+        // Update user state immediately to improve perceived performance
         setUser(currentSession.user as User);
         
-        // Only fetch roles and balance if this is an actual sign-in
-        // (not just a page refresh with existing session)
+        // Set loading to false as soon as we have user data
+        setLoading(false);
+        
+        // Fetch additional user data in the background without blocking UI
         if (event === 'SIGNED_IN' || !authInitialized) {
-          const roles = await fetchUserRoles(currentSession.user.id);
-          setUserRoles(roles);
-          await fetchUserBalance(currentSession.user.id);
+          const start = performance.now();
+          
+          try {
+            // Fetch roles first (higher priority)
+            const roles = await fetchUserRoles(currentSession.user.id);
+            setUserRoles(roles);
+            console.log(`Roles loaded in ${(performance.now() - start).toFixed(1)}ms:`, roles);
+            
+            // Then fetch balance (lower priority)
+            fetchUserBalance(currentSession.user.id)
+              .then(balance => {
+                console.log(`Balance loaded in ${(performance.now() - start).toFixed(1)}ms:`, balance);
+              });
+          } catch (err) {
+            console.error('Error loading user data:', err);
+          }
         }
       }
     } else if (event === 'SIGNED_OUT') {
@@ -107,6 +130,14 @@ export const useAuthState = () => {
       setUserRoles([]);
       setUserBalance(0);
       setSession(null);
+      setLoading(false);
+    } else if (event === 'INITIAL_SESSION') {
+      // For initial session, explicitly set loading to false regardless of result
+      // to unblock the UI as soon as possible
+      const delay = Date.now() - initializationTimeRef.current;
+      console.log(`Initial session check completed in ${delay}ms`, 
+                 currentSession ? 'with session' : 'without session');
+      setLoading(false);
     }
     
     // If this is not initialization and the session changed significantly,
@@ -128,9 +159,13 @@ export const useAuthState = () => {
     const initAuth = async () => {
       try {
         setLoading(true);
+        initializationTimeRef.current = Date.now();
         
         // First set up the auth listener to catch any changes
         authListenerRef.current = supabase.auth.onAuthStateChange(handleAuthStateChange);
+        
+        // Add debug info
+        console.log('Auth listener registered at', new Date().toISOString());
         
         // Then get the initial session
         const { data, error } = await supabase.auth.getSession();
@@ -138,6 +173,7 @@ export const useAuthState = () => {
         if (error) {
           console.error('Error fetching initial session:', error);
           setAuthError(error);
+          setLoading(false); // Don't keep the UI blocked on error
         } else {
           console.log('Initial session check:', data.session ? 'Session found' : 'No session');
           
@@ -149,14 +185,25 @@ export const useAuthState = () => {
       } catch (error: any) {
         console.error('Error in auth initialization:', error);
         setAuthError(error);
+        setLoading(false); // Don't keep the UI blocked on error
+        
         // Show toast for auth initialization error
-        toast.error(
-          'Lỗi khởi tạo xác thực', 
-          'Không thể khởi tạo phiên đăng nhập. Vui lòng tải lại trang.'
-        );
-      } finally {
-        setLoading(false);
+        toast({
+          title: 'Lỗi khởi tạo xác thực',
+          description: 'Không thể khởi tạo phiên đăng nhập. Vui lòng tải lại trang.',
+          variant: 'destructive'
+        });
       }
+      
+      // Failsafe to ensure loading state is cleared
+      const failsafeTimer = setTimeout(() => {
+        if (loading) {
+          console.warn('Auth initialization taking too long, clearing loading state as a failsafe');
+          setLoading(false);
+        }
+      }, 5000);
+      
+      return () => clearTimeout(failsafeTimer);
     };
     
     initAuth();
@@ -169,7 +216,7 @@ export const useAuthState = () => {
         authListenerRef.current = null;
       }
     };
-  }, [handleAuthStateChange]);
+  }, [handleAuthStateChange, loading]);
 
   // Set up a periodic health check for the listener
   useEffect(() => {
