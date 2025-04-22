@@ -1,4 +1,3 @@
-
 import { ReactNode } from 'react';
 
 export type UserRole = 'user' | 'admin' | 'staff' | 'guest';
@@ -52,4 +51,5 @@ export interface AuthContextType {
   resendVerificationEmail: (email: string) => Promise<boolean>;
   isLoadingBalance: boolean;
 }
+
 

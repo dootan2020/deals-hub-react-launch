@@ -1,9 +1,8 @@
-
 import React, { createContext, useContext, useCallback, useMemo, useState, useEffect } from 'react';
 import { useAuthState } from '@/hooks/auth/use-auth-state';
 import { useAuthActions } from '@/hooks/auth/use-auth-actions';
 import { useBalanceListener } from '@/hooks/use-balance-listener';
-import { AuthContextType } from '@/types/auth.types';
+import { AuthContextType, User } from '@/types/auth.types';
 import { toast } from 'sonner';
 import { useSessionTimeout } from '@/hooks/auth/use-session-timeout';
 import { useSessionMonitor } from '@/hooks/auth/use-session-monitor';
@@ -59,7 +58,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useSessionMonitor(session, logout);
   useSessionRefresh(session);
 
-  // Explicitly check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
       console.log('🔍 Session check starting...');
@@ -76,14 +74,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             expiresAt: new Date(data.session.expires_at! * 1000).toLocaleString()
           });
           
-          // Explicitly update user and session state from the found session
-          setUser(data.session.user);
+          const supabaseUser = data.session.user;
+          const appUser = {
+            ...supabaseUser,
+            email: supabaseUser.email || null,
+          } as User;
+          
+          setUser(appUser);
           setSession(data.session);
           
-          // Immediately set hydrated to unblock UI rendering
           setHydrated(true);
           
-          // Load user data in background (roles, balance) without blocking UI
           if (data.session.user.id) {
             refreshUserData().catch(err => {
               console.error('Background user data refresh failed:', err);
@@ -97,7 +98,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } finally {
         console.log('🏁 Session check completed');
         setManualSessionCheck(false);
-        // Set hydrated regardless of result to unblock UI
         setHydrated(true);
       }
     };
@@ -105,7 +105,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkSession();
   }, [refreshUserData, setSession, setUser]);
 
-  // Handle authentication errors
   useEffect(() => {
     if (authError) {
       console.error('Authentication error:', authError);
@@ -113,7 +112,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [authError]);
 
-  // Setup balance listener for real-time updates
   useBalanceListener(user?.id, (newBalance) => {
     if (typeof newBalance === 'number') {
       console.log('Balance updated via listener:', newBalance);
@@ -121,7 +119,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
-  // Refresh user balance on demand
   const refreshUserBalance = useCallback(async (): Promise<void> => {
     if (!user?.id) return;
     console.log('Manually refreshing user balance for ID:', user.id);
@@ -136,12 +133,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user?.id, fetchUserBalance, setUserBalance]);
 
-  // Alias for refreshUserBalance
   const refreshBalance = useCallback(async (): Promise<void> => {
     await refreshUserBalance();
   }, [refreshUserBalance]);
 
-  // Refresh full user profile
   const refreshUserProfile = useCallback(async () => {
     if (!user?.id) return;
     console.log('Refreshing full user profile for ID:', user.id);
@@ -155,12 +150,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user?.id, refreshUserData]);
 
-  // Login function
   const login = async (email: string, password: string): Promise<void> => {
     await authLogin(email, password);
   };
 
-  // Role check utility
   const checkUserRole = useCallback((role: UserRole): boolean => {
     return userRoles.includes(role);
   }, [userRoles]);
@@ -169,12 +162,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAuthenticated = !!user;
 
-  // Memoize context value to prevent unnecessary rerenders
-  // No longer including manualSessionCheck in loading state
   const contextValue = useMemo(() => ({
     user,
     session,
-    loading, // No longer combining with manualSessionCheck
+    loading,
     isAuthenticated,
     isAdmin,
     isStaff,
@@ -196,7 +187,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout, register, checkUserRole, isEmailVerified, resendVerificationEmail, isAuthenticated
   ]);
 
-  // Don't render until hydrated to avoid SSR/hydration mismatch
   if (!hydrated) {
     return (
       <div className="flex justify-center items-center h-screen">
