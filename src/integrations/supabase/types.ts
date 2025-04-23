@@ -730,9 +730,24 @@ export type Database = {
           unlock_time: string
         }[]
       }
+      get_user_avg_purchase: {
+        Args: { user_id_param: string }
+        Returns: {
+          avg_amount: number
+          total_purchases: number
+        }[]
+      }
       get_user_roles: {
         Args: { user_id_param: string }
         Returns: Database["public"]["Enums"]["app_role"][]
+      }
+      get_user_with_roles: {
+        Args: { user_id_param: string }
+        Returns: {
+          id: string
+          email: string
+          roles: Database["public"]["Enums"]["app_role"][]
+        }[]
       }
       insert_category: {
         Args: {
