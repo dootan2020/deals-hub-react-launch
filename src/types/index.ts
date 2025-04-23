@@ -6,52 +6,23 @@ export interface Product {
   slug: string;
   description: string;
   price: number;
-  salePrice?: number | null;
   images: string[];
   category: string;
   categoryId: string;
   stock: number;
   createdAt: string;
   updatedAt: string;
-  tags?: string[];
-  featured?: boolean;
-  status?: 'active' | 'inactive' | 'draft';
-  rating?: number;
-  originalPrice?: number;
-  badges?: string[];
-  inStock?: boolean;
-  kiosk_token?: string;
-  // Adding fields that were causing errors
-  parent_id?: string;
-  shortDescription?: string;
-  reviewCount?: number;
-  stockQuantity?: number;
-  features?: string[];
-  specifications?: Record<string, any>;
-  salesCount?: number;
 }
 
-// User roles - simplified to only Admin and User
+// User roles - CHỈ GIỮ Admin & User
 export enum UserRole {
   Admin = 'Admin',
   User = 'User'
 }
 
-export type UserRoleType = keyof typeof UserRole;
+// Sort options core (có thể tạm thời loại các value không dùng)
+export type SortOption = 'newest' | 'popular' | 'price-asc' | 'price-desc';
 
-// Sort options for product listings
-export type SortOption = 
-  | 'recommended' 
-  | 'newest' 
-  | 'price-asc' 
-  | 'price-desc' 
-  | 'rating' 
-  | 'popularity'
-  | 'popular'
-  | 'price-low'
-  | 'price-high';
-
-// Product view modes
 export type ViewMode = 'grid' | 'list';
 
 // Basic order types
@@ -59,17 +30,9 @@ export interface Order {
   id: string;
   user_id: string;
   status: string;
-  total_amount?: number;
   total_price: number;
   created_at: string;
   updated_at?: string;
-  external_order_id?: string;
-  user?: any;
-  order_items?: OrderItem[];
-  qty?: number;
-  product_id?: string;
-  keys?: any;
-  promotion_code?: string;
 }
 
 export interface OrderItem {
@@ -80,7 +43,7 @@ export interface OrderItem {
   price: number;
 }
 
-// Category type
+// Basic category type
 export interface Category {
   id: string;
   name: string;
@@ -89,37 +52,6 @@ export interface Category {
   image: string;
   count: number;
   parent_id?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-// Added some missing types referenced in the hooks
-export interface FilterParams {
-  sort?: SortOption;
-  category?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  search?: string;
-  page?: number;
-  limit?: number;
-  featured?: boolean;
-  inStock?: boolean;  // Added this field
-}
-
-export interface Recommendation {
-  id: string;
-  title: string;
-  description?: string;
-  products: Product[];
-}
-
-export type RecommendationStrategy = 'popular' | 'recently-viewed' | 'personalized';
-
-export interface ProxyConfig {
-  id: string;
-  proxy_type: string;
-  type?: string; // Added this field
-  custom_url?: string;
   created_at?: string;
   updated_at?: string;
 }
