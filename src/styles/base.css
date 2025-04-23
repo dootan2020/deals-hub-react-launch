@@ -37,10 +37,6 @@
     --sidebar-ring: 162 70% 34%;
   }
 
-  * {
-    @apply border-border;
-  }
-
   body {
     @apply bg-[#FAFAFA] text-foreground font-inter;
   }
