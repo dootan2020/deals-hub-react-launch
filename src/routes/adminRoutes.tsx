@@ -8,7 +8,6 @@ import AdminProducts from "@/pages/admin/AdminProducts";
 import AdminOrders from "@/pages/admin/AdminOrders";
 import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminTransactions from "@/pages/admin/AdminTransactions";
-import UnauthorizedPage from "@/pages/auth/UnauthorizedPage";
 
 // Admin routes with role protection
 export const adminRoutes = (
@@ -63,6 +62,5 @@ export const adminRoutes = (
         </RoleGuard>
       }
     />
-    <Route path="/unauthorized" element={<UnauthorizedPage />} />
   </>
 );

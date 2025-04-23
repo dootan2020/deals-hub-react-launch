@@ -13,6 +13,7 @@ import DashboardPage from './pages/DashboardPage';
 import DepositPage from './pages/DepositPage';
 import NotFound from './pages/NotFound';
 import PayPalDepositPage from './pages/PayPalDepositPage';
+import UnauthorizedPage from './pages/auth/UnauthorizedPage';
 
 // Import admin routes
 import { adminRoutes } from './routes/adminRoutes';
@@ -30,6 +31,7 @@ const App = () => {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/deposit" element={<DepositPage />} />
         <Route path="/deposit/paypal" element={<PayPalDepositPage />} />
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
         
         {/* Admin Routes */}
         {adminRoutes}

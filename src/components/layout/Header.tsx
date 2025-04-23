@@ -2,10 +2,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { User, ShoppingCart, Search, Menu, X } from 'lucide-react';
+import { User, ShoppingCart, Search, Menu, X, LayoutDashboard } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { UserButton } from './header/UserButton';
 
 const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isAdmin } = useAuth();
   
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -30,6 +33,17 @@ const Header: React.FC = () => {
             <Link to="#" className="text-text hover:text-primary font-medium">
               Liên hệ
             </Link>
+            
+            {/* Admin Menu - Only shown for admin users */}
+            {isAdmin && (
+              <Link 
+                to="/admin" 
+                className="text-primary hover:text-primary-dark font-medium flex items-center gap-2"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Quản trị
+              </Link>
+            )}
           </nav>
           
           {/* Actions */}
@@ -40,18 +54,7 @@ const Header: React.FC = () => {
               </Link>
             </Button>
             
-            <Button variant="ghost" asChild>
-              <Link to="/login" className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Đăng nhập
-              </Link>
-            </Button>
-            
-            <Button asChild>
-              <Link to="/register">
-                Đăng ký
-              </Link>
-            </Button>
+            <UserButton />
           </div>
           
           {/* Mobile menu button */}
@@ -99,19 +102,18 @@ const Header: React.FC = () => {
               >
                 Liên hệ
               </Link>
-              <div className="flex flex-col space-y-2 pt-4 border-t">
-                <Button variant="ghost" asChild>
-                  <Link to="/login" className="justify-center">
-                    <User className="h-5 w-5 mr-2" />
-                    Đăng nhập
-                  </Link>
-                </Button>
-                <Button asChild>
-                  <Link to="/register" className="justify-center">
-                    Đăng ký
-                  </Link>
-                </Button>
-              </div>
+              
+              {/* Admin Menu in mobile - Only shown for admin users */}
+              {isAdmin && (
+                <Link 
+                  to="/admin" 
+                  className="text-primary hover:text-primary-dark font-medium px-2 py-1 flex items-center gap-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Quản trị
+                </Link>
+              )}
             </nav>
           </div>
         )}
