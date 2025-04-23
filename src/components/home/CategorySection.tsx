@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Facebook, Brain, Code, Gamepad } from 'lucide-react';
+import { Mail, Facebook, Brain, Code, Gamepad, ArrowRight } from 'lucide-react';
 
 const categories = [
   {
