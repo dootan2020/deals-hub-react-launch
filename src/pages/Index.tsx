@@ -17,7 +17,6 @@ import { SortOption } from '@/types';
 const Index = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Use a valid SortOption value
   const [activeSort, setActiveSort] = useState<SortOption>('newest');
 
   useEffect(() => {
@@ -45,6 +44,10 @@ const Index = () => {
     loadProducts();
   }, [activeSort]);
 
+  const handleSortChange = (value: string) => {
+    setActiveSort(value as SortOption);
+  };
+
   return (
     <Layout>
       <HeroSection />
@@ -59,7 +62,7 @@ const Index = () => {
               description="Check out our most popular digital products available now."
               showSort={true}
               activeSort={activeSort}
-              onSortChange={setActiveSort}
+              onSortChange={handleSortChange}
               isLoading={loading}
               showViewAll={true}
               viewAllLink={`/products?sort=${activeSort}`}

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { CategoryWithParent } from '@/types/category.types';
+import { Category } from '@/types';
 import CategoryBreadcrumbs from './CategoryBreadcrumbs';
 
 interface SubcategoryHeaderProps {
@@ -12,7 +13,7 @@ export const SubcategoryHeader = ({ category, productCount }: SubcategoryHeaderP
   return (
     <div className="mb-8">
       <CategoryBreadcrumbs 
-        breadcrumbs={category.parent ? [category.parent, category] : [category]} 
+        breadcrumbs={category.parent ? [category.parent as unknown as Category, category as unknown as Category] : [category as unknown as Category]} 
       />
       <h1 className="text-3xl font-bold mt-4 mb-2">{category.name}</h1>
       {category.description && (

@@ -7,13 +7,19 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InfoIcon, Package, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useOrders } from '@/hooks/useOrders';
-import { Order } from '@/hooks/orderUtils';
+import { Order } from '@/types';
 import OrdersTable from '@/components/admin/orders/OrdersTable';
 
 const OrdersAdmin = () => {
-  const { orders, loading, fetchOrders, updateOrderStatus, processRefund } = useOrders();
+  const { orders: fetchedOrders, loading, fetchOrders, updateOrderStatus, processRefund } = useOrders();
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState('all');
+
+  // Convert fetched orders to the expected Order type
+  const orders: Order[] = fetchedOrders.map(order => ({
+    ...order,
+    total_price: order.total_price ?? order.total_amount,
+  }));
 
   useEffect(() => {
     filterOrders(activeTab);

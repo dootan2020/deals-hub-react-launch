@@ -45,7 +45,7 @@ export interface FilterParams {
   page?: number;
   perPage?: number;
   isProductsPage?: boolean;
-  categoryId?: string; // Added for compatibility
+  categoryId?: string;
 }
 
 export type SortOption = 'popular' | 'price-low' | 'price-high' | 'newest' | 'recommended';
@@ -60,15 +60,15 @@ export interface Order {
   external_order_id: string | null;
   status: string;
   total_amount: number; // Used instead of total_price for consistency
-  total_price?: number; // For backward compatibility
+  total_price: number; // Changed to required for compatibility with OrdersAdmin
   created_at: string;
   updated_at: string;
   user: any;
   order_items: OrderItem[];
-  qty?: number; // Added to fix Order[] compatibility issues
-  product_id?: string; // Added for compatibility with existing code
-  keys?: any; // Added for compatibility with existing code
-  promotion_code?: string; // Added for compatibility
+  qty?: number;
+  product_id?: string;
+  keys?: any;
+  promotion_code?: string;
 }
 
 export interface OrderItem {
@@ -93,10 +93,10 @@ export interface Recommendation {
 }
 
 // Define RecommendationStrategy to include all possible values
-export type RecommendationStrategy = 'similar' | 'popular' | 'trending' | 'local';
+export type RecommendationStrategy = 'similar' | 'popular' | 'trending' | 'local' | 'openai' | 'claude';
 
 // Update AISource type to match RecommendationStrategy
-export type AISource = RecommendationStrategy;
+export type AISource = 'openai' | 'claude' | 'local' | 'similar' | 'popular' | 'trending';
 
 // Add ProxyConfig type with all needed properties
 export interface ProxyConfig {

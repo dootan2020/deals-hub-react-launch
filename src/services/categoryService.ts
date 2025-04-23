@@ -1,10 +1,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Category } from "@/types";
-
-interface CategoryWithParent extends Category {
-  parent?: CategoryWithParent | null;
-}
+import { adaptCategory, adaptCategories } from "@/utils/dataAdapters";
+import { CategoryWithParent } from "@/types/category.types";
 
 export const fetchAllCategories = async (): Promise<Category[]> => {
   try {
@@ -25,7 +23,7 @@ export const fetchAllCategories = async (): Promise<Category[]> => {
     if (process.env.NODE_ENV === 'development') {
       console.log('Categories fetched:', data?.length);
     }
-    return data || [];
+    return adaptCategories(data || []);
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       console.error('Error fetching categories:', error);
@@ -54,7 +52,7 @@ export const fetchMainCategories = async (): Promise<Category[]> => {
     if (process.env.NODE_ENV === 'development') {
       console.log('Main categories fetched:', data?.length);
     }
-    return data || [];
+    return adaptCategories(data || []);
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       console.error('Error fetching main categories:', error);
@@ -90,7 +88,7 @@ export const fetchSubcategoriesByParentId = async (parentId: string): Promise<Ca
     if (process.env.NODE_ENV === 'development') {
       console.log(`Subcategories fetched for ${parentId}:`, data?.length);
     }
-    return data || [];
+    return adaptCategories(data || []);
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       console.error(`Error fetching subcategories for parent ${parentId}:`, error);
@@ -126,7 +124,7 @@ export const fetchCategoryBySlug = async (slug: string): Promise<Category | null
     if (process.env.NODE_ENV === 'development') {
       console.log(`Category fetch result for ${slug}:`, data ? 'Found' : 'Not found');
     }
-    return data;
+    return data ? adaptCategory(data) : null;
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       console.error(`Error fetching category with slug ${slug}:`, error);
@@ -156,8 +154,8 @@ export const fetchCategoryWithChildren = async (categoryId: string): Promise<{ca
     if (subError) throw subError;
     
     return { 
-      category, 
-      subcategories: subcategories || [] 
+      category: category ? adaptCategory(category) : null, 
+      subcategories: adaptCategories(subcategories || [])
     };
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
@@ -189,10 +187,15 @@ export const fetchCategoryHierarchy = async (slug?: string): Promise<CategoryWit
         .eq('id', category.parent_id)
         .maybeSingle();
         
-      return { ...category, parent: parent || null };
+      const adaptedCategory = adaptCategory(category) as unknown as CategoryWithParent;
+      if (parent) {
+        adaptedCategory.parent = adaptCategory(parent) as unknown as CategoryWithParent;
+      }
+      
+      return adaptedCategory;
     }
     
-    return category as CategoryWithParent;
+    return adaptCategory(category) as unknown as CategoryWithParent;
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       console.error(`Error fetching category hierarchy for slug ${slug}:`, error);

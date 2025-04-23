@@ -1,11 +1,11 @@
 
 import { Category } from '@/types';
 
-export interface CategoryWithParent extends Category {
+export interface CategoryWithParent extends Omit<Category, 'parentId'> {
   parent?: CategoryWithParent;
   created_at?: string;
-  parentId?: string; // Added for compatibility with Category
-  parent_id?: string; // Added for compatibility with database
+  parentId?: string; // Made optional for compatibility
+  parent_id?: string; // For compatibility with database
   icon?: string;
   tags?: string[];
 }

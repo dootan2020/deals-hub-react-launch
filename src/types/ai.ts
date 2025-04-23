@@ -1,4 +1,6 @@
 
+import { RecommendationStrategy } from '@/types';
+
 /**
  * Available AI source engines for chatbot/recommendation features
  * Aligned with RecommendationStrategy for compatibility

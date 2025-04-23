@@ -16,7 +16,7 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
   
   // Helper to safely cast string to SortOption
   const getSortOption = (value: string | null): SortOption => {
-    const validOptions: SortOption[] = ['popular', 'price-low', 'price-high', 'newest'];
+    const validOptions: SortOption[] = ['popular', 'price-low', 'price-high', 'newest', 'recommended'];
     return value && validOptions.includes(value as SortOption) 
       ? value as SortOption 
       : initialFilters?.sort || 'popular';
@@ -134,7 +134,6 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
     maxPrice: filters.priceRange[1],
     inStock: filters.stockFilter === 'in-stock' ? true : undefined,
     category: filters.activeSubcategories.length > 0 ? filters.activeSubcategories[0] : undefined,
-    // Use category instead of categoryId to match FilterParams interface
   });
 
   return {

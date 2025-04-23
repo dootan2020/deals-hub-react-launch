@@ -24,7 +24,16 @@ export function useCategoryData(options: UseCategoryDataOptions) {
     error: categoryError
   } = useCategory({ categorySlug, parentCategorySlug });
   
-  // Get products for this category using the options object format
+  // Get products for this category
+  const productOptions: UseCategoryProductsOptions = {
+    categorySlug,
+    filterParams: {
+      sort
+    },
+    limit: 10,
+    page: 1
+  };
+  
   const {
     products, 
     childCategories: subcategories,
@@ -35,14 +44,7 @@ export function useCategoryData(options: UseCategoryDataOptions) {
     refresh,
     handleSortChange: handleSortChangeFromProducts,
     sort: sortFromProducts
-  } = useCategoryProducts({
-    categorySlug,
-    filterParams: {
-      sort
-    },
-    limit: 10,
-    page: 1
-  } as UseCategoryProductsOptions);
+  } = useCategoryProducts(productOptions);
   
   // Handle additional loading state when fetching more
   const loadMore = async () => {

@@ -15,7 +15,7 @@ import { useProductRecommendations } from '@/hooks/useProductRecommendations';
 import { ProductRecommendations } from '@/components/product/ProductRecommendations';
 import { useAuth } from '@/context/AuthContext';
 import { usePersonalizedRecommendations } from '@/hooks/usePersonalizedRecommendations';
-import { AISource } from '@/types';
+import { AISource, RecommendationStrategy } from '@/types';
 
 const ProductPage = () => {
   const { productSlug } = useParams();
@@ -27,13 +27,13 @@ const ProductPage = () => {
     recommendations,
     loading: recLoading,
     error: recError
-  } = useProductRecommendations(product, aiSource);
+  } = useProductRecommendations(product, aiSource as unknown as RecommendationStrategy);
 
   const {
     recommendations: personalizedRecs,
     loading: persLoading,
     error: persError
-  } = usePersonalizedRecommendations(user?.id || null, product, aiSource);
+  } = usePersonalizedRecommendations(user?.id || null, product, aiSource as unknown as RecommendationStrategy);
 
   if (loading) {
     return (
