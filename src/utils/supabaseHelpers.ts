@@ -139,3 +139,17 @@ export function safeDataAccess<T = any>(data: any, fallback: T): T {
   }
   return data as T;
 }
+
+// Helper for safely typing Supabase queries
+export function processSupabaseData<T>(result: { data: any, error: PostgrestError | null }): T | null {
+  if (result.error) {
+    console.error('Supabase query error:', result.error);
+    return null;
+  }
+  return result.data as T;
+}
+
+// Determine if result is an error
+export function isSupabaseError(result: any): boolean {
+  return result && typeof result === 'object' && 'error' in result && result.error !== null;
+}

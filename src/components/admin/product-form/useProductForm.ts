@@ -20,7 +20,9 @@ import {
   safeUUID, 
   uuidFilter,
   toFilterableUUID,
-  handleSupabaseData
+  handleSupabaseData,
+  isSupabaseError,
+  processSupabaseData
 } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
@@ -143,15 +145,21 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
     if (!productId) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // Use maybeSingle instead of single to avoid errors when no record is found
+      const result = await supabase
         .from('products')
         .select('*')
-        .eq('id', toFilterableUUID(productId))
+        .eq('id', productId)
         .maybeSingle();
 
-      if (error) throw error;
+      // Check if we got an error from Supabase
+      if (result.error) {
+        throw result.error;
+      }
       
-      if (data && isSupabaseRecord<ProductData>(data)) {
+      // Check if we got valid data
+      if (result.data) {
+        const data = result.data as ProductData;
         form.reset({
           title: safeString(data.title),
           description: safeString(data.description),
@@ -168,9 +176,9 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
         setFormDirty(false);
       } else {
         toast.error('No valid product found');
-        return;
       }
     } catch (error) {
+      console.error('Error fetching product details:', error);
       toast.error('Failed to fetch product details');
     } finally {
       setIsLoading(false);

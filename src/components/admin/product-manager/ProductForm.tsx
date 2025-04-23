@@ -42,9 +42,8 @@ import {
   safeString, 
   safeNumber, 
   isValidRecord,
-  toFilterableUUID,
-  isDataResponse,
-  safeDataAccess
+  processSupabaseData,
+  isSupabaseError
 } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
@@ -132,21 +131,40 @@ export function ProductForm({
     }
   }, [onApiDataReceived]);
 
+  interface ProductData {
+    id: string;
+    title: string;
+    description: string;
+    price: number;
+    original_price?: number;
+    in_stock: boolean;
+    slug: string;
+    external_id?: string;
+    category_id: string;
+    images?: string[];
+    kiosk_token?: string;
+    stock: number;
+  }
+
   const fetchProductDetails = async () => {
     if (!productId) return;
     
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      const response = await supabase
         .from('products')
         .select('*')
-        .eq('id', toFilterableUUID(productId))
+        .eq('id', productId)
         .maybeSingle();
 
-      if (error) throw error;
+      if (response.error) {
+        throw response.error;
+      }
       
-      if (isDataResponse({ data, error }) && data) {
-        const safeData = {
+      if (response.data) {
+        const data = response.data as ProductData;
+        
+        form.reset({
           title: safeString(data.title),
           description: safeString(data.description),
           price: safeNumber(data.price),
@@ -158,10 +176,10 @@ export function ProductForm({
           images: Array.isArray(data.images) && data.images.length > 0 ? data.images.join('\n') : '',
           kioskToken: data.kiosk_token ? safeString(data.kiosk_token) : '',
           stock: safeNumber(data.stock),
-        };
-        
-        form.reset(safeData);
+        });
         setFormDirty(false);
+      } else {
+        toast.error('Product not found');
       }
     } catch (error) {
       console.error('Error fetching product details:', error);
@@ -196,14 +214,14 @@ export function ProductForm({
           const { error } = await supabase
             .from('products')
             .update(productData)
-            .eq('id', toFilterableUUID(productId));
+            .eq('id', productId);
 
           if (error) throw error;
           toast.success('Product updated successfully');
         } else {
           const { error } = await supabase
             .from('products')
-            .insert([productData]);
+            .insert(productData);
 
           if (error) throw error;
           toast.success('Product created successfully');

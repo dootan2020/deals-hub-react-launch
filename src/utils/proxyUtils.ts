@@ -1,119 +1,112 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { isValidRecord } from './supabaseHelpers';
+// Define the available proxy types
+export type ProxyType = "allorigins" | "corsproxy" | "corsanywhere" | "direct" | "yproxy";
 
-// Define ProxyType enum
-export type ProxyType = 'allorigins' | 'yproxy' | 'custom' | 'direct';
-
-// Define ProxyConfig interface
+// Define the proxy configuration interface
 export interface ProxyConfig {
   proxyType: ProxyType;
   customUrl?: string;
 }
 
-// Default proxy configuration
-export const DEFAULT_PROXY_CONFIG: ProxyConfig = {
-  proxyType: 'allorigins'
-};
-
-// Function to fetch proxy settings from database
-export async function fetchProxySettings(): Promise<ProxyConfig> {
-  try {
-    const { data, error } = await supabase
-      .from('proxy_settings')
-      .select('*')
-      .single();
-
-    if (error || !data) {
-      console.warn('Failed to fetch proxy settings, using default:', error);
-      return DEFAULT_PROXY_CONFIG;
-    }
-
-    if (!isValidRecord(data) || !data.proxy_type) {
-      return DEFAULT_PROXY_CONFIG;
-    }
-
-    return {
-      proxyType: data.proxy_type as ProxyType,
-      customUrl: data.custom_url
-    };
-  } catch (error) {
-    console.error('Error fetching proxy settings:', error);
-    return DEFAULT_PROXY_CONFIG;
+// Function to build a proxy URL based on the target URL and proxy configuration
+export function buildProxyUrl(targetUrl: string, config: ProxyConfig): string {
+  const encodedUrl = encodeURIComponent(targetUrl);
+  
+  switch (config.proxyType) {
+    case "allorigins":
+      return `https://api.allorigins.win/get?url=${encodedUrl}`;
+    
+    case "corsproxy":
+      return `https://corsproxy.io/?${encodedUrl}`;
+    
+    case "corsanywhere":
+      return `https://cors-anywhere.herokuapp.com/${targetUrl}`;
+    
+    case "yproxy":
+      return `https://yacdn.org/proxy/${targetUrl}`;
+      
+    case "direct":
+      return targetUrl;
+    
+    default:
+      if (config.customUrl) {
+        return config.customUrl.replace('{{url}}', encodedUrl);
+      }
+      // Default to allorigins if no type or custom URL is specified
+      return `https://api.allorigins.win/get?url=${encodedUrl}`;
   }
 }
 
-// Function to use the proxy to fetch data
-export async function fetchViaProxy(url: string, config: ProxyConfig): Promise<any> {
+// Fetch data using the specified proxy configuration
+export async function fetchViaProxy(url: string, config: ProxyConfig) {
   try {
-    switch (config.proxyType) {
-      case 'allorigins':
-        return await fetchViaAllOrigins(url);
-      case 'yproxy':
-        return await fetchViaYProxy(url);
-      case 'custom':
-        return await fetchViaCustomProxy(url, config.customUrl);
-      case 'direct':
-        return await fetchDirect(url);
-      default:
-        return await fetchViaAllOrigins(url);
+    const proxyUrl = buildProxyUrl(url, config);
+    
+    const response = await fetch(proxyUrl);
+    
+    if (!response.ok) {
+      throw new Error(`Proxy request failed with status: ${response.status}`);
+    }
+    
+    const contentType = response.headers.get('content-type') || '';
+    let data;
+    
+    if (contentType.includes('application/json')) {
+      data = await response.json();
+      
+      // Handle AllOrigins specific format
+      if (config.proxyType === 'allorigins' && data.contents) {
+        try {
+          // AllOrigins wraps the actual response in a 'contents' field
+          // which can be a JSON string or HTML content
+          return JSON.parse(data.contents);
+        } catch (e) {
+          // If parsing fails, return the raw contents
+          return { error: 'Failed to parse response contents', raw: data.contents };
+        }
+      }
+      
+      return data;
+    } else {
+      // Handle non-JSON response
+      const textResponse = await response.text();
+      
+      // Try to see if the text is actually JSON
+      try {
+        return JSON.parse(textResponse);
+      } catch (e) {
+        // If parsing fails, return as error
+        return { 
+          error: 'Response is not valid JSON', 
+          raw: textResponse.substring(0, 500) // Limit the length
+        };
+      }
     }
   } catch (error) {
     console.error('Error fetching via proxy:', error);
-    throw error;
+    return {
+      error: `Proxy error: ${(error as Error).message}`,
+      success: 'false'
+    };
   }
 }
 
-// Fetch via allorigins proxy
-async function fetchViaAllOrigins(url: string): Promise<any> {
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-  const response = await fetch(proxyUrl);
-  const data = await response.json();
-  
-  if (data.contents) {
-    try {
-      return JSON.parse(data.contents);
-    } catch (e) {
-      return data.contents;
+// Fetch proxy settings from the database
+export async function fetchProxySettings(): Promise<ProxyConfig> {
+  try {
+    const { data: supabaseData } = await fetch('/api/proxy-settings');
+    if (supabaseData) {
+      return {
+        proxyType: supabaseData.proxy_type as ProxyType || 'allorigins',
+        customUrl: supabaseData.custom_url
+      };
     }
+  } catch (error) {
+    console.error('Error fetching proxy settings:', error);
   }
   
-  throw new Error('Failed to fetch data through allorigins proxy');
-}
-
-// Fetch via yproxy
-async function fetchViaYProxy(url: string): Promise<any> {
-  const proxyUrl = `https://api.yunpian.com/proxy/get?url=${encodeURIComponent(url)}`;
-  const response = await fetch(proxyUrl);
-  const data = await response.json();
-  
-  if (data) {
-    return data;
-  }
-  
-  throw new Error('Failed to fetch data through yproxy');
-}
-
-// Fetch via custom proxy
-async function fetchViaCustomProxy(url: string, customUrl?: string): Promise<any> {
-  if (!customUrl) {
-    throw new Error('Custom proxy URL not provided');
-  }
-  
-  const proxyUrl = `${customUrl}?url=${encodeURIComponent(url)}`;
-  const response = await fetch(proxyUrl);
-  const data = await response.json();
-  
-  if (data) {
-    return data;
-  }
-  
-  throw new Error('Failed to fetch data through custom proxy');
-}
-
-// Direct fetch (no proxy)
-async function fetchDirect(url: string): Promise<any> {
-  const response = await fetch(url);
-  const data = await response.json();
-  return data;
+  // Default settings if fetching fails
+  return {
+    proxyType: 'allorigins'
+  };
 }
