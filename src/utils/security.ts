@@ -26,7 +26,18 @@ export async function logSecurityEvent(event: SecurityEvent) {
   }
 }
 
-export async function getUserWithRoles(userId?: string) {
+export interface UserWithRolesData {
+  id: string;
+  email: string;
+  created_at: string;
+  last_sign_in_at: string | null;
+  email_confirmed_at: string | null;
+  display_name: string | null;
+  roles: string[];
+  is_active: boolean;
+}
+
+export async function getUserWithRoles(userId?: string): Promise<UserWithRolesData | null> {
   try {
     const { data, error } = await supabase.rpc('get_user_with_roles', { 
       user_id_param: userId
@@ -40,12 +51,13 @@ export async function getUserWithRoles(userId?: string) {
   }
 }
 
-export async function getAllUsers() {
+export async function getAllUsers(): Promise<UserWithRolesData[] | null> {
   try {
+    // Use the new function created in the SQL migration
     const { data, error } = await supabase.rpc('get_all_users');
     
     if (error) throw error;
-    return data;
+    return data as UserWithRolesData[];
   } catch (error) {
     console.error('Failed to get all users:', error);
     return null;

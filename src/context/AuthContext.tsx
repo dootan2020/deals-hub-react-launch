@@ -86,17 +86,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user) return;
       
-      const { data, error } = await supabase.rpc('get_user_with_roles', {
-        user_id_param: user.id
-      });
+      const userData = await getUserWithRoles(user.id);
       
-      if (error) {
-        console.error('Error fetching user roles:', error);
-        return;
-      }
-      
-      if (data && Array.isArray(data.roles)) {
-        setUserRoles(data.roles as UserRole[]);
+      if (userData && Array.isArray(userData.roles)) {
+        setUserRoles(userData.roles as UserRole[]);
       }
     } catch (error) {
       console.error('Error in fetchUserRoles:', error);

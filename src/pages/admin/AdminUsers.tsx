@@ -61,9 +61,9 @@ const AdminUsers = () => {
     setLoading(true);
     try {
       // Use the new secure function to get all users
-      const users = await getAllUsers();
+      const usersData = await getAllUsers();
       
-      if (!users) {
+      if (!usersData || !Array.isArray(usersData)) {
         throw new Error('Failed to fetch users');
       }
       
@@ -75,7 +75,7 @@ const AdminUsers = () => {
       if (profilesError) throw profilesError;
       
       // Merge the data
-      const mergedUsers = users.map(user => {
+      const mergedUsers = usersData.map(user => {
         const profile = profiles.find(p => p.id === user.id);
         return {
           ...user,

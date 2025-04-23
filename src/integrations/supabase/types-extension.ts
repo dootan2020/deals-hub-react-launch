@@ -64,6 +64,14 @@ export interface Database extends OriginalDatabase {
         Args: { user_id_param: string; role_param: UserRole };
         Returns: undefined;
       };
+      get_user_with_roles: {
+        Args: { user_id_param: string | null };
+        Returns: UserWithRolesRow;
+      };
+      get_all_users: {
+        Args: Record<string, never>;
+        Returns: UserWithRolesRow[];
+      };
     };
     Enums: OriginalDatabase['public']['Enums'];
     CompositeTypes: OriginalDatabase['public']['CompositeTypes'];
