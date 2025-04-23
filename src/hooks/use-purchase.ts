@@ -14,53 +14,62 @@ export const usePurchase = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [purchaseKey, setPurchaseKey] = useState<string | null>(null);
 
-  const purchaseProduct = async (productId: string, quantity: number = 1): Promise<PurchaseResult> => {
+  // Main purchase function attaching to edge
+  const purchaseProduct = async (
+    productId: string, 
+    quantity: number = 1
+  ): Promise<PurchaseResult> => {
     setIsLoading(true);
     setPurchaseKey(null);
-    
+
     try {
-      // Get current user session
+      // Fetch current session
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session?.user) {
         toast.error('Yêu cầu đăng nhập', {
-          description: 'Vui lòng đăng nhập để mua sản phẩm'
+          description: 'Vui lòng đăng nhập để mua sản phẩm',
         });
+        setIsLoading(false);
         return { success: false, error: 'Not authenticated' };
       }
 
-      // Call the edge function
-      const response = await supabase.functions.invoke('purchase-product', {
-        body: JSON.stringify({
+      // Call Edge function `purchase-product`
+      const { data: result, error } = await supabase.functions.invoke('purchase-product', {
+        body: {
           userId: session.user.id,
           productId,
           quantity
-        })
+        }
       });
 
-      const result: PurchaseResult = response.data;
+      if (error || !result) {
+        toast.error('Mua hàng thất bại', {
+          description: error?.message || 'Không thể kết nối máy chủ'
+        });
+        setIsLoading(false);
+        return { success: false, error: error?.message || 'Lỗi kết nối máy chủ' };
+      }
 
       if (result.success) {
         toast.success('Mua hàng thành công', {
-          description: `Mã đơn hàng: ${result.orderId}`
+          description: result?.orderId ? `Mã đơn hàng: ${result.orderId}` : ''
         });
-        
-        if (result.key) {
-          setPurchaseKey(result.key);
-        }
+        if (result.key) setPurchaseKey(result.key);
+        return result;
       } else {
         toast.error('Mua hàng thất bại', {
           description: result.error || 'Lỗi không xác định'
         });
+        setIsLoading(false);
+        return { success: false, error: result.error || 'Lỗi không xác định' };
       }
-
-      return result;
-    } catch (error) {
-      console.error('Purchase error:', error);
+    } catch (error: any) {
       toast.error('Lỗi giao dịch', {
         description: 'Đã xảy ra lỗi không mong muốn'
       });
-      return { success: false, error: 'Unexpected error' };
+      setIsLoading(false);
+      return { success: false, error: 'Lỗi không mong muốn' };
     } finally {
       setIsLoading(false);
     }
@@ -68,3 +77,4 @@ export const usePurchase = () => {
 
   return { purchaseProduct, isLoading, purchaseKey };
 };
+
