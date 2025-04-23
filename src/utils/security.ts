@@ -47,7 +47,7 @@ export async function getUserWithRoles(userId?: string): Promise<UserWithRolesDa
 
 export async function getAllUsers(): Promise<SimplifiedUser[] | null> {
   try {
-    // Use the get_all_users RPC function that we've defined in the Database interface
+    // Use the get_all_users RPC function that we've now properly typed
     const { data, error } = await supabase.rpc('get_all_users');
     
     if (error) throw error;
