@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from "sonner";
@@ -13,6 +14,9 @@ import DepositPage from './pages/DepositPage';
 import NotFound from './pages/NotFound';
 import PayPalDepositPage from './pages/PayPalDepositPage';
 
+// Import admin routes
+import { adminRoutes } from './routes/adminRoutes';
+
 const App = () => {
   return (
     <BrowserRouter>
@@ -26,6 +30,10 @@ const App = () => {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/deposit" element={<DepositPage />} />
         <Route path="/deposit/paypal" element={<PayPalDepositPage />} />
+        
+        {/* Admin Routes */}
+        {adminRoutes}
+        
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
