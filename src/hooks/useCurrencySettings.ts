@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { extractSafeData } from '@/utils/supabaseHelpers';
-import { prepareQueryParam } from '@/utils/supabaseTypeUtils';
+import { prepareQueryParam, isSupabaseError } from '@/utils/supabaseTypeUtils';
 
 interface CurrencySettings {
   vnd_per_usd: number;
@@ -24,6 +24,11 @@ export const useCurrencySettings = () => {
       }
       
       const data = extractSafeData<{ value: Record<string, any> }>(result);
+      
+      // Check if data is a Supabase error
+      if (isSupabaseError(data)) {
+        return { vnd_per_usd: 24000 }; // Fallback rate
+      }
       
       // Safely cast the JSON data to our expected type
       return { 

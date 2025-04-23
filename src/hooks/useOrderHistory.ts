@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { prepareQueryParam, safeCastArray, isSafeToSpread } from '@/utils/supabaseTypeUtils';
 
 interface Order {
   id: string;
@@ -44,29 +45,38 @@ export const useOrderHistory = (userId: string) => {
             )
           )
         `)
-        .eq('user_id', userId)
+        .eq('user_id', prepareQueryParam(userId))
         .order('created_at', { ascending: false });
 
       if (orderError) {
         throw orderError;
       }
 
+      // Process and filter out any error objects
+      const validOrders = safeCastArray<any>(orderData).filter(order => !order.error && order);
+
       // Chuyển đổi dữ liệu và thêm tiêu đề sản phẩm
-      const ordersWithProductTitle = orderData?.map(order => {
+      const ordersWithProductTitle = validOrders.map(order => {
         let productTitle = 'N/A';
         
-        // Lấy tiêu đề sản phẩm từ product (nếu có)
-        if (order.order_items && order.order_items.length > 0 && order.order_items[0].product) {
+        // Safely check if order_items exists and has data
+        if (order.order_items && 
+            Array.isArray(order.order_items) && 
+            order.order_items.length > 0 && 
+            order.order_items[0].product) {
           productTitle = order.order_items[0].product.title;
         }
         
+        // Only spread order if it's safe to do so
+        const baseOrder = isSafeToSpread(order) ? order : {}; 
+        
         // Map the database fields to the Order interface
         return {
-          ...order,
+          ...baseOrder,
           total_amount: order.total_price || 0, // Map total_price to total_amount
           product_title: productTitle
         } as Order;
-      }) || [];
+      });
 
       setOrders(ordersWithProductTitle);
     } catch (err: any) {
@@ -87,4 +97,4 @@ export const useOrderHistory = (userId: string) => {
     error,
     refetch: fetchOrders
   };
-};
+}

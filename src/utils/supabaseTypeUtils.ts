@@ -159,6 +159,54 @@ export function hasData(result: any): boolean {
  */
 export function processSupabaseData<T>(data: any): T | null {
   if (!data) return null;
-  // Using type assertion to ensure TypeScript compatibility
   return data as T;
+}
+
+/**
+ * Helper function to check if a value is a Supabase error
+ * @param value The value to check
+ * @returns True if the value is a Supabase error, false otherwise
+ */
+export function isSupabaseError(value: any): boolean {
+  return value && typeof value === 'object' && 'error' in value && value.error !== null;
+}
+
+/**
+ * Helper function to safely process Supabase query results
+ * Ensures that data is only accessed if it's not an error
+ * @param data The data to check
+ * @param processor Function to process the data if it's valid
+ * @param errorHandler Optional function to handle errors
+ * @returns The processed data or null if there was an error
+ */
+export function processQueryResult<T, R>(
+  data: any, 
+  processor: (validData: any) => R,
+  errorHandler?: (error: any) => void
+): R | null {
+  try {
+    // Check if the data is an error
+    if (isSupabaseError(data)) {
+      if (errorHandler) errorHandler(data.error);
+      return null;
+    }
+    
+    // Check if data exists
+    if (!data) return null;
+    
+    // Process the data
+    return processor(data);
+  } catch (err) {
+    if (errorHandler) errorHandler(err);
+    return null;
+  }
+}
+
+/**
+ * Helper function to check if a value is a valid object to spread
+ * @param value The value to check
+ * @returns True if the value is safe to spread, false otherwise
+ */
+export function isSafeToSpread(value: any): boolean {
+  return value && typeof value === 'object' && !isSupabaseError(value);
 }

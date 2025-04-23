@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Order, normalizeUserField } from './orderUtils';
-import { prepareQueryParam, safeCastArray } from '@/utils/supabaseTypeUtils';
+import { prepareQueryParam, safeCastArray, isSafeToSpread } from '@/utils/supabaseTypeUtils';
 
 // Fetch all orders with user, product and order-items details
 export async function fetchOrdersWithDetails(): Promise<Order[]> {
@@ -16,8 +16,11 @@ export async function fetchOrdersWithDetails(): Promise<Order[]> {
 
   if (ordersError) throw ordersError;
 
+  // Filter out any error objects and ensure we have an array
+  const validData = safeCastArray<any>(data).filter(item => !item.error && item);
+
   const ordersWithDetails = await Promise.all(
-    safeCastArray<any>(data).map(async (order: any) => {
+    validData.map(async (order: any) => {
       const { data: orderItems } = await supabase
         .from('order_items')
         .select('*')
@@ -25,8 +28,12 @@ export async function fetchOrdersWithDetails(): Promise<Order[]> {
         
       // handle nulls for user
       const userValue = normalizeUserField(order.user || null);
+      
+      // Only spread order if it's safe to do so
+      const baseOrder = isSafeToSpread(order) ? order : {};
+      
       return {
-        ...order,
+        ...baseOrder,
         user: userValue,
         order_items: orderItems || [],
       } as Order;

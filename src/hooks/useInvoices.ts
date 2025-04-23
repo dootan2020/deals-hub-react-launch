@@ -2,7 +2,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Invoice } from '@/integrations/supabase/types-extension';
-import { prepareQueryParam, safeCastArray, processSupabaseData } from '@/utils/supabaseTypeUtils';
+import { 
+  prepareQueryParam, 
+  safeCastArray, 
+  processSupabaseData, 
+  isSupabaseError 
+} from '@/utils/supabaseTypeUtils';
 
 export type { Invoice };
 
@@ -22,8 +27,11 @@ export const useInvoices = (userId: string) => {
 
         if (invoiceError) throw invoiceError;
 
-        // Safe type conversion using our utility functions
-        setInvoices(safeCastArray<Invoice>(invoiceData));
+        // Filter and safely cast array
+        const validInvoices = safeCastArray<Invoice>(invoiceData)
+          .filter(invoice => !isSupabaseError(invoice));
+          
+        setInvoices(validInvoices);
       } catch (err) {
         console.error('Error fetching invoices:', err);
         setError(err instanceof Error ? err.message : 'Failed to load invoices');
@@ -45,6 +53,12 @@ export const useInvoices = (userId: string) => {
         .single();
 
       if (error) throw error;
+      
+      // Validate that data is not an error before processing
+      if (isSupabaseError(data)) {
+        throw new Error('Invalid invoice data received');
+      }
+      
       return processSupabaseData<Invoice>(data);
     } catch (err) {
       console.error('Error fetching invoice:', err);

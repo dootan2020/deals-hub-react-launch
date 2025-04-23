@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types";
 import { AISource } from "@/types/ai";
+import { prepareQueryParam, safeCastArray, isSupabaseError } from "@/utils/supabaseTypeUtils";
 
 export interface Recommendation {
   title: string;
@@ -31,10 +32,13 @@ async function fetchOrderHistory(userId: string) {
         )
       )
     `)
-    .eq("user_id", userId)
+    .eq("user_id", prepareQueryParam(userId))
     .order("created_at", { ascending: false });
+
   if (error) throw error;
-  return (data ?? []);
+  
+  // Filter out error objects and ensure we have valid data
+  return safeCastArray<any>(data).filter(order => !isSupabaseError(order));
 }
 
 async function localRecommend(userId: string, currentProductSlug: string): Promise<Recommendation[]> {
@@ -44,13 +48,15 @@ async function localRecommend(userId: string, currentProductSlug: string): Promi
   const catCount: Record<string, number> = {};
 
   history.forEach(order => {
-    order.order_items?.forEach(item => {
-      if (item.product && item.product.slug !== currentProductSlug) {
-        bought.push(item.product);
-        const cid = item.product.category_id || "";
-        if (cid) catCount[cid] = (catCount[cid] || 0) + 1;
-      }
-    });
+    if (order.order_items && Array.isArray(order.order_items)) {
+      order.order_items.forEach(item => {
+        if (item && item.product && item.product.slug !== currentProductSlug) {
+          bought.push(item.product);
+          const cid = item.product.category_id || "";
+          if (cid) catCount[cid] = (catCount[cid] || 0) + 1;
+        }
+      });
+    }
   });
 
   mostCat = Object.entries(catCount).sort((a, b) => b[1] - a[1])?.[0]?.[0] || null;
@@ -59,13 +65,17 @@ async function localRecommend(userId: string, currentProductSlug: string): Promi
     const { data, error } = await supabase
       .from("products")
       .select("id,title,slug,description,category_id,images")
-      .eq("category_id", mostCat)
-      .neq("slug", currentProductSlug)
+      .eq("category_id", prepareQueryParam(mostCat))
+      .neq("slug", prepareQueryParam(currentProductSlug))
       .limit(5);
 
     if (!error && data) {
       const boughtSlugs = bought.map((p: any) => p.slug);
-      const recs = data.filter(p => !boughtSlugs.includes(p.slug)).map(p => ({
+      
+      // Filter out any error objects
+      const validProducts = safeCastArray<any>(data).filter(p => !isSupabaseError(p));
+      
+      const recs = validProducts.filter(p => !boughtSlugs.includes(p.slug)).map(p => ({
         title: p.title,
         slug: p.slug,
         description: p.description,
@@ -88,14 +98,16 @@ async function fetchAiRecommendations(
   const productNames = [];
   const boughtSlugs = [];
 
-  history.forEach(order =>
-    order.order_items?.forEach(item => {
-      if (item.product && item.product.slug !== currentProductSlug) {
-        productNames.push(item.product.title);
-        boughtSlugs.push(item.product.slug);
-      }
-    })
-  );
+  history.forEach(order => {
+    if (order.order_items && Array.isArray(order.order_items)) {
+      order.order_items.forEach(item => {
+        if (item && item.product && item.product.slug !== currentProductSlug) {
+          productNames.push(item.product.title);
+          boughtSlugs.push(item.product.slug);
+        }
+      });
+    }
+  });
 
   if (productNames.length === 0 || aiSource === "local") {
     return localRecommend(userId, currentProductSlug);
@@ -114,7 +126,11 @@ async function fetchAiRecommendations(
     }
   });
   if (error || !data?.recommendations) throw new Error(data?.error || error?.message || "AI error");
-  return data.recommendations.filter((rec: any) => rec.slug !== currentProductSlug).slice(0, 5);
+  
+  // Filter out recommendations that match the current product
+  return (data.recommendations || [])
+    .filter((rec: any) => rec && typeof rec === 'object' && rec.slug !== currentProductSlug)
+    .slice(0, 5);
 }
 
 export function usePersonalizedRecommendations(

@@ -3,7 +3,15 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Order } from './orderUtils';
-import { prepareQueryParam, prepareUpdateData, prepareInsertData, hasData, safeErrorMessage } from '@/utils/supabaseTypeUtils';
+import { 
+  prepareQueryParam, 
+  prepareUpdateData, 
+  prepareInsertData, 
+  hasData, 
+  safeErrorMessage, 
+  processQueryResult,
+  isSupabaseError
+} from '@/utils/supabaseTypeUtils';
 
 // Actions for use in admin order management views
 export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) => void) {
@@ -59,6 +67,11 @@ export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) =>
         .eq('id', prepareQueryParam(orderId));
 
       if (updateError) throw updateError;
+
+      // Process order data safely for transaction
+      if (isSupabaseError(orderData)) {
+        throw new Error('Không thể xử lý dữ liệu đơn hàng');
+      }
 
       // Transaction
       const { error: transactionError } = await supabase

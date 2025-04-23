@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, it, vi, expect, beforeEach } from 'vitest';
 import { ProtectedRoute } from './ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
-import { UserRole, AuthContextType } from '@/types/index';
+import { UserRole } from '@/types/index';
 
 // Mock the useAuth hook
 vi.mock('@/context/AuthContext', () => ({
@@ -21,7 +21,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Create complete mock for AuthContext with all required properties
-const createMockAuthContext = (overrides: Partial<AuthContextType> = {}): AuthContextType => ({
+const createMockAuthContext = (overrides = {}) => ({
   user: null,
   session: null,
   loading: false,
@@ -33,11 +33,11 @@ const createMockAuthContext = (overrides: Partial<AuthContextType> = {}): AuthCo
   balance: null,
   balanceLoading: false,
   isLoadingBalance: false,
-  fetchBalance: vi.fn().mockResolvedValue(null),
+  fetchBalance: vi.fn().mockResolvedValue(0),
   setUserBalance: vi.fn(),
-  fetchUserBalance: vi.fn().mockResolvedValue(null),
-  refreshUserBalance: vi.fn().mockResolvedValue(null),
-  refreshBalance: vi.fn().mockResolvedValue(null),
+  fetchUserBalance: vi.fn().mockResolvedValue(0),
+  refreshUserBalance: vi.fn().mockResolvedValue(0),
+  refreshBalance: vi.fn().mockResolvedValue(0),
   refreshUserProfile: vi.fn().mockResolvedValue(undefined),
   refreshUserData: vi.fn().mockResolvedValue(undefined),
   register: vi.fn().mockResolvedValue({}),
@@ -83,7 +83,7 @@ describe('ProtectedRoute', () => {
       isAuthenticated: true, 
       loading: false,
       checkUserRole: vi.fn(() => false),
-      user: { id: '1', email: 'test@example.com' } as any,
+      user: { id: '1', email: 'test@example.com' },
       userRoles: [UserRole.User],
     }));
 
@@ -106,7 +106,7 @@ describe('ProtectedRoute', () => {
       isAuthenticated: true, 
       loading: false,
       checkUserRole: vi.fn(() => true),
-      user: { id: '1', email: 'admin@example.com' } as any,
+      user: { id: '1', email: 'admin@example.com' },
       userRoles: [UserRole.Admin],
       isAdmin: true,
     }));

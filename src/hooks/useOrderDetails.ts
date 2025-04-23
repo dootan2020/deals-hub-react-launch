@@ -3,7 +3,12 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Order, normalizeUserField } from './orderUtils';
-import { prepareQueryParam, processSupabaseData } from '@/utils/supabaseTypeUtils';
+import { 
+  prepareQueryParam, 
+  processSupabaseData, 
+  isSupabaseError, 
+  isSafeToSpread 
+} from '@/utils/supabaseTypeUtils';
 
 // Standalone hook for fetching one order by ID & setting selectedOrder
 export function useOrderDetails() {
@@ -25,7 +30,7 @@ export function useOrderDetails() {
 
       if (error) throw error;
 
-      if (data) {
+      if (data && !isSupabaseError(data)) {
         const { data: orderItems } = await supabase
           .from('order_items')
           .select('*')
@@ -33,8 +38,9 @@ export function useOrderDetails() {
 
         const userValue = normalizeUserField(data.user || null);
 
+        // Only spread data if it's a valid object
         const orderWithDetails: Order = {
-          ...data,
+          ...(isSafeToSpread(data) ? data : {}),
           user: userValue,
           order_items: orderItems || []
         };
