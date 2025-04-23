@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -36,7 +37,7 @@ const mockProducts = [
       
       <h3>Chính sách bảo hành</h3>
       <p>Bảo hành 24h đổi 1:1 nếu tài khoản không đúng mô tả hoặc không thể truy cập.</p>
-    `,
+    `
   },
   {
     id: '2',
@@ -62,17 +63,18 @@ const mockProducts = [
       
       <h3>Lưu ý quan trọng</h3>
       <p>Sau khi mua hàng, bạn sẽ nhận được toàn bộ thông tin đăng nhập bao gồm mã 2FA và hướng dẫn chi tiết cách truy cập.</p>
-    `,
-  } as {
-    id: string;
-    slug: string;
-    platform: 'gmail' | 'facebook' | 'outlook' | 'default';
-    title: string;
-    stock: number;
-    sold: number;
-    price: number;
-    description: string;
-    longDescription: string;
+    `
+  }
+] as {
+  id: string;
+  slug: string;
+  platform: 'gmail' | 'facebook' | 'outlook' | 'default';
+  title: string;
+  stock: number;
+  sold: number;
+  price: number;
+  description: string;
+  longDescription: string;
 }[];
 
 const ProductDetailPage: React.FC = () => {
