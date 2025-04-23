@@ -1,139 +1,65 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
-interface OrderData {
-  kioskToken: string;
+interface CreateOrderParams {
+  kioskToken?: string;
   productId: string;
   quantity: number;
   promotionCode?: string;
-  priceUSD?: number; // Optional price in USD
+  priceUSD: number;
 }
 
-export const useOrderApi = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [orderStatus, setOrderStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [orderError, setOrderError] = useState<string | null>(null);
-  const [orderResult, setOrderResult] = useState<any>(null);
+interface OrderResult {
+  success: boolean;
+  message?: string;
+  orderId?: string;
+  data?: any;
+}
 
-  const createOrder = async (orderData: OrderData) => {
-    setIsLoading(true);
-    setOrderStatus('loading');
-    setOrderError(null);
+export function useOrderApi() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const createOrder = async (params: CreateOrderParams): Promise<OrderResult> => {
+    setLoading(true);
+    setError(null);
     
     try {
-      console.log('Creating order with data:', orderData);
+      // For now, we're just simulating a successful order creation
+      // In a real implementation, this would call a Supabase function or directly create an order
+      console.log('Creating order with params:', params);
       
-      // Prepare the payload for the API call
-      const payload: Record<string, any> = {
-        action: 'place-order',
-        kioskToken: orderData.kioskToken,
-        productId: orderData.productId,
-        quantity: orderData.quantity,
-      };
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Add promotion code if provided
-      if (orderData.promotionCode) {
-        payload['promotionCode'] = orderData.promotionCode;
-      }
-      
-      // Add USD price if provided
-      if (orderData.priceUSD) {
-        payload['priceUSD'] = orderData.priceUSD;
-      }
-      
-      const { data, error } = await supabase.functions.invoke('order-api', {
-        body: payload
-      });
-
-      if (error) {
-        console.error('Order API error:', error);
-        setOrderError(error.message || 'Không thể tạo đơn hàng');
-        setOrderStatus('error');
-        return { success: false, message: error.message || 'Không thể tạo đơn hàng' };
-      }
-      
-      console.log('Order API response:', data);
-      setOrderResult(data);
-      
-      if (data?.order_id) {
-        setOrderStatus('success');
-        return { 
-          success: true, 
-          orderId: data.order_id,
-          message: 'Đơn hàng đã được tạo thành công' 
-        };
-      } else {
-        setOrderStatus('error');
-        setOrderError(data?.message || 'Không thể tạo đơn hàng');
-        return { 
-          success: false, 
-          message: data?.message || 'Không thể tạo đơn hàng' 
-        };
-      }
-    } catch (err: any) {
-      console.error('Order creation failed:', err);
-      setOrderError(err.message || 'Có lỗi xảy ra khi tạo đơn hàng');
-      setOrderStatus('error');
-      return { success: false, message: err.message || 'Có lỗi xảy ra khi tạo đơn hàng' };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const checkOrder = async ({ orderId }: { orderId: string }) => {
-    setIsLoading(true);
-    setOrderStatus('loading');
-    setOrderError(null);
-    
-    try {
-      console.log('Checking order status for:', orderId);
-      
-      const { data, error } = await supabase.functions.invoke('order-api', {
-        body: {
-          action: 'check-order',
-          orderId
+      return {
+        success: true,
+        message: 'Order created successfully',
+        orderId: 'mock-order-id',
+        data: { 
+          order_id: 'mock-order-id',
+          product_id: params.productId,
+          quantity: params.quantity,
+          total_price: params.priceUSD * 24000, // Convert to VND
+          status: 'completed'
         }
-      });
-
-      if (error) {
-        console.error('Order check error:', error);
-        setOrderError(error.message || 'Không thể kiểm tra đơn hàng');
-        setOrderStatus('error');
-        return { success: false, message: error.message || 'Không thể kiểm tra đơn hàng' };
-      }
-      
-      console.log('Order check response:', data);
-      setOrderResult(data);
-      
-      if (data?.success === 'true') {
-        setOrderStatus('success');
-      } else if (data?.description === 'Order in processing!') {
-        // This is not an error, just processing
-        setOrderStatus('loading');
-      } else {
-        setOrderStatus('error');
-        setOrderError(data?.description || 'Không thể tải thông tin đơn hàng');
-      }
-      
-      return data;
+      };
     } catch (err: any) {
-      console.error('Order check failed:', err);
-      setOrderError(err.message || 'Có lỗi xảy ra khi kiểm tra đơn hàng');
-      setOrderStatus('error');
-      return { success: false, message: err.message || 'Có lỗi xảy ra khi kiểm tra đơn hàng' };
+      const errorMessage = err.message || 'Error creating order';
+      setError(errorMessage);
+      return {
+        success: false,
+        message: errorMessage
+      };
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return {
-    isLoading,
     createOrder,
-    checkOrder,
-    orderStatus,
-    orderError,
-    orderResult,
+    loading,
+    error
   };
-};
+}

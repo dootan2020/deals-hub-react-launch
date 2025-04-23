@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthState } from '@/hooks/use-auth-state';
@@ -12,7 +13,6 @@ interface AuthContextType {
   balanceLoading: boolean;
   fetchBalance: (userId: string) => Promise<number | null>;
   isAdmin: boolean;
-  isStaff: boolean;
   userRoles: UserRoleType[];
   userBalance: number | null;
   setUserBalance: React.Dispatch<React.SetStateAction<number | null>>;
@@ -28,7 +28,7 @@ interface AuthContextType {
   checkUserRole?: (role: UserRoleType) => boolean;
 }
 
-// Create a context with default values - fix type argument issue
+// Create a context with default values
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
@@ -38,7 +38,6 @@ export const AuthContext = createContext<AuthContextType>({
   balanceLoading: false,
   fetchBalance: async () => null,
   isAdmin: false,
-  isStaff: false,
   userRoles: [],
   userBalance: null,
   setUserBalance: () => {},
@@ -73,7 +72,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   } = useAuthState();
 
   const isAdmin = userRoles.includes(UserRole.Admin);
-  const isStaff = userRoles.includes(UserRole.Manager);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -104,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const roleData = extractSafeData<{ role: UserRoleType }>(item);
           return roleData ? roleData.role : UserRole.User;
         });
-        setUserRoles(roles);
+        setUserRoles(roles as UserRoleType[]);
       }
     } catch (error) {
       console.error('Error in fetchUserRoles:', error);
@@ -229,7 +227,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         balanceLoading,
         fetchBalance,
         isAdmin,
-        isStaff,
         userRoles,
         userBalance,
         setUserBalance,

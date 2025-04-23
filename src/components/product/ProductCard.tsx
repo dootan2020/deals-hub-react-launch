@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { BuyNowButton } from "@/components/checkout/BuyNowButton";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Product } from '@/types';
+import { formatCurrency } from '@/utils/currency';
 
 interface ProductCardProps {
   product: Product;
@@ -19,14 +20,14 @@ export function ProductCard({ product, loading = false, viewMode = "grid" }: Pro
   }
   
   const discount = product.originalPrice && product.originalPrice > product.price 
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    ? Math.round(((product.originalPrice - product.price) / product.price) * 100)
     : 0;
     
   const imageUrl = product.images && product.images.length > 0 
     ? product.images[0] 
     : 'https://placehold.co/400x300?text=No+Image';
   
-  const isInStock = product.inStock;
+  const isInStock = product.inStock !== undefined ? product.inStock : product.stock > 0;
     
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
@@ -47,7 +48,7 @@ export function ProductCard({ product, loading = false, viewMode = "grid" }: Pro
             </Badge>
           )}
           
-          {product.badges && product.badges.map((badge, index) => (
+          {product.badges && product.badges.length > 0 && product.badges.map((badge, index) => (
             <Badge 
               key={index} 
               variant="outline"
@@ -72,12 +73,12 @@ export function ProductCard({ product, loading = false, viewMode = "grid" }: Pro
         <div className="flex justify-between items-end">
           <div>
             <div className="font-bold text-lg text-primary">
-              {product.price.toLocaleString()} VND
+              {formatCurrency(product.price)}
             </div>
             
-            {discount > 0 && (
+            {product.originalPrice && product.originalPrice > product.price && (
               <div className="text-sm text-gray-500 line-through">
-                {product.originalPrice?.toLocaleString()} VND
+                {formatCurrency(product.originalPrice)}
               </div>
             )}
           </div>

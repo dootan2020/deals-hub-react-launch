@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
+import { UserRole } from '@/types';
 
 export default function UnauthorizedPage() {
   const { userRoles, isAuthenticated, refreshUserProfile, user, logout } = useAuth();
@@ -37,7 +38,7 @@ export default function UnauthorizedPage() {
       toast.success('Đã cập nhật thông tin quyền hạn');
       
       // Redirect to admin if roles now include admin
-      if (userRoles.includes('admin')) {
+      if (userRoles.includes(UserRole.Admin)) {
         window.location.href = '/admin';
       }
     } catch (error) {
@@ -56,7 +57,7 @@ export default function UnauthorizedPage() {
       await refreshUserProfile();
       toast.success('Đã cập nhật thông tin quyền hạn');
       // Redirect to admin if roles now include admin
-      if (userRoles.includes('admin')) {
+      if (userRoles.includes(UserRole.Admin)) {
         window.location.href = '/admin';
       }
     } catch (error) {
@@ -87,7 +88,7 @@ export default function UnauthorizedPage() {
       setDirectCheckResult(`Kết quả kiểm tra trực tiếp: ${JSON.stringify(data)}`);
       
       // If admin role exists but not in current state, force refresh
-      if (data && Array.isArray(data) && data.includes('admin') && !userRoles.includes('admin')) {
+      if (data && Array.isArray(data) && data.includes('Admin') && !userRoles.includes(UserRole.Admin)) {
         toast.warning('Phát hiện quyền admin từ Supabase nhưng chưa được cập nhật trên UI');
         await refreshUserProfile();
       }

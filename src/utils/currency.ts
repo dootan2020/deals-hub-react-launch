@@ -20,3 +20,13 @@ export const formatCurrency = (
     maximumFractionDigits: 2,
   }).format(value);
 };
+
+/**
+ * Format a number specifically as USD
+ * @param value The value to format
+ * @param locale The locale to use for formatting (default: en-US)
+ * @returns A formatted USD currency string
+ */
+export const formatUSD = (value: number, locale = 'en-US'): string => {
+  return formatCurrency(value, 'USD', locale);
+};

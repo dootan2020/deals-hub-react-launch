@@ -1,13 +1,13 @@
 
 import { ReactNode } from 'react';
-import { UserRole } from '@/types/auth.types';
+import { UserRole, UserRoleType } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 
 interface AccessControlProps {
   children: ReactNode;
-  requiredRoles?: UserRole[];
-  allowedFor?: UserRole[];
-  forbiddenFor?: UserRole[];
+  requiredRoles?: UserRoleType[];
+  allowedFor?: UserRoleType[];
+  forbiddenFor?: UserRoleType[];
   fallback?: ReactNode;
 }
 
