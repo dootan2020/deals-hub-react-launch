@@ -3,7 +3,12 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Deposit, normalizeUserField } from './transactionUtils';
-import { safeId, extractSafeData, prepareForUpdate, prepareForInsert } from '@/utils/supabaseHelpers';
+import { 
+  extractSafeData, 
+  prepareForUpdate, 
+  prepareForInsert 
+} from '@/utils/supabaseHelpers';
+import { prepareQueryParam } from '@/utils/supabaseTypeUtils';
 
 // Hook for deposit state, fetching, and admin update
 export function useDeposits() {
@@ -53,7 +58,7 @@ export function useDeposits() {
       const depositResult = await supabase
         .from('deposits')
         .select('*')
-        .eq('id', safeId(depositId))
+        .eq('id', prepareQueryParam(depositId))
         .maybeSingle();
 
       if (depositResult.error) throw depositResult.error;
@@ -69,12 +74,12 @@ export function useDeposits() {
       const updateResult = await supabase
         .from('deposits')
         .update(updateData)
-        .eq('id', safeId(depositId));
+        .eq('id', prepareQueryParam(depositId));
 
       if (updateResult.error) throw updateResult.error;
 
       // If approving (completed), update the user's balance
-      if (newStatus === 'completed') {
+      if (newStatus === 'completed' && deposit.user_id && deposit.amount) {
         const { error: balanceError } = await supabase.rpc(
           'update_user_balance',
           {

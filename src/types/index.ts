@@ -1,13 +1,30 @@
+
 export interface Product {
   id: string;
   title: string;
   description: string;
   price: number;
-  imageUrl: string;
+  imageUrl?: string;
   category: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
   slug: string;
+  // Add missing properties that are being referenced
+  originalPrice?: number;
+  inStock?: boolean;
+  stock?: number;
+  images?: string[];
+  shortDescription?: string;
+  categoryId?: string;
+  kiosk_token?: string;
+  badges?: string[];
+  features?: string[];
+  specifications?: Record<string, string | number | boolean | object>;
+  sales_count?: number;
+  salesCount?: number;
+  reviewCount?: number;
+  rating?: number;
+  in_stock?: boolean; // For compatibility with database fields
 }
 
 export interface Category {
@@ -44,4 +61,7 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   register: (email: string, password: string, metadata?: Record<string, any>) => Promise<any>;
   checkUserRole: (role: UserRole) => boolean;
+  isEmailVerified?: boolean;
+  resendVerificationEmail?: (email: string) => Promise<boolean>;
+  isLoadingBalance?: boolean;
 }

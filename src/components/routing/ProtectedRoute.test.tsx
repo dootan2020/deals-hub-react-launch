@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, it, vi, expect, beforeEach } from 'vitest';
 import { ProtectedRoute } from './ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
-import { UserRole } from '@/types/auth.types';
+import { UserRole } from '@/types/index';
 
 // Mock the useAuth hook
 vi.mock('@/context/AuthContext', () => ({

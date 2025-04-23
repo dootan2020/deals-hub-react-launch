@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { BuyNowButton } from '@/components/checkout/BuyNowButton';
-import { Product } from '@/types';
 import { formatCurrency } from '@/utils/currency';
 import { Badge } from '@/components/ui/badge';
 import { Minus, Plus, ShoppingCart } from 'lucide-react';
@@ -10,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { PurchaseDialog } from '@/components/checkout/PurchaseDialog';
 
 interface ProductPurchaseSectionProps {
-  product: Product;
+  product: any; // Use 'any' temporarily to avoid breaking changes
   quantity: number;
   onQuantityChange: (quantity: number) => void;
 }
@@ -20,13 +19,15 @@ export function ProductPurchaseSection({ product, quantity, onQuantityChange }: 
   
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
-    if (!isNaN(value) && value > 0 && value <= product.stock) {
+    const stockValue = product.stock || 0; // Add fallback for stock
+    if (!isNaN(value) && value > 0 && value <= stockValue) {
       onQuantityChange(value);
     }
   };
 
   const incrementQuantity = () => {
-    if (quantity < product.stock) {
+    const stockValue = product.stock || 0; // Add fallback for stock
+    if (quantity < stockValue) {
       onQuantityChange(quantity + 1);
     }
   };
@@ -41,6 +42,10 @@ export function ProductPurchaseSection({ product, quantity, onQuantityChange }: 
     // Handle successful purchase
     console.log('Purchase successful');
   };
+
+  // Use safe property checks with fallbacks
+  const productInStock = product.inStock !== undefined ? product.inStock : true;
+  const productStock = product.stock || 0;
 
   return (
     <div className="space-y-6">
@@ -58,7 +63,7 @@ export function ProductPurchaseSection({ product, quantity, onQuantityChange }: 
         </div>
         
         <div className="flex items-center space-x-2">
-          {product.inStock ? (
+          {productInStock ? (
             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
               In Stock
             </Badge>
@@ -68,15 +73,15 @@ export function ProductPurchaseSection({ product, quantity, onQuantityChange }: 
             </Badge>
           )}
           
-          {product.stock > 0 && (
+          {productStock > 0 && (
             <span className="text-sm text-muted-foreground">
-              {product.stock} available
+              {productStock} available
             </span>
           )}
         </div>
       </div>
       
-      {product.inStock && (
+      {productInStock && (
         <div className="flex items-center space-x-4">
           <div className="flex items-center">
             <Button
@@ -92,7 +97,7 @@ export function ProductPurchaseSection({ product, quantity, onQuantityChange }: 
             <Input
               type="number"
               min={1}
-              max={product.stock}
+              max={productStock}
               value={quantity}
               onChange={handleQuantityChange}
               className="h-10 w-16 rounded-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -102,7 +107,7 @@ export function ProductPurchaseSection({ product, quantity, onQuantityChange }: 
               variant="outline"
               size="icon"
               onClick={incrementQuantity}
-              disabled={quantity >= product.stock}
+              disabled={quantity >= productStock}
               className="h-10 w-10 rounded-l-none"
             >
               <Plus className="h-4 w-4" />
