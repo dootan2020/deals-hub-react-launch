@@ -91,29 +91,24 @@ const CorsProxySelector: React.FC = () => {
       const existingSettings = extractSafeData<{id: string}>(result);
       
       // Create table-compatible data object with proper typing
-      const settingsData = prepareForUpdate<any>({
+      const settingsData = {
         proxy_type: proxyConfig.proxyType,
         custom_url: proxyConfig.customUrl || null
-      });
+      };
       
       if (existingSettings && existingSettings.id) {
         // Update existing settings
         const { error: updateError } = await supabase
           .from('proxy_settings')
-          .update(settingsData)
-          .eq('id', safeId(existingSettings.id));
+          .update(settingsData as any)
+          .eq('id', existingSettings.id as any);
           
         if (updateError) throw updateError;
       } else {
         // Insert new settings
-        const insertData = prepareForInsert<any>({
-          proxy_type: proxyConfig.proxyType,
-          custom_url: proxyConfig.customUrl || null
-        });
-        
         const { error: insertError } = await supabase
           .from('proxy_settings')
-          .insert(insertData);
+          .insert(settingsData as any);
           
         if (insertError) throw insertError;
       }

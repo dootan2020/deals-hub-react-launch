@@ -71,16 +71,17 @@ export function isErrorResponse(response: any): response is { error: PostgrestEr
   return isValidRecord(response) && 'error' in response && response.error !== null;
 }
 
-// Helper to format UUID for Supabase queries - returns UUID type compatible with Supabase
-export function formatUuid(id: string | null | undefined): unknown {
+// Helper to format UUID for Supabase queries
+// Uses type casting to make TypeScript happy while ensuring the UUID is passed correctly
+export function formatUuid(id: string | null | undefined): any {
   if (!id) return '';
-  return id as unknown;
+  return id as any;
 }
 
-// Helper to return a safer UUID format for filtering
-export function toFilterableUUID(id: string | null | undefined): unknown {
-  if (!id) return '';
-  return id as unknown;
+// Helper for Supabase ID equality filtering
+export function safeId(id: string | number | null | undefined): any {
+  if (id === null || id === undefined) return '';
+  return id as any;
 }
 
 // Helper to safely convert a value to a string
@@ -103,17 +104,6 @@ export function safeBoolean(value: any): boolean {
     return value.toLowerCase() === 'true' || value === '1';
   }
   return Boolean(value);
-}
-
-// Helper to safely get a UUID string
-export function safeUUID(value: any): string {
-  if (!value) return '';
-  const str = String(value);
-  // Simple UUID validation (basic format check)
-  if (/^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(str)) {
-    return str;
-  }
-  return '';
 }
 
 // Helper to handle Supabase data safely
@@ -150,64 +140,16 @@ export function isSupabaseError(result: any): boolean {
   return result && typeof result === 'object' && 'error' in result && result.error !== null;
 }
 
-// Safely handle UUID for filter operations (cast UUID to unknown for proper typing)
-export function uuidFilter(id: string | null | undefined): unknown {
-  if (!id) return '';
-  return id as unknown;
-}
-
-// Safe conversion for data types when working with Supabase
+// Safely cast data to desired type, checking for errors first
 export function safeCastData<T>(data: any): T | null {
   if (!data) return null;
   if (isSupabaseError(data)) return null;
   return data as T;
 }
 
-// Cast ID for comparison in Supabase queries (safely)
-export function safeId(id: string | number | null | undefined): unknown {
-  if (id === null || id === undefined) return '';
-  return id as unknown;
-}
-
-// Type-safe Supabase ID filter
-export function idEqualFilter<T>(column: string, value: T): { [key: string]: unknown } {
-  return { [column]: value as unknown };
-}
-
-// Cast object to Supabase insert/update format safely
-export function asSupabaseTable<T>(data: Record<string, any>): unknown {
-  return data as unknown;
-}
-
-// For safely checking and typing query results
-export function checkAndCastQueryData<T>(result: { data: any, error: PostgrestError | null }): T | null {
-  if (result.error) {
-    console.error('Query error:', result.error);
-    return null;
-  }
-  
-  if (!result.data) {
-    return null;
-  }
-  
-  return result.data as T;
-}
-
-// Special helper for safely updating data with proper typing
-export function prepareForUpdate<T>(data: Record<string, any>): unknown {
-  // This ensures the type is cast properly for Supabase's strict typing
-  return data as unknown;
-}
-
-// Helper for safe insert operations with proper typing
-export function prepareForInsert<T>(data: Record<string, any>): unknown {
-  // This ensures the type is cast properly for Supabase's strict typing
-  return data as unknown;
-}
-
 /**
- * Helper function to safely extract data from Supabase responses
- * Handles type safety with SingleMaybeSingleResponse
+ * Universal helper to safely extract data from Supabase responses
+ * Handles type safety with PostgrestSingleResponse
  */
 export function extractSafeData<T>(result: PostgrestSingleResponse<any>): T | null {
   if (result.error || !result.data) {
@@ -220,18 +162,39 @@ export function extractSafeData<T>(result: PostgrestSingleResponse<any>): T | nu
 }
 
 /**
- * Type-safe way to handle Supabase UUID filter comparisons
- */
-export function safeUuidEq<T>(column: string, uuid: string | null | undefined): { [key: string]: unknown } | null {
-  if (!uuid) return null;
-  // Return a filter object for the .eq method
-  return { [column]: uuid as unknown };
-}
-
-/**
  * Safely cast array data from Supabase response
  */
 export function safeCastArray<T>(data: any): T[] {
   if (!data || !Array.isArray(data)) return [];
   return data as T[];
+}
+
+/**
+ * Type-safe way to prepare data for update operations
+ */
+export function prepareForUpdate<T>(data: Record<string, any>): any {
+  // Cast to any to bypass TypeScript strictness with Supabase
+  return data as any;
+}
+
+/**
+ * Type-safe way to prepare data for insert operations
+ */
+export function prepareForInsert<T>(data: Record<string, any>): any {
+  // Cast to any to bypass TypeScript strictness with Supabase
+  return data as any;
+}
+
+/**
+ * Type-safe table name for working with supabase functions
+ */
+export function safeTableName(table: string): any {
+  return table as any;
+}
+
+/**
+ * Type-safe column name for working with supabase functions
+ */
+export function safeColumnName(column: string): any {
+  return column as any;
 }

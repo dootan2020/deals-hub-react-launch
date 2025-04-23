@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Category } from '@/types';
-import { safeId, safeCastArray } from '@/utils/supabaseHelpers';
+import { safeCastArray } from '@/utils/supabaseHelpers';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { 
@@ -84,7 +84,7 @@ export function ProductListView({
         .order('created_at', { ascending: false });
       
       if (categoryFilter && categoryFilter !== 'all') {
-        query = query.eq('category_id', safeId(categoryFilter));
+        query = query.eq('category_id', categoryFilter as any);
       }
       
       if (searchTerm) {
@@ -98,8 +98,9 @@ export function ProductListView({
         return;
       }
       
-      // Cast data to proper type
-      setProducts(safeCastArray<Product>(data));
+      // Cast data to proper type using safeCastArray helper
+      const formattedProducts = safeCastArray<Product>(data || []);
+      setProducts(formattedProducts);
     } catch (error) {
       console.error('Error applying filters:', error);
       toast.error('Failed to filter products');
@@ -142,7 +143,7 @@ export function ProductListView({
       const { error: syncLogsError } = await supabase
         .from('sync_logs')
         .delete()
-        .eq('product_id', safeId(productId));
+        .eq('product_id', productId as any);
 
       if (syncLogsError) throw syncLogsError;
       
@@ -150,7 +151,7 @@ export function ProductListView({
       const { error: productError } = await supabase
         .from('products')
         .delete()
-        .eq('id', safeId(productId));
+        .eq('id', productId as any);
 
       if (productError) throw productError;
 

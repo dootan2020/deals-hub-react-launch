@@ -18,8 +18,7 @@ import {
   safeNumber,
   processSupabaseData,
   safeCastData,
-  extractSafeData,
-  safeId
+  extractSafeData
 } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
@@ -145,7 +144,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
       const result = await supabase
         .from('products')
         .select('*')
-        .eq('id', safeId(productId))
+        .eq('id', productId as any)
         .maybeSingle();
       
       const productData = extractSafeData<ProductData>(result);
@@ -226,47 +225,6 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
     }
   };
 
-  const handleApiTest = async (kioskToken: string) => {
-    if (!kioskToken) {
-      toast.error('Please enter a kiosk token');
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      toast.info('Fetching product data...');
-
-      const proxyConfig = await fetchProxySettings();
-      
-      const apiConfig = await fetchActiveApiConfig();
-      if (!isValidRecord(apiConfig)) {
-        toast.error('Failed to fetch API configuration');
-        return;
-      }
-      
-      const userToken = safeString(apiConfig.user_token || '');
-      
-      if (!userToken) {
-        toast.error('User token not configured');
-        return;
-      }
-      
-      const apiResponse = await fetchProductData(kioskToken, userToken, proxyConfig);
-      
-      if (apiResponse.success === "true") {
-        handleApiDataReceived(apiResponse);
-        toast.success('Product data fetched successfully!');
-      } else {
-        toast.error(`Failed to fetch product data: ${apiResponse.error || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('API test error:', error);
-      toast.error(`Error fetching product data: ${(error as Error).message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const resetForm = () => {
     form.reset({
       title: '',
@@ -325,6 +283,47 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
     }
   };
 
+  const handleApiTest = async (kioskToken: string) => {
+    if (!kioskToken) {
+      toast.error('Please enter a kiosk token');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      toast.info('Fetching product data...');
+
+      const proxyConfig = await fetchProxySettings();
+      
+      const apiConfig = await fetchActiveApiConfig();
+      if (!isValidRecord(apiConfig)) {
+        toast.error('Failed to fetch API configuration');
+        return;
+      }
+      
+      const userToken = safeString(apiConfig.user_token || '');
+      
+      if (!userToken) {
+        toast.error('User token not configured');
+        return;
+      }
+      
+      const apiResponse = await fetchProductData(kioskToken, userToken, proxyConfig);
+      
+      if (apiResponse.success === "true") {
+        handleApiDataReceived(apiResponse);
+        toast.success('Product data fetched successfully!');
+      } else {
+        toast.error(`Failed to fetch product data: ${apiResponse.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('API test error:', error);
+      toast.error(`Error fetching product data: ${(error as Error).message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     form,
     categories,
@@ -334,94 +333,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
     setShowResetDialog,
     resetForm,
     onSubmit,
-    handleApiTest: async (kioskToken: string) => {
-      if (!kioskToken) {
-        toast.error('Please enter a kiosk token');
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        toast.info('Fetching product data...');
-
-        const proxyConfig = await fetchProxySettings();
-        
-        const apiConfig = await fetchActiveApiConfig();
-        if (!isValidRecord(apiConfig)) {
-          toast.error('Failed to fetch API configuration');
-          return;
-        }
-        
-        const userToken = safeString(apiConfig.user_token || '');
-        
-        if (!userToken) {
-          toast.error('User token not configured');
-          return;
-        }
-        
-        const apiResponse = await fetchProductData(kioskToken, userToken, proxyConfig);
-        
-        if (apiResponse.success === "true") {
-          handleApiDataReceived(apiResponse);
-          toast.success('Product data fetched successfully!');
-        } else {
-          toast.error(`Failed to fetch product data: ${apiResponse.error || 'Unknown error'}`);
-        }
-      } catch (error) {
-        console.error('API test error:', error);
-        toast.error(`Error fetching product data: ${(error as Error).message}`);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    handleApiDataReceived: (data: ApiResponse) => {
-      if (!data) return;
-      
-      console.log("API data received:", data);
-      
-      try {
-        const currentKioskToken = form.getValues('kioskToken') || data.kioskToken;
-        
-        if (data.name) {
-          form.setValue('title', data.name, { shouldValidate: true });
-        }
-        
-        form.setValue('kioskToken', currentKioskToken || '', { shouldValidate: true });
-        
-        if (data.price) {
-          const originalPrice = parseFloat(data.price) || 0;
-          form.setValue('price', originalPrice * 3, { shouldValidate: true });
-          form.setValue('originalPrice', originalPrice, { shouldValidate: true });
-        }
-        
-        if (data.stock) {
-          const stockValue = parseInt(data.stock) || 0;
-          form.setValue('stock', stockValue, { shouldValidate: true });
-          form.setValue('inStock', stockValue > 0, { shouldValidate: true });
-        }
-        
-        if (data.name && !form.getValues('slug')) {
-          const slug = data.name.toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^\w\-]+/g, '')
-            .replace(/\-\-+/g, '-')
-            .replace(/^-+/, '')
-            .replace(/-+$/, '');
-          
-          form.setValue('slug', slug, { shouldValidate: true });
-        }
-        
-        if (data.description) {
-          form.setValue('description', data.description, { shouldValidate: true });
-        } else if (data.name) {
-          form.setValue('description', `${data.name} - Digital Product`, { shouldValidate: true });
-        }
-        
-        toast.success('Product data applied successfully');
-      } catch (error) {
-        console.error('Error applying API data:', error);
-        toast.error('Failed to apply API data to form');
-      }
-    }
+    handleApiTest,
+    handleApiDataReceived
   };
 }

@@ -15,8 +15,7 @@ import {
 import { Loader2 } from 'lucide-react';
 import { 
   extractSafeData,
-  safeNumber, 
-  safeId
+  safeNumber
 } from '@/utils/supabaseHelpers';
 
 interface PurchaseConfirmDialogProps {
@@ -70,7 +69,7 @@ export function PurchaseConfirmDialog({
       const result = await supabase
         .from('products')
         .select('price')
-        .eq('id', safeId(productId))
+        .eq('id', productId as any)
         .single();
 
       const productData = extractSafeData<ProductPrice>(result);
@@ -93,7 +92,7 @@ export function PurchaseConfirmDialog({
       const result = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', safeId(user.id))
+        .eq('id', user.id as any)
         .single();
       
       const userData = extractSafeData<UserBalance>(result);

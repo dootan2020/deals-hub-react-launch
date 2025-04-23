@@ -20,10 +20,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ApiTester } from './ApiTester';
 import { ApiResponse } from '@/utils/apiUtils';
-import { 
-  extractSafeData,
-  safeId
-} from '@/utils/supabaseHelpers';
+import { extractSafeData } from '@/utils/supabaseHelpers';
 import { Loader2 } from 'lucide-react';
 
 interface ProductFormProps {
@@ -106,7 +103,7 @@ export function ProductForm({
       const result = await supabase
         .from('products')
         .select('*')
-        .eq('id', safeId(productId))
+        .eq('id', productId as any)
         .maybeSingle();
       
       const productData = extractSafeData<ProductData>(result);

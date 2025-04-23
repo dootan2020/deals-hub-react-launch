@@ -16,13 +16,19 @@ interface RoleGuardProps {
   redirectTo?: string;
 }
 
+interface AuthContextWithLoading {
+  user: any;
+  userRoles: string[];
+  isLoading?: boolean;
+}
+
 const RoleGuard: React.FC<RoleGuardProps> = ({ 
   children, 
   roles, 
   fallback = null, 
   redirectTo 
 }) => {
-  const { user, userRoles, isLoading: authLoading = false } = useAuth();
+  const { user, userRoles, isLoading: authLoading = false } = useAuth() as AuthContextWithLoading;
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
@@ -42,7 +48,7 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
 
       // If we have userRoles from context
       if (userRoles && userRoles.length > 0) {
-        const hasRole = roles.some(role => userRoles.includes(role as string));
+        const hasRole = roles.some(role => userRoles.includes(role));
         setIsAuthorized(hasRole);
         setIsLoading(false);
         
@@ -59,8 +65,8 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
           
         if (error) throw error;
         
-        const userRoleValues: UserRole[] = isValidArray<string>(data) ? 
-          data.map((r: any) => r as UserRole) : [];
+        const userRoleValues = isValidArray<UserRole>(data) ? 
+          data as UserRole[] : [];
         
         const hasRole = roles.some(role => userRoleValues.includes(role));
         

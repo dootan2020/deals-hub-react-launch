@@ -2,39 +2,56 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import * as z from 'zod';
+import { extractSafeData } from '@/utils/supabaseHelpers';
 
-// Product schema moved from modal to here for reusability
+// Product form schema
 const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
   description: z.string().min(10, 'Description must be at least 10 characters.'),
   price: z.coerce.number().min(0, 'Price must be a positive number.'),
-  originalPrice: z.coerce.number().min(0, 'Original price must be positive').optional(),
+  originalPrice: z.coerce.number().min(0, 'Original price must be positive').optional().nullable(),
   inStock: z.boolean().default(true),
   slug: z.string().min(3, 'Slug must be at least 3 characters.')
     .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens.'),
   externalId: z.string().optional(),
   categoryId: z.string().min(1, 'Category is required'),
   images: z.string().optional(),
-  kioskToken: z.string().min(1, 'Kiosk Token is required'),
-  stock: z.number().int().min(0, 'Stock must be a positive number'),
+  kioskToken: z.string().optional(),
+  stock: z.coerce.number().int().min(0, 'Stock must be a positive number'),
 });
 
 export type ProductFormValues = z.infer<typeof productSchema>;
 
-export function useEditProduct(productId: string, onSuccess?: () => void) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+interface ProductData {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  original_price: number | null;
+  in_stock: boolean;
+  slug: string;
+  external_id: string | null;
+  category_id: string;
+  images: string[];
+  kiosk_token: string | null;
+  stock: number;
+}
 
+export function useEditProduct(productId: string, onSuccess?: () => void) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Create form
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       title: '',
       description: '',
       price: 0,
-      originalPrice: undefined,
+      originalPrice: null,
       inStock: true,
       slug: '',
       externalId: '',
@@ -45,32 +62,38 @@ export function useEditProduct(productId: string, onSuccess?: () => void) {
     },
     mode: 'onChange'
   });
-
+  
   const fetchProductDetails = async () => {
+    if (!productId) return;
+    
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      const result = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId)
-        .single();
-
-      if (error) throw error;
+        .eq('id', productId as any)
+        .maybeSingle();
       
-      if (data) {
+      const productData = extractSafeData<ProductData>(result);
+      
+      if (productData) {
         form.reset({
-          title: data.title,
-          description: data.description,
-          price: data.price,
-          originalPrice: data.original_price || undefined,
-          inStock: data.in_stock ?? true,
-          slug: data.slug,
-          externalId: data.external_id || '',
-          categoryId: data.category_id || '',
-          images: data.images && data.images.length > 0 ? data.images.join('\n') : '',
-          kioskToken: data.kiosk_token || '',
-          stock: data.stock || 0,
+          title: productData.title,
+          description: productData.description,
+          price: productData.price,
+          originalPrice: productData.original_price,
+          inStock: productData.in_stock,
+          slug: productData.slug,
+          externalId: productData.external_id || '',
+          categoryId: productData.category_id,
+          images: Array.isArray(productData.images) && productData.images.length > 0 
+            ? productData.images.join('\n') 
+            : '',
+          kioskToken: productData.kiosk_token || '',
+          stock: productData.stock,
         });
+      } else {
+        toast.error('Product not found');
       }
     } catch (error) {
       console.error('Error fetching product details:', error);
@@ -79,33 +102,35 @@ export function useEditProduct(productId: string, onSuccess?: () => void) {
       setIsLoading(false);
     }
   };
-
-  const handleSubmit = async (formData: ProductFormValues) => {
+  
+  const handleSubmit = async (data: ProductFormValues) => {
+    if (!productId) return;
+    
     setIsSubmitting(true);
     try {
       const productData = {
-        title: formData.title,
-        description: formData.description,
-        price: formData.price,
-        original_price: formData.originalPrice || null,
-        in_stock: formData.inStock,
-        slug: formData.slug,
-        external_id: formData.externalId || null,
-        category_id: formData.categoryId,
-        images: formData.images ? formData.images.split('\n').filter(url => url.trim() !== '') : [],
-        kiosk_token: formData.kioskToken || null,
-        stock: formData.stock || 0,
+        title: data.title,
+        description: data.description,
+        price: data.price,
+        original_price: data.originalPrice || null,
+        in_stock: data.inStock,
+        slug: data.slug,
+        external_id: data.externalId || null,
+        category_id: data.categoryId,
+        images: data.images ? data.images.split('\n').filter(url => url.trim() !== '') : [],
+        kiosk_token: data.kioskToken || null,
+        stock: data.stock,
       };
       
       const { error } = await supabase
         .from('products')
-        .update(productData)
-        .eq('id', productId);
+        .update(productData as any)
+        .eq('id', productId as any);
         
       if (error) throw error;
       
       toast.success('Product updated successfully');
-      onSuccess?.();
+      if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Error updating product:', error);
       toast.error('Failed to update product');
@@ -113,7 +138,7 @@ export function useEditProduct(productId: string, onSuccess?: () => void) {
       setIsSubmitting(false);
     }
   };
-
+  
   return {
     form,
     isLoading,

@@ -1,177 +1,153 @@
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-import { Info, AlertCircle } from 'lucide-react';
+import { REALTIME_LISTEN_TYPES, REALTIME_PRESENCE_LISTEN_EVENTS, REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
+import { Bell, Wifi, WifiOff, RefreshCw, CheckCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { isOrder, OrderData } from '@/utils/supabaseHelpers';
 
-type NotificationType = 
-  'error' | 
-  'welcome' | 
-  'notification' | 
-  'warning' | 
-  'success' | 
-  'systemAlert' |
-  'lowStockAlert' |
-  'outOfStockAlert' |
-  'syncError' |
-  'payment_successful' |
-  'payment_failed' |
-  'deposit_completed' |
-  'deposit_failed' |
-  'connection_change';
+interface NotificationState {
+  orders: OrderData[];
+  connected: boolean;
+  hasUnread: boolean;
+}
 
 export function RealtimeNotifier() {
-  const { user, userRoles } = useAuth();
-  const [ready, setReady] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected'>('connected');
-
+  const [state, setState] = useState<NotificationState>({
+    orders: [],
+    connected: false,
+    hasUnread: false
+  });
+  
+  const { user } = useAuth();
+  const isAdmin = false; // TODO: Replace with actual admin check from context
+  
   useEffect(() => {
     if (!user) return;
     
-    // Add a small delay to ensure auth context is fully loaded
-    const timer = setTimeout(() => setReady(true), 1000);
-    
-    return () => clearTimeout(timer);
-  }, [user]);
-
-  useEffect(() => {
-    if (!ready || !user) return;
-    
-    // Handle connection status changes
-    const handleConnectionChange = (status: 'CONNECTED' | 'DISCONNECTED') => {
-      if (status === 'DISCONNECTED' && connectionStatus === 'connected') {
-        setConnectionStatus('disconnected');
-        toast.error("Connection lost", {
-          description: "You've been disconnected from the server. Reconnecting..."
-        });
-      } else if (status === 'CONNECTED' && connectionStatus === 'disconnected') {
-        setConnectionStatus('connected');
-        toast.success("Connection restored", {
-          description: "You're now reconnected to the server."
-        });
-      }
-    };
-
-    // Setup notification channel
-    const notificationChannel = supabase
-      .channel('notifications-channel')
+    // Subscribe to realtime updates for orders table
+    const channel = supabase
+      .channel('db-changes')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications'
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'orders' 
         },
         (payload) => {
-          // Process notification
-          const notification = payload.new;
+          console.log('New order received:', payload);
+          const newOrder = payload.new;
           
-          // Skip admin notifications if user is not admin
-          if (notification.admin_only && (!userRoles || !userRoles.includes('admin'))) {
-            return;
-          }
-          
-          // Display notification
-          if (notification.type && notification.message) {
-            showNotification(
-              notification.type as NotificationType, 
-              notification.message,
-              notification.description
-            );
+          if (isOrder(newOrder)) {
+            // Only add to local state if it's for the current user or user is admin
+            if (isAdmin || (user && newOrder.user_id === user.id)) {
+              setState(prev => ({
+                ...prev,
+                orders: [newOrder, ...prev.orders].slice(0, 10),
+                hasUnread: true
+              }));
+              
+              // Show toast notification
+              toast.success('New order received!');
+            }
           }
         }
       )
-      .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
-        
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to notifications channel');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Error subscribing to notifications channel');
-          toast.error("Notification system error", {
-            description: "Unable to connect to real-time notification system."
-          });
+      .on(
+        'presence',
+        { event: REALTIME_PRESENCE_LISTEN_EVENTS.SYNC },
+        () => {
+          console.log('Presence sync event received');
         }
-        
-        // Handle connection status
-        if (status === 'CONNECTED' || status === 'SUBSCRIBED') {
-          handleConnectionChange('CONNECTED');
-        } else if (status === 'DISCONNECTED' || status === 'CHANNEL_ERROR') {
-          handleConnectionChange('DISCONNECTED');
+      )
+      .subscribe((status, err) => {
+        if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
+          console.log('Connected to realtime updates');
+          setState(prev => ({
+            ...prev,
+            connected: true
+          }));
+        } else if (
+          status === REALTIME_SUBSCRIBE_STATES.TIMED_OUT || 
+          status === REALTIME_SUBSCRIBE_STATES.CLOSED || 
+          status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR
+        ) {
+          console.error('Failed to connect to realtime updates', status, err);
+          setState(prev => ({
+            ...prev,
+            connected: false
+          }));
         }
       });
-
-    // Clean up on component unmount
+      
     return () => {
-      supabase.removeChannel(notificationChannel);
+      supabase.removeChannel(channel);
     };
-  }, [ready, user, userRoles, connectionStatus]);
-
-  // Function to display notification
-  const showNotification = (
-    type: NotificationType, 
-    message: string, 
-    description?: string
-  ) => {
-    const options: any = {};
-    
-    if (description) {
-      options.description = description;
-    }
-    
-    switch (type) {
-      case 'error':
-        toast.error(message, options);
-        break;
-      case 'success':
-        toast.success(message, options);
-        break;
-      case 'warning':
-        toast.warning(message, options);
-        break;
-      case 'notification':
-        toast(message, options);
-        break;
-      case 'systemAlert':
-        toast.error(message, {
-          ...options,
-          icon: <AlertCircle className="h-5 w-5" />
-        });
-        break;
-      case 'payment_successful':
-      case 'deposit_completed':
-        toast.success(message, {
-          ...options,
-          duration: 6000
-        });
-        break;
-      case 'payment_failed':
-      case 'deposit_failed':
-        toast.error(message, {
-          ...options,
-          duration: 6000
-        });
-        break;
-      case 'welcome':
-        toast(message, {
-          ...options,
-          icon: <Info className="h-5 w-5 text-blue-500" />
-        });
-        break;
-      case 'connection_change':
-        if (message.includes('lost')) {
-          toast.error(message, options);
-        } else {
-          toast.success(message, options);
-        }
-        break;
-      default:
-        toast(message, options);
-    }
+  }, [user, isAdmin]);
+  
+  const markAsRead = () => {
+    setState(prev => ({
+      ...prev,
+      hasUnread: false
+    }));
   };
-
-  return null; // Component doesn't render anything visible
+  
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={markAsRead}
+              className={cn(
+                "transition-all relative",
+                state.connected ? "" : "text-muted-foreground"
+              )}
+            >
+              {state.connected ? (
+                <>
+                  <Bell className="h-5 w-5" />
+                  {state.hasUnread && (
+                    <Badge 
+                      className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center bg-red-500"
+                    />
+                  )}
+                </>
+              ) : (
+                <RefreshCw className="h-5 w-5 animate-spin" />
+              )}
+            </Button>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <div className="text-sm">
+            {state.connected ? (
+              <div className="flex items-center gap-1">
+                <Wifi className="h-3 w-3 text-green-500" />
+                <span>Realtime updates enabled</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <WifiOff className="h-3 w-3 text-amber-500" />
+                <span>Connecting to realtime...</span>
+              </div>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
-
-export default RealtimeNotifier;
