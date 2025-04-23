@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { UserWithRolesRow } from '@/integrations/supabase/types-extension';
 
 export interface SecurityEvent {
   type: 'login' | 'purchase';
@@ -26,16 +27,8 @@ export async function logSecurityEvent(event: SecurityEvent) {
   }
 }
 
-export interface UserWithRolesData {
-  id: string;
-  email: string;
-  created_at: string;
-  last_sign_in_at: string | null;
-  email_confirmed_at: string | null;
-  display_name: string | null;
-  roles: string[];
-  is_active: boolean;
-}
+// Use the UserWithRolesRow interface from types-extension.ts to ensure consistency
+export type UserWithRolesData = UserWithRolesRow;
 
 export async function getUserWithRoles(userId?: string): Promise<UserWithRolesData | null> {
   try {
@@ -53,7 +46,7 @@ export async function getUserWithRoles(userId?: string): Promise<UserWithRolesDa
 
 export async function getAllUsers(): Promise<UserWithRolesData[] | null> {
   try {
-    // Use the new function created in the SQL migration
+    // Use the get_all_users function we defined in the Database interface
     const { data, error } = await supabase.rpc('get_all_users');
     
     if (error) throw error;
