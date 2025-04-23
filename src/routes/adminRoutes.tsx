@@ -2,7 +2,7 @@
 import { Route } from "react-router-dom";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { RoleGuard } from "@/components/auth/RoleGuard";
-import { UserRole } from "@/types";
+import { UserRole } from "@/types/auth.types";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminProducts from "@/pages/admin/AdminProducts";
 import AdminOrders from "@/pages/admin/AdminOrders";

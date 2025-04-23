@@ -2,7 +2,7 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { UserRole } from '@/types';
+import { UserRole } from '@/types/auth.types';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {

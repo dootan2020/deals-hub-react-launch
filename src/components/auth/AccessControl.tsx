@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { UserRole } from '@/types';
+import { UserRole } from '@/types/auth.types';
 
 interface AccessControlProps {
   requiredRoles?: UserRole[];

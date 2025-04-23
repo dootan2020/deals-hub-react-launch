@@ -2,7 +2,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { UserRole } from '@/types';
+import { UserRole } from '@/types/auth.types';
 
 interface RoleGuardProps {
   requiredRoles: UserRole[];

@@ -45,11 +45,9 @@ export interface OrderItem {
   price: number;
 }
 
-// User roles - only Admin & User
-export enum UserRole {
-  Admin = 'Admin',
-  User = 'User'
-}
+// Import UserRole from auth.types.ts instead of defining it here
+import { UserRole } from './auth.types';
+export { UserRole };
 
 // View mode
 export type ViewMode = 'grid' | 'list';

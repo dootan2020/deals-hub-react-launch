@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { UserRole } from '@/types';
+import { UserRole } from '@/types/auth.types';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, ArrowLeft, Lock } from 'lucide-react';
