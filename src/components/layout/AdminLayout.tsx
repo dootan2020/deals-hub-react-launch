@@ -1,89 +1,96 @@
-import { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  ShoppingCart, 
-  Settings, 
-  BarChart3,
-  FolderTree,
-  Globe,
-  Package,
-  Users2,
-  CreditCard,
-  DollarSign,
-  Database,
-  Wallet
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import NotificationBell from "@/components/admin/NotificationBell";
+
+import React, { ReactNode, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Menu, MoreVertical, UserCircle, Settings, LogOut } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/context/AuthContext';
 
 interface AdminLayoutProps {
   children: ReactNode;
-  title: string;
+  title?: string;
 }
 
-interface NavItem {
-  label: string;
-  path: string;
-  icon: ReactNode;
-}
+const AdminLayout = ({ children, title = 'Admin Dashboard' }: AdminLayoutProps) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
-const AdminLayout = ({ children, title }: AdminLayoutProps) => {
-  const { pathname } = useLocation();
-  
-  const navItems: NavItem[] = [
-    { label: 'Dashboard', path: '/admin', icon: <LayoutDashboard className="w-5 h-5" /> },
-    { label: 'Categories', path: '/admin/categories', icon: <FolderTree className="w-5 h-5" /> },
-    { label: 'Products', path: '/admin/products', icon: <Package className="w-5 h-5" /> },
-    { label: 'Product Manager', path: '/admin/product-manager', icon: <Database className="w-5 h-5" /> },
-    { label: 'Orders', path: '/admin/orders', icon: <ShoppingCart className="w-5 h-5" /> },
-    { label: 'Transactions', path: '/admin/transactions', icon: <Wallet className="w-5 h-5" /> },
-    { label: 'Users', path: '/admin/users', icon: <Users2 className="w-5 h-5" /> },
-    { label: 'Site Settings', path: '/admin/settings', icon: <Settings className="w-5 h-5" /> },
-    { label: 'Currency Settings', path: '/admin/currency', icon: <DollarSign className="w-5 h-5" /> },
-    { label: 'API Config', path: '/admin/api-config', icon: <Globe className="w-5 h-5" /> },
-    { label: 'API Tester', path: '/admin/api-tester', icon: <Settings className="w-5 h-5" /> },
-    { label: 'Proxy Settings', path: '/admin/proxy', icon: <Globe className="w-5 h-5" /> },
-    { label: 'Sync Logs', path: '/admin/sync-logs', icon: <BarChart3 className="w-5 h-5" /> },
-  ];
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-md">
-        <div className="p-4 border-b">
-          <Link to="/" className="text-2xl font-bold">
-            <span className="text-[#2ECC71]">Digital</span>
-            <span className="text-[#3498DB]">Deals</span>
-          </Link>
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-200 ease-in-out`}>
+        <div className="flex flex-col h-full">
+          <div className="p-4 border-b">
+            <h2 className="text-xl font-bold text-primary">Admin Panel</h2>
+          </div>
+          
+          {/* Simplified sidebar navigation */}
+          <nav className="flex-1 overflow-y-auto p-4">
+            <p className="text-gray-500 mb-4">Admin navigation will be rebuilt</p>
+          </nav>
         </div>
-        <nav className="p-4">
-          <ul className="space-y-1">
-            {navItems.map((item) => (
-              <li key={item.path}>
-                <Link 
-                  to={item.path} 
-                  className={cn(
-                    "flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors",
-                    pathname === item.path && "bg-primary/10 text-primary font-medium"
-                  )}
-                >
-                  <span className="mr-2">{item.icon}</span>
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
       </div>
-      
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <header className="bg-white shadow flex items-center justify-between px-4 py-6 mx-auto">
-          <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-          <NotificationBell />
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className="bg-white shadow-sm z-10">
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="md:hidden"
+              >
+                <Menu className="h-6 w-6" />
+              </Button>
+              <h1 className="text-xl font-bold ml-2">{title}</h1>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate('/account')}>
+                    <UserCircle className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/admin/settings')}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
         </header>
-        <main className="p-6">
+
+        {/* Main content area */}
+        <main className="flex-1 overflow-y-auto bg-gray-100 p-4">
           {children}
         </main>
       </div>

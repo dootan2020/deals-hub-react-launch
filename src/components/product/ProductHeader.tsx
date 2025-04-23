@@ -1,64 +1,25 @@
 
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Category } from '@/types';
 
 interface ProductHeaderProps {
   title: string;
-  category?: {
-    parent?: Category | null;
-    name?: string;
-    slug?: string;
-  } | null;
+  category: string;
 }
 
-export const ProductHeader = ({ title, category }: ProductHeaderProps) => {
+export const ProductHeader: React.FC<ProductHeaderProps> = ({ title, category }) => {
   return (
-    <>
-      <Breadcrumb className="mb-8">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/">Home</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          
-          {category && (
-            <>
-              {category.parent && (
-                <>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link to={`/category/${category.parent.slug}`}>
-                        {category.parent.name}
-                      </Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
-                </>
-              )}
-              
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link to={`/category/${category.slug}`}>
-                    {category.name}
-                  </Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-            </>
-          )}
-          
-          <BreadcrumbItem>
-            <BreadcrumbPage>{title}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-        {title}
-      </h1>
-    </>
+    <div className="mb-6">
+      <div className="flex items-center text-sm text-gray-500 mb-2">
+        <Link to="/" className="hover:text-primary">Home</Link>
+        <span className="mx-2">/</span>
+        <Link to="/products" className="hover:text-primary">Products</Link>
+        <span className="mx-2">/</span>
+        <Link to={`/products?category=${encodeURIComponent(category)}`} className="hover:text-primary">
+          {category}
+        </Link>
+      </div>
+      <h1 className="text-2xl md:text-3xl font-bold">{title}</h1>
+    </div>
   );
 };

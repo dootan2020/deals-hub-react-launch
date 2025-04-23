@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { fetchProductsWithFilters } from '@/services/product/productService';
+import { fetchProductsWithFilters } from '@/services/product';
 import Layout from '@/components/layout/Layout';
 import HeroSection from '@/components/home/HeroSection';
 import SearchSection from '@/components/home/SearchSection';
@@ -25,15 +25,13 @@ const Index = () => {
         setLoading(true);
         const result = await fetchProductsWithFilters({
           sort: activeSort,
+          featured: true,
         });
         
-        // Fix: Access the products array from the result
+        // Access the products array from the result
         const fetchedProducts = result.products || [];
         
-        console.log('Featured products in Index page:', fetchedProducts.map(p => ({
-          title: p.title,
-          kiosk_token: p.kiosk_token ? 'present' : 'missing'
-        })));
+        console.log('Featured products in Index page:', fetchedProducts.length);
         
         setProducts(fetchedProducts);
       } catch (error) {

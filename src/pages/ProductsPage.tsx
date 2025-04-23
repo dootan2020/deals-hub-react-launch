@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/product/ProductGrid';
@@ -7,8 +7,8 @@ import { toast } from '@/hooks/use-toast';
 import ProductSorter from '@/components/product/ProductSorter';
 import ViewToggle from '@/components/product/ViewToggle';
 import { useCategoriesContext } from '@/context/CategoriesContext';
-import SubcategoryPills from '@/components/category/SubcategoryPills';
-import { Category, SortOption } from '@/types';
+import { SortOption } from '@/types';
+import { fetchProductsWithFilters } from '@/services/product';
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -16,18 +16,44 @@ const ProductsPage = () => {
   const initialSort = (searchParams.get('sort') || 'newest') as SortOption;
   const { categories } = useCategoriesContext();
   
-  // Filter subcategories - using parentId instead of parent_id
-  const subcategories = categories.filter(cat => cat.parentId !== null);
-  
-  // Simplified implementation temporarily while removing complex dependencies
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
   const [sort, setSort] = useState<SortOption>(initialSort);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setLoading(true);
+        const result = await fetchProductsWithFilters({
+          sort: sort,
+        });
+        
+        // Fix: Access the products array from the result
+        const fetchedProducts = result.products || [];
+        
+        console.log('Products in ProductsPage:', fetchedProducts.length);
+        
+        setProducts(fetchedProducts);
+        setHasMore(result.currentPage < result.totalPages);
+      } catch (error) {
+        console.error('Error loading products:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load products',
+          variant: 'destructive'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, [sort]);
   
-  const handleSortChange = (value: SortOption) => {
-    setSort(value);
+  const handleSortChange = (value: string) => {
+    setSort(value as SortOption);
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set('sort', value);
     setSearchParams(newSearchParams);
@@ -41,13 +67,6 @@ const ProductsPage = () => {
     setViewMode(newView);
   };
 
-  const handleSubcategoryClick = (category: Category) => {
-    if (category && category.id) {
-      // Handle the category click
-      toast.success("Category Filter Applied", `Showing products from ${category.name}`);
-    }
-  };
-
   return (
     <Layout>
       <div className="bg-background py-8 min-h-screen">
@@ -59,17 +78,6 @@ const ProductsPage = () => {
                 Browse our collection of digital products
               </p>
             </div>
-
-            {subcategories.length > 0 && (
-              <div className="bg-white rounded-lg border border-gray-100 shadow-sm">
-                <div className="p-4">
-                  <SubcategoryPills 
-                    subcategories={subcategories}
-                    onSubcategoryClick={handleSubcategoryClick}
-                  />
-                </div>
-              </div>
-            )}
 
             <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
               <div className="flex justify-between items-center mb-6">

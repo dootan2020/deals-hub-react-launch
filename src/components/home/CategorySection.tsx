@@ -1,113 +1,43 @@
 
-import { useState, useEffect } from 'react';
-import { fetchMainCategories, fetchSubcategoriesByParentId } from '@/services/categoryService';
-import CategorySectionLoading from '@/components/category/CategorySectionLoading';
-import CategorySectionError from '@/components/category/CategorySectionError';
-import CategorySectionHeader from '@/components/category/CategorySectionHeader';
-import CategoryCard from '@/components/category/CategoryCard';
-import ShowMoreButton from '@/components/category/ShowMoreButton';
-import { CategoryWithSubs } from '@/types/category.types';
+import React from 'react';
+import { Link } from 'react-router-dom';
 
-const CategorySection = () => {
-  const [categories, setCategories] = useState<CategoryWithSubs[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState(6);
-
-  const fetchCategoriesWithSubcategories = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const mainCategories = await fetchMainCategories();
-      
-      const categoriesWithSubs = await Promise.all(
-        mainCategories.map(async (category) => {
-          const subcategories = await fetchSubcategoriesByParentId(category.id);
-          return {
-            ...category,
-            topSubcategories: subcategories
-              .slice(0, 4)
-              .map(sub => ({ 
-                id: sub.id, 
-                name: sub.name, 
-                slug: sub.slug 
-              })),
-            totalSubcategories: subcategories.length
-          };
-        })
-      );
-      
-      setCategories(categoriesWithSubs);
-    } catch (err) {
-      console.error('Error fetching categories:', err);
-      setError('Failed to load categories. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCategoriesWithSubcategories();
-  }, []);
-
-  const showMore = () => {
-    setVisibleCount(prev => Math.min(prev + 6, categories.length));
-  };
-
-  if (loading) {
-    return (
-      <section className="py-16 bg-section-primary">
-        <div className="container-custom">
-          <CategorySectionLoading />
-        </div>
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <section className="py-16 bg-section-primary">
-        <div className="container-custom">
-          <CategorySectionError 
-            error={error}
-            onRetry={() => window.location.reload()}
-          />
-        </div>
-      </section>
-    );
-  }
-
+const CategorySection: React.FC = () => {
   return (
-    <section className="py-16 bg-section-primary">
+    <section className="py-8 md:py-16 bg-gradient-to-b from-white to-gray-50">
       <div className="container-custom">
-        <CategorySectionHeader />
-
-        {categories.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-              {categories.slice(0, visibleCount).map((category) => (
-                <CategoryCard
-                  key={category.id}
-                  id={category.id}
-                  name={category.name}
-                  description={category.description}
-                  slug={category.slug}
-                  topSubcategories={category.topSubcategories}
-                  totalSubcategories={category.totalSubcategories}
-                />
-              ))}
+        <div className="text-center mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold mb-2">Browse Categories</h2>
+          <p className="text-gray-600">Explore our range of digital products by category</p>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {/* Placeholder categories */}
+          {['Email Accounts', 'Social Media Accounts', 'Software Keys', 'Digital Services'].map((category, index) => (
+            <div 
+              key={index}
+              className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+            >
+              <h3 className="font-semibold text-lg mb-2">{category}</h3>
+              <p className="text-gray-500 text-sm mb-4">Browse our selection of {category.toLowerCase()}</p>
+              <Link to={`/category/${index + 1}`} className="text-primary font-medium text-sm flex items-center">
+                View Products
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
             </div>
-
-            {visibleCount < categories.length && (
-              <ShowMoreButton onClick={showMore} />
-            )}
-          </>
-        ) : (
-          <div className="text-center py-12 bg-section-alt rounded-lg">
-            <p className="text-xl text-text-light">No categories found</p>
-          </div>
-        )}
+          ))}
+        </div>
+        
+        <div className="text-center mt-8">
+          <Link to="/products" className="inline-flex items-center text-accent hover:text-accent-dark font-medium">
+            View All Categories
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
       </div>
     </section>
   );
