@@ -1,7 +1,7 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '@/context/AuthContext';
-import { useOrderHistory, OrderHistoryItem } from '@/hooks/useOrderHistory';
+import { useOrderHistory, OrderHistoryItem } from '@/hooks/useOrderHistory.tsx';
 import { Loader } from 'lucide-react';
 
 const OrderHistory = () => {
