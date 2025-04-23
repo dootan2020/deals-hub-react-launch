@@ -76,3 +76,5 @@ export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
     </Dialog>
   );
 };
+
+export default PurchaseDialog;
