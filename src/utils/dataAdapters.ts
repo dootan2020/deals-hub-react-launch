@@ -10,11 +10,10 @@ export function adaptCategory(dbCategory: any): Category {
     name: dbCategory.name,
     slug: dbCategory.slug,
     description: dbCategory.description,
-    image: dbCategory.image,
+    image: dbCategory.image || '',
     count: dbCategory.count || 0,
-    parentId: dbCategory.parent_id || dbCategory.parentId || null,
-    createdAt: dbCategory.created_at || dbCategory.createdAt,
-    category: null // Add category property with null value
+    parent_id: dbCategory.parent_id || dbCategory.parentId || null,
+    created_at: dbCategory.created_at || dbCategory.createdAt
   };
 }
 
@@ -43,7 +42,8 @@ export function adaptProduct(dbProduct: any): Product {
     stock: Number(dbProduct.stock) || 0,
     kiosk_token: dbProduct.kiosk_token || '',
     createdAt: dbProduct.created_at || dbProduct.createdAt || new Date().toISOString(),
-    category: dbProduct.category ? adaptCategory(dbProduct.category) : null
+    updatedAt: dbProduct.updated_at || dbProduct.updatedAt || new Date().toISOString(),
+    category: dbProduct.category || ''
   };
 }
 

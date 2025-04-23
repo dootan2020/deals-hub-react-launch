@@ -6,7 +6,7 @@ export interface Product {
   slug: string;
   description: string;
   price: number;
-  salePrice: number | null;
+  salePrice?: number | null;
   images: string[];
   category: string;
   categoryId: string;
@@ -17,11 +17,18 @@ export interface Product {
   featured?: boolean;
   status?: 'active' | 'inactive' | 'draft';
   rating?: number;
-  numberOfRatings?: number;
   originalPrice?: number;
   badges?: string[];
   inStock?: boolean;
   kiosk_token?: string;
+  // Adding fields that were causing errors
+  parent_id?: string;
+  shortDescription?: string;
+  reviewCount?: number;
+  stockQuantity?: number;
+  features?: string[];
+  specifications?: Record<string, any>;
+  salesCount?: number;
 }
 
 // User roles - simplified to only Admin and User
@@ -52,10 +59,10 @@ export interface Order {
   id: string;
   user_id: string;
   status: string;
-  total_amount: number;
+  total_amount?: number;
   total_price: number;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   external_order_id?: string;
   user?: any;
   order_items?: OrderItem[];
@@ -96,6 +103,7 @@ export interface FilterParams {
   page?: number;
   limit?: number;
   featured?: boolean;
+  inStock?: boolean;  // Added this field
 }
 
 export interface Recommendation {
@@ -110,6 +118,7 @@ export type RecommendationStrategy = 'popular' | 'recently-viewed' | 'personaliz
 export interface ProxyConfig {
   id: string;
   proxy_type: string;
+  type?: string; // Added this field
   custom_url?: string;
   created_at?: string;
   updated_at?: string;

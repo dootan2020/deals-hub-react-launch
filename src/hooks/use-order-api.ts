@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -17,13 +16,13 @@ interface OrderResult {
   data?: any;
 }
 
-export function useOrderApi() {
+export const useOrderApi = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string>('');
 
   const createOrder = async (params: CreateOrderParams): Promise<OrderResult> => {
     setLoading(true);
-    setError(null);
+    setError('');
     
     try {
       // For now, we're just simulating a successful order creation
@@ -57,9 +56,33 @@ export function useOrderApi() {
     }
   };
 
-  return {
-    createOrder,
-    loading,
-    error
+  const checkOrder = async (orderId: string): Promise<OrderResult> => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('order-api', {
+        body: {
+          action: 'check-order',
+          orderId
+        }
+      });
+      
+      if (error) {
+        console.error('Order check error:', error);
+        setError(error.message || 'Error checking order');
+        return { success: false, message: error.message };
+      }
+      
+      return { success: true, data };
+    } catch (err: any) {
+      console.error('Order check exception:', err);
+      setError(err.message || 'Exception while checking order');
+      return { success: false, message: err.message };
+    } finally {
+      setLoading(false);
+    }
   };
-}
+
+  return { createOrder, checkOrder, loading, error };
+};

@@ -1,152 +1,189 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronDown, Globe, X, ChevronUp, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, ChevronRight, Home, LayoutGrid, Contact, ShoppingCart, Menu, X } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useAuth } from '@/context/AuthContext';
 import { useCategoriesContext } from '@/context/CategoriesContext';
-import { Category } from '@/types';
-import { useLanguage } from "@/context/LanguageContext";
 
 interface MobileNavigationProps {
   isOpen: boolean;
-  toggleMenu: () => void;
+  onOpenChange: (open: boolean) => void;
 }
 
-const MobileNavigation = ({ 
-  isOpen, 
-  toggleMenu 
-}: MobileNavigationProps) => {
-  const { mainCategories, getSubcategoriesByParentId, isLoading } = useCategoriesContext();
-  const { language, setLanguage } = useLanguage();
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+export function MobileNavigation({ isOpen, onOpenChange }: MobileNavigationProps) {
+  const { isAuthenticated, logout } = useAuth();
+  const { categories } = useCategoriesContext();
+  const navigate = useNavigate();
+  const [openCategory, setOpenCategory] = useState<string | null>(null);
 
   const toggleCategory = (categoryId: string) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [categoryId]: !prev[categoryId]
-    }));
+    if (openCategory === categoryId) {
+      setOpenCategory(null);
+    } else {
+      setOpenCategory(categoryId);
+    }
   };
 
-  const getCategoryUrl = (category: Category) => {
-    return `/category/${category.slug}`;
+  const handleNavigate = (path: string) => {
+    navigate(path);
+    onOpenChange(false);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    onOpenChange(false);
+    navigate('/login');
   };
 
   return (
-    <div
-      className={cn(
-        "fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden transition-opacity duration-200",
-        isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-      )}
-      onClick={toggleMenu}
-    >
-      <div
-        className={cn(
-          "fixed top-0 right-0 bottom-0 w-64 bg-white p-6 shadow-xl transition-transform duration-300 z-50",
-          isOpen ? "translate-x-0" : "translate-x-full"
-        )}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-primary">Menu</h2>
-          <button onClick={toggleMenu}>
-            <X className="h-6 w-6 text-text-light" />
-          </button>
-        </div>
-        
-        <nav className="flex flex-col space-y-4">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-              <span>Loading...</span>
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
+      <SheetContent side="left" className="w-[85vw] sm:w-[350px] p-0">
+        <ScrollArea className="h-full py-6">
+          <div className="px-6 py-2 border-b">
+            <div className="font-semibold text-lg mb-1">Menu</div>
+            <div className="text-sm text-muted-foreground">
+              Browse our products and services
             </div>
-          ) : (
-            <>
-              {/* Dynamic categories from database */}
-              {mainCategories.map((category) => {
-                const subcategories = getSubcategoriesByParentId(category.id);
-                const isExpanded = expandedCategories[category.id] || false;
-                
-                return (
-                  <div key={category.id} className="space-y-2">
-                    <div 
-                      className="flex items-center justify-between cursor-pointer text-text hover:text-primary transition-colors duration-200"
-                      onClick={() => toggleCategory(category.id)}
-                    >
-                      <span>{category.name}</span>
-                      {isExpanded ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </div>
-                    {isExpanded && (
-                      <div className="pl-4 space-y-2">
-                        {subcategories.length > 0 ? (
-                          subcategories.map((subcategory) => (
-                            <Link 
-                              key={subcategory.id}
-                              to={getCategoryUrl(subcategory)} 
-                              className="block text-text-light hover:text-primary transition-colors duration-200"
-                              onClick={toggleMenu}
-                            >
-                              {subcategory.name}
-                            </Link>
-                          ))
-                        ) : (
-                          <div className="text-sm text-muted-foreground">
-                            No subcategories found
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              
-              {/* Static menu items */}
-              <Link 
-                to="/support" 
-                className="text-text hover:text-primary transition-colors duration-200"
-                onClick={toggleMenu}
-              >
-                Support
-              </Link>
-              
-              <Link 
-                to="/faqs" 
-                className="text-text hover:text-primary transition-colors duration-200"
-                onClick={toggleMenu}
-              >
-                FAQs
-              </Link>
-              
-              <Link 
-                to="/account" 
-                className="text-text hover:text-primary transition-colors duration-200"
-                onClick={toggleMenu}
-              >
-                My Account
-              </Link>
-            </>
-          )}
-
-          {/* Language Selector for Mobile */}
-          <div className="flex items-center pt-4 border-t border-gray-200 mt-4">
-            <Globe className="h-5 w-5 text-text-light" />
-            <select
-              className="ml-2 text-sm text-text-light bg-transparent border-none focus:outline-none"
-              value={language}
-              onChange={e => setLanguage(e.target.value as any)}
-              aria-label="Select language"
-            >
-              <option value="en">English</option>
-              <option value="vi">Vietnamese</option>
-              <option value="es">Spanish</option>
-            </select>
           </div>
-        </nav>
-      </div>
-    </div>
+          
+          <div className="px-2 py-4 space-y-1">
+            {/* Main Navigation */}
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-base font-normal h-12"
+              onClick={() => handleNavigate('/')}
+            >
+              <Home className="h-5 w-5 mr-2" />
+              Home
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-base font-normal h-12"
+              onClick={() => handleNavigate('/products')}
+            >
+              <LayoutGrid className="h-5 w-5 mr-2" />
+              All Products
+            </Button>
+            
+            {/* Categories */}
+            <div className="py-1">
+              <div className="px-4 pb-1 pt-3 text-sm font-medium text-muted-foreground">
+                Categories
+              </div>
+              
+              {categories.map((category) => (
+                <Collapsible
+                  key={category.id}
+                  open={openCategory === category.id}
+                  onOpenChange={() => toggleCategory(category.id)}
+                  className="w-full"
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between text-base font-normal h-12"
+                    >
+                      <span className="flex items-center">
+                        <span>{category.name}</span>
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          openCategory === category.id ? 'transform rotate-180' : ''
+                        }`}
+                      />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-base font-normal h-12"
+                      onClick={() => handleNavigate(`/products?category=${category.slug}`)}
+                    >
+                      <ChevronRight className="h-4 w-4 mr-2" />
+                      All {category.name}
+                    </Button>
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
+            </div>
+            
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-base font-normal h-12"
+              onClick={() => handleNavigate('/support')}
+            >
+              <Contact className="h-5 w-5 mr-2" />
+              Support
+            </Button>
+            
+            {/* Account links */}
+            <div className="py-1 mt-4 border-t pt-4">
+              <div className="px-4 pb-1 text-sm font-medium text-muted-foreground">
+                Account
+              </div>
+              
+              {isAuthenticated ? (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-base font-normal h-12"
+                    onClick={() => handleNavigate('/dashboard')}
+                  >
+                    Dashboard
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-base font-normal h-12"
+                    onClick={() => handleNavigate('/account')}
+                  >
+                    My Account
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-base font-normal h-12 text-red-500 hover:text-red-600 hover:bg-red-50"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-base font-normal h-12"
+                    onClick={() => handleNavigate('/login')}
+                  >
+                    Login
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-base font-normal h-12"
+                    onClick={() => handleNavigate('/register')}
+                  >
+                    Register
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
   );
-};
+}
 
-export default MobileNavigation;
+export function MobileMenuToggle({ onToggle }: { onToggle: () => void }) {
+  return (
+    <Button variant="ghost" size="icon" className="md:hidden" onClick={onToggle}>
+      <Menu className="h-6 w-6" />
+    </Button>
+  );
+}

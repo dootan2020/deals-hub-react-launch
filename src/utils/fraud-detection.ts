@@ -1,3 +1,4 @@
+
 // Simple placeholder for fraud detection utilities
 // These will be implemented fully in the future
 
@@ -22,5 +23,18 @@ export async function recordPurchaseActivity(userId: string, amount: number, pro
 export async function checkUserBehaviorAnomaly(userId: string): Promise<boolean> {
   // Placeholder function - will be implemented later
   console.log(`Checking behavior anomalies for user ${userId}`);
+  return false;
+}
+
+/**
+ * Records login attempt and checks for suspicious activity
+ * @param userId The user ID
+ * @param ip IP address
+ * @param userAgent User agent string
+ * @returns True if suspicious, false otherwise
+ */
+export async function recordLoginAttempt(userId: string, ip?: string, userAgent?: string): Promise<boolean> {
+  // Placeholder function - will be implemented later
+  console.log(`Recording login attempt for user ${userId}`);
   return false;
 }

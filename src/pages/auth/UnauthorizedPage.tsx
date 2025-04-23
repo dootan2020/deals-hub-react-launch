@@ -1,8 +1,7 @@
-
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Layout from '@/components/layout/Layout';
-import { ShieldAlert, Home, RefreshCw, LogOut, RefreshCcw } from 'lucide-react';
+import { ShieldAlert, Home, RefreshCw, LogOut, RefreshCcw, UsersRound, ShieldCheck, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -108,6 +107,51 @@ export default function UnauthorizedPage() {
       console.error('Error logging out:', error);
       toast.error('Không thể đăng xuất. Thử tải lại trang');
     }
+  };
+
+  const renderRoleInfo = () => {
+    return (
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Roles in Our System</h2>
+        
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <h3 className="font-medium text-green-700 mb-2 flex items-center gap-2">
+              <UsersRound className="h-5 w-5" />
+              User Role
+            </h3>
+            <p className="text-sm text-gray-600">
+              Standard users can browse products, make purchases, and manage their account.
+            </p>
+          </div>
+          
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h3 className="font-medium text-blue-700 mb-2 flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5" />
+              Admin Role
+            </h3>
+            <p className="text-sm text-gray-600">
+              Administrators have full access to manage products, orders, users and system settings.
+            </p>
+          </div>
+        </div>
+        
+        <div className="mt-6 bg-amber-50 p-4 rounded-lg border border-amber-200">
+          <h3 className="font-medium text-amber-700 mb-2">Need Access?</h3>
+          <p className="text-sm text-gray-600 mb-3">
+            If you believe you should have access to certain areas of the platform:
+          </p>
+          <Button 
+            variant="outline"
+            className="text-sm bg-white"
+            onClick={() => window.location.href = "/support"}
+          >
+            <HelpCircle className="mr-1.5 h-4 w-4" />
+            Contact Support
+          </Button>
+        </div>
+      </div>
+    );
   };
 
   return (

@@ -1,91 +1,72 @@
 
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
-import { 
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { ChevronDown } from 'lucide-react';
+import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
+  NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger
+  NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu';
 import { useCategoriesContext } from '@/context/CategoriesContext';
-import { Category } from '@/types';
 
-const DesktopNavigation = () => {
-  const { mainCategories, getSubcategoriesByParentId, isLoading } = useCategoriesContext();
+export function DesktopNavigation() {
+  const { categories, loading } = useCategoriesContext();
   
-  if (isLoading) {
-    return (
-      <div className="hidden md:flex items-center">
-        <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
-        <span className="text-sm">Loading menu...</span>
-      </div>
-    );
-  }
-
-  const getCategoryUrl = (category: Category) => {
-    return `/category/${category.slug}`;
-  };
-
   return (
-    <div className="hidden md:block">
-      <NavigationMenu>
-        <NavigationMenuList className="space-x-1">
-          {mainCategories.map((category) => {
-            const subcategories = getSubcategoriesByParentId(category.id);
-            
-            return (
-              <NavigationMenuItem key={category.id} className="relative">
-                <NavigationMenuTrigger 
-                  className="bg-transparent hover:bg-accent/10 hover:text-primary transition-all duration-150 focus:bg-transparent data-[state=open]:bg-transparent data-[state=open]:text-primary"
-                >
-                  {category.name}
-                </NavigationMenuTrigger>
-                <NavigationMenuContent className="mt-0">
-                  <ul className="grid w-[400px] gap-1 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                    {subcategories.length > 0 ? (
-                      subcategories.map((subcategory) => (
-                        <li key={subcategory.id}>
-                          <Link
-                            to={getCategoryUrl(subcategory)}
-                            className="block select-none rounded-md px-4 py-2 text-sm font-medium no-underline transition-colors hover:bg-accent/10 hover:text-primary focus:bg-accent focus:text-accent-foreground"
-                          >
-                            {subcategory.name}
-                          </Link>
-                        </li>
-                      ))
-                    ) : (
-                      <li className="px-4 py-2 text-sm text-muted-foreground">
-                        No subcategories found
-                      </li>
-                    )}
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-            );
-          })}
-          
+    <NavigationMenu className="hidden md:flex">
+      <NavigationMenuList>
+        <NavigationMenuItem>
+          <Link to="/" className="text-base text-gray-700 hover:text-primary px-2 py-1">
+            Home
+          </Link>
+        </NavigationMenuItem>
+        
+        <NavigationMenuItem>
+          <Link to="/products" className="text-base text-gray-700 hover:text-primary px-2 py-1">
+            Products
+          </Link>
+        </NavigationMenuItem>
+        
+        {categories.length > 0 && (
           <NavigationMenuItem>
-            <Link 
-              to="/support" 
-              className="text-text hover:text-primary transition-all duration-150 px-4 py-2 text-sm font-medium rounded-md hover:bg-accent/10"
-            >
-              Support
-            </Link>
+            <NavigationMenuTrigger className="bg-transparent hover:bg-transparent text-base text-gray-700 hover:text-primary font-normal">
+              Categories
+            </NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <ul className="grid gap-3 p-4 w-[400px] md:w-[500px] lg:w-[600px] grid-cols-2">
+                {categories.map((category) => (
+                  <li key={category.id} className="row-span-1">
+                    <NavigationMenuLink asChild>
+                      <Link
+                        to={`/products?category=${category.slug}`}
+                        className="flex h-full w-full select-none flex-col justify-between rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none hover:bg-gradient-to-b hover:from-muted hover:to-muted focus:shadow-md"
+                      >
+                        <div className="mb-2 mt-4 font-medium">
+                          {category.name}
+                        </div>
+                        <div className="text-sm leading-tight text-muted-foreground">
+                          {category.count || 0} products
+                        </div>
+                      </Link>
+                    </NavigationMenuLink>
+                  </li>
+                ))}
+              </ul>
+            </NavigationMenuContent>
           </NavigationMenuItem>
-          
-          <NavigationMenuItem>
-            <Link 
-              to="/faqs" 
-              className="text-text hover:text-primary transition-all duration-150 px-4 py-2 text-sm font-medium rounded-md hover:bg-accent/10"
-            >
-              FAQs
-            </Link>
-          </NavigationMenuItem>
-        </NavigationMenuList>
-      </NavigationMenu>
-    </div>
+        )}
+        
+        <NavigationMenuItem>
+          <Link to="/support" className="text-base text-gray-700 hover:text-primary px-2 py-1">
+            Support
+          </Link>
+        </NavigationMenuItem>
+      </NavigationMenuList>
+    </NavigationMenu>
   );
-};
-
-export default DesktopNavigation;
+}

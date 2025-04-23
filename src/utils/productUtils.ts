@@ -2,55 +2,54 @@
 import { Product } from '@/types';
 
 /**
- * Calculate discount percentage between original price and current price
+ * Calculates the discount percentage for a product
  */
-export const calculateDiscountPercentage = (originalPrice: number, currentPrice: number): number => {
-  if (!originalPrice || originalPrice <= 0 || !currentPrice || currentPrice <= 0) {
-    return 0;
+export function calculateDiscountPercentage(product: Product): number | null {
+  if (!product.originalPrice || product.originalPrice <= product.price) {
+    return null;
   }
   
-  const discount = ((originalPrice - currentPrice) / originalPrice) * 100;
-  return Math.round(discount);
-};
+  const discount = product.originalPrice - product.price;
+  return Math.round((discount / product.originalPrice) * 100);
+}
 
 /**
- * Generate mock product data for testing
+ * Creates a simplified product object with only essential properties
  */
-export const generateMockProduct = (overrides: Partial<Product> = {}): Product => {
+export function createSimplifiedProduct(data: Partial<Product>): Partial<Product> {
   return {
-    id: `product-${Math.random().toString(36).substring(2, 9)}`,
-    title: overrides.title || 'Sample Product',
-    slug: overrides.slug || 'sample-product',
-    description: overrides.description || 'This is a sample product description',
-    shortDescription: overrides.shortDescription || 'Sample product short description',
-    price: overrides.price || 99000,
-    originalPrice: overrides.originalPrice || 149000,
-    images: overrides.images || ['/images/placeholder.jpg'],
-    categoryId: overrides.categoryId || 'category-1',
-    rating: overrides.rating || 4.5,
-    reviewCount: overrides.reviewCount || 12,
-    inStock: overrides.inStock !== undefined ? overrides.inStock : true,
-    stockQuantity: overrides.stockQuantity || 10,
-    badges: overrides.badges || ['new', 'sale'],
-    features: overrides.features || ['Feature 1', 'Feature 2'],
-    specifications: overrides.specifications || { key1: 'value1', key2: 'value2' },
-    salesCount: overrides.salesCount || 25,
-    stock: overrides.stock || 10,
-    kiosk_token: overrides.kiosk_token || '',
-    createdAt: overrides.createdAt || new Date().toISOString(),
-    category: overrides.category || null
+    id: data.id,
+    title: data.title,
+    slug: data.slug,
+    description: data.description,
+    shortDescription: data.shortDescription || data.description?.substring(0, 100),
+    price: data.price || 0,
+    originalPrice: data.originalPrice,
+    images: data.images || [],
+    category: data.category,
+    categoryId: data.categoryId,
+    rating: data.rating || 0,
+    reviewCount: data.reviewCount || 0,
+    inStock: data.inStock !== undefined ? data.inStock : true,
+    stockQuantity: data.stockQuantity || 0,
+    badges: data.badges || [],
+    features: data.features || [],
+    specifications: data.specifications || {},
+    salesCount: data.salesCount || 0,
+    stock: data.stock || 0
   };
-};
+}
 
 /**
- * Get badge classes based on stock status
+ * Formats product data for display
  */
-export const getStockBadgeClasses = (stockQuantity: number): string => {
-  if (stockQuantity > 10) {
-    return 'bg-green-100 text-green-800';
-  } else if (stockQuantity > 0) {
-    return 'bg-yellow-100 text-yellow-800';
-  } else {
-    return 'bg-red-100 text-red-800';
-  }
-};
+export function formatProductData(product: Product): Product {
+  return {
+    ...product,
+    price: typeof product.price === 'number' ? product.price : 0,
+    stock: typeof product.stock === 'number' ? product.stock : 0,
+    rating: typeof product.rating === 'number' ? product.rating : 0,
+    images: Array.isArray(product.images) ? product.images : [],
+    badges: Array.isArray(product.badges) ? product.badges : []
+  };
+}

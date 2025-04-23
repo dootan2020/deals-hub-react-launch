@@ -1,61 +1,69 @@
 
 import { useState, useEffect } from 'react';
-import { Product, Recommendation, RecommendationStrategy } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { Recommendation } from '@/types';
 
-export const usePersonalizedRecommendations = (
-  userId: string | null,
-  product: Product | null,
-  strategy: RecommendationStrategy = 'popular'
-) => {
+export const usePersonalizedRecommendations = (limit = 4) => {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (!product || !userId) {
-      setLoading(false);
-      return;
-    }
-
     const fetchRecommendations = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        setError(null);
-
-        // Simple personalized recommendation logic (popular products)
+        // Simplified logic - just fetch some products
         const { data, error } = await supabase
           .from('products')
           .select('id, title, price, images, slug')
-          .order('sales_count', { ascending: false })
-          .neq('id', product.id)
-          .limit(4);
+          .limit(limit);
 
         if (error) {
-          throw new Error(error.message);
+          console.error('Error fetching recommendations:', error);
+          setRecommendations([]);
+          return;
         }
 
-        // Transform to Recommendation type
-        const recs: Recommendation[] = data.map((item: any) => ({
+        // Create a single recommendation with the fetched products
+        const mappedItems = data.map((item: any) => ({
           id: item.id,
           title: item.title,
           price: Number(item.price),
-          image: item.images && item.images.length > 0 ? item.images[0] : '',
+          images: item.images,
           slug: item.slug,
-          reason: 'Popular choice'
+          description: '',
+          stock: 0,
+          categoryId: '',
+          createdAt: '',
+          updatedAt: '',
+          category: ''
         }));
 
-        setRecommendations(recs);
-      } catch (err: any) {
-        console.error('Error fetching personalized recommendations:', err);
-        setError(err.message || 'Failed to fetch personalized recommendations');
+        // Create a recommendation object
+        const personalizedRec: Recommendation = {
+          id: 'personal-rec',
+          title: 'Recommended for you',
+          description: 'Products we think you might like',
+          products: mappedItems
+        };
+        
+        setRecommendations([personalizedRec]);
+      } catch (err) {
+        console.error('Failed to fetch recommendations:', err);
+        setRecommendations([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchRecommendations();
-  }, [product, userId, strategy]);
+  }, [user, limit]);
 
-  return { recommendations, loading, error };
+  return {
+    recommendations,
+    loading
+  };
 };
+
+export default usePersonalizedRecommendations;

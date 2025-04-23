@@ -40,3 +40,35 @@ export function safeNumber(value: any, defaultValue = 0): number {
 export function isValidArray<T>(value: any): value is T[] {
   return Array.isArray(value);
 }
+
+/**
+ * Type guard to check if an object is a deposit record
+ */
+export function isDeposit(obj: any): boolean {
+  return obj && typeof obj === 'object' && 'amount' in obj && 'status' in obj;
+}
+
+/**
+ * Type guard to check if an object is an order record
+ */
+export function isOrder(obj: any): boolean {
+  return obj && typeof obj === 'object' && 'total_price' in obj && 'status' in obj;
+}
+
+/**
+ * Type for order data from Supabase
+ */
+export interface OrderData {
+  id: string;
+  user_id: string;
+  status: string;
+  total_price: number;
+  created_at: string;
+}
+
+/**
+ * Type guard to check if an object is a Supabase record
+ */
+export function isSupabaseRecord(obj: any): boolean {
+  return obj && typeof obj === 'object' && 'id' in obj;
+}

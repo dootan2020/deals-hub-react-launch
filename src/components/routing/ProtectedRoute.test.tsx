@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
-import { UserRole } from '@/types/auth.types';
+import { UserRole } from '@/types';
 
 // Mock the auth hook
 jest.mock('@/context/AuthContext', () => ({
@@ -61,13 +61,13 @@ describe('ProtectedRoute', () => {
     (useAuth as jest.Mock).mockReturnValue({
       isAuthenticated: true,
       loading: false,
-      userRoles: ['admin'] as UserRole[],
+      userRoles: [UserRole.Admin] as UserRole[],
     });
 
     render(
       <MemoryRouter>
         <Routes>
-          <Route element={<ProtectedRoute requiredRoles={['admin']} />}>
+          <Route element={<ProtectedRoute requiredRoles={[UserRole.Admin]} />}>
             <Route path="/" element={<div>Protected Content</div>} />
           </Route>
         </Routes>

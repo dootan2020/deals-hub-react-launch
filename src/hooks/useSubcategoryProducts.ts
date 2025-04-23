@@ -1,92 +1,101 @@
-
 import { useState, useEffect } from 'react';
-import { fetchProductsWithFilters } from '@/services/productService';
-import { Product, FilterParams, SortOption } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { Product, SortOption, FilterParams, Category } from '@/types';
+import { fetchProductsWithFilters } from '@/services/product';
+import { useSearchParams } from 'react-router-dom';
 
-interface ProductsResponse {
+interface UseSubcategoryProductsResult {
   products: Product[];
-  totalPages: number;
-}
-
-// Type to handle different response formats
-type ProductServiceResponse = Product[] | ProductsResponse | null;
-
-interface UseSubcategoryProductsProps {
-  slug: string;
+  category: Category | null;
+  loading: boolean;
+  error: string | null;
   sortOption: SortOption;
-  priceRange: [number, number];
-  stockFilter: string;
+  setSortOption: (option: SortOption) => void;
+  filterParams: FilterParams;
+  setFilterParams: (params: FilterParams) => void;
 }
 
-export const useSubcategoryProducts = ({ 
-  slug,
-  sortOption,
-  priceRange,
-  stockFilter
-}: UseSubcategoryProductsProps) => {
+export const useSubcategoryProducts = (categorySlug: string | undefined): UseSubcategoryProductsResult => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [category, setCategory] = useState<Category | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
+  const [filterParams, setFilterParams] = useState<FilterParams>({});
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const loadProducts = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        // Create a FilterParams-compatible object
-        const filterParams: FilterParams = {
-          subcategory: slug,
-          page: currentPage,
-          perPage: 12,
-          sort: sortOption,
-          minPrice: priceRange[0],
-          maxPrice: priceRange[1],
-          inStock: stockFilter === "in-stock" ? true : undefined
-        };
-        
-        const response = await fetchProductsWithFilters(filterParams) as ProductServiceResponse;
-        
-        // Handle response based on type
-        if (Array.isArray(response)) {
-          setProducts(response);
-          setTotalPages(1);
-        } else if (response && typeof response === 'object' && 'products' in response) {
-          setProducts(response.products || []);
-          setTotalPages(response.totalPages || 1);
-          
-          if (response.products?.length === 0 && currentPage > 1) {
-            setCurrentPage(1);
-          }
-        } else {
-          setProducts([]);
-          setTotalPages(1);
-        }
-      } catch (err) {
-        console.error("Error fetching products:", err);
-        setError("Failed to load products");
-        setProducts([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadProducts();
-  }, [slug, currentPage, sortOption, priceRange, stockFilter]);
+    const initialSort = (searchParams.get('sort') || 'newest') as SortOption;
+    setSortOption(initialSort);
+  }, [searchParams]);
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo(0, 0);
+  useEffect(() => {
+    loadProducts();
+  }, [categorySlug, sortOption, filterParams]);
+
+  const loadProducts = async (forceRefresh = false) => {
+    if (!categorySlug) return;
+    
+    setLoading(true);
+    try {
+      // Get current category first
+      const { data: categoryData } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('slug', categorySlug)
+        .single();
+    
+      if (!categoryData) {
+        setError('Category not found');
+        setLoading(false);
+        return;
+      }
+    
+      setCategory(adaptCategory(categoryData));
+    
+      // Then fetch products with this category
+      const result = await fetchProductsWithFilters({
+        category: categoryData.id,
+        sort: sortOption,
+        // Use the correct key 'category' instead of 'subcategory'
+        ...filterParams
+      });
+    
+      if (result && result.products) {
+        setProducts(result.products);
+      } else {
+        setProducts([]);
+      }
+    } catch (err) {
+      setError('Error loading products');
+      console.error('Error loading products:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fix the adaptCategory function return type
+  const adaptCategory = (category: any) => {
+    return {
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      description: category.description,
+      image: category.image,
+      count: category.count,
+      parent_id: category.parent_id,
+      created_at: category.created_at
+    };
   };
 
   return {
     products,
-    isLoading,
+    category,
+    loading,
     error,
-    currentPage,
-    totalPages,
-    handlePageChange
+    sortOption,
+    setSortOption,
+    filterParams,
+    setFilterParams
   };
 };
