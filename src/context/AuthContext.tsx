@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthState } from '@/hooks/use-auth-state';
@@ -209,13 +208,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return userRoles.includes(role);
   };
 
-  const extractSafeData = (data: any) => {
+  const extractSafeData = <T,>(data: any): T | null => {
     if (!data) return null;
-    // Basic safe extraction
     try {
-      return {
-        ...data
-      };
+      return { ...data } as T;
     } catch (e) {
       console.error("Error extracting data:", e);
       return null;
