@@ -1,148 +1,96 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { BuyNowButton } from '@/components/checkout/BuyNowButton';
-import { formatCurrency } from '@/utils/currency';
-import { Badge } from '@/components/ui/badge';
-import { Minus, Plus, ShoppingCart } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { PurchaseDialog } from '@/components/checkout/PurchaseDialog';
+import React from 'react';
 import { Product } from '@/types';
+import { Button } from '@/components/ui/button';
+import { MinusIcon, PlusIcon, ShoppingCart } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
-interface ProductPurchaseSectionProps {
+export interface ProductPurchaseSectionProps {
   product: Product;
-  quantity: number;
-  onQuantityChange: (quantity: number) => void;
+  quantity?: number;
+  onQuantityChange?: (quantity: number) => void;
 }
 
-export function ProductPurchaseSection({ product, quantity, onQuantityChange }: ProductPurchaseSectionProps) {
-  const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
-  
-  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value);
-    const stockValue = product.stock || 0; // Add fallback for stock
-    if (!isNaN(value) && value > 0 && value <= stockValue) {
-      onQuantityChange(value);
-    }
-  };
-
-  const incrementQuantity = () => {
-    const stockValue = product.stock || 0; // Add fallback for stock
-    if (quantity < stockValue) {
+const ProductPurchaseSection: React.FC<ProductPurchaseSectionProps> = ({ 
+  product, 
+  quantity = 1, 
+  onQuantityChange = () => {} 
+}) => {
+  const handleIncreaseQuantity = () => {
+    if (product.inStock && quantity < product.stock) {
       onQuantityChange(quantity + 1);
     }
   };
 
-  const decrementQuantity = () => {
+  const handleDecreaseQuantity = () => {
     if (quantity > 1) {
       onQuantityChange(quantity - 1);
     }
   };
 
-  const handlePurchaseSuccess = () => {
-    // Handle successful purchase
-    console.log('Purchase successful');
+  const calculateTotalPrice = () => {
+    return product.price * quantity;
   };
 
-  // Use safe property checks with fallbacks
-  const productInStock = product.inStock;
-  const productStock = product.stock || 0;
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col space-y-2">
-        <div className="flex items-baseline justify-between">
-          <span className="text-3xl font-bold text-primary">
-            {formatCurrency(product.price)}
-          </span>
-          
-          {product.originalPrice && product.originalPrice > product.price && (
-            <span className="text-lg text-gray-500 line-through">
-              {formatCurrency(product.originalPrice)}
-            </span>
-          )}
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          {productInStock ? (
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-              In Stock
-            </Badge>
+    <div className="bg-white shadow-md rounded-lg p-6">
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-lg font-semibold">Giá</h3>
+          {product.inStock ? (
+            <Badge className="bg-green-500 hover:bg-green-600">Còn hàng</Badge>
           ) : (
-            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-              Out of Stock
-            </Badge>
+            <Badge variant="destructive">Hết hàng</Badge>
           )}
-          
-          {productStock > 0 && (
-            <span className="text-sm text-muted-foreground">
-              {productStock} available
-            </span>
+        </div>
+        <div className="flex items-center">
+          <div className="text-2xl font-bold text-primary mr-3">{formatCurrency(product.price)}</div>
+          {product.originalPrice && product.originalPrice > product.price && (
+            <div className="text-lg text-gray-400 line-through">{formatCurrency(product.originalPrice)}</div>
           )}
         </div>
       </div>
-      
-      {productInStock && (
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={decrementQuantity}
-              disabled={quantity <= 1}
-              className="h-10 w-10 rounded-r-none"
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
-            <Input
-              type="number"
-              min={1}
-              max={productStock}
-              value={quantity}
-              onChange={handleQuantityChange}
-              className="h-10 w-16 rounded-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={incrementQuantity}
-              disabled={quantity >= productStock}
-              className="h-10 w-10 rounded-l-none"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
+
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-2">Số lượng</h3>
+        <div className="flex items-center">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleDecreaseQuantity}
+            disabled={quantity <= 1}
+          >
+            <MinusIcon className="h-4 w-4" />
+          </Button>
+          <span className="mx-4 text-lg font-medium">{quantity}</span>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleIncreaseQuantity}
+            disabled={!product.inStock || quantity >= product.stock}
+          >
+            <PlusIcon className="h-4 w-4" />
+          </Button>
         </div>
-      )}
-      
-      <div className="flex flex-col sm:flex-row gap-2">
-        <BuyNowButton
-          productId={product.id}
-          quantity={quantity}
-          onPurchaseSuccess={handlePurchaseSuccess}
-          className="w-full sm:w-auto"
-        />
-        
-        <Button 
-          variant="outline" 
-          className="w-full sm:w-auto"
-          onClick={() => setIsPurchaseDialogOpen(true)}
-        >
-          <ShoppingCart className="mr-2 h-4 w-4" />
-          Purchase
-        </Button>
       </div>
-      
-      <PurchaseDialog 
-        product={product}
-        isOpen={isPurchaseDialogOpen}
-        onClose={() => setIsPurchaseDialogOpen(false)}
-        initialQuantity={quantity}
-      />
+
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-2">Tổng cộng</h3>
+        <div className="text-2xl font-bold text-primary">{formatCurrency(calculateTotalPrice())}</div>
+      </div>
+
+      <Button 
+        className="w-full"
+        disabled={!product.inStock}
+      >
+        <ShoppingCart className="h-5 w-5 mr-2" />
+        Thêm vào giỏ hàng
+      </Button>
     </div>
   );
-}
+};
 
 export default ProductPurchaseSection;

@@ -1,4 +1,4 @@
-import { Product } from '@/types';
+import { Product, Category } from '@/types';
 
 const mockProducts: Product[] = [
   {
@@ -10,11 +10,18 @@ const mockProducts: Product[] = [
     originalPrice: 20000,
     images: ['/images/gmail-usa.jpg'],
     categoryId: 'email-accounts',
-    category: 'Email Accounts',
+    category: {
+      id: 'email-accounts',
+      name: 'Email Accounts',
+      slug: 'email-accounts',
+      description: 'Email account products',
+      image: '',
+      count: 10,
+      parentId: null
+    },
     rating: 4.5,
     reviewCount: 120,
     inStock: true,
-    in_stock: true,
     stockQuantity: 100,
     stock: 100,
     badges: ['Best Seller', 'New'],
@@ -27,7 +34,7 @@ const mockProducts: Product[] = [
     specifications: {
       country: 'USA',
       type: 'Gmail',
-      recovery: true
+      recovery: 'true'
     },
     salesCount: 50,
     createdAt: new Date().toISOString(),
@@ -42,11 +49,18 @@ const mockProducts: Product[] = [
     originalPrice: 35000,
     images: ['/images/facebook-aged.jpg'],
     categoryId: 'social-accounts',
-    category: 'Social Accounts',
+    category: {
+      id: 'social-accounts',
+      name: 'Social Accounts',
+      slug: 'social-accounts',
+      description: 'Social media account products',
+      image: '',
+      count: 8,
+      parentId: null
+    },
     rating: 4.8,
     reviewCount: 89,
     inStock: true,
-    in_stock: true,
     stockQuantity: 45,
     stock: 45,
     badges: ['Premium', 'Verified'],
@@ -61,7 +75,7 @@ const mockProducts: Product[] = [
       country: 'Mixed',
       age: '2+ years',
       friends: '50-200',
-      recovery: true
+      recovery: 'true'
     },
     salesCount: 37,
     createdAt: new Date().toISOString(),
@@ -76,11 +90,18 @@ const mockProducts: Product[] = [
     originalPrice: 10000,
     images: ['/images/instagram-followers.jpg'],
     categoryId: 'social-services',
-    category: 'Social Services',
+    category: {
+      id: 'social-services',
+      name: 'Social Services',
+      slug: 'social-services',
+      description: 'Social media services',
+      image: '',
+      count: 15,
+      parentId: null
+    },
     rating: 4.2,
     reviewCount: 215,
     inStock: true,
-    in_stock: true,
     stockQuantity: 1000,
     stock: 1000,
     badges: ['Popular', 'Fast Delivery'],
@@ -95,7 +116,7 @@ const mockProducts: Product[] = [
       quality: 'High',
       delivery: '1-3 days',
       guarantee: '30 days',
-      maxOrder: 10000
+      maxOrder: '10000'
     },
     salesCount: 189,
     createdAt: new Date().toISOString(),
@@ -110,11 +131,18 @@ const mockProducts: Product[] = [
     originalPrice: 45000,
     images: ['/images/youtube-premium.jpg'],
     categoryId: 'streaming-accounts',
-    category: 'Streaming Accounts',
+    category: {
+      id: 'streaming-accounts',
+      name: 'Streaming Accounts',
+      slug: 'streaming-accounts',
+      description: 'Streaming media accounts',
+      image: '',
+      count: 12,
+      parentId: null
+    },
     rating: 4.7,
     reviewCount: 67,
     inStock: true,
-    in_stock: true,
     stockQuantity: 30,
     stock: 30,
     badges: ['Premium', 'Warranty'],
@@ -144,11 +172,18 @@ const mockProducts: Product[] = [
     originalPrice: 60000,
     images: ['/images/netflix-premium.jpg'],
     categoryId: 'streaming-accounts',
-    category: 'Streaming Accounts',
+    category: {
+      id: 'streaming-accounts',
+      name: 'Streaming Accounts',
+      slug: 'streaming-accounts',
+      description: 'Streaming media accounts',
+      image: '',
+      count: 15,
+      parentId: null
+    },
     rating: 4.9,
     reviewCount: 132,
     inStock: true,
-    in_stock: true,
     stockQuantity: 25,
     stock: 25,
     badges: ['Premium', '4K', 'Warranty'],
@@ -162,7 +197,7 @@ const mockProducts: Product[] = [
     specifications: {
       plan: 'Premium',
       duration: '12 months',
-      devices: 4,
+      devices: '4',
       quality: '4K Ultra HD',
       warranty: '3 months'
     },
@@ -179,11 +214,18 @@ const mockProducts: Product[] = [
     originalPrice: 40000,
     images: ['/images/spotify-premium.jpg'],
     categoryId: 'streaming-accounts',
-    category: 'Streaming Accounts',
+    category: {
+      id: 'streaming-accounts',
+      name: 'Streaming Accounts',
+      slug: 'streaming-accounts',
+      description: 'Streaming media accounts',
+      image: '',
+      count: 10,
+      parentId: null
+    },
     rating: 4.6,
     reviewCount: 94,
     inStock: true,
-    in_stock: true,
     stockQuantity: 50,
     stock: 50,
     badges: ['Premium', 'Popular'],
@@ -214,11 +256,18 @@ const mockProducts: Product[] = [
     originalPrice: 150000,
     images: ['/images/twitter-verified.jpg'],
     categoryId: 'social-accounts',
-    category: 'Social Accounts',
+    category: {
+      id: 'social-accounts',
+      name: 'Social Accounts',
+      slug: 'social-accounts',
+      description: 'Social media accounts',
+      image: '',
+      count: 5,
+      parentId: null
+    },
     rating: 4.8,
     reviewCount: 23,
     inStock: false,
-    in_stock: false,
     stockQuantity: 0,
     stock: 0,
     badges: ['Premium', 'Verified', 'Rare'],
@@ -232,8 +281,8 @@ const mockProducts: Product[] = [
     specifications: {
       followers: '10,000+',
       age: '3+ years',
-      verification: true,
-      recovery: true
+      verification: 'true',
+      recovery: 'true'
     },
     salesCount: 12,
     createdAt: new Date().toISOString(),
@@ -248,11 +297,18 @@ const mockProducts: Product[] = [
     originalPrice: 30000,
     images: ['/images/discord-nitro.jpg'],
     categoryId: 'gaming-accounts',
-    category: 'Gaming Accounts',
+    category: {
+      id: 'gaming-accounts',
+      name: 'Gaming Accounts',
+      slug: 'gaming-accounts',
+      description: 'Gaming related accounts',
+      image: '',
+      count: 7,
+      parentId: null
+    },
     rating: 4.5,
     reviewCount: 47,
     inStock: true,
-    in_stock: true,
     stockQuantity: 35,
     stock: 35,
     badges: ['Gaming', 'Popular'],

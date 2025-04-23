@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthState } from '@/hooks/use-auth-state';
-import { UserRole } from '@/types/index';
+import { UserRole, UserRoleType } from '@/types';
 import { extractSafeData } from '@/utils/supabaseHelpers';
 
 interface AuthContextType {
@@ -15,7 +15,7 @@ interface AuthContextType {
   fetchBalance: (userId: string) => Promise<number | null>;
   isAdmin: boolean;
   isStaff: boolean;
-  userRoles: UserRole[];
+  userRoles: UserRoleType[];
   userBalance: number | null;
   setUserBalance: React.Dispatch<React.SetStateAction<number | null>>;
   fetchUserBalance: (userId: string) => Promise<number | null>;
@@ -23,9 +23,10 @@ interface AuthContextType {
   isLoadingBalance: boolean;
   authError: string | null;
   logout: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   refreshUserBalance: () => Promise<number | null>;
-  checkUserRole?: (role: UserRole) => boolean;
+  checkUserRole?: (role: UserRoleType) => boolean;
 }
 
 // Create a context with default values
@@ -47,15 +48,16 @@ export const AuthContext = createContext<AuthContextType>({
   isLoadingBalance: false,
   authError: null,
   logout: async () => {},
+  login: async () => {},
   refreshUserProfile: async () => {},
   refreshUserBalance: async () => null,
-  checkUserRole: (role: UserRole) => false
+  checkUserRole: (role: UserRoleType) => false
 });
 
 export const useAuth = (): AuthContextType => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
+  const [userRoles, setUserRoles] = useState<UserRoleType[]>([]);
   const [userBalance, setUserBalance] = useState<number | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -72,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check if user has admin role
   const isAdmin = userRoles.includes(UserRole.Admin);
-  const isStaff = userRoles.includes(UserRole.Staff);
+  const isStaff = userRoles.includes(UserRole.Manager);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -101,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data && Array.isArray(data)) {
         const roles = data.map(item => {
-          const roleData = extractSafeData<{ role: UserRole }>(item);
+          const roleData = extractSafeData<{ role: UserRoleType }>(item);
           return roleData ? roleData.role : UserRole.User;
         });
         setUserRoles(roles);
@@ -151,6 +153,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   
+  const login = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
+      
+      if (error) throw error;
+      
+    } catch (error) {
+      console.error('Error during login:', error);
+      throw error;
+    }
+  };
+  
   const refreshUserBalance = async (): Promise<number | null> => {
     if (!user || !user.id) return null;
     return fetchUserBalance(user.id);
@@ -170,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   
-  const checkUserRole = (role: UserRole): boolean => {
+  const checkUserRole = (role: UserRoleType): boolean => {
     return userRoles.includes(role);
   };
 
@@ -195,6 +212,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoadingBalance,
         authError,
         logout,
+        login,
         refreshUserProfile,
         refreshUserBalance,
         checkUserRole

@@ -1,6 +1,13 @@
 
 export type UserRole = 'admin' | 'user' | 'manager';
 
+// Define UserRole as both type and enum-like object
+export const UserRole = {
+  Admin: 'admin' as UserRole,
+  User: 'user' as UserRole,
+  Manager: 'manager' as UserRole
+};
+
 export interface UserWithRoles {
   id: string;
   email: string;

@@ -42,12 +42,14 @@ export interface FilterParams {
   inStock?: boolean;
   sortBy?: SortOption;
   sort?: SortOption; // Added for backward compatibility
+  page?: number;     // Added page for pagination
 }
 
 export type SortOption = 'popular' | 'price-low' | 'price-high' | 'newest';
 
-// Add the UserRole type needed by auth-related components
-export type UserRole = 'admin' | 'user' | 'manager';
+// Re-export for compatibility with existing code
+export { UserRole } from './auth.types';
+export type { UserRole as UserRoleType } from './auth.types';
 
 export interface Order {
   id: string;
@@ -70,4 +72,27 @@ export interface OrderItem {
   quantity: number;
   product?: Product;
   external_product_id?: string;
+}
+
+// Add missing recommendation types
+export interface Recommendation {
+  id: string;
+  title: string;
+  price: number;
+  image: string;
+  slug: string;
+  score?: number;
+  reason?: string;
+}
+
+// Define this to fix AISource/RecommendationStrategy error
+export type RecommendationStrategy = 'similar' | 'popular' | 'trending' | 'local';
+export type AISource = RecommendationStrategy;
+
+// Add ProxyConfig type to fix ApiTesterPage error
+export interface ProxyConfig {
+  proxy_type: string;
+  custom_url?: string;
+  id?: string;
+  type?: string;  // Added for compatibility
 }
