@@ -48,7 +48,10 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
 
       // If we have userRoles from context
       if (userRoles && userRoles.length > 0) {
-        const hasRole = roles.some(role => userRoles.includes(role));
+        // Type-safe role comparison
+        const hasRole = roles.some(role => 
+          userRoles.includes(role as string));
+        
         setIsAuthorized(hasRole);
         setIsLoading(false);
         

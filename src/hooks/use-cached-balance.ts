@@ -1,108 +1,68 @@
-
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-
-type RefreshStrategy = 'auto' | 'manual';
+import { safeId, extractSafeData } from '@/utils/supabaseHelpers';
 
 interface UseCachedBalanceOptions {
   userId?: string;
-  refreshInterval?: number; // in milliseconds
   initialRefresh?: boolean;
-  strategy?: RefreshStrategy;
-  cacheTime?: number; // in milliseconds
+  strategy?: 'auto' | 'manual';
+  refreshInterval?: number;
+  cacheTime?: number;
 }
 
 export function useCachedBalance({
   userId,
-  refreshInterval = 30000,
   initialRefresh = true,
   strategy = 'auto',
-  cacheTime = 60000 // 1 minute cache by default
+  refreshInterval = 30000, // 30 seconds
+  cacheTime = 10000 // 10 seconds
 }: UseCachedBalanceOptions = {}) {
   const [balance, setBalance] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastRefreshed, setLastRefreshed] = useState<number | null>(null);
-
-  // Function to fetch balance from Supabase
-  const fetchBalance = useCallback(async (forceRefresh = false) => {
-    if (!userId) {
-      console.warn('Tried to fetch balance but no userId provided');
-      return;
-    }
+  const [loading, setLoading] = useState<boolean>(initialRefresh);
+  const [error, setError] = useState<Error | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  
+  // Fetch balance from API
+  const fetchBalance = useCallback(async () => {
+    if (!userId) return null;
     
-    // Check if we need to use cache
-    const now = Date.now();
-    if (!forceRefresh && lastRefreshed && (now - lastRefreshed < cacheTime)) {
-      console.log('Using cached balance from', new Date(lastRefreshed).toLocaleTimeString());
-      return; // Use cached data
-    }
+    setLoading(true);
+    setError(null);
     
     try {
-      setLoading(true);
-      setError(null);
-      
-      // First try with direct profile query
-      const { data, error: fetchError } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', userId)
-        .single();
+        .eq('id', safeId(userId))
+        .maybeSingle();
       
-      if (fetchError) {
-        console.error('Error fetching balance:', fetchError);
-        throw fetchError;
+      if (error) throw new Error(error.message);
+      
+      const profileData = extractSafeData<{balance: number}>(data);
+      
+      if (profileData && profileData.balance !== undefined) {
+        const newBalance = Number(profileData.balance);
+        setBalance(newBalance);
+        setLastRefreshed(new Date());
+        return newBalance;
       }
       
-      if (data && typeof data.balance === 'number') {
-        console.log('Balance fetched successfully:', data.balance);
-        setBalance(data.balance);
-        setLastRefreshed(now);
-      } else {
-        throw new Error('Invalid balance data received');
-      }
+      throw new Error('Balance data not available');
     } catch (err) {
-      console.error('Exception in fetchBalance:', err);
-      setError('Failed to fetch balance');
-      
-      // Try to recover by using refresh-balance function
-      try {
-        console.log('Attempting to recover using refresh-balance function');
-        // Get current session token
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
-        
-        if (!accessToken) {
-          throw new Error('No active session found');
-        }
-        
-        const { data: refreshData, error: refreshError } = await supabase.functions.invoke('refresh-balance', {
-          headers: {
-            Authorization: `Bearer ${accessToken}`
-          }
-        });
-        
-        if (refreshError) {
-          console.error('Edge function refresh error:', refreshError);
-        } else if (refreshData && typeof refreshData.balance === 'number') {
-          console.log('Balance refreshed from edge function:', refreshData.balance);
-          setBalance(refreshData.balance);
-          setLastRefreshed(now);
-          setError(null); // Clear error since we recovered
-        }
-      } catch (recoverError) {
-        console.error('Failed to recover balance:', recoverError);
-      }
+      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch balance';
+      console.error('Error fetching balance:', errorMsg);
+      setError(err instanceof Error ? err : new Error(String(err)));
+      return null;
     } finally {
       setLoading(false);
     }
-  }, [userId, lastRefreshed, cacheTime]);
-
+  }, [userId]);
+  
   // Function to invalidate cache and force refresh
   const refreshBalance = useCallback(() => {
-    return fetchBalance(true);
+    return fetchBalance();
   }, [fetchBalance]);
-
+  
   // Set up realtime subscription for balance changes
   useEffect(() => {
     if (!userId) return;
@@ -151,7 +111,7 @@ export function useCachedBalance({
       }
     };
   }, [userId, fetchBalance, initialRefresh, refreshInterval, strategy]);
-
+  
   return {
     balance,
     loading,

@@ -111,7 +111,7 @@ export function ProductPurchaseSection({ product, className = '' }: ProductPurch
           
           <BuyNowButton
             productId={product.id}
-            quantity={quantity}
+            quantity={quantity} // Pass quantity prop
             onPurchaseSuccess={() => {}}
             className="w-full"
           />

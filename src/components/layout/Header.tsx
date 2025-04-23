@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import Logo from './header/Logo';
 import DesktopNavigation from './header/DesktopNavigation';
@@ -6,7 +7,7 @@ import { UserButton } from './header/UserButton';
 import MobileMenuToggle from './header/MobileMenuToggle';
 import MobileNavigation from './header/MobileNavigation';
 import { DepositOptions } from './header/DepositOptions';
-import RealtimeNotifier from './header/RealtimeNotifier';
+import { RealtimeNotifier } from './header/RealtimeNotifier'; // Fix import to use named export
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

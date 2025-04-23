@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -97,18 +96,18 @@ const CorsProxySelector: React.FC = () => {
       };
       
       if (existingSettings && existingSettings.id) {
-        // Update existing settings
+        // Update existing settings using the new safeId helper
         const { error: updateError } = await supabase
           .from('proxy_settings')
-          .update(settingsData as any)
-          .eq('id', existingSettings.id as any);
+          .update(prepareForUpdate(settingsData))
+          .eq('id', safeId(existingSettings.id));
           
         if (updateError) throw updateError;
       } else {
         // Insert new settings
         const { error: insertError } = await supabase
           .from('proxy_settings')
-          .insert(settingsData as any);
+          .insert(prepareForInsert(settingsData));
           
         if (insertError) throw insertError;
       }

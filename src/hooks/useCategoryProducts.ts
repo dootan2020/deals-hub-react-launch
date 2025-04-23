@@ -1,141 +1,179 @@
-
-import { useState, useEffect } from 'react';
-import { toast } from "@/hooks/use-toast";
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Product } from '@/types';
-import { sortProducts, SortOption } from '@/utils/productFilters';
+import { safeId, extractSafeData } from '@/utils/supabaseHelpers';
 
-interface UseCategoryProductsProps {
-  categoryId?: string;
-  isProductsPage?: boolean;
-  sort?: SortOption;
+// Define types for product and category
+export interface Product {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  original_price?: number | null;
+  images?: string[];
+  slug: string;
+  in_stock?: boolean;
+  category_id?: string;
+  badges?: string[];
 }
 
-export const useCategoryProducts = ({ categoryId, isProductsPage = false, sort = 'popular' }: UseCategoryProductsProps) => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [currentSort, setCurrentSort] = useState(sort);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 20; // Initial load size
+export interface Category {
+  id: string;
+  name: string;
+  description: string;
+  slug: string;
+  count: number;
+  parent_id?: string | null;
+}
 
-  const fetchProducts = async (isLoadMore = false) => {
+export function useCategoryProducts(
+  categorySlug?: string,
+  options = { 
+    limit: 12, 
+    initialFetch: true,
+    includeChildren: true,
+    sortBy: 'created_at',
+    sortOrder: 'desc'
+  }
+) {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [category, setCategory] = useState<Category | null>(null);
+  const [childCategories, setChildCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(options.initialFetch);
+  const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
+
+  // Function to fetch a single category by slug
+  const fetchCategory = useCallback(async () => {
+    if (!categorySlug) return null;
+    
     try {
-      const offset = isLoadMore ? products.length : 0;
-      let query = supabase.from('products').select('*', { count: 'exact' });
-      
-      if (categoryId && !isProductsPage) {
-        query = query.eq('category_id', categoryId);
-      }
-      
-      if (isProductsPage && selectedCategory) {
-        query = query.eq('category_id', selectedCategory);
-      }
-      
-      const { data: fetchedProducts, error, count } = await query
-        .range(offset, offset + PAGE_SIZE - 1);
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('slug', categorySlug)
+        .maybeSingle();
         
       if (error) throw error;
       
-      let allProducts = fetchedProducts || [];
-      
-      if (categoryId && !isProductsPage && !isLoadMore) {
-        const { data: subcategories } = await supabase
-          .from('categories')
-          .select('id')
-          .eq('parent_id', categoryId);
-          
-        if (subcategories && subcategories.length > 0) {
-          const subcategoryIds = subcategories.map(sc => sc.id);
-          
-          const { data: subcategoryProducts } = await supabase
-            .from('products')
-            .select('*')
-            .in('category_id', subcategoryIds)
-            .range(0, PAGE_SIZE - allProducts.length - 1);
-            
-          if (subcategoryProducts) {
-            allProducts = [...allProducts, ...subcategoryProducts];
-          }
-        }
-      }
-      
-      console.log('Fetched products data:', allProducts);
-      
-      const mappedProducts: Product[] = allProducts.map(p => ({
-        id: p.id,
-        title: p.title,
-        description: p.description,
-        shortDescription: p.short_description,
-        price: Number(p.price),
-        originalPrice: p.original_price ? Number(p.original_price) : undefined,
-        images: p.images || [],
-        categoryId: p.category_id,
-        rating: Number(p.rating),
-        reviewCount: p.review_count || 0,
-        inStock: p.in_stock || false,
-        stockQuantity: p.stock_quantity || 0,
-        badges: p.badges || [],
-        slug: p.slug,
-        features: p.features || [],
-        specifications: p.specifications as Record<string, string | number | boolean | object> || {},
-        salesCount: p.stock_quantity || 0,
-        stock: p.stock || 0,
-        kiosk_token: p.kiosk_token || '',
-        createdAt: p.created_at
-      }));
+      const categoryData = extractSafeData<Category>(data);
+      return categoryData;
+    } catch (err) {
+      console.error('Error fetching category:', err);
+      return null;
+    }
+  }, [categorySlug]);
 
-      console.log('Mapped products with kiosk_token:', mappedProducts.map(p => ({
-        title: p.title, 
-        kiosk_token: p.kiosk_token ? 'present' : 'missing'
-      })));
-
-      const sortedProducts = sortProducts(mappedProducts, currentSort);
+  // Function to fetch child categories
+  const fetchChildCategories = useCallback(async (parentId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('parent_id', safeId(parentId));
+        
+      if (error) throw error;
       
-      setProducts(prev => isLoadMore ? [...prev, ...sortedProducts] : sortedProducts);
-      setHasMore((count || 0) > (isLoadMore ? products.length + sortedProducts.length : sortedProducts.length));
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error("Error fetching products:", error);
+      // Process each item individually since we can't cast the whole array at once
+      return (data || []).map(item => {
+        if (!item) return null;
+        
+        return {
+          id: item.id || '',
+          name: item.name || '',
+          description: item.description || '',
+          slug: item.slug || '',
+          count: item.count || 0,
+          parent_id: item.parent_id || null
+        } as Category;
+      }).filter(Boolean) as Category[];
+    } catch (err) {
+      console.error('Error fetching child categories:', err);
+      return [];
+    }
+  }, []);
+
+  // Fetch products based on category and options
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      let categoryId: string | null = null;
+      let childCategoryIds: string[] = [];
+
+      // Fetch the category to get its ID
+      const fetchedCategory = await fetchCategory();
+      if (fetchedCategory) {
+        setCategory(fetchedCategory);
+        categoryId = fetchedCategory.id;
       }
-      toast.error("Error", "Failed to load products. Please try again.");
+
+      // If including children, fetch child categories and their IDs
+      if (options.includeChildren && categoryId) {
+        const children = await fetchChildCategories(categoryId);
+        setChildCategories(children);
+        childCategoryIds = children.map(child => child.id);
+      }
+
+      // Construct the query
+      let query = supabase
+        .from('products')
+        .select('*, categories(name)', { count: 'exact' })
+        .order(options.sortBy, { ascending: options.sortOrder === 'asc' })
+        .limit(options.limit);
+
+      // Apply category filter
+      if (categoryId) {
+        const categoryFilter = [categoryId, ...childCategoryIds];
+        query = query.in('category_id', categoryFilter);
+      }
+
+      const { data, error, count } = await query;
+
+      if (error) throw error;
+
+      // Process the data
+      const productList = (data || []).map(item => {
+        if (!item) return null;
+
+        return {
+          id: item.id || '',
+          title: item.title || '',
+          description: item.description || '',
+          price: item.price || 0,
+          original_price: item.original_price || null,
+          images: item.images || [],
+          slug: item.slug || '',
+          in_stock: item.in_stock || false,
+          category_id: item.category_id || '',
+          badges: item.badges || []
+        } as Product;
+      }).filter(Boolean) as Product[];
+
+      setProducts(productList);
+      setTotal(count || 0);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
-  };
-
-  const loadMore = async () => {
-    if (loadingMore) return;
-    setLoadingMore(true);
-    setPage(prev => prev + 1);
-    await fetchProducts(true);
-  };
-
-  const handleSortChange = (newSort: string) => {
-    setCurrentSort(newSort as SortOption);
-    setProducts([]);
-    setPage(1);
-    setHasMore(true);
-  };
+  }, [categorySlug, options.limit, options.sortBy, options.sortOrder, options.includeChildren, fetchCategory, fetchChildCategories]);
 
   useEffect(() => {
-    setLoading(true);
-    setProducts([]);
-    setPage(1);
-    setHasMore(true);
-    fetchProducts();
-  }, [categoryId, isProductsPage, currentSort, selectedCategory]);
+    if (options.initialFetch) {
+      fetchProducts();
+    }
+  }, [fetchProducts, options.initialFetch]);
 
-  return { 
-    products, 
+  return {
+    products,
     loading,
-    loadingMore,
-    hasMore,
-    loadMore,
-    handleSortChange,
-    setSelectedCategory 
+    error,
+    category,
+    childCategories,
+    total,
+    fetchMore: () => {}, // Implement as needed
+    refresh: () => {}    // Implement as needed
   };
-};
+}

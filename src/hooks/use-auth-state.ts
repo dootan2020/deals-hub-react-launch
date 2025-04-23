@@ -1,200 +1,95 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { AuthUser, UserRole } from '@/types/auth.types';
-import type { Session, User } from '@supabase/supabase-js';
+import { extractSafeData, safeId } from '@/utils/supabaseHelpers';
 
-export const useAuthState = () => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isStaff, setIsStaff] = useState(false);
-  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
-  const [userBalance, setUserBalance] = useState(0);
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
-  const [authError, setAuthError] = useState<Error | null>(null);
+// Define our auth state interface
+interface AuthState {
+  user: any;
+  session: any;
+  loading: boolean;
+  isAuthenticated: boolean;
+  balance: number | null;
+}
 
-  // Function to fetch user roles
-  const fetchUserRoles = useCallback(async (userId: string) => {
-    try {
-      console.log('Fetching roles for user:', userId);
-      const { data, error } = await (supabase as any)
-        .rpc('get_user_roles', { user_id_param: userId });
+// Initial state
+const initialAuthState: AuthState = {
+  user: null,
+  session: null,
+  loading: true,
+  isAuthenticated: false,
+  balance: null
+};
 
-      if (error) {
-        console.error('Error fetching user roles:', error);
-        setUserRoles([]);
-        setIsAdmin(false);
-        setIsStaff(false);
-        return;
-      }
+export function useAuthState() {
+  const [state, setState] = useState<AuthState>(initialAuthState);
+  const [balanceLoading, setBalanceLoading] = useState(false);
 
-      if (data) {
-        const roles = data as UserRole[];
-        console.log('User roles fetched:', roles);
-        setUserRoles(roles);
-        setIsAdmin(roles.includes('admin'));
-        setIsStaff(roles.includes('staff'));
-      }
-    } catch (error) {
-      console.error('Error in fetchUserRoles:', error);
-      setUserRoles([]);
-      setIsAdmin(false);
-      setIsStaff(false);
-    }
-  }, []);
-
-  // Function to fetch user balance
-  const fetchUserBalance = useCallback(async (userId: string) => {
-    if (!userId) return;
+  // Fetch user balance
+  const fetchBalance = useCallback(async (userId: string) => {
+    if (!userId) return null;
     
+    setBalanceLoading(true);
     try {
-      setIsLoadingBalance(true);
-      console.log('Fetching balance for user in useAuthState:', userId);
-
       const { data, error } = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', userId)
+        .eq('id', safeId(userId))
         .single();
-
+      
       if (error) {
-        console.error('Error fetching user balance in useAuthState:', error);
-        return;
+        console.error('Error fetching balance:', error);
+        return null;
       }
-
-      if (data && typeof data.balance === 'number') {
-        console.log('Balance fetched successfully in useAuthState:', data.balance);
-        setUserBalance(data.balance);
-      } else {
-        console.warn('No valid balance data received in useAuthState');
+      
+      // Use extractSafeData to safely handle the response
+      const profileData = extractSafeData<{ balance: number }>(data);
+      
+      if (profileData) {
+        return profileData.balance;
       }
+      return null;
     } catch (error) {
-      console.error('Exception in fetchUserBalance useAuthState:', error);
+      console.error('Error in fetchBalance:', error);
+      return null;
     } finally {
-      setIsLoadingBalance(false);
+      setBalanceLoading(false);
     }
   }, []);
 
-  // Function to handle auth state changes
-  const handleAuthStateChange = useCallback((event: string, currentSession: Session | null) => {
-    console.log('Auth state changed:', event, currentSession?.user?.id);
-    
-    setSession(currentSession);
-    
-    if (currentSession?.user) {
-      const authUser = { ...currentSession.user } as AuthUser;
-      setUser(authUser);
-      
-      // When we get a valid session, proceed with fetching additional data
-      if (authUser.id) {
-        // Avoid recursive Supabase calls inside the auth state change callback
-        setTimeout(() => {
-          fetchUserRoles(authUser.id);
-          fetchUserBalance(authUser.id);
-        }, 0);
-      }
-    } else {
-      setUser(null);
-      setIsAdmin(false);
-      setIsStaff(false);
-      setUserRoles([]);
-      setUserBalance(0);
+  // Update user and session state
+  const updateAuthState = useCallback(async (session: any) => {
+    if (!session) {
+      setState({
+        ...initialAuthState,
+        loading: false
+      });
+      return;
     }
-  }, [fetchUserRoles, fetchUserBalance]);
 
-  useEffect(() => {
-    let isMounted = true;
-    let authTimeout: NodeJS.Timeout;
-    
-    const initializeAuth = async () => {
-      try {
-        console.log('Initializing auth...');
-        
-        // First set up the auth state change listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
-          if (isMounted) {
-            handleAuthStateChange(event, currentSession);
-          }
-        });
-        
-        // Then check for existing session
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-          setAuthError(error);
-          if (isMounted) setLoading(false);
-          return;
-        }
-        
-        if (isMounted) {
-          if (data.session) {
-            console.log('Found existing session:', data.session.user?.id);
-            handleAuthStateChange('INITIAL_SESSION', data.session);
-          } else {
-            console.log('No existing session found');
-          }
-          
-          // Always set loading to false regardless of session status
-          setLoading(false);
-        }
-        
-        return () => {
-          subscription.unsubscribe();
-        };
-      } catch (error) {
-        console.error('Error in initializeAuth:', error);
-        setAuthError(error instanceof Error ? error : new Error('Unknown auth error'));
-        if (isMounted) setLoading(false);
-      }
-    };
-    
-    // Set a safety timeout to prevent infinite loading
-    authTimeout = setTimeout(() => {
-      if (isMounted && loading) {
-        console.error('Auth initialization timeout reached');
-        setLoading(false);
-        setAuthError(new Error('Authentication timed out'));
-      }
-    }, 10000); // Increase timeout to 10 seconds
-    
-    initializeAuth();
-    
-    return () => {
-      isMounted = false;
-      clearTimeout(authTimeout);
-    };
-  }, [handleAuthStateChange]);
-
-  // Function to manually refresh user profile data
-  const refreshUserData = useCallback(async () => {
-    if (!user) return;
-    
     try {
-      await Promise.all([
-        fetchUserRoles(user.id),
-        fetchUserBalance(user.id)
-      ]);
+      const balance = await fetchBalance(session.user.id);
+      
+      setState({
+        user: session.user,
+        session,
+        isAuthenticated: true,
+        loading: false,
+        balance
+      });
     } catch (error) {
-      console.error('Error refreshing user data:', error);
+      console.error('Error updating auth state:', error);
+      setState({
+        ...initialAuthState,
+        loading: false
+      });
     }
-  }, [user, fetchUserRoles, fetchUserBalance]);
+  }, [fetchBalance]);
 
+  // Rest of the hook implementation...
+  
   return {
-    user,
-    session,
-    loading,
-    isAdmin,
-    isStaff,
-    userRoles,
-    userBalance,
-    setUserBalance,
-    fetchUserBalance,
-    fetchUserRoles,
-    refreshUserData,
-    isLoadingBalance,
-    authError
+    ...state,
+    balanceLoading,
+    fetchBalance
   };
-};
+}

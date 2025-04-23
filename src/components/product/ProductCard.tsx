@@ -21,9 +21,10 @@ interface Product {
 interface ProductCardProps {
   product: Product;
   loading?: boolean;
+  viewMode?: "grid" | "list";
 }
 
-export function ProductCard({ product, loading = false }: ProductCardProps) {
+export function ProductCard({ product, loading = false, viewMode = "grid" }: ProductCardProps) {
   if (loading) {
     return <ProductCardSkeleton />;
   }
@@ -118,3 +119,6 @@ function ProductCardSkeleton() {
     </Card>
   );
 }
+
+// Add default export for compatibility
+export default ProductCard;

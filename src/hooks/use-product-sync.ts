@@ -1,122 +1,121 @@
-
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from "sonner";
-import { 
-  fetchProducts, 
-  fetchSyncLogs,
-  syncProduct as apiSyncProduct,
-  syncAllProducts as apiSyncAllProducts, 
-  createProduct as apiCreateProduct,
-  updateProduct as apiUpdateProduct
-} from "@/services/product";
-import { fetchProxySettings, ProxyConfig, ProxyType } from "@/utils/proxyUtils";
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { safeId } from '@/utils/supabaseHelpers';
 
-export type { ProxyType } from "@/utils/proxyUtils";
+interface ProxyConfig {
+  proxyType: string;
+  customUrl?: string;
+}
+
+// Fix type error by removing 'type' property
+const defaultProxyConfig: ProxyConfig = {
+  proxyType: 'allorigins'
+};
 
 export function useProductSync() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [proxyConfig, setProxyConfig] = useState<ProxyConfig>({
-    type: 'allorigins'
-  });
-  const [tempProxyOverride, setTempProxyOverride] = useState<ProxyConfig | null>(null);
-  const queryClient = useQueryClient();
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [proxyConfig, setProxyConfig] = useState<ProxyConfig>(defaultProxyConfig);
   
   useEffect(() => {
-    initializeProxySettings();
+    fetchProducts();
   }, []);
   
-  const initializeProxySettings = async () => {
-    const config = await fetchProxySettings();
-    setProxyConfig(config);
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*, categories(name)')
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Failed to fetch products');
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  const productsQuery = useQuery({
-    queryKey: ['products'],
-    queryFn: fetchProducts,
-  });
-  
-  const syncLogsQuery = useQuery({
-    queryKey: ['syncLogs'],
-    queryFn: fetchSyncLogs,
-  });
-  
-  const syncProductMutation = useMutation({
-    mutationFn: async (externalId: string) => {
-      setIsLoading(true);
-      try {
-        const result = await apiSyncProduct(externalId);
-        toast.success('Product synced successfully');
-        return result;
-      } catch (error: any) {
-        toast.error(`Failed to sync product: ${error.message}`);
-        throw error;
-      } finally {
-        setIsLoading(false);
+  const syncAllProducts = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch all products with external_id
+      const { data, error } = await supabase
+        .from('products')
+        .select('external_id')
+        .not('external_id', 'is', null);
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        // Sync each product
+        for (const product of data) {
+          if (product.external_id) {
+            await syncProduct(product.external_id);
+          }
+        }
       }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['syncLogs'] });
-    },
-  });
+      
+      toast.success('All products synced successfully');
+    } catch (error) {
+      console.error('Error syncing all products:', error);
+      toast.error('Failed to sync all products');
+    } finally {
+      setIsLoading(false);
+      fetchProducts();
+    }
+  };
   
-  const syncAllMutation = useMutation({
-    mutationFn: async () => {
-      setIsLoading(true);
-      try {
-        const result = await apiSyncAllProducts();
-        toast.success(`Synced ${result.productsUpdated} products`);
-        return result;
-      } catch (error: any) {
-        toast.error(`Failed to sync all products: ${error.message}`);
-        throw error;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['syncLogs'] });
-    },
-  });
-  
-  const createProductMutation = useMutation({
-    mutationFn: apiCreateProduct,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      toast.success('Product created successfully');
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to create product: ${error.message}`);
-    },
-  });
-  
-  const updateProductMutation = useMutation({
-    mutationFn: apiUpdateProduct,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      toast.success('Product updated successfully');
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to update product: ${error.message}`);
-    },
-  });
+  const syncProduct = async (id: string) => {
+    setIsLoading(true);
+    try {
+      // Call the function to sync the product
+      const { error } = await supabase.functions.invoke('sync-product', {
+        body: { externalId: id }
+      });
+      
+      if (error) throw error;
+      
+      toast.success(`Product ${id} synced successfully`);
+    } catch (error) {
+      console.error(`Error syncing product ${id}:`, error);
+      toast.error(`Failed to sync product ${id}`);
+    } finally {
+      setIsLoading(false);
+      fetchProducts();
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', safeId(id));
+
+      if (error) throw error;
+
+      toast.success(`Product ${id} deleted successfully`);
+    } catch (error) {
+      console.error(`Error deleting product ${id}:`, error);
+      toast.error(`Failed to delete product ${id}`);
+    } finally {
+      setIsLoading(false);
+      fetchProducts();
+    }
+  };
   
   return {
-    products: productsQuery.data || [],
-    syncLogs: syncLogsQuery.data || [],
-    isLoading: isLoading || productsQuery.isLoading || syncLogsQuery.isLoading,
-    isProductsLoading: productsQuery.isLoading,
-    isSyncLogsLoading: syncLogsQuery.isLoading,
-    syncProduct: syncProductMutation.mutate,
-    syncAllProducts: syncAllMutation.mutate,
-    createProduct: createProductMutation.mutate,
-    updateProduct: updateProductMutation.mutate,
-    setTempProxyOverride,
-    productsError: productsQuery.error,
-    syncLogsError: syncLogsQuery.error,
+    products,
+    isLoading,
+    syncAllProducts,
+    syncProduct,
+    deleteProduct
   };
 }

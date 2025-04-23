@@ -1,4 +1,3 @@
-
 import { PostgrestError, PostgrestSingleResponse } from '@supabase/supabase-js';
 
 // Type guard to check if a value is a record (object)
@@ -78,9 +77,13 @@ export function formatUuid(id: string | null | undefined): any {
   return id as any;
 }
 
-// Helper for Supabase ID equality filtering
+/**
+ * Safely process the ID field for Supabase queries to fix TypeScript errors related to UUID handling
+ * This is a crucial helper function to fix the TypeScript errors with ID comparisons
+ */ 
 export function safeId(id: string | number | null | undefined): any {
   if (id === null || id === undefined) return '';
+  // Cast to any to bypass TypeScript strictness with Supabase
   return id as any;
 }
 
@@ -151,9 +154,13 @@ export function safeCastData<T>(data: any): T | null {
  * Universal helper to safely extract data from Supabase responses
  * Handles type safety with PostgrestSingleResponse
  */
-export function extractSafeData<T>(result: PostgrestSingleResponse<any>): T | null {
-  if (result.error || !result.data) {
-    result.error && console.error('Supabase error:', result.error);
+export function extractSafeData<T>(result: PostgrestError | PostgrestSingleResponse<any>): T | null {
+  if ('error' in result && result.error) {
+    console.error('Supabase error:', result.error);
+    return null;
+  }
+  
+  if (!('data' in result) || !result.data) {
     return null;
   }
   

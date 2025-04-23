@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { REALTIME_LISTEN_TYPES, REALTIME_PRESENCE_LISTEN_EVENTS, REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
 import { Bell, Wifi, WifiOff, RefreshCw, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -64,26 +63,19 @@ export function RealtimeNotifier() {
           }
         }
       )
-      .on(
-        'presence',
-        { event: REALTIME_PRESENCE_LISTEN_EVENTS.SYNC },
-        () => {
-          console.log('Presence sync event received');
-        }
-      )
-      .subscribe((status, err) => {
-        if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
           console.log('Connected to realtime updates');
           setState(prev => ({
             ...prev,
             connected: true
           }));
         } else if (
-          status === REALTIME_SUBSCRIBE_STATES.TIMED_OUT || 
-          status === REALTIME_SUBSCRIBE_STATES.CLOSED || 
-          status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR
+          status === 'TIMED_OUT' || 
+          status === 'CLOSED' || 
+          status === 'CHANNEL_ERROR'
         ) {
-          console.error('Failed to connect to realtime updates', status, err);
+          console.error('Failed to connect to realtime updates', status);
           setState(prev => ({
             ...prev,
             connected: false
@@ -151,3 +143,6 @@ export function RealtimeNotifier() {
     </TooltipProvider>
   );
 }
+
+// Make sure to export this component as both a named export and default export
+export default RealtimeNotifier;

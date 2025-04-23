@@ -1,6 +1,6 @@
 
 import React from 'react';
-import ProductCard from './ProductCard';
+import { ProductCard } from './ProductCard'; // Fix import to use named export
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { Product } from '@/types';

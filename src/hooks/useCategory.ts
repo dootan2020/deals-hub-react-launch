@@ -1,125 +1,99 @@
-
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from "@/hooks/use-toast";
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchCategoryBySlug } from '@/services/categoryService';
-import { CategoryWithParent } from '@/types/category.types';
+import { safeId, extractSafeData } from '@/utils/supabaseHelpers';
 
-interface UseCategoryProps {
-  categorySlug?: string;
-  parentCategorySlug?: string;
+// Type definitions for category data
+interface Category {
+  id: string;
+  name: string;
+  description: string;
+  slug: string;
+  image?: string;
+  count?: number;
+  parent_id?: string | null;
 }
 
-export const useCategory = ({ categorySlug, parentCategorySlug }: UseCategoryProps) => {
-  const navigate = useNavigate();
+interface CategoryWithParent extends Category {
+  parent?: Category | null;
+}
+
+export function useCategory(slug?: string, initialFetch: boolean = true) {
   const [category, setCategory] = useState<CategoryWithParent | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialFetch);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchCategory = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Handle cases where we're on the /products route with no slug
-        if (!categorySlug && !parentCategorySlug) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('No category slug provided, likely on products page');
-          }
-          setLoading(false);
-          return;
-        }
-        
-        if (parentCategorySlug && categorySlug) {
-          // Nested category case
-          const parentCategory = await fetchCategoryBySlug(parentCategorySlug);
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Parent category fetched:', parentCategory);
-          }
-          
-          if (!parentCategory) {
-            setError('Parent category not found');
-            setLoading(false);
-            return;
-          }
-          
-          const childCategory = await fetchCategoryBySlug(categorySlug);
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Child category fetched:', childCategory);
-          }
-          
-          if (!childCategory) {
-            setError('Category not found');
-            setLoading(false);
-            return;
-          }
-          
-          if (childCategory.parent_id !== parentCategory.id) {
-            if (process.env.NODE_ENV === 'development') {
-              console.log('Child category does not belong to parent, redirecting');
-            }
-            navigate(`/category/${categorySlug}`, { replace: true });
-            return;
-          }
-          
-          setCategory({
-            ...childCategory,
-            parent: parentCategory
-          });
-        } else if (categorySlug) {
-          // Top level category case
-          const fetchedCategory = await fetchCategoryBySlug(categorySlug);
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Single category fetched:', fetchedCategory);
-          }
-          
-          if (!fetchedCategory) {
-            setError('Category not found');
-            setLoading(false);
-            return;
-          }
-          
-          if (fetchedCategory.parent_id) {
-            const { data: parentData } = await supabase
-              .from('categories')
-              .select('*')
-              .eq('id', fetchedCategory.parent_id)
-              .maybeSingle();
-              
-            if (process.env.NODE_ENV === 'development') {
-              console.log('Parent data fetched for single category:', parentData);
-            }
-              
-            if (parentData) {
-              setCategory({
-                ...fetchedCategory,
-                parent: parentData
-              });
-              
-              navigate(`/category/${parentData.slug}/${fetchedCategory.slug}`, { replace: true });
-              return;
-            }
-          }
-          
-          setCategory(fetchedCategory);
-        } else {
-          setError('Category not specified');
-        }
-      } catch (err: any) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error fetching category:', err);
-        }
-        setError('Failed to load category');
-        toast.error("Error", "Failed to load category data. Please try again.");
-      } finally {
-        setLoading(false);
+  const fetchCategory = useCallback(async () => {
+    if (!slug) {
+      setCategory(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Fetch the category by slug
+      const { data: categoryData, error: categoryError } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('slug', slug)
+        .maybeSingle();
+
+      if (categoryError) throw new Error(categoryError.message);
+      
+      // Use extractSafeData to handle the response safely
+      const safeCategoryData = extractSafeData<Category>(categoryData);
+      
+      if (!safeCategoryData) {
+        throw new Error('Category not found');
       }
-    };
+      
+      // Now we have a properly typed category
+      const result: CategoryWithParent = {
+        ...safeCategoryData,
+        parent: null
+      };
 
-    fetchCategory();
-  }, [categorySlug, parentCategorySlug, navigate]);
+      // If this category has a parent, fetch the parent data
+      if (safeCategoryData.parent_id) {
+        const { data: parentData, error: parentError } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('id', safeId(safeCategoryData.parent_id))
+          .maybeSingle();
 
-  return { category, loading, error };
-};
+        if (parentError) {
+          console.error('Error fetching parent category:', parentError);
+        } else {
+          // Use extractSafeData to handle the parent response safely
+          const safeParentData = extractSafeData<Category>(parentData);
+          if (safeParentData) {
+            result.parent = safeParentData;
+          }
+        }
+      }
+
+      setCategory(result);
+    } catch (err) {
+      console.error('Error in fetchCategory:', err);
+      setError(err instanceof Error ? err.message : String(err));
+      setCategory(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [slug]);
+
+  useEffect(() => {
+    if (initialFetch) {
+      fetchCategory();
+    }
+  }, [fetchCategory, initialFetch]);
+
+  return {
+    category,
+    loading,
+    error,
+    fetchCategory,
+  };
+}
