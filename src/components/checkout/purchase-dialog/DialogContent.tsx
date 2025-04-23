@@ -42,7 +42,7 @@ export const DialogContent = ({
   // Get effective stock, prioritizing verified stock
   const effectiveStock = verifiedStock !== null 
     ? verifiedStock 
-    : product.stock || 0;  // Add fallback for null/undefined stock
+    : (product.stock || 0);  // Add fallback for null/undefined stock
 
   return (
     <div className="space-y-4 py-4">
@@ -92,7 +92,7 @@ export const DialogContent = ({
           )}
           
           {!isVerifying && verifiedStock !== null && 
-           verifiedStock < (product.stock || 0) && (  // Add fallback for null/undefined stock
+           verifiedStock < (product.stock || 0) && (
             <Alert className="bg-amber-50 border-amber-200">
               <AlertTriangle className="h-4 w-4 text-amber-500" />
               <AlertDescription className="text-amber-800">
@@ -105,3 +105,5 @@ export const DialogContent = ({
     </div>
   );
 };
+
+export default DialogContent;

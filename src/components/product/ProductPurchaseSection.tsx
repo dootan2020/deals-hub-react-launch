@@ -7,9 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Minus, Plus, ShoppingCart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { PurchaseDialog } from '@/components/checkout/PurchaseDialog';
+import { Product } from '@/types';
 
 interface ProductPurchaseSectionProps {
-  product: any; // Use 'any' temporarily to avoid breaking changes
+  product: Product;
   quantity: number;
   onQuantityChange: (quantity: number) => void;
 }
@@ -44,7 +45,8 @@ export function ProductPurchaseSection({ product, quantity, onQuantityChange }: 
   };
 
   // Use safe property checks with fallbacks
-  const productInStock = product.inStock !== undefined ? product.inStock : true;
+  const productInStock = product.inStock !== undefined ? product.inStock : 
+                        product.in_stock !== undefined ? product.in_stock : true;
   const productStock = product.stock || 0;
 
   return (

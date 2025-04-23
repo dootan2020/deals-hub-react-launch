@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { prepareQueryParam, prepareInsertData, prepareUpdateData } from '@/utils/supabaseTypeUtils';
+import { prepareQueryParam, prepareInsertData, prepareUpdateData, extractSafeData } from '@/utils/supabaseTypeUtils';
 
 type ProxyType = 'allorigins' | 'corsproxy' | 'custom';
 
@@ -16,7 +16,7 @@ interface ProxySettings {
   customUrl?: string;
 }
 
-const CorsProxySelector = () => {
+export const CorsProxySelector = () => {
   const [proxyType, setProxyType] = useState<ProxyType>('allorigins');
   const [customUrl, setCustomUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -38,8 +38,11 @@ const CorsProxySelector = () => {
         .single();
 
       if (!proxyError && proxyData) {
-        setProxyType(proxyData.proxy_type as ProxyType);
-        setCustomUrl(proxyData.custom_url || '');
+        const safeData = extractSafeData<any>(proxyData);
+        if (safeData) {
+          setProxyType(safeData.proxy_type as ProxyType);
+          setCustomUrl(safeData.custom_url || '');
+        }
         setIsLoading(false);
         return;
       }
@@ -58,11 +61,14 @@ const CorsProxySelector = () => {
         // Default settings if nothing found
         setProxyType('allorigins');
         setCustomUrl('');
-      } else if (settingsData && settingsData.value) {
+      } else {
         // Parse and set existing settings
-        const settings = settingsData.value as ProxySettings;
-        setProxyType(settings.type);
-        setCustomUrl(settings.customUrl || '');
+        const safeData = extractSafeData<{value: any}>(settingsData);
+        if (safeData && safeData.value) {
+          const settings = safeData.value as ProxySettings;
+          setProxyType(settings.type);
+          setCustomUrl(settings.customUrl || '');
+        }
       }
     } catch (error) {
       console.error('Error loading proxy settings:', error);
@@ -88,7 +94,9 @@ const CorsProxySelector = () => {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (existingSettings && existingSettings.length > 0) {
+      const safeExistingSettings = extractSafeData<any[]>(existingSettings);
+      
+      if (safeExistingSettings && safeExistingSettings.length > 0) {
         // Update existing record
         const { error: updateError } = await supabase
           .from('proxy_settings')
@@ -96,7 +104,7 @@ const CorsProxySelector = () => {
             proxy_type: proxyType,
             custom_url: proxyType === 'custom' ? customUrl : null
           }))
-          .eq('id', existingSettings[0].id);
+          .eq('id', safeExistingSettings[0].id);
 
         if (updateError) throw updateError;
       } else {
@@ -118,7 +126,9 @@ const CorsProxySelector = () => {
         .eq('key', prepareQueryParam('cors_proxy'))
         .maybeSingle();
 
-      if (!settingFetchError && existingSetting) {
+      const safeExistingSetting = extractSafeData<any>(existingSetting);
+      
+      if (!settingFetchError && safeExistingSetting) {
         // Update existing record
         const { error: updateError } = await supabase
           .from('site_settings')

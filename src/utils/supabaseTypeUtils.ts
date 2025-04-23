@@ -34,6 +34,29 @@ export const prepareUpdateData = <T extends Record<string, any>>(data: T): unkno
 };
 
 /**
+ * Helper function to safely extract data from Supabase responses
+ * @param result - The Supabase query result
+ * @returns The data extracted from the result, or null if there's an error or no data
+ */
+export const extractSafeData = <T>(result: any): T | null => {
+  if (!result || result.error) {
+    return null;
+  }
+  
+  // Handle case where data might be directly available
+  if (result && typeof result === 'object' && !('data' in result)) {
+    return result as T;
+  }
+  
+  // Handle case where data is null or undefined
+  if (!result.data) {
+    return null;
+  }
+  
+  return result.data as T;
+};
+
+/**
  * Helper function to safely access properties from Supabase query results
  * @param obj - The object from which to safely access properties
  * @param key - The key of the property to access
@@ -51,11 +74,8 @@ export const safeGetProperty = <T, K extends keyof T>(
 };
 
 /**
- * Helper function to safely cast a Supabase query result to a specific type
- * @param data - The data to cast
- * @returns The data cast to the specified type, or null if the data is null or undefined
+ * Helper function to check if a response contains data and no error
  */
-export const safeTypeCast = <T>(data: any): T | null => {
-  if (data === null || data === undefined) return null;
-  return data as T;
+export const isDataResponse = <T = any>(response: { data: T | null, error: any | null }): response is { data: T, error: null } => {
+  return response.data !== null && response.error === null;
 };

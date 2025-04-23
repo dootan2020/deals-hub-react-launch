@@ -9,10 +9,11 @@ export interface Product {
   createdAt: string;
   updatedAt?: string;
   slug: string;
-  // Add missing properties that are being referenced
   originalPrice?: number;
   inStock?: boolean;
   stock?: number;
+  in_stock?: boolean; // For compatibility with database fields
+  stockQuantity?: number; // Add this missing property
   images?: string[];
   shortDescription?: string;
   categoryId?: string;
@@ -24,7 +25,6 @@ export interface Product {
   salesCount?: number;
   reviewCount?: number;
   rating?: number;
-  in_stock?: boolean; // For compatibility with database fields
 }
 
 export interface Category {
@@ -57,7 +57,7 @@ export interface AuthContextType {
   refreshUserBalance: () => Promise<number | void>;
   refreshBalance: () => Promise<number | void>; // Alias for backward compatibility
   refreshUserProfile: () => Promise<void>;
-  login: (email: string, password: string) => Promise<any>;
+  login: (email: string, password: string) => Promise<any>; // Add this missing property
   logout: () => Promise<void>;
   register: (email: string, password: string, metadata?: Record<string, any>) => Promise<any>;
   checkUserRole: (role: UserRole) => boolean;

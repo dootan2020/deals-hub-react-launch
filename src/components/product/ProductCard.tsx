@@ -1,22 +1,10 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BuyNowButton } from "@/components/checkout/BuyNowButton";
 import { Skeleton } from '@/components/ui/skeleton';
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  original_price?: number;
-  images?: string[];
-  slug: string;
-  badges?: string[];
-  in_stock: boolean;
-  category_id?: string;
-}
+import { Product } from '@/types';
 
 interface ProductCardProps {
   product: Product;
@@ -29,13 +17,15 @@ export function ProductCard({ product, loading = false, viewMode = "grid" }: Pro
     return <ProductCardSkeleton />;
   }
   
-  const discount = product.original_price && product.original_price > product.price 
-    ? Math.round(((product.original_price - product.price) / product.original_price) * 100)
+  const discount = product.originalPrice && product.originalPrice > product.price 
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
     
   const imageUrl = product.images && product.images.length > 0 
     ? product.images[0] 
     : 'https://placehold.co/400x300?text=No+Image';
+  
+  const isInStock = product.inStock !== undefined ? product.inStock : product.in_stock !== undefined ? product.in_stock : true;
     
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
@@ -86,7 +76,7 @@ export function ProductCard({ product, loading = false, viewMode = "grid" }: Pro
             
             {discount > 0 && (
               <div className="text-sm text-gray-500 line-through">
-                {product.original_price?.toLocaleString()} VND
+                {product.originalPrice?.toLocaleString()} VND
               </div>
             )}
           </div>
@@ -120,5 +110,4 @@ function ProductCardSkeleton() {
   );
 }
 
-// Add default export for compatibility
 export default ProductCard;

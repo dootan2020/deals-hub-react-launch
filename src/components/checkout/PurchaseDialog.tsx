@@ -1,14 +1,12 @@
 
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Product } from '@/types';
-import { formatCurrency } from '@/utils/currency';
-import { Loader2 } from 'lucide-react';
+import { DialogHeader as CustomDialogHeader } from './purchase-dialog/DialogHeader';
+import { DialogContent as CustomDialogContent } from './purchase-dialog/DialogContent';
+import { DialogFooterButtons } from './purchase-dialog/DialogFooterButtons';
+import { usePurchaseToast } from '@/hooks/purchase/usePurchaseToast';
+import { toast } from 'sonner';
 
 interface PurchaseDialogProps {
   product: Product;
@@ -17,61 +15,131 @@ interface PurchaseDialogProps {
   initialQuantity?: number;
 }
 
-export const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
+export const PurchaseDialog = ({
   product,
   isOpen,
   onClose,
-  initialQuantity = 1,
-}) => {
+  initialQuantity = 1
+}: PurchaseDialogProps) => {
   const [quantity, setQuantity] = useState(initialQuantity);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifiedStock, setVerifiedStock] = useState<number | null>(null);
+  const [verifiedPrice, setVerifiedPrice] = useState<number | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [promotionCode, setPromotionCode] = useState('');
+  const [userBalance, setUserBalance] = useState<number | null>(null);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   
-  const handlePurchase = async () => {
-    setIsSubmitting(true);
-    // Simulate purchase process
-    setTimeout(() => {
-      setIsSubmitting(false);
-      onClose();
-    }, 1500);
+  // Price calculations
+  const priceUSD = product.price / 24000; // Using a fixed conversion rate, you might want to use a dynamic one
+  const totalPriceUSD = priceUSD * quantity;
+
+  const { notifyLoading, notifySuccess, notifyError } = usePurchaseToast();
+
+  const handleQuantityChange = (newQuantity: number) => {
+    setQuantity(newQuantity);
   };
 
+  const handlePromotionCodeChange = (code: string) => {
+    setPromotionCode(code);
+  };
+
+  const handlePurchase = async () => {
+    setIsProcessing(true);
+    notifyLoading();
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      notifySuccess(
+        "Purchase Successful",
+        `You have purchased ${quantity} ${product.title}`
+      );
+      
+      onClose();
+    } catch (error) {
+      console.error("Purchase error:", error);
+      notifyError(
+        "Purchase Failed",
+        "There was an error processing your purchase. Please try again."
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleVerifyProduct = async () => {
+    if (!product) return;
+    
+    setIsVerifying(true);
+    
+    try {
+      // Simulate API verification
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Use product's stock as verified stock for now
+      setVerifiedStock(product.stock || 0);
+      setVerifiedPrice(product.price);
+      
+      setIsLoadingBalance(true);
+      // Simulate fetching user balance
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setUserBalance(50); // Mock balance
+      setIsLoadingBalance(false);
+      
+    } catch (error) {
+      console.error("Error verifying product:", error);
+      toast.error("Failed to verify product availability");
+      setVerifiedStock(null);
+      setVerifiedPrice(null);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  // Verify product when dialog opens
+  React.useEffect(() => {
+    if (isOpen) {
+      handleVerifyProduct();
+    }
+  }, [isOpen]);
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
-        <div className="space-y-4 py-2">
-          <h2 className="text-lg font-semibold text-center">{product.title}</h2>
-          
-          <div className="flex justify-between items-center">
-            <span>Quantity:</span>
-            <span>{quantity}</span>
-          </div>
-          
-          <div className="flex justify-between items-center">
-            <span>Price per item:</span>
-            <span>{formatCurrency(product.price)}</span>
-          </div>
-          
-          <div className="flex justify-between items-center font-semibold">
-            <span>Total:</span>
-            <span>{formatCurrency(product.price * quantity)}</span>
-          </div>
-        </div>
+        <DialogHeader>
+          <DialogTitle>Purchase {product.title}</DialogTitle>
+        </DialogHeader>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button onClick={handlePurchase} disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              'Confirm Purchase'
-            )}
-          </Button>
-        </DialogFooter>
+        <CustomDialogHeader 
+          title={product.title}
+          onClose={onClose}
+        />
+        
+        <CustomDialogContent
+          product={product}
+          isVerifying={isVerifying}
+          quantity={quantity}
+          verifiedStock={verifiedStock}
+          verifiedPrice={verifiedPrice}
+          priceUSD={priceUSD}
+          totalPriceUSD={totalPriceUSD}
+          promotionCode={promotionCode}
+          onQuantityChange={handleQuantityChange}
+          onPromotionCodeChange={handlePromotionCodeChange}
+          isLoadingBalance={isLoadingBalance}
+          userBalance={userBalance}
+        />
+        
+        <DialogFooterButtons
+          onClose={onClose}
+          onPurchase={handlePurchase}
+          isProcessing={isProcessing}
+          isVerifying={isVerifying}
+          hasBalance={userBalance !== null && userBalance >= totalPriceUSD}
+          isLoadingBalance={isLoadingBalance}
+        />
       </DialogContent>
     </Dialog>
   );
