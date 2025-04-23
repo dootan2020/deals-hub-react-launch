@@ -35,9 +35,9 @@ export interface UserWithRolesRow {
   avatar_url: string | null;
   roles: UserRole[];
   is_active: boolean;
-  email_confirmed_at?: string | null;
-  confirmation_sent_at?: string | null;
-  confirmed_at?: string | null;
+  email_confirmed_at: string | null;
+  confirmation_sent_at: string | null;
+  confirmed_at: string | null;
 }
 
 // Extend the original Database type

@@ -37,7 +37,7 @@ export async function getUserWithRoles(userId?: string): Promise<UserWithRolesDa
     });
     
     if (error) throw error;
-    return data;
+    return data as UserWithRolesData;
   } catch (error) {
     console.error('Failed to get user with roles:', error);
     return null;

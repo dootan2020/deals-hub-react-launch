@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -31,16 +30,9 @@ import { format } from 'date-fns';
 import { Loader2, Eye, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { getAllUsers } from '@/utils/security';
+import { getAllUsers, UserWithRolesData } from '@/utils/security';
 
-interface User {
-  id: string;
-  email: string;
-  display_name: string;
-  created_at: string;
-  last_sign_in_at: string | null;
-  email_confirmed_at: string | null;
-  roles: string[];
+interface User extends UserWithRolesData {
   balance: number;
 }
 
@@ -60,28 +52,25 @@ const AdminUsers = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Use the new secure function to get all users
       const usersData = await getAllUsers();
       
       if (!usersData || !Array.isArray(usersData)) {
         throw new Error('Failed to fetch users');
       }
       
-      // Then get all profiles with balances
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, balance');
       
       if (profilesError) throw profilesError;
       
-      // Merge the data
       const mergedUsers = usersData.map(user => {
         const profile = profiles.find(p => p.id === user.id);
         return {
           ...user,
           display_name: user.display_name || user.email.split('@')[0],
           balance: profile?.balance || 0
-        };
+        } as User;
       });
       
       setUsers(mergedUsers);
@@ -111,7 +100,6 @@ const AdminUsers = () => {
       
       if (error) throw error;
       
-      // Update the user balance in local state
       setUsers(users.map(user => {
         if (user.id === userId) {
           return { ...user, balance: user.balance + amount };
@@ -119,7 +107,6 @@ const AdminUsers = () => {
         return user;
       }));
       
-      // Update current user if viewing
       if (currentUser && currentUser.id === userId) {
         setCurrentUser({
           ...currentUser,
@@ -127,7 +114,6 @@ const AdminUsers = () => {
         });
       }
       
-      // Create a transaction record
       await supabase
         .from('transactions')
         .insert({
@@ -266,7 +252,6 @@ const AdminUsers = () => {
         </CardContent>
       </Card>
 
-      {/* View User Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
@@ -343,7 +328,6 @@ const AdminUsers = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Balance Dialog */}
       <Dialog open={isBalanceDialogOpen} onOpenChange={setIsBalanceDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
