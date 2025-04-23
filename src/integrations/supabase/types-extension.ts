@@ -45,7 +45,7 @@ export interface SimplifiedUser {
   id: string;
   email: string;
   roles: UserRole[];
-  display_name: string | null; // Added display_name to match what AdminUsers.tsx expects
+  display_name: string | null;
 }
 
 // Extend the original Database type
@@ -78,7 +78,7 @@ export interface Database extends OriginalDatabase {
       };
       get_user_with_roles: {
         Args: { user_id_param: string | null };
-        Returns: UserWithRolesRow;
+        Returns: UserWithRolesRow[];
       };
       get_all_users: {
         Args: Record<string, never>;
