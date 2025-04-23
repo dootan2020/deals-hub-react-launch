@@ -8,14 +8,6 @@ interface ProductBadgeProps {
   className?: string;
 }
 
-const getBrandType = (type: string): 'gmail' | 'facebook' | 'outlook' | 'default' => {
-  const lowercaseType = type.toLowerCase();
-  if (lowercaseType.includes('gmail')) return 'gmail';
-  if (lowercaseType.includes('facebook')) return 'facebook';
-  if (lowercaseType.includes('outlook')) return 'outlook';
-  return 'default';
-};
-
 export const ProductBadge: React.FC<ProductBadgeProps> = ({ type, className }) => {
   const badges = {
     gmail: {
@@ -44,18 +36,18 @@ export const ProductBadge: React.FC<ProductBadgeProps> = ({ type, className }) =
     }
   };
 
-  const badge = badges[type] || badges.default;
+  const badge = badges[type];
   const Icon = badge.icon;
 
   return (
     <div className={cn(
-      "w-8 h-8 rounded-full flex items-center justify-center",
+      "flex items-center gap-2 px-3 py-1.5 rounded-full",
       badge.bg,
       badge.text,
       className
     )}>
       <Icon className="w-4 h-4" />
+      <span className="text-sm font-medium">{badge.label}</span>
     </div>
   );
 };
-

@@ -5,34 +5,10 @@
   }
 
   .btn-secondary {
-    @apply bg-secondary hover:opacity-90 text-white font-medium px-6 py-2 rounded-md transition-colors duration-200;
-  }
-
-  .btn-accent {
-    @apply bg-accent hover:opacity-90 text-white font-medium px-6 py-2 rounded-md transition-colors duration-200;
+    @apply bg-accent hover:bg-accent-dark text-white font-medium px-6 py-2 rounded-md transition-colors duration-200;
   }
 
   .btn-outline {
     @apply border border-primary text-primary hover:bg-primary hover:text-white font-medium px-6 py-2 rounded-md transition-colors duration-200;
-  }
-
-  .container-custom {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
-  }
-  
-  .badge-hot {
-    @apply bg-gradient-to-r from-[#EF4444] to-[#F87171] text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm;
-  }
-  
-  .badge-featured {
-    @apply bg-gradient-to-r from-[#1A936F] to-[#2EBD91] text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm;
-  }
-  
-  .badge-bestseller {
-    @apply bg-gradient-to-r from-[#F59E0B] to-[#FBBF24] text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm;
-  }
-  
-  .badge-discount {
-    @apply bg-gradient-to-r from-[#D7263D] to-[#E5505E] text-white text-xs font-semibold px-2 py-1 rounded-md shadow-sm;
   }
 }

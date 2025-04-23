@@ -1,56 +1,56 @@
 
-import { Shield, Zap, Clock, HeadphonesIcon } from 'lucide-react';
+import React from 'react';
+import { Check, Package, Zap } from 'lucide-react';
 
 const features = [
   {
-    title: 'Secure Transactions',
-    description: 'All payments are processed through secure, encrypted channels for your peace of mind.',
-    icon: Shield,
-  },
-  {
-    title: 'Instant Delivery',
-    description: 'Get your digital products delivered instantly to your email after purchase.',
     icon: Zap,
+    title: 'Mua hàng nhanh chóng',
+    description: 'Thanh toán dễ dàng và nhận sản phẩm ngay lập tức qua email',
+    color: 'bg-blue-50 text-blue-600'
   },
   {
-    title: '24/7 Availability',
-    description: 'Our automated system allows you to purchase products at any time, day or night.',
-    icon: Clock,
+    icon: Package,
+    title: 'Giao hàng tự động',
+    description: 'Hệ thống tự động giao hàng ngay sau khi thanh toán thành công',
+    color: 'bg-green-50 text-green-600'
   },
   {
-    title: 'Customer Support',
-    description: 'Our friendly support team is always ready to help with any issues or questions.',
-    icon: HeadphonesIcon,
-  },
+    icon: Check,
+    title: 'Bảo hành sản phẩm',
+    description: 'Đảm bảo 1-1 trong 24h nếu sản phẩm có vấn đề',
+    color: 'bg-purple-50 text-purple-600'
+  }
 ];
 
-const FeaturesSection = () => {
+const FeaturesSection: React.FC = () => {
   return (
-    <section className="py-16 bg-gray-50">
+    <section className="py-16 bg-background-secondary">
       <div className="container-custom">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Why Choose Us</h2>
+          <h2 className="text-3xl font-bold mb-4">Tại sao chọn chúng tôi?</h2>
           <p className="text-text-light max-w-2xl mx-auto">
-            We provide the best digital products with outstanding customer service and competitive prices.
+            AccZen.net cung cấp trải nghiệm mua sắm sản phẩm số tốt nhất với nhiều ưu điểm vượt trội
           </p>
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {features.map((feature, index) => (
-            <div 
-              key={index} 
-              className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm
-                transition-all duration-300 ease-in-out hover:shadow-md hover:border-gray-300"
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className="p-4 bg-primary/10 rounded-full mb-5 transition-colors duration-300">
-                  <feature.icon className="h-9 w-9 text-primary transition-colors duration-300" />
+        
+        <div className="grid md:grid-cols-3 gap-8">
+          {features.map((feature, index) => {
+            const Icon = feature.icon;
+            
+            return (
+              <div key={index} className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-5 ${feature.color}`}>
+                  <Icon className="w-7 h-7" />
                 </div>
+                
                 <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
-                <p className="text-text-light text-sm md:text-base">{feature.description}</p>
+                <p className="text-text-light">
+                  {feature.description}
+                </p>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

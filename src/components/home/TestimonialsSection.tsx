@@ -1,85 +1,75 @@
 
 import React from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { StarIcon } from 'lucide-react';
 
-interface Testimonial {
-  name: string;
-  role: string;
-  content: string;
-  avatar: string;
-  rating: number;
-}
-
-const testimonials: Testimonial[] = [
+const testimonials = [
   {
-    name: 'Michael S.',
-    role: 'Marketing Specialist',
-    content: 'Digital Deals Hub is fantastic! I needed some social media accounts for work, and their service was quick and reliable. The accounts I purchased were high quality and exactly as described.',
-    avatar: '/testimonials/avatar1.jpg',
+    name: 'Nguyễn Văn A',
+    avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+    role: 'Marketer',
+    content: 'Tôi đã mua tài khoản Gmail và Facebook từ AccZen.net. Sản phẩm chất lượng, giao hàng nhanh và dịch vụ hỗ trợ rất tốt.',
     rating: 5
   },
   {
-    name: 'Jessica W.',
-    role: 'Independent Publisher',
-    content: 'I love how easy it is to find exactly what I need here. The email accounts I purchased have been working flawlessly for months. Great value for money and excellent customer support!',
-    avatar: '/testimonials/avatar2.jpg',
+    name: 'Trần Thị B',
+    avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+    role: 'Nhà phát triển',
+    content: 'Đã mua nhiều công cụ AI từ trang này và rất hài lòng. Giá tốt và sản phẩm hoạt động đúng như mô tả. Sẽ quay lại mua tiếp.',
     rating: 5
   },
   {
-    name: 'Robert P.',
-    role: 'Content Creator',
-    content: 'By far the best digital marketplace I\'ve used. The software keys were delivered instantly and activation was seamless. Will definitely be a repeat customer!',
-    avatar: '/testimonials/avatar3.jpg',
+    name: 'Lê Văn C',
+    avatar: 'https://randomuser.me/api/portraits/men/67.jpg',
+    role: 'Chuyên viên SEO',
+    content: 'Tài khoản Gmail mua từ AccZen hoạt động rất tốt, đã xác thực đúng như mô tả và chưa gặp vấn đề gì sau 3 tháng sử dụng.',
     rating: 4
-  }
+  },
 ];
 
-const TestimonialsSection = () => {
+const TestimonialsSection: React.FC = () => {
   return (
-    <section className="bg-section-primary py-16">
+    <section className="py-16 bg-white">
       <div className="container-custom">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">What Our Customers Say</h2>
-          <p className="text-text-light max-w-3xl mx-auto">
-            Don't just take our word for it - hear from some of our satisfied customers about their experience with Digital Deals Hub.
+          <h2 className="text-3xl font-bold mb-4">Khách hàng nói gì về chúng tôi?</h2>
+          <p className="text-text-light max-w-2xl mx-auto">
+            Trải nghiệm mua sắm thực tế từ các khách hàng đã sử dụng sản phẩm của AccZen.net
           </p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        
+        <div className="grid md:grid-cols-3 gap-6">
           {testimonials.map((testimonial, index) => (
-            <div
-              key={index}
-              className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm 
-                transition-all duration-300 ease-in-out hover:shadow-md hover:border-gray-300"
+            <div 
+              key={index} 
+              className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
             >
-              <div className="flex items-center mb-4">
-                <Avatar className="h-12 w-12 border-2 border-primary/20">
-                  <AvatarImage 
-                    src={testimonial.avatar} 
-                    alt={testimonial.name} 
-                    onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
-                  />
-                  <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="ml-4">
+              <div className="flex items-center gap-4 mb-4">
+                <img 
+                  src={testimonial.avatar} 
+                  alt={testimonial.name} 
+                  className="w-14 h-14 rounded-full object-cover"
+                />
+                <div>
                   <h4 className="font-semibold">{testimonial.name}</h4>
-                  <p className="text-sm text-text-light">{testimonial.role}</p>
+                  <p className="text-text-light text-sm">{testimonial.role}</p>
                 </div>
               </div>
-
-              <div className="flex mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <StarIcon
-                    key={i}
-                    className={`w-4 h-4 ${
-                      i < testimonial.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
-                    }`}
-                  />
+              
+              <p className="text-text-light mb-4">
+                "{testimonial.content}"
+              </p>
+              
+              <div className="flex">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <svg 
+                    key={i} 
+                    className={`w-5 h-5 ${i < testimonial.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
                 ))}
               </div>
-
-              <p className="text-text-light">{testimonial.content}</p>
             </div>
           ))}
         </div>
