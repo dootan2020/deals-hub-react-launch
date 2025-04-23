@@ -31,7 +31,7 @@ import { format } from 'date-fns';
 import { Loader2, Eye, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { getAllUsers, UserWithRolesData } from '@/utils/security';
+import { getAllUsers } from '@/utils/security';
 import { SimplifiedUser } from '@/integrations/supabase/types-extension';
 
 interface User extends SimplifiedUser {

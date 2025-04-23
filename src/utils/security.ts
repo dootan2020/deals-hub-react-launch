@@ -44,7 +44,7 @@ export async function getAllUsers(): Promise<SimplifiedUser[] | null> {
     const { data, error } = await supabase.rpc('get_all_users');
 
     if (error) throw error;
-    return Array.isArray(data) ? data : null;
+    return data as SimplifiedUser[];
   } catch (error) {
     console.error('❌ Failed to get all users:', error);
     return null;
