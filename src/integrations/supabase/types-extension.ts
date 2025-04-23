@@ -81,7 +81,7 @@ export interface Database extends OriginalDatabase {
       };
       get_all_users: {
         Args: Record<string, never>;
-        Returns: UserWithRolesRow[];
+        Returns: SimplifiedUser[];
       };
     };
     Enums: OriginalDatabase['public']['Enums'];

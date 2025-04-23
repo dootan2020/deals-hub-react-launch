@@ -44,13 +44,13 @@ export async function getUserWithRoles(userId?: string): Promise<UserWithRolesDa
   }
 }
 
-export async function getAllUsers(): Promise<UserWithRolesData[] | null> {
+export async function getAllUsers(): Promise<SimplifiedUser[] | null> {
   try {
     // Use the get_all_users function we defined in the Database interface
     const { data, error } = await supabase.rpc('get_all_users');
     
     if (error) throw error;
-    return data as UserWithRolesData[];
+    return data as SimplifiedUser[];
   } catch (error) {
     console.error('Failed to get all users:', error);
     return null;
