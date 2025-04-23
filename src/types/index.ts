@@ -1,5 +1,5 @@
 
-// Simplified Product type
+// Core Product type
 export interface Product {
   id: string;
   title: string;
@@ -11,7 +11,7 @@ export interface Product {
   category?: string;
 }
 
-// Basic order types - simplified
+// Basic order types
 export interface Order {
   id: string;
   user_id: string;
@@ -38,5 +38,20 @@ export enum UserRole {
 // View mode
 export type ViewMode = 'grid' | 'list';
 
-// Simplified Sort option
+// Simple sort option
 export type SortOption = string;
+
+// Simple filter params
+export interface FilterParams {
+  [key: string]: string | number | boolean;
+}
+
+// Category type
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  slug: string;
+  image?: string;
+  parent_id?: string;
+}
