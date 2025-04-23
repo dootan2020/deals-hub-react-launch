@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { UserWithRolesRow, SimplifiedUser } from '@/integrations/supabase/types-extension';
 
