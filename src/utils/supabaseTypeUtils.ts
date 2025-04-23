@@ -11,8 +11,9 @@ export const asUnknown = <T>(value: T): unknown => value as unknown;
  * @param value - The value to prepare as a query parameter
  * @returns The value cast to unknown to bypass TypeScript's strict type checking
  */
-export const prepareQueryParam = <T>(value: T): unknown => {
-  return value as unknown;
+export const prepareQueryParam = <T>(value: T): string => {
+  // Cast to string to ensure compatibility with Supabase filter operations
+  return String(value);
 };
 
 /**
@@ -20,8 +21,8 @@ export const prepareQueryParam = <T>(value: T): unknown => {
  * @param data - The data to prepare for insert
  * @returns The data cast to unknown to bypass TypeScript's strict type checking
  */
-export const prepareInsertData = <T extends Record<string, any>>(data: T): unknown => {
-  return data as unknown;
+export const prepareInsertData = <T extends Record<string, any>>(data: T): any => {
+  return data as any;
 };
 
 /**
@@ -29,8 +30,8 @@ export const prepareInsertData = <T extends Record<string, any>>(data: T): unkno
  * @param data - The data to prepare for update
  * @returns The data cast to unknown to bypass TypeScript's strict type checking
  */
-export const prepareUpdateData = <T extends Record<string, any>>(data: T): unknown => {
-  return data as unknown;
+export const prepareUpdateData = <T extends Record<string, any>>(data: T): any => {
+  return data as any;
 };
 
 /**

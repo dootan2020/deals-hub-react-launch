@@ -20,7 +20,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-// Mock for AuthContext
+// Mock for AuthContext with all required properties
 const mockAuthContext: AuthContextType = {
   user: { id: 'test-user' },
   session: {},
@@ -31,14 +31,22 @@ const mockAuthContext: AuthContextType = {
   userRoles: [],
   userBalance: 0,
   refreshUserBalance: vi.fn().mockResolvedValue(0),
-  refreshBalance: vi.fn().mockResolvedValue(0), // Backward compatibility
+  refreshBalance: vi.fn().mockResolvedValue(0),
   refreshUserProfile: vi.fn().mockResolvedValue(undefined),
-  login: vi.fn().mockResolvedValue({}), // Add mock login function
+  login: vi.fn().mockResolvedValue({}),
   logout: vi.fn().mockResolvedValue(undefined),
   register: vi.fn().mockResolvedValue({}),
   checkUserRole: vi.fn(),
   isEmailVerified: true,
   isLoadingBalance: false,
+  // Additional required properties
+  balance: 0,
+  balanceLoading: false,
+  fetchBalance: vi.fn().mockResolvedValue(0),
+  setUserBalance: vi.fn(),
+  fetchUserBalance: vi.fn().mockResolvedValue(0),
+  refreshUserData: vi.fn().mockResolvedValue(undefined),
+  authError: null,
 };
 
 describe('ProtectedRoute', () => {
@@ -55,6 +63,7 @@ describe('ProtectedRoute', () => {
       user: null,
       session: null,
       userRoles: [],
+      balance: null,
     });
 
     render(
@@ -118,5 +127,5 @@ describe('ProtectedRoute', () => {
     expect(screen.getByText('Admin Content')).toBeInTheDocument();
   });
 
-  // Remove the isPublic test since that prop doesn't exist
+  // Removed the isPublic test since that prop doesn't exist
 });

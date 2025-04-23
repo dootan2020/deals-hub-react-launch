@@ -1,7 +1,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { safeId, extractSafeData } from '@/utils/supabaseHelpers';
+import { prepareQueryParam } from '@/utils/supabaseTypeUtils';
+import { extractSafeData } from '@/utils/supabaseHelpers';
 
 const CACHE_TIME = 60 * 1000; // 1 minute in milliseconds
 
@@ -29,7 +30,7 @@ export const useCachedBalance = (userId: string | undefined) => {
       const { data, error } = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', safeId(userId))
+        .eq('id', userId)
         .maybeSingle();
       
       if (error) {
@@ -78,8 +79,7 @@ export const useCachedBalance = (userId: string | undefined) => {
           const newBalance = payload.new?.balance;
           if (newBalance !== undefined) {
             setBalance(Number(newBalance));
-            // Update the lastFetched timestamp
-            setLastFetched(new Date()); // Fixed: Use new Date() object, not a number
+            setLastFetched(new Date());
           }
         })
         .subscribe();

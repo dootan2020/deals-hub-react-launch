@@ -2,7 +2,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, Category } from '@/types';
-import { extractSafeData, safeId } from '@/utils/supabaseHelpers';
+import { extractSafeData } from '@/utils/supabaseHelpers';
+import { prepareQueryParam } from '@/utils/supabaseTypeUtils';
 
 const PAGE_SIZE = 12; // Number of products per page
 
@@ -33,7 +34,7 @@ export const useCategoryProducts = (categoryId?: string) => {
       const countQuery = await supabase
         .from('products')
         .select('id', { count: 'exact' })
-        .eq('category_id', safeId(categoryId));
+        .eq('category_id', categoryId);
         
       if (countQuery.error) throw new Error(countQuery.error.message);
       setTotal(countQuery.count || 0);
@@ -42,7 +43,7 @@ export const useCategoryProducts = (categoryId?: string) => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('category_id', safeId(categoryId))
+        .eq('category_id', categoryId)
         .order('created_at', { ascending: false })
         .range(from, to);
         
@@ -78,7 +79,7 @@ export const useCategoryProducts = (categoryId?: string) => {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
-        .eq('parent_id', safeId(categoryId));
+        .eq('parent_id', categoryId);
         
       if (error) throw new Error(error.message);
       

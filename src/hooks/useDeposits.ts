@@ -3,12 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Deposit, normalizeUserField } from './transactionUtils';
-import { 
-  extractSafeData, 
-  prepareForUpdate, 
-  prepareForInsert 
-} from '@/utils/supabaseHelpers';
-import { prepareQueryParam } from '@/utils/supabaseTypeUtils';
+import { extractSafeData } from '@/utils/supabaseHelpers';
 
 // Hook for deposit state, fetching, and admin update
 export function useDeposits() {
@@ -58,7 +53,7 @@ export function useDeposits() {
       const depositResult = await supabase
         .from('deposits')
         .select('*')
-        .eq('id', prepareQueryParam(depositId))
+        .eq('id', depositId)
         .maybeSingle();
 
       if (depositResult.error) throw depositResult.error;
@@ -66,15 +61,15 @@ export function useDeposits() {
       const deposit = extractSafeData<Deposit>(depositResult);
       if (!deposit) throw new Error('Deposit not found');
 
-      const updateData = prepareForUpdate({
+      const updateData = {
         status: newStatus,
         updated_at: new Date().toISOString()
-      });
+      };
 
       const updateResult = await supabase
         .from('deposits')
         .update(updateData)
-        .eq('id', prepareQueryParam(depositId));
+        .eq('id', depositId);
 
       if (updateResult.error) throw updateResult.error;
 
@@ -91,14 +86,14 @@ export function useDeposits() {
         if (balanceError) throw balanceError;
 
         // Create a transaction record
-        const transactionData = prepareForInsert({
+        const transactionData = {
           user_id: deposit.user_id,
           amount: deposit.amount,
           payment_method: deposit.payment_method,
           status: 'completed',
           type: 'deposit',
           transaction_id: deposit.transaction_id
-        });
+        };
 
         const { error: transactionError } = await supabase
           .from('transactions')

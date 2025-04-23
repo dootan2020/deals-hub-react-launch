@@ -15,7 +15,7 @@ export const useBalanceListener = (userId: string | undefined) => {
       const { data, error } = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', userId as any)
+        .eq('id', userId)
         .maybeSingle();
         
       if (error) {

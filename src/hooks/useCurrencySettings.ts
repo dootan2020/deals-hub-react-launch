@@ -1,8 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { extractSafeData, safeString } from '@/utils/supabaseHelpers';
-import { prepareQueryParam } from '@/utils/supabaseTypeUtils';
+import { extractSafeData } from '@/utils/supabaseHelpers';
 
 interface CurrencySettings {
   vnd_per_usd: number;
@@ -15,7 +14,7 @@ export const useCurrencySettings = () => {
       const result = await supabase
         .from('site_settings')
         .select('value')
-        .eq('key', prepareQueryParam('usd_rate'))
+        .eq('key', 'usd_rate')
         .single();
         
       if (result.error) {

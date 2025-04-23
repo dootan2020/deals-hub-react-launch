@@ -54,8 +54,7 @@ export const CorsProxySelector = () => {
       const { data: settingsData, error: settingsError } = await supabase
         .from('site_settings')
         .select('value')
-        .eq('key', 'cors_proxy' as any)
-        .single();
+        .eq('key', 'cors_proxy');
 
       if (settingsError) {
         if (settingsError.code !== 'PGRST116') { // Not found error
@@ -64,9 +63,9 @@ export const CorsProxySelector = () => {
         // Default settings if nothing found
         setProxyType('allorigins');
         setCustomUrl('');
-      } else if (settingsData) {
+      } else if (settingsData && settingsData.length > 0 && settingsData[0]) {
         // Parse and set existing settings, using safe extraction
-        const valueData = safeExtractProperty<any>(settingsData, 'value', {});
+        const valueData = safeExtractProperty<any>(settingsData[0], 'value', {});
         if (valueData && typeof valueData === 'object') {
           setProxyType(safeExtractProperty<ProxyType>(valueData, 'type', 'allorigins'));
           setCustomUrl(safeExtractProperty<string>(valueData, 'customUrl', ''));
@@ -105,8 +104,8 @@ export const CorsProxySelector = () => {
         
         const { error: updateError } = await supabase
           .from('proxy_settings')
-          .update(updateData as any)
-          .eq('id', safeExtractProperty<string>(existingSettings[0], 'id', ''));
+          .update(updateData)
+          .eq('id', existingSettings[0].id);
 
         if (updateError) throw updateError;
       } else {
@@ -118,7 +117,7 @@ export const CorsProxySelector = () => {
         
         const { error: insertError } = await supabase
           .from('proxy_settings')
-          .insert(insertData as any);
+          .insert(insertData);
 
         if (insertError) throw insertError;
       }
@@ -127,7 +126,7 @@ export const CorsProxySelector = () => {
       const { data: existingSetting, error: settingFetchError } = await supabase
         .from('site_settings')
         .select('*')
-        .eq('key', 'cors_proxy' as any)
+        .eq('key', 'cors_proxy')
         .maybeSingle();
 
       if (existingSetting) {
@@ -139,8 +138,8 @@ export const CorsProxySelector = () => {
         
         const { error: updateError } = await supabase
           .from('site_settings')
-          .update(updateData as any)
-          .eq('key', 'cors_proxy' as any);
+          .update(updateData)
+          .eq('key', 'cors_proxy');
 
         if (updateError) throw updateError;
       } else {
@@ -153,7 +152,7 @@ export const CorsProxySelector = () => {
         
         const { error: insertError } = await supabase
           .from('site_settings')
-          .insert(insertData as any);
+          .insert(insertData);
 
         if (insertError) throw insertError;
       }

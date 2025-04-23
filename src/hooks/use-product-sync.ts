@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { safeId, extractSafeData } from '@/utils/supabaseHelpers';
+import { extractSafeData } from '@/utils/supabaseHelpers';
 
 interface ProxyConfig {
   proxyType: string;
@@ -99,7 +99,7 @@ export function useProductSync() {
       const { error } = await supabase
         .from('products')
         .delete()
-        .eq('id', safeId(id));
+        .eq('id', id);
 
       if (error) throw error;
 
@@ -142,7 +142,7 @@ export function useProductSync() {
       const { error } = await supabase
         .from('products')
         .update(updatedData)
-        .eq('id', safeId(id));
+        .eq('id', id);
 
       if (error) throw error;
       
