@@ -1,15 +1,19 @@
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface OrderHistoryItem {
   id: string;
-  product_title: string;
+  user_id: string;
+  product_id: string;
   quantity: number;
-  total_price: number;
-  created_at: string;
+  price: number;
+  key_delivered: string[];
   status: string;
-  keys: string[];
+  created_at: string;
+  product?: {
+    title: string;
+  };
 }
 
 export const useOrderHistory = (userId: string | undefined) => {
@@ -26,10 +30,17 @@ export const useOrderHistory = (userId: string | undefined) => {
       }
 
       try {
-        const { data, error } = await supabase
+        const { data, error: err } = await supabase
           .from('orders')
           .select(`
-            *,
+            id,
+            user_id,
+            product_id,
+            qty as quantity,
+            total_price as price,
+            keys as key_delivered,
+            status,
+            created_at,
             products (
               title
             )
@@ -37,16 +48,12 @@ export const useOrderHistory = (userId: string | undefined) => {
           .eq('user_id', userId)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (err) throw err;
 
-        const formattedOrders = data.map((order) => ({
-          id: order.id,
-          product_title: order.products?.title || 'N/A',
-          quantity: order.qty,
-          total_price: order.total_price,
-          created_at: order.created_at,
-          status: order.status,
-          keys: order.keys || []
+        const formattedOrders = data.map(order => ({
+          ...order,
+          key_delivered: order.key_delivered || [],
+          product: order.products
         }));
 
         setOrders(formattedOrders);

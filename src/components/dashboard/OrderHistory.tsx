@@ -50,13 +50,13 @@ const OrderHistory = () => {
           {orders.map((order: OrderHistoryItem) => (
             <TableRow key={order.id}>
               <TableCell className="font-medium">{order.id}</TableCell>
-              <TableCell>{order.product_title}</TableCell>
+              <TableCell>{order.product?.title || 'N/A'}</TableCell>
               <TableCell>{order.quantity}</TableCell>
               <TableCell>
                 {new Intl.NumberFormat('vi-VN', {
                   style: 'currency',
                   currency: 'VND'
-                }).format(order.total_price)}
+                }).format(order.price * order.quantity)}
               </TableCell>
               <TableCell>
                 {new Date(order.created_at).toLocaleDateString('vi-VN')}
@@ -73,9 +73,9 @@ const OrderHistory = () => {
                 </span>
               </TableCell>
               <TableCell>
-                {order.keys.length > 0 ? (
+                {order.key_delivered.length > 0 ? (
                   <div className="max-w-xs overflow-hidden text-ellipsis">
-                    {order.keys.map((key, index) => (
+                    {order.key_delivered.map((key, index) => (
                       <div key={index} className="text-xs font-mono bg-gray-100 p-1 rounded mb-1">
                         {key}
                       </div>
