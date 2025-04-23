@@ -1,308 +1,224 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { Product, FilterParams } from '@/types';
-import { applyFilters, sortProducts } from '@/utils/productFilters';
+import { supabase } from '@/integrations/supabase/client';
+import { FilterParams, Product, SortOption } from '@/types';
 
-export async function fetchProducts() {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*, categories:category_id(*)')
-    .order('title', { ascending: true });
-    
-  if (error) throw error;
-  return data;
-}
-
-export async function fetchProductsWithFilters(filters?: FilterParams) {
+// Fetch products with filters
+export const fetchProductsWithFilters = async (filters: FilterParams = {}): Promise<Product[]> => {
   try {
     let query = supabase
       .from('products')
-      .select('*, categories:category_id(*)');
-    
-    if (filters?.categoryId) {
-      query = query.eq('category_id', filters.categoryId);
+      .select('*, category:category_id(*)');
+
+    // Apply filters
+    if (filters.category) {
+      const { data: categories } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('slug', filters.category)
+        .single();
+
+      if (categories) {
+        query = query.eq('category_id', categories.id);
+      }
     }
-    
-    if (filters?.inStock !== undefined) {
+
+    if (filters.minPrice) {
+      query = query.gte('price', filters.minPrice);
+    }
+
+    if (filters.maxPrice) {
+      query = query.lte('price', filters.maxPrice);
+    }
+
+    if (filters.inStock !== undefined) {
       query = query.eq('in_stock', filters.inStock);
     }
-    
-    const { data, error } = await query.order('title', { ascending: true });
-      
-    if (error) throw error;
-    
-    console.log('Raw products data from API:', data);
-    
-    const products: Product[] = data.map(item => ({
+
+    // Apply sorting
+    const sort = filters.sortBy || filters.sort || 'newest';
+    switch (sort) {
+      case 'price-low':
+        query = query.order('price', { ascending: true });
+        break;
+      case 'price-high':
+        query = query.order('price', { ascending: false });
+        break;
+      case 'popular':
+        query = query.order('sales_count', { ascending: false });
+        break;
+      case 'newest':
+        query = query.order('created_at', { ascending: false });
+        break;
+      default:
+        query = query.order('created_at', { ascending: false });
+        break;
+    }
+
+    // Apply pagination
+    if (filters.page && filters.perPage) {
+      const from = (filters.page - 1) * filters.perPage;
+      const to = from + filters.perPage - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    // Transform data to match our Product interface
+    const products: Product[] = (data || []).map((item: any) => ({
       id: item.id,
       title: item.title,
+      slug: item.slug,
       description: item.description,
-      shortDescription: item.short_description || item.description.substring(0, 200),
+      shortDescription: item.short_description || '',
       price: Number(item.price),
       originalPrice: item.original_price ? Number(item.original_price) : undefined,
       images: item.images || [],
       categoryId: item.category_id,
-      rating: Number(item.rating) || 0,
-      reviewCount: item.review_count || 0,
-      inStock: item.in_stock === true,
-      stockQuantity: item.stock_quantity || 0,
+      rating: Number(item.rating || 0),
+      reviewCount: Number(item.review_count || 0),
+      inStock: Boolean(item.in_stock),
+      stockQuantity: Number(item.stock_quantity || 0),
       badges: item.badges || [],
-      slug: item.slug,
       features: item.features || [],
-      specifications: item.specifications as Record<string, string | number | boolean | object> || {},
-      salesCount: 0,
-      stock: item.stock || 0,
+      specifications: item.specifications || {},
+      salesCount: Number(item.sales_count || 0),
+      stock: Number(item.stock || 0),
       kiosk_token: item.kiosk_token || '',
-      createdAt: item.created_at
+      createdAt: item.created_at,
+      category: item.category ? {
+        id: item.category.id,
+        name: item.category.name,
+        slug: item.category.slug,
+        description: item.category.description,
+        image: item.category.image,
+        count: item.category.count || 0,
+        parentId: item.category.parent_id,
+        createdAt: item.category.created_at,
+        category: null
+      } : null
     }));
-    
-    console.log('Mapped products with kiosk_token:', products.map(p => ({
-      title: p.title,
-      kiosk_token: p.kiosk_token ? 'present' : 'missing'
-    })));
-    
-    if (!filters) {
-      return products;
-    }
-    
-    const filteredProducts = applyFilters(products, {
-      ...filters,
-      categoryId: undefined
-    });
-    
-    const sortedProducts = sortProducts(filteredProducts, filters.sort);
-    
-    if (filters.page !== undefined) {
-      const pageSize = 12;
-      const startIndex = (filters.page - 1) * pageSize;
-      return sortedProducts.slice(startIndex, startIndex + pageSize);
-    }
-    
-    return sortedProducts;
+
+    return products;
   } catch (error) {
-    console.error("Error fetching products with filters:", error);
+    console.error('Error fetching products:', error);
     throw error;
   }
-}
+};
 
-export async function fetchProductById(id: string): Promise<Product | null> {
+// Fetch a single product by slug
+export const fetchProductBySlug = async (slug: string): Promise<Product | null> => {
   try {
     const { data, error } = await supabase
       .from('products')
-      .select('*, categories:category_id(*)')
-      .eq('id', id)
-      .maybeSingle();
-    
-    if (error) throw error;
-    if (!data) return null;
-    
-    return {
-      id: data.id,
-      title: data.title,
-      description: data.description,
-      shortDescription: data.short_description || data.description.substring(0, 200),
-      price: Number(data.price),
-      originalPrice: data.original_price ? Number(data.original_price) : undefined,
-      images: data.images || [],
-      categoryId: data.category_id,
-      rating: Number(data.rating) || 0,
-      reviewCount: data.review_count || 0,
-      inStock: data.in_stock === true,
-      stockQuantity: data.stock_quantity || 0,
-      badges: data.badges || [],
-      slug: data.slug,
-      features: data.features || [],
-      specifications: data.specifications as Record<string, string | number | boolean | object> || {},
-      salesCount: 0,
-      stock: data.stock || 0,
-      kiosk_token: data.kiosk_token || '', // Added kiosk_token
-      createdAt: data.created_at
-    };
-  } catch (error) {
-    console.error("Error fetching product by id:", error);
-    throw error;
-  }
-}
-
-export async function fetchProductBySlug(slug: string): Promise<Product | null> {
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*, categories:category_id(*)')
+      .select('*, category:category_id(*)')
       .eq('slug', slug)
-      .maybeSingle();
-    
-    if (error) throw error;
-    if (!data) return null;
-    
-    return {
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    // Transform to match our Product interface
+    const product: Product = {
       id: data.id,
       title: data.title,
+      slug: data.slug,
       description: data.description,
-      shortDescription: data.short_description || data.description.substring(0, 200),
+      shortDescription: data.short_description || '',
       price: Number(data.price),
       originalPrice: data.original_price ? Number(data.original_price) : undefined,
       images: data.images || [],
       categoryId: data.category_id,
-      rating: Number(data.rating) || 0,
-      reviewCount: data.review_count || 0,
-      inStock: data.in_stock === true,
-      stockQuantity: data.stock_quantity || 0,
+      rating: Number(data.rating || 0),
+      reviewCount: Number(data.review_count || 0),
+      inStock: Boolean(data.in_stock),
+      stockQuantity: Number(data.stock_quantity || 0),
       badges: data.badges || [],
-      slug: data.slug,
       features: data.features || [],
-      specifications: data.specifications as Record<string, string | number | boolean | object> || {},
-      salesCount: 0,
-      stock: data.stock || 0,
-      kiosk_token: data.kiosk_token || '', // Added kiosk_token
-      createdAt: data.created_at
+      specifications: data.specifications || {},
+      salesCount: Number(data.sales_count || 0),
+      stock: Number(data.stock || 0),
+      kiosk_token: data.kiosk_token || '',
+      createdAt: data.created_at,
+      category: data.category ? {
+        id: data.category.id,
+        name: data.category.name,
+        slug: data.category.slug,
+        description: data.category.description,
+        image: data.category.image,
+        count: data.category.count || 0,
+        parentId: data.category.parent_id,
+        createdAt: data.category.created_at,
+        category: null
+      } : null
     };
+
+    return product;
   } catch (error) {
-    console.error("Error fetching product by slug:", error);
+    console.error('Error fetching product by slug:', error);
     throw error;
   }
-}
+};
 
-export async function createProduct(productData: any) {
+// Simple product search function
+export const searchProducts = async (query: string): Promise<Product[]> => {
   try {
     const { data, error } = await supabase
       .from('products')
-      .insert({
-        ...productData,
-        stock: productData.stock || 0,
-      })
-      .select()
-      .single();
-    
-    if (error) throw error;
-    
-    if (productData.category_id) {
-      await updateCategoryCount(productData.category_id);
+      .select('*, category:category_id(*)')
+      .ilike('title', `%${query}%`)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
     }
-    
-    return data;
+
+    // Transform data to match our Product interface
+    const products: Product[] = (data || []).map((item: any) => ({
+      id: item.id,
+      title: item.title,
+      slug: item.slug,
+      description: item.description,
+      shortDescription: item.short_description || '',
+      price: Number(item.price),
+      originalPrice: item.original_price ? Number(item.original_price) : undefined,
+      images: item.images || [],
+      categoryId: item.category_id,
+      rating: Number(item.rating || 0),
+      reviewCount: Number(item.review_count || 0),
+      inStock: Boolean(item.in_stock),
+      stockQuantity: Number(item.stock_quantity || 0),
+      badges: item.badges || [],
+      features: item.features || [],
+      specifications: item.specifications || {},
+      salesCount: Number(item.sales_count || 0),
+      stock: Number(item.stock || 0),
+      kiosk_token: item.kiosk_token || '',
+      createdAt: item.created_at,
+      category: item.category ? {
+        id: item.category.id,
+        name: item.category.name,
+        slug: item.category.slug,
+        description: item.category.description,
+        image: item.category.image,
+        count: item.category.count || 0,
+        parentId: item.category.parent_id,
+        createdAt: item.category.created_at,
+        category: null
+      } : null
+    }));
+
+    return products;
   } catch (error) {
+    console.error('Error searching products:', error);
     throw error;
   }
-}
-
-export async function updateProduct({ id, ...product }: { id: string; [key: string]: any }) {
-  try {
-    const { data: oldProduct, error: fetchError } = await supabase
-      .from('products')
-      .select('category_id')
-      .eq('id', id)
-      .single();
-      
-    if (fetchError) throw fetchError;
-    
-    const oldCategoryId = oldProduct?.category_id;
-    
-    const { salesCount, ...dbProduct } = product;
-    
-    const { data, error } = await supabase
-      .from('products')
-      .update({
-        ...dbProduct,
-        stock: dbProduct.stock || 0,
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    
-    if (oldCategoryId !== product.category_id) {
-      if (oldCategoryId) {
-        await updateCategoryCount(oldCategoryId);
-      }
-      if (product.category_id) {
-        await updateCategoryCount(product.category_id);
-      }
-    }
-    
-    return data;
-  } catch (error) {
-    throw error;
-  }
-}
-
-export async function updateCategoryCount(categoryId: string) {
-  try {
-    const { count: directCount, error: directCountError } = await supabase
-      .from('products')
-      .select('id', { count: 'exact' })
-      .eq('category_id', categoryId);
-    
-    if (directCountError) throw directCountError;
-    
-    const { data: subcategories, error: subError } = await supabase
-      .from('categories')
-      .select('id')
-      .eq('parent_id', categoryId);
-    
-    if (subError) throw subError;
-    
-    let totalSubcategoryCount = 0;
-    if (subcategories && subcategories.length > 0) {
-      const subcategoryIds = subcategories.map(sc => sc.id);
-      
-      const { count: subCount, error: subCountError } = await supabase
-        .from('products')
-        .select('id', { count: 'exact' })
-        .in('category_id', subcategoryIds);
-        
-      if (subCountError) throw subCountError;
-      totalSubcategoryCount = subCount || 0;
-    }
-    
-    const totalCount = (directCount || 0) + totalSubcategoryCount;
-    
-    const { error: updateError } = await supabase
-      .from('categories')
-      .update({ count: totalCount })
-      .eq('id', categoryId);
-    
-    if (updateError) throw updateError;
-    
-    return totalCount;
-  } catch (error) {
-    console.error('Error updating category count:', error);
-    throw error;
-  }
-}
-
-export async function incrementProductSales(productId: string, quantity: number = 1) {
-  try {
-    console.log(`Product ${productId} sales incremented by ${quantity}`);
-    return quantity;
-  } catch (error) {
-    console.error('Error incrementing product sales:', error);
-    throw error;
-  }
-}
-
-export async function deleteProduct(id: string) {
-  try {
-    // First delete all sync logs for this product
-    const { error: syncLogsError } = await supabase
-      .from('sync_logs')
-      .delete()
-      .eq('product_id', id);
-
-    if (syncLogsError) throw syncLogsError;
-
-    // Then delete the product
-    const { error: productError } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', id);
-
-    if (productError) throw productError;
-
-    return true;
-  } catch (error) {
-    console.error('Error deleting product:', error);
-    throw error;
-  }
-}
+};

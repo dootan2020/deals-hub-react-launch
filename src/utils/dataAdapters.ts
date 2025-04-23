@@ -62,7 +62,7 @@ export function adaptProducts(dbProducts: any[]): Product[] {
 }
 
 /**
- * Helper for safely converting parent_id property to parentId
+ * Helper for converting categories to the format needed for the UI
  */
 export function convertCategoryFields(categories: any[]): Category[] {
   return categories.map(cat => adaptCategory(cat));

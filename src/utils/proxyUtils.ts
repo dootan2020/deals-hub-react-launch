@@ -34,3 +34,13 @@ export const buildProxyUrl = (originalUrl: string, config: ProxyConfig): { url: 
       };
   }
 };
+
+// Add proxy settings fetch function
+export const fetchProxySettings = async (): Promise<ProxyConfig> => {
+  // Return default proxy settings
+  return {
+    proxy_type: 'allorigins',
+    custom_url: '',
+    type: 'allorigins'
+  };
+};

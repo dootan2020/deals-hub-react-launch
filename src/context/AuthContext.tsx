@@ -1,9 +1,7 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthState } from '@/hooks/use-auth-state';
 import { UserRole, UserRoleType } from '@/types';
-import { extractSafeData } from '@/utils/supabaseHelpers';
 
 interface AuthContextType {
   user: any;
@@ -24,6 +22,7 @@ interface AuthContextType {
   authError: string | null;
   logout: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, metadata?: Record<string, any>) => Promise<any>;
   refreshUserProfile: () => Promise<void>;
   refreshUserBalance: () => Promise<number | null>;
   checkUserRole?: (role: UserRoleType) => boolean;
@@ -49,6 +48,7 @@ export const AuthContext = createContext<AuthContextType>({
   authError: null,
   logout: async () => {},
   login: async () => {},
+  signUp: async () => ({}),
   refreshUserProfile: async () => {},
   refreshUserBalance: async () => null,
   checkUserRole: (role: UserRoleType) => false
@@ -72,7 +72,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchBalance 
   } = useAuthState();
 
-  // Check if user has admin role
   const isAdmin = userRoles.includes(UserRole.Admin);
   const isStaff = userRoles.includes(UserRole.Manager);
 
@@ -81,7 +80,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       fetchUserRoles();
       fetchUserBalance(user.id);
     } else {
-      // Reset roles when logged out
       setUserRoles([]);
       setUserBalance(null);
     }
@@ -132,9 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUserData = async () => {
     try {
       if (user && user.id) {
-        // Refresh balance
         await fetchUserBalance(user.id);
-        // Refresh roles
         await fetchUserRoles();
       }
     } catch (error) {
@@ -168,6 +164,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   
+  const signUp = async (email: string, password: string, metadata?: Record<string, any>) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: {
+            display_name: metadata?.display_name || email.split('@')[0],
+            ...metadata,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/verify`,
+        }
+      });
+      
+      if (error) throw error;
+      
+      return { ...data, registrationSuccess: true };
+    } catch (error) {
+      console.error('Error during signup:', error);
+      throw error;
+    }
+  };
+  
   const refreshUserBalance = async (): Promise<number | null> => {
     if (!user || !user.id) return null;
     return fetchUserBalance(user.id);
@@ -177,10 +196,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user || !user.id) return;
       
-      // Refresh the session
       await supabase.auth.refreshSession();
       
-      // Refresh the user data
       await refreshUserData();
     } catch (error) {
       console.error('Error refreshing user profile:', error);
@@ -191,7 +208,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return userRoles.includes(role);
   };
 
-  // Provide auth context to the app
   return (
     <AuthContext.Provider
       value={{
@@ -213,6 +229,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authError,
         logout,
         login,
+        signUp,
         refreshUserProfile,
         refreshUserBalance,
         checkUserRole

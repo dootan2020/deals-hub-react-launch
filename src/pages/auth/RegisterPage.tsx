@@ -65,7 +65,7 @@ export default function RegisterPage() {
       // Show loading toast
       const loadingToast = toast.loading("Đang đăng ký tài khoản...");
       
-      // Use signUp instead of register
+      // Use signUp from AuthContext
       const result = await signUp(values.email, values.password, {
         display_name: values.displayName
       });
@@ -137,4 +137,4 @@ export default function RegisterPage() {
       </div>
     </Layout>
   );
-}
+};

@@ -1,4 +1,12 @@
 
+// Simple API Response interface
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
 /**
  * Extracts the content from HTML response
  */
@@ -34,4 +42,16 @@ export const fetchActiveApiConfig = async () => {
     console.error("Error fetching API config:", error);
     throw error;
   }
+};
+
+// Mock function to fetch product data
+export const fetchProductData = async (productId: string): Promise<ApiResponse<any>> => {
+  return {
+    success: true,
+    data: {
+      id: productId,
+      title: "Mock Product",
+      price: 99.99
+    }
+  };
 };

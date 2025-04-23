@@ -41,3 +41,16 @@ export const generateMockProduct = (overrides: Partial<Product> = {}): Product =
     category: overrides.category || null
   };
 };
+
+/**
+ * Get badge classes based on stock status
+ */
+export const getStockBadgeClasses = (stockQuantity: number): string => {
+  if (stockQuantity > 10) {
+    return 'bg-green-100 text-green-800';
+  } else if (stockQuantity > 0) {
+    return 'bg-yellow-100 text-yellow-800';
+  } else {
+    return 'bg-red-100 text-red-800';
+  }
+};

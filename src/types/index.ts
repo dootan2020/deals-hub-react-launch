@@ -1,3 +1,4 @@
+
 export interface Category {
   id: string;
   name: string;
@@ -7,6 +8,7 @@ export interface Category {
   count: number;
   parentId: string | null;
   createdAt?: string;
+  category: Category | null;
 }
 
 export interface Product {
@@ -59,12 +61,12 @@ export interface Order {
   external_order_id: string | null;
   status: string;
   total_amount: number;
-  total_price: number; // Made required in both interfaces for consistency
+  total_price: number;
   created_at: string;
   updated_at: string;
   user: any;
   order_items: OrderItem[];
-  qty?: number; // Made optional to match both interfaces
+  qty?: number;
   product_id?: string;
   keys?: any;
   promotion_code?: string;
@@ -94,7 +96,7 @@ export interface Recommendation {
 // Define RecommendationStrategy to include all possible values
 export type RecommendationStrategy = 'similar' | 'popular' | 'trending' | 'local' | 'openai' | 'claude';
 
-// Update AISource type to match RecommendationStrategy
+// Add AISource type to match RecommendationStrategy
 export type AISource = 'openai' | 'claude' | 'local' | 'similar' | 'popular' | 'trending';
 
 // Add ProxyConfig type with all needed properties

@@ -11,17 +11,18 @@ import { Link } from 'react-router-dom';
 import { useProduct } from '@/hooks/useProduct';
 import { ProductTrustBadges } from '@/components/product/ProductTrustBadges';
 import { useState } from 'react';
-import { useProductRecommendations } from '@/hooks/useProductRecommendations';
-import { ProductRecommendations } from '@/components/product/ProductRecommendations';
 import { useAuth } from '@/context/AuthContext';
+import { ProductRecommendations } from '@/components/product/ProductRecommendations';
+import { useProductRecommendations } from '@/hooks/useProductRecommendations';
+import { RecommendationStrategy } from '@/hooks/useProductRecommendations';
 import { usePersonalizedRecommendations } from '@/hooks/usePersonalizedRecommendations';
-import { RecommendationStrategy } from '@/types';
 
 const ProductPage = () => {
   const { productSlug } = useParams();
   const { product, loading, error } = useProduct(productSlug);
   const { user } = useAuth();
 
+  // Use the RecommendationStrategy from the hook to ensure type compatibility
   const [recommendationStrategy] = useState<RecommendationStrategy>('popular');
   const {
     recommendations,
@@ -90,7 +91,7 @@ const ProductPage = () => {
 
           {recommendations && recommendations.length > 0 && (
             <ProductRecommendations
-              recommendations={recommendations as any[]}
+              recommendations={recommendations}
               loading={recLoading}
               error={recError}
             />
@@ -102,7 +103,7 @@ const ProductPage = () => {
 
           {personalizedRecs && personalizedRecs.length > 0 && (
             <ProductRecommendations
-              recommendations={personalizedRecs as any[]}
+              recommendations={personalizedRecs}
               loading={persLoading}
               error={persError}
               label="Dành riêng cho bạn"

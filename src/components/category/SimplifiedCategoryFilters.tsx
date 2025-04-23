@@ -1,36 +1,53 @@
 
 import React from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { SortOption } from '@/utils/productFilters';
+} from '@/components/ui/select';
+import { SortOption } from '@/types';
+import { getSortOptions } from '@/utils/productFilters';
 
 interface SimplifiedCategoryFiltersProps {
-  onSortChange: (sort: string) => void;
-  activeSort: string;
+  activeSort: SortOption;
+  onSortChange: (value: SortOption) => void;
 }
 
 const SimplifiedCategoryFilters: React.FC<SimplifiedCategoryFiltersProps> = ({
-  onSortChange,
   activeSort,
+  onSortChange
 }) => {
+  const sortOptions = getSortOptions();
+
+  const handleSortChange = (value: string) => {
+    onSortChange(value as SortOption);
+  };
+
   return (
-    <div className="h-10 flex items-center">
-      <Select value={activeSort} onValueChange={onSortChange}>
-        <SelectTrigger className="w-[180px] md:w-[220px] focus:ring-primary">
-          <SelectValue placeholder="Sort By" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="newest">Newest</SelectItem>
-          <SelectItem value="popular">Most Popular</SelectItem>
-          <SelectItem value="price-low">Price: Low to High</SelectItem>
-          <SelectItem value="price-high">Price: High to Low</SelectItem>
-        </SelectContent>
-      </Select>
+    <div className="flex items-center justify-between mb-4">
+      <div className="hidden md:flex space-x-2">
+        <Button variant="outline" size="sm">All</Button>
+        <Button variant="outline" size="sm">New</Button>
+        <Button variant="outline" size="sm">Featured</Button>
+      </div>
+      
+      <div className="ml-auto flex-shrink-0">
+        <Select value={activeSort} onValueChange={handleSortChange}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            {sortOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 };

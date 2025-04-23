@@ -1,32 +1,5 @@
 
-import { Product } from "@/types";
-
-export interface Order {
-  id: string;
-  user_id: string;
-  external_order_id: string | null;
-  status: string;
-  total_amount: number;
-  total_price: number; // Made required for consistency
-  created_at: string;
-  updated_at: string;
-  user: any;
-  order_items: OrderItem[];
-  qty?: number; // Made optional to match both interfaces
-  product_id?: string;
-  keys?: any;
-  promotion_code?: string;
-}
-
-export interface OrderItem {
-  id: string;
-  order_id: string;
-  product_id: string;
-  price: number;
-  quantity: number;
-  product?: Product;
-  external_product_id?: string;
-}
+import { Order, OrderItem } from "@/types";
 
 export const normalizeUserField = (userData: any) => {
   if (!userData) return null;
@@ -34,4 +7,24 @@ export const normalizeUserField = (userData: any) => {
     return userData.email;
   }
   return userData;
+};
+
+// Helper function to transform order data from database to our Order interface
+export const transformOrderData = (data: any): Order => {
+  return {
+    id: data.id,
+    user_id: data.user_id,
+    external_order_id: data.external_order_id,
+    status: data.status,
+    total_amount: data.total_price, // Use total_price as total_amount for consistency
+    total_price: data.total_price,
+    created_at: data.created_at,
+    updated_at: data.updated_at,
+    user: data.user,
+    order_items: data.order_items || [],
+    qty: data.qty,
+    product_id: data.product_id,
+    keys: data.keys,
+    promotion_code: data.promotion_code
+  };
 };
