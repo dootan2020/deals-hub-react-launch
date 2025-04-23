@@ -1,6 +1,6 @@
 
 import { ReactNode } from 'react';
-import { UserRole } from '@/types/index';
+import { UserRole } from '@/types/auth.types';
 import { useAuth } from '@/context/AuthContext';
 
 interface AccessControlProps {

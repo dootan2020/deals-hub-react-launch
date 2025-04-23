@@ -1,6 +1,12 @@
 
 import { User, Session } from '@supabase/supabase-js';
-import { UserRole } from '@/types/index';
+
+// Enum for user roles
+export enum UserRole {
+  User = 'user',
+  Admin = 'admin',
+  Staff = 'staff'
+}
 
 export interface AuthUser extends User {
   role?: UserRole;
@@ -17,7 +23,7 @@ export interface AuthContextType {
   userBalance: number;
   isLoadingBalance?: boolean;
   refreshUserBalance: () => Promise<number | void>;
-  refreshBalance: () => Promise<number | void>; // Alias for backward compatibility, required!
+  refreshBalance: () => Promise<number | void>; // Alias for backward compatibility
   refreshUserProfile: () => Promise<void>;
   login: (email: string, password: string) => Promise<any>;
   logout: () => Promise<void>;

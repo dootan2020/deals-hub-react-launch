@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Check, AlertCircle } from 'lucide-react';
+import { extractSafeData, safeString } from '@/utils/supabaseHelpers';
 
 interface CorsProxySelectorProps {
   onProxyChange?: (proxy: string) => void;
@@ -58,17 +60,19 @@ export const CorsProxySelector: React.FC<CorsProxySelectorProps> = ({
     // Load saved proxy from database or local storage
     const loadSavedProxy = async () => {
       try {
-        const { data, error } = await supabase
+        const result = await supabase
           .from('settings')
           .select('value')
-          .eq('key', 'cors_proxy')
+          .eq('key', 'cors_proxy' as unknown)
           .single();
 
-        if (error) {
-          console.error('Error loading proxy setting:', error);
+        if (result.error) {
+          console.error('Error loading proxy setting:', result.error);
           return;
         }
 
+        const data = extractSafeData<{ value: string }>(result);
+        
         if (data?.value) {
           const proxyValue = data.value;
           setSavedProxy(proxyValue);
@@ -141,13 +145,15 @@ export const CorsProxySelector: React.FC<CorsProxySelectorProps> = ({
     const proxyUrl = selectedProxy === 'custom' ? customProxy : selectedProxy;
     
     try {
+      const settingData = {
+        key: 'cors_proxy',
+        value: proxyUrl,
+        updated_at: new Date().toISOString()
+      };
+      
       const { error } = await supabase
         .from('settings')
-        .upsert({ 
-          key: 'cors_proxy', 
-          value: proxyUrl,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(settingData as unknown);
 
       if (error) {
         throw error;

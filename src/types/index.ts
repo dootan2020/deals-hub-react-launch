@@ -1,38 +1,13 @@
-
-import { TableHTMLAttributes } from 'react';
-
-export enum UserRole {
-  User = 'user',
-  Admin = 'admin',
-  Staff = 'staff'
-}
-
 export interface Product {
   id: string;
   title: string;
+  description: string;
   price: number;
-  kiosk_token: string;
-  stock: number;
-  inStock: boolean;
-  in_stock: boolean; // This field is needed for compatibility
-  slug: string;
+  imageUrl: string;
+  category: string;
   createdAt: string;
-  specifications: Record<string, string | number | boolean | object>;
-  
-  // Make optional fields explicitly optional
-  description?: string;
-  shortDescription?: string;
-  images?: string[];
-  categoryId?: string;
-  categories?: Category;
-  badges?: string[];
-  originalPrice?: number;
-  stockQuantity?: number;
-  salesCount?: number;
-  sales_count?: number;
-  rating?: number;
-  reviewCount?: number;
-  features?: string[];
+  updatedAt: string;
+  slug: string;
 }
 
 export interface Category {
@@ -42,80 +17,31 @@ export interface Category {
   slug: string;
   image: string;
   count: number;
-  parent_id?: string | null;
-  subcategories?: Category[];
+  parent_id: string | null;
 }
 
-export type SortOption = 'newest' | 'popular' | 'price-low' | 'price-high';
+export type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'popularity';
 
-export interface FilterParams {
-  categoryId?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  ratings?: number[];
-  search?: string;
-  tags?: string[];
-  inStock?: boolean;
-  sort?: string;
-  page?: number;
-  limit?: number;
-  perPage?: number; // Added this field
-  priceRange?: [number, number];
-  subcategory?: string;
+export enum UserRole {
+  User = 'user',
+  Admin = 'admin',
+  Staff = 'staff'
 }
 
-export interface CategoryPageParams extends Record<string, string> {
-  categorySlug?: string;
-  parentCategorySlug?: string;
-}
-
-export interface SubcategoryPageParams extends Record<string, string> {
-  categorySlug?: string;
-  parentCategorySlug?: string;
-}
-
-export interface ProductPageParams extends Record<string, string> {
-  productSlug?: string;
-  categorySlug?: string;
-  parentCategorySlug?: string;
-}
-
-export interface ProductWithCategory extends Product {
-  category: Category;
-}
-
-export interface TableColumn<T> {
-  header: string;
-  accessorKey: keyof T | string;
-  cell?: (info: { row: { original: T } }) => React.ReactNode;
-}
-
-export interface TableProps<T> extends TableHTMLAttributes<HTMLTableElement> {
-  data: T[];
-  columns: TableColumn<T>[];
-  isLoading?: boolean;
-}
-
-// Export AuthContextType to make it consistent with the rest of the application
 export interface AuthContextType {
   user: any;
   session: any;
   loading: boolean;
   isAuthenticated: boolean;
-  balance: number | null;
-  balanceLoading: boolean;
-  fetchBalance: (userId: string) => Promise<number | null>;
   isAdmin: boolean;
   isStaff: boolean;
   userRoles: UserRole[];
-  userBalance: number | null;
-  setUserBalance: React.Dispatch<React.SetStateAction<number | null>>;
-  fetchUserBalance: (userId: string) => Promise<number | null>;
-  refreshUserData: () => Promise<void>;
-  isLoadingBalance: boolean;
-  authError: string | null;
-  logout?: () => Promise<void>;
-  refreshUserProfile?: () => Promise<void>;
-  refreshUserBalance?: () => Promise<number | null>;
-  checkUserRole?: (role: UserRole) => boolean;
+  userBalance: number;
+  refreshUserBalance: () => Promise<number | void>;
+  refreshBalance: () => Promise<number | void>; // Alias for backward compatibility
+  refreshUserProfile: () => Promise<void>;
+  login: (email: string, password: string) => Promise<any>;
+  logout: () => Promise<void>;
+  register: (email: string, password: string, metadata?: Record<string, any>) => Promise<any>;
+  checkUserRole: (role: UserRole) => boolean;
 }

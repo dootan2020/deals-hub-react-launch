@@ -75,10 +75,10 @@ export function isErrorResponse(response: any): response is { error: PostgrestEr
  * Safely process the ID field for Supabase queries to fix TypeScript errors related to UUID handling
  * This is a crucial helper function to fix the TypeScript errors with ID comparisons
  */ 
-export function safeId(id: string | number | null | undefined): any {
+export function safeId(id: string | number | null | undefined): unknown {
   if (id === null || id === undefined) return '';
-  // Cast to any to bypass TypeScript strictness with Supabase
-  return id as any;
+  // Cast to unknown to bypass TypeScript strictness with Supabase
+  return id as unknown;
 }
 
 // Helper to safely convert a value to a string
@@ -146,31 +146,31 @@ export function safeCastArray<T>(data: any): T[] {
 /**
  * Type-safe way to prepare data for update operations
  */
-export function prepareForUpdate<T>(data: Record<string, any>): any {
-  // Cast to any to bypass TypeScript strictness with Supabase
-  return data as any;
+export function prepareForUpdate<T>(data: Record<string, any>): unknown {
+  // Cast to unknown to bypass TypeScript strictness with Supabase
+  return data as unknown;
 }
 
 /**
  * Type-safe way to prepare data for insert operations
  */
-export function prepareForInsert<T>(data: Record<string, any>): any {
-  // Cast to any to bypass TypeScript strictness with Supabase
-  return data as any;
+export function prepareForInsert<T>(data: Record<string, any>): unknown {
+  // Cast to unknown to bypass TypeScript strictness with Supabase
+  return data as unknown;
 }
 
 /**
  * Type-safe table name for working with supabase functions
  */
-export function safeTableName(table: string): any {
-  return table as any;
+export function safeTableName(table: string): unknown {
+  return table as unknown;
 }
 
 /**
  * Type-safe column name for working with supabase functions
  */
-export function safeColumnName(column: string): any {
-  return column as any;
+export function safeColumnName(column: string): unknown {
+  return column as unknown;
 }
 
 /**
@@ -208,4 +208,12 @@ export function processSupabaseData<T>(data: any): T | null {
 export function safeCastData<T>(data: any): T | null {
   if (data === null || data === undefined) return null;
   return data as T;
+}
+
+/**
+ * Safe way to access data properties
+ */
+export function safeData<T, K extends keyof T>(obj: T | null | undefined, key: K): T[K] | undefined {
+  if (!obj) return undefined;
+  return obj[key];
 }

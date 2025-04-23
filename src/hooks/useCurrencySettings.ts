@@ -1,6 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { extractSafeData, safeString } from '@/utils/supabaseHelpers';
 
 interface CurrencySettings {
   vnd_per_usd: number;
@@ -10,21 +11,22 @@ export const useCurrencySettings = () => {
   return useQuery({
     queryKey: ['site-settings', 'usd-rate'],
     queryFn: async (): Promise<CurrencySettings> => {
-      const { data, error } = await supabase
+      const result = await supabase
         .from('site_settings')
         .select('value')
-        .eq('key', 'usd_rate')
+        .eq('key', 'usd_rate' as unknown)
         .single();
         
-      if (error) {
-        console.error('Error fetching currency settings:', error);
+      if (result.error) {
+        console.error('Error fetching currency settings:', result.error);
         return { vnd_per_usd: 24000 }; // Fallback rate
       }
       
+      const data = extractSafeData<{ value: Record<string, any> }>(result);
+      
       // Safely cast the JSON data to our expected type
-      const settings = data?.value as Record<string, any>;
       return { 
-        vnd_per_usd: settings?.vnd_per_usd || 24000 
+        vnd_per_usd: data?.value?.vnd_per_usd || 24000 
       };
     },
     staleTime: 30 * 60 * 1000, // Cache for 30 minutes

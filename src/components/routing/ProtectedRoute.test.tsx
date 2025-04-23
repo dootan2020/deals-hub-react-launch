@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, it, vi, expect, beforeEach } from 'vitest';
 import { ProtectedRoute } from './ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
+import { UserRole } from '@/types/auth.types';
 
 // Mock the useAuth hook
 vi.mock('@/context/AuthContext', () => ({
@@ -35,7 +36,6 @@ describe('ProtectedRoute', () => {
       userRoles: [],
       userBalance: 0,
       refreshUserBalance: vi.fn(),
-      refreshBalance: vi.fn(), // Fixed
       refreshUserProfile: vi.fn(),
       login: vi.fn(),
       logout: vi.fn(),
@@ -44,7 +44,8 @@ describe('ProtectedRoute', () => {
       isStaff: false,
       isEmailVerified: false,
       resendVerificationEmail: vi.fn(),
-      isLoadingBalance: false
+      isLoadingBalance: false,
+      refreshBalance: vi.fn(), // Added for backward compatibility
     });
 
     render(
@@ -68,10 +69,9 @@ describe('ProtectedRoute', () => {
       checkUserRole: vi.fn(() => false),
       user: { id: '1', email: 'test@example.com' } as any,
       session: {} as any,
-      userRoles: ['user'],
+      userRoles: [UserRole.User],
       userBalance: 0,
       refreshUserBalance: vi.fn(),
-      refreshBalance: vi.fn(), // Fixed
       refreshUserProfile: vi.fn(),
       login: vi.fn(),
       logout: vi.fn(),
@@ -80,12 +80,13 @@ describe('ProtectedRoute', () => {
       isStaff: false,
       isEmailVerified: true,
       resendVerificationEmail: vi.fn(),
-      isLoadingBalance: false
+      isLoadingBalance: false,
+      refreshBalance: vi.fn(), // Added for backward compatibility
     });
 
     render(
       <MemoryRouter>
-        <ProtectedRoute requiredRoles={['admin']}>
+        <ProtectedRoute requiredRoles={[UserRole.Admin]}>
           <div>Admin Content</div>
         </ProtectedRoute>
       </MemoryRouter>
@@ -104,10 +105,9 @@ describe('ProtectedRoute', () => {
       checkUserRole: vi.fn(() => true),
       user: { id: '1', email: 'admin@example.com' } as any,
       session: {} as any,
-      userRoles: ['admin'],
+      userRoles: [UserRole.Admin],
       userBalance: 0,
       refreshUserBalance: vi.fn(),
-      refreshBalance: vi.fn(), // Fixed
       refreshUserProfile: vi.fn(),
       login: vi.fn(),
       logout: vi.fn(),
@@ -116,12 +116,13 @@ describe('ProtectedRoute', () => {
       isStaff: false,
       isEmailVerified: true,
       resendVerificationEmail: vi.fn(),
-      isLoadingBalance: false
+      isLoadingBalance: false,
+      refreshBalance: vi.fn(), // Added for backward compatibility
     });
 
     render(
       <MemoryRouter>
-        <ProtectedRoute requiredRoles={['admin']}>
+        <ProtectedRoute requiredRoles={[UserRole.Admin]}>
           <div>Admin Content</div>
         </ProtectedRoute>
       </MemoryRouter>

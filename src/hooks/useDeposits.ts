@@ -1,7 +1,9 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Deposit, normalizeUserField } from './transactionUtils';
+import { safeId, extractSafeData, prepareForUpdate, prepareForInsert } from '@/utils/supabaseHelpers';
 
 // Hook for deposit state, fetching, and admin update
 export function useDeposits() {
@@ -48,24 +50,28 @@ export function useDeposits() {
     try {
       setLoading(true);
 
-      const { data: deposit, error: getError } = await supabase
+      const depositResult = await supabase
         .from('deposits')
         .select('*')
-        .eq('id', depositId)
+        .eq('id', safeId(depositId))
         .maybeSingle();
 
-      if (getError) throw getError;
+      if (depositResult.error) throw depositResult.error;
+      
+      const deposit = extractSafeData<Deposit>(depositResult);
       if (!deposit) throw new Error('Deposit not found');
 
-      const { error: updateError } = await supabase
-        .from('deposits')
-        .update({
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', depositId);
+      const updateData = prepareForUpdate({
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      });
 
-      if (updateError) throw updateError;
+      const updateResult = await supabase
+        .from('deposits')
+        .update(updateData)
+        .eq('id', safeId(depositId));
+
+      if (updateResult.error) throw updateResult.error;
 
       // If approving (completed), update the user's balance
       if (newStatus === 'completed') {
@@ -80,16 +86,18 @@ export function useDeposits() {
         if (balanceError) throw balanceError;
 
         // Create a transaction record
+        const transactionData = prepareForInsert({
+          user_id: deposit.user_id,
+          amount: deposit.amount,
+          payment_method: deposit.payment_method,
+          status: 'completed',
+          type: 'deposit',
+          transaction_id: deposit.transaction_id
+        });
+
         const { error: transactionError } = await supabase
           .from('transactions')
-          .insert({
-            user_id: deposit.user_id,
-            amount: deposit.amount,
-            payment_method: deposit.payment_method,
-            status: 'completed',
-            type: 'deposit',
-            transaction_id: deposit.transaction_id
-          });
+          .insert(transactionData);
 
         if (transactionError) throw transactionError;
       }
