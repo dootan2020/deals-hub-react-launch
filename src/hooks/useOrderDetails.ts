@@ -8,7 +8,8 @@ import {
   processSupabaseData, 
   isSupabaseError, 
   isSafeToSpread,
-  getSafeProperty 
+  getSafeProperty,
+  processOrderItems
 } from '@/utils/supabaseTypeUtils';
 
 // Standalone hook for fetching one order by ID & setting selectedOrder
@@ -39,12 +40,15 @@ export function useOrderDetails() {
         throw new Error('Invalid order data');
       }
 
-      const { data: orderItems } = await supabase
+      const { data: orderItemsResult } = await supabase
         .from('order_items')
         .select('*')
         .eq('order_id', prepareQueryParam(getSafeProperty(data, 'id', '')));
 
       const userValue = normalizeUserField(getSafeProperty(data, 'user', null));
+      
+      // Process order items to ensure type safety
+      const orderItems = processOrderItems(orderItemsResult);
 
       // Create order object with safe properties
       const orderWithDetails: Order = {

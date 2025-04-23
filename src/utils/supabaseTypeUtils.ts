@@ -238,3 +238,30 @@ export function isValidObject(value: any, requiredProps: string[] = []): boolean
   
   return requiredProps.every(prop => prop in value);
 }
+
+/**
+ * Helper to safely process and cast an array from Supabase to a specific type
+ * Will handle error objects and cast valid data to the expected type
+ */
+export function processSafeArray<T>(data: any, processor: (item: any) => T): T[] {
+  if (!data || isSupabaseError(data)) return [];
+  
+  if (!Array.isArray(data)) return [];
+  
+  return data
+    .filter(item => !isSupabaseError(item) && item !== null && typeof item === 'object')
+    .map(processor);
+}
+
+/**
+ * Special helper for safely handling OrderItem[] type casting issues with Supabase
+ */
+export function processOrderItems(data: any): any[] {
+  if (!data || isSupabaseError(data)) return [];
+  if (!Array.isArray(data)) return [];
+  
+  return data.map(item => {
+    if (isSupabaseError(item)) return null;
+    return item;
+  }).filter(Boolean);
+}

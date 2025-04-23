@@ -2,71 +2,93 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Category, Product } from '@/types';
-import { SubcategoryDisplay } from '@/types/category.types';
+import { prepareQueryParam, getSafeProperty } from '@/utils/supabaseTypeUtils';
 
-export const useSubcategories = (categoryId?: string) => {
+export const useSubcategories = (parentId: string) => {
   const [subcategories, setSubcategories] = useState<Category[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchSubcategories = async () => {
-      if (!categoryId) return;
+      if (!parentId) {
+        setLoading(false);
+        return;
+      }
       
-      const { data } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('parent_id', categoryId);
+      try {
+        setLoading(true);
+        setError(null);
         
-      if (data) {
-        const mappedSubcategories: Category[] = data.map(sub => ({
-          id: sub.id,
-          name: sub.name,
-          slug: sub.slug,
-          description: sub.description,
-          image: sub.image,
-          count: sub.count || 0,
-          parent_id: sub.parent_id
-        }));
+        const { data, error: categoriesError } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('parent_id', prepareQueryParam(parentId));
+          
+        if (categoriesError) throw categoriesError;
+        
+        // Map subcategories data
+        const mappedSubcategories = Array.isArray(data) ? data.map((category) => ({
+          id: getSafeProperty(category, 'id', ''),
+          name: getSafeProperty(category, 'name', ''),
+          slug: getSafeProperty(category, 'slug', ''),
+          description: getSafeProperty(category, 'description', ''),
+          image: getSafeProperty(category, 'image', ''),
+          count: getSafeProperty(category, 'count', 0),
+          parentId: getSafeProperty(category, 'parent_id', null),
+          createdAt: getSafeProperty(category, 'created_at', '')
+        })) : [];
         
         setSubcategories(mappedSubcategories);
-
-        const { data: featuredData } = await supabase
+        
+        // Also fetch products for this category
+        const { data: productsData, error: productsError } = await supabase
           .from('products')
           .select('*')
-          .in('category_id', data.map(sub => sub.id))
-          .limit(4);
+          .eq('category_id', prepareQueryParam(parentId));
           
-        if (featuredData) {
-          const mappedProducts: Product[] = featuredData.map(p => ({
-            id: p.id,
-            title: p.title,
-            description: p.description,
-            shortDescription: p.short_description || '',
-            price: Number(p.price),
-            originalPrice: p.original_price ? Number(p.original_price) : undefined,
-            images: p.images || [],
-            categoryId: p.category_id,
-            rating: Number(p.rating || 0),
-            reviewCount: p.review_count || 0,
-            inStock: p.in_stock || false,
-            stockQuantity: p.stock_quantity || 0,
-            badges: p.badges || [],
-            slug: p.slug,
-            features: p.features || [],
-            specifications: p.specifications as Record<string, string | number | boolean | object>,
-            stock: p.stock || 0,
-            kiosk_token: p.kiosk_token || '', // Ensure kiosk_token is set
-            salesCount: p.stock_quantity || 0, // Use stock_quantity instead of sales_count which doesn't exist
-            createdAt: p.created_at
-          }));
-          
-          setFeaturedProducts(mappedProducts);
-        }
+        if (productsError) throw productsError;
+        
+        // Map products data
+        const mappedProducts = Array.isArray(productsData) ? productsData.map((product) => ({
+          id: getSafeProperty(product, 'id', ''),
+          title: getSafeProperty(product, 'title', ''),
+          description: getSafeProperty(product, 'description', ''),
+          shortDescription: getSafeProperty(product, 'short_description', '') || 
+                          getSafeProperty(product, 'description', '').substring(0, 160),
+          price: Number(getSafeProperty(product, 'price', 0)),
+          originalPrice: getSafeProperty(product, 'original_price', null) ? 
+                        Number(getSafeProperty(product, 'original_price', 0)) : 
+                        undefined,
+          images: getSafeProperty(product, 'images', []),
+          categoryId: getSafeProperty(product, 'category_id', ''),
+          rating: Number(getSafeProperty(product, 'rating', 0)),
+          reviewCount: Number(getSafeProperty(product, 'review_count', 0)),
+          inStock: getSafeProperty(product, 'in_stock', false),
+          stockQuantity: getSafeProperty(product, 'stock_quantity', 0),
+          badges: getSafeProperty(product, 'badges', []),
+          slug: getSafeProperty(product, 'slug', ''),
+          features: getSafeProperty(product, 'features', []),
+          specifications: getSafeProperty(product, 'specifications', {}),
+          salesCount: 0,
+          stock: getSafeProperty(product, 'stock', 0),
+          kiosk_token: getSafeProperty(product, 'kiosk_token', ''),
+          createdAt: getSafeProperty(product, 'created_at', ''),
+          category: null // Initialize with null, would need another query to populate category
+        })) : [];
+        
+        setProducts(mappedProducts);
+      } catch (err: any) {
+        console.error('Error fetching subcategories:', err);
+        setError(err.message || 'Failed to load subcategories');
+      } finally {
+        setLoading(false);
       }
     };
-
+    
     fetchSubcategories();
-  }, [categoryId]);
+  }, [parentId]);
 
-  return { subcategories, featuredProducts };
+  return { subcategories, products, loading, error };
 };

@@ -50,6 +50,10 @@ export const useProduct = (productSlug: string | undefined) => {
           });
         }
         
+        // Fix boolean comparisons
+        const inStock = getSafeProperty(productData, 'in_stock', false);
+        const hasStock = inStock === true || getSafeProperty(productData, 'stock', 0) > 0;
+        
         const mappedProduct: Product = {
           id: getSafeProperty(productData, 'id', ''),
           title: getSafeProperty(productData, 'title', ''),
@@ -64,9 +68,9 @@ export const useProduct = (productSlug: string | undefined) => {
           categoryId: getSafeProperty(productData, 'category_id', ''),
           rating: Number(getSafeProperty(productData, 'rating', 0)),
           reviewCount: Number(getSafeProperty(productData, 'review_count', 0)),
-          inStock: getSafeProperty(productData, 'in_stock', false) === true,
+          inStock: hasStock,
           stockQuantity: getSafeProperty(productData, 'stock_quantity', 0) ?? 
-                        (getSafeProperty(productData, 'in_stock', false) === true ? 10 : 0),
+                        (hasStock ? 10 : 0),
           badges: getSafeProperty(productData, 'badges', []),
           slug: getSafeProperty(productData, 'slug', ''),
           features: getSafeProperty(productData, 'features', []),

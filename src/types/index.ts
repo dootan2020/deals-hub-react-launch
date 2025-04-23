@@ -1,74 +1,45 @@
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  count: number;
+  parentId: string | null;
+  createdAt?: string;
+}
 
 export interface Product {
   id: string;
   title: string;
+  slug: string;
   description: string;
+  shortDescription: string;
   price: number;
-  category: string;
-  imageUrl?: string;
-  createdAt: string;
-  updatedAt?: string;
-  slug: string;
   originalPrice?: number;
+  images: string[];
+  categoryId: string;
+  rating: number;
+  reviewCount: number;
+  inStock: boolean;
+  stockQuantity: number;
+  badges: string[];
+  features: string[];
+  specifications: Record<string, string>;
+  salesCount: number;
+  stock: number;
+  kiosk_token: string;
+  createdAt: string;
+  category: Category | null;
+}
+
+// Add the FilterParams type that's being imported in useProductFilters.ts
+export interface FilterParams {
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
   inStock?: boolean;
-  stock?: number;
-  in_stock?: boolean; // For compatibility with database fields
-  stockQuantity?: number;
-  images?: string[];
-  shortDescription?: string;
-  categoryId?: string;
-  kiosk_token?: string;
-  badges?: string[];
-  features?: string[];
-  specifications?: Record<string, string | number | boolean | object>;
-  sales_count?: number;
-  salesCount?: number;
-  reviewCount?: number;
-  rating?: number;
+  sortBy?: SortOption;
 }
 
-export interface Category {
-  id: string;
-  name: string;
-  description: string;
-  slug: string;
-  image: string;
-  count: number;
-  parent_id: string | null;
-}
-
-export type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'popularity';
-
-export enum UserRole {
-  User = 'user',
-  Admin = 'admin',
-  Staff = 'staff'
-}
-
-export interface AuthContextType {
-  user: any;
-  session: any;
-  loading: boolean;
-  isAuthenticated: boolean;
-  isAdmin: boolean;
-  isStaff: boolean;
-  userRoles: UserRole[];
-  userBalance: number | null;
-  refreshUserBalance: () => Promise<number | null>;
-  refreshBalance: () => Promise<number | null>; // Alias for backward compatibility
-  refreshUserProfile: () => Promise<void>;
-  register: (email: string, password: string, metadata?: Record<string, any>) => Promise<any>;
-  checkUserRole: (role: UserRole) => boolean;
-  isEmailVerified: boolean;
-  resendVerificationEmail: (email: string) => Promise<boolean>;
-  isLoadingBalance: boolean;
-  // Added properties to match the context in AuthContext.tsx
-  balance: number | null;
-  balanceLoading: boolean;
-  fetchBalance: (userId: string) => Promise<number | null>;
-  setUserBalance: React.Dispatch<React.SetStateAction<number | null>>;
-  fetchUserBalance: (userId: string) => Promise<number | null>;
-  refreshUserData: () => Promise<void>;
-  authError: string | null;
-  logout: () => Promise<void>;
-}
+export type SortOption = 'popular' | 'price-low' | 'price-high' | 'newest';

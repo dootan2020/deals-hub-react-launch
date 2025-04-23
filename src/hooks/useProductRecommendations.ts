@@ -1,73 +1,106 @@
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Product } from "@/types";
-import { AISource } from "@/types/ai";
+import { useState, useEffect } from 'react';
+import { Product } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { prepareQueryParam, getSafeProperty } from '@/utils/supabaseTypeUtils';
 
-export interface Recommendation {
-  title: string;
-  description?: string;
-  slug?: string;
-  category?: string;
-  image?: string;
-}
+type RecommendationStrategy = 'similar' | 'popular' | 'related';
 
-interface UseProductRecommendationsResult {
-  recommendations: Recommendation[];
-  loading: boolean;
-  error: string | null;
-  refetch: () => void;
-}
-
-function localRecommend(currentProduct: Product): Recommendation[] {
-  // Fallback local: recommend 3 sản phẩm cùng categoryId
-  // Sẽ trả mock, sau có thể fetch thực từ supabase
-  return [
-    { title: "Combo Hot Gmail", slug: "combo-hot-gmail", category: "Email", image: "/placeholder.svg" },
-    { title: "Gmail SLL Giá Rẻ", slug: "gmail-sll-gia-re", category: "Email", image: "/placeholder.svg" },
-    { title: "Hotmail Xịn 2024", slug: "hotmail-xin-2024", category: "Email", image: "/placeholder.svg" }
-  ];
-}
-
-async function fetchAiRecommendations(product: Product, aiSource: AISource): Promise<Recommendation[]> {
-  const prompt = `Hãy dựa trên sản phẩm: "${product.title}" thuộc danh mục "${typeof product.categories === 'object' ? product.categories?.name : product.categories}", hãy gợi ý 3-5 sản phẩm liên quan mà khách hàng MMO thường quan tâm. Trả về danh sách dưới dạng mảng JSON như: [{"title":"...","description":"..."}] với tên sản phẩm ngắn gọn và mô tả ngắn nếu có.`;
-
-  let aiModel = "";
-  if (aiSource === "openai") aiModel = "gpt-4o-mini";
-  else if (aiSource === "claude") aiModel = "claude-3-haiku-20240307";
-  else return localRecommend(product);
-
-  // Gọi edge function "ai-recommendation" với prompt trên
-  const { data, error } = await supabase.functions.invoke("ai-recommendation", {
-    body: { prompt, aiModel }
-  });
-  if (error || !data?.recommendations) {
-    throw new Error(data?.error || error?.message || "AI recommendation error");
-  }
-  return data.recommendations;
-}
-
-export function useProductRecommendations(product: Product | null, aiSource: AISource = "openai"): UseProductRecommendationsResult {
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [loading, setLoading] = useState(false);
+export const useProductRecommendations = (
+  product: Product | null,
+  strategy: RecommendationStrategy = 'similar',
+  limit: number = 4
+) => {
+  const [recommendations, setRecommendations] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRecs = async () => {
-    if (!product) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const recs = await fetchAiRecommendations(product, aiSource);
-      setRecommendations(recs);
-    } catch (err: any) {
-      setError(err?.message || "Không thể lấy gợi ý.");
-      setRecommendations(localRecommend(product));
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      if (!product) {
+        setRecommendations([]);
+        setLoading(false);
+        return;
+      }
 
-  useEffect(() => { if (product) fetchRecs(); }, [product, aiSource]);
+      try {
+        setLoading(true);
+        setError(null);
+        
+        let query = supabase.from('products').select('*');
+        
+        if (strategy === 'similar') {
+          // Find products in the same category
+          const categoryId = product.category?.id || product.categoryId;
+          if (categoryId) {
+            query = query.eq('category_id', prepareQueryParam(categoryId));
+          }
+          // Exclude current product
+          query = query.neq('id', prepareQueryParam(product.id));
+        } else if (strategy === 'related') {
+          // Use category and tags similarity
+          const categoryId = product.category?.id || product.categoryId;
+          if (categoryId) {
+            query = query.eq('category_id', prepareQueryParam(categoryId));
+          }
+          // Exclude current product
+          query = query.neq('id', prepareQueryParam(product.id));
+        } else if (strategy === 'popular') {
+          // Get most popular products by rating
+          query = query.order('rating', { ascending: false });
+        }
+        
+        // Limit results
+        query = query.limit(limit);
+        
+        const { data, error: queryError } = await query;
+        
+        if (queryError) throw queryError;
+        
+        if (!data || !Array.isArray(data)) {
+          setRecommendations([]);
+          return;
+        }
+        
+        // Map data to Product type
+        const mappedProducts: Product[] = data.map((item: any) => ({
+          id: getSafeProperty(item, 'id', ''),
+          title: getSafeProperty(item, 'title', ''),
+          slug: getSafeProperty(item, 'slug', ''),
+          description: getSafeProperty(item, 'description', ''),
+          shortDescription: getSafeProperty(item, 'short_description', '') || 
+                           getSafeProperty(item, 'description', '').substring(0, 100) + '...',
+          price: Number(getSafeProperty(item, 'price', 0)),
+          originalPrice: getSafeProperty(item, 'original_price', null) ? 
+                        Number(getSafeProperty(item, 'original_price', 0)) : 
+                        undefined,
+          images: getSafeProperty(item, 'images', []),
+          categoryId: getSafeProperty(item, 'category_id', ''),
+          rating: Number(getSafeProperty(item, 'rating', 0)),
+          reviewCount: Number(getSafeProperty(item, 'review_count', 0)),
+          inStock: getSafeProperty(item, 'in_stock', false),
+          stockQuantity: getSafeProperty(item, 'stock_quantity', 0),
+          badges: getSafeProperty(item, 'badges', []),
+          features: getSafeProperty(item, 'features', []),
+          specifications: getSafeProperty(item, 'specifications', {}),
+          salesCount: Number(getSafeProperty(item, 'sales_count', 0)),
+          stock: getSafeProperty(item, 'stock', 0),
+          kiosk_token: getSafeProperty(item, 'kiosk_token', ''),
+          createdAt: getSafeProperty(item, 'created_at', ''),
+          category: null
+        }));
+        
+        setRecommendations(mappedProducts);
+      } catch (err: any) {
+        console.error('Error fetching product recommendations:', err);
+        setError(err.message || 'Failed to load recommendations');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  return { recommendations, loading, error, refetch: fetchRecs };
-}
+    fetchRecommendations();
+  }, [product, strategy, limit]);
+
+  return { recommendations, loading, error };
+};
