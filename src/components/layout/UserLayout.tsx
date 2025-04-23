@@ -3,7 +3,6 @@ import React from 'react';
 import Layout from './Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLocation } from 'react-router-dom';
-import VerifyEmailBanner from '@/components/auth/VerifyEmailBanner';
 import { useAuth } from '@/context/AuthContext';
 
 interface UserLayoutProps {
@@ -23,8 +22,7 @@ export default function UserLayout({
   return (
     <Layout title={title}>
       <div className="container py-6 md:py-10">
-        {/* Email verification banner */}
-        {user && <VerifyEmailBanner />}
+        {/* Removed VerifyEmailBanner */}
         
         <h1 className="text-2xl font-bold mb-6">{title}</h1>
         
@@ -60,3 +58,4 @@ export default function UserLayout({
     </Layout>
   );
 }
+
