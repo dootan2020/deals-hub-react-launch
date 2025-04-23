@@ -1,4 +1,3 @@
-
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, vi, expect, beforeEach } from 'vitest';
@@ -19,6 +18,27 @@ vi.mock('react-router-dom', async () => {
     Navigate: ({ to }: { to: string }) => <div data-testid="navigate" data-to={to} />,
   };
 });
+
+// Mock for AuthContext
+const mockAuthContext = {
+  user: { id: 'test-user' },
+  session: {},
+  loading: false,
+  isAuthenticated: true,
+  isAdmin: false,
+  isStaff: false,
+  userRoles: [],
+  userBalance: 0,
+  refreshUserBalance: vi.fn(),
+  refreshBalance: vi.fn(), // Backward compatibility
+  refreshUserProfile: vi.fn(),
+  login: vi.fn(), // Add login function
+  logout: vi.fn(),
+  register: vi.fn(),
+  checkUserRole: vi.fn(),
+  isEmailVerified: true,
+  isLoadingBalance: false,
+};
 
 describe('ProtectedRoute', () => {
   beforeEach(() => {
@@ -130,6 +150,52 @@ describe('ProtectedRoute', () => {
     
     // Check if the protected content is rendered
     expect(screen.getByText('Admin Content')).toBeInTheDocument();
+  });
+
+  test('renders children when not authenticated and route is public', () => {
+    // Override AuthContext for this test
+    const authContextOverride = {
+      ...mockAuthContext,
+      isAuthenticated: false,
+      login: vi.fn(), // Add login function
+    };
+
+    render(
+      <AuthContext.Provider value={authContextOverride as any}>
+        <MemoryRouter>
+          <ProtectedRoute isPublic>
+            <div>Public Content</div>
+          </ProtectedRoute>
+        </MemoryRouter>
+      </AuthContext.Provider>
+    );
+
+    expect(screen.getByText('Public Content')).toBeInTheDocument();
+  });
+
+  test('redirects to /admin when trying to access admin route without admin role', () => {
+    // Override AuthContext for this test
+    const authContextOverride = {
+      ...mockAuthContext,
+      isAuthenticated: true,
+      userRoles: [UserRole.User], // Use enum
+      isAdmin: false,
+      login: vi.fn(), // Add login function
+    };
+
+    render(
+      <AuthContext.Provider value={authContextOverride as any}>
+        <MemoryRouter>
+          <ProtectedRoute requiredRoles={[UserRole.Admin]}>
+            <div>Protected Admin Content</div>
+          </ProtectedRoute>
+        </MemoryRouter>
+      </AuthContext.Provider>
+    );
+
+    // Check if we're redirecting to admin
+    const navigate = screen.getByTestId('navigate');
+    expect(navigate.getAttribute('data-to')).toBe('/admin');
   });
 });
 

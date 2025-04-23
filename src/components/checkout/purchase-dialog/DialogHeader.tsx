@@ -6,15 +6,17 @@ import {
   DialogDescription
 } from '@/components/ui/dialog';
 
-interface DialogHeaderProps {
+export interface DialogHeaderProps {
+  title?: string;
   isVerifying: boolean;
+  onClose?: () => void;
 }
 
-export const DialogHeader = ({ isVerifying }: DialogHeaderProps) => {
+export const DialogHeader = ({ title, isVerifying, onClose }: DialogHeaderProps) => {
   return (
     <BaseDialogHeader className="bg-muted px-6 py-4 -mx-6 -mt-6 border-b border-border">
       <DialogTitle className="text-xl font-semibold text-foreground">
-        {isVerifying ? 'Đang xác minh tồn kho...' : 'Xác nhận mua hàng'}
+        {title || (isVerifying ? 'Đang xác minh tồn kho...' : 'Xác nhận mua hàng')}
       </DialogTitle>
       <DialogDescription className="text-sm text-muted-foreground mt-1">
         {isVerifying ? 
@@ -24,3 +26,5 @@ export const DialogHeader = ({ isVerifying }: DialogHeaderProps) => {
     </BaseDialogHeader>
   );
 };
+
+export default DialogHeader;

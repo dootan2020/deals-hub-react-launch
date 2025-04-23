@@ -38,11 +38,8 @@ export const CorsProxySelector = () => {
         .single();
 
       if (!proxyError && proxyData) {
-        const safeData = extractSafeData<any>(proxyData);
-        if (safeData) {
-          setProxyType(safeData.proxy_type as ProxyType);
-          setCustomUrl(safeData.custom_url || '');
-        }
+        setProxyType(proxyData.proxy_type as ProxyType);
+        setCustomUrl(proxyData.custom_url || '');
         setIsLoading(false);
         return;
       }
@@ -61,14 +58,11 @@ export const CorsProxySelector = () => {
         // Default settings if nothing found
         setProxyType('allorigins');
         setCustomUrl('');
-      } else {
+      } else if (settingsData && typeof settingsData.value === 'object') {
         // Parse and set existing settings
-        const safeData = extractSafeData<{value: any}>(settingsData);
-        if (safeData && safeData.value) {
-          const settings = safeData.value as ProxySettings;
-          setProxyType(settings.type);
-          setCustomUrl(settings.customUrl || '');
-        }
+        const settings = settingsData.value as ProxySettings;
+        setProxyType(settings.type);
+        setCustomUrl(settings.customUrl || '');
       }
     } catch (error) {
       console.error('Error loading proxy settings:', error);
@@ -94,9 +88,7 @@ export const CorsProxySelector = () => {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      const safeExistingSettings = extractSafeData<any[]>(existingSettings);
-      
-      if (safeExistingSettings && safeExistingSettings.length > 0) {
+      if (existingSettings && existingSettings.length > 0) {
         // Update existing record
         const { error: updateError } = await supabase
           .from('proxy_settings')
@@ -104,7 +96,7 @@ export const CorsProxySelector = () => {
             proxy_type: proxyType,
             custom_url: proxyType === 'custom' ? customUrl : null
           }))
-          .eq('id', safeExistingSettings[0].id);
+          .eq('id', existingSettings[0].id);
 
         if (updateError) throw updateError;
       } else {
@@ -126,9 +118,7 @@ export const CorsProxySelector = () => {
         .eq('key', prepareQueryParam('cors_proxy'))
         .maybeSingle();
 
-      const safeExistingSetting = extractSafeData<any>(existingSetting);
-      
-      if (!settingFetchError && safeExistingSetting) {
+      if (existingSetting) {
         // Update existing record
         const { error: updateError } = await supabase
           .from('site_settings')

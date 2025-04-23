@@ -113,6 +113,7 @@ export const PurchaseDialog = ({
         </DialogHeader>
         
         <CustomDialogHeader 
+          isVerifying={isVerifying}
           title={product.title}
           onClose={onClose}
         />
@@ -132,14 +133,16 @@ export const PurchaseDialog = ({
           userBalance={userBalance}
         />
         
-        <DialogFooterButtons
-          onClose={onClose}
-          onPurchase={handlePurchase}
-          isProcessing={isProcessing}
-          isVerifying={isVerifying}
-          hasBalance={userBalance !== null && userBalance >= totalPriceUSD}
-          isLoadingBalance={isLoadingBalance}
-        />
+        <div className="flex justify-between gap-4 mt-4">
+          <DialogFooterButtons
+            onCancel={onClose}
+            onConfirm={handlePurchase}
+            isSubmitting={isProcessing}
+            isVerifying={isVerifying}
+            hasEnoughBalance={userBalance !== null && userBalance >= totalPriceUSD}
+            isLoadingBalance={isLoadingBalance}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -1,4 +1,3 @@
-
 import { Product } from '@/types';
 
 const mockProducts: Product[] = [
@@ -11,10 +10,11 @@ const mockProducts: Product[] = [
     originalPrice: 20000,
     images: ['/images/gmail-usa.jpg'],
     categoryId: 'email-accounts',
+    category: 'Email Accounts',
     rating: 4.5,
     reviewCount: 120,
     inStock: true,
-    in_stock: true, // Add this property
+    in_stock: true,
     stockQuantity: 100,
     stock: 100,
     badges: ['Best Seller', 'New'],
@@ -42,10 +42,11 @@ const mockProducts: Product[] = [
     originalPrice: 35000,
     images: ['/images/facebook-aged.jpg'],
     categoryId: 'social-accounts',
+    category: 'Social Accounts',
     rating: 4.8,
     reviewCount: 89,
     inStock: true,
-    in_stock: true, // Add this property
+    in_stock: true,
     stockQuantity: 45,
     stock: 45,
     badges: ['Premium', 'Verified'],
@@ -75,10 +76,11 @@ const mockProducts: Product[] = [
     originalPrice: 10000,
     images: ['/images/instagram-followers.jpg'],
     categoryId: 'social-services',
+    category: 'Social Services',
     rating: 4.2,
     reviewCount: 215,
     inStock: true,
-    in_stock: true, // Add this property
+    in_stock: true,
     stockQuantity: 1000,
     stock: 1000,
     badges: ['Popular', 'Fast Delivery'],
@@ -108,10 +110,11 @@ const mockProducts: Product[] = [
     originalPrice: 45000,
     images: ['/images/youtube-premium.jpg'],
     categoryId: 'streaming-accounts',
+    category: 'Streaming Accounts',
     rating: 4.7,
     reviewCount: 67,
     inStock: true,
-    in_stock: true, // Add this property
+    in_stock: true,
     stockQuantity: 30,
     stock: 30,
     badges: ['Premium', 'Warranty'],
@@ -141,10 +144,11 @@ const mockProducts: Product[] = [
     originalPrice: 60000,
     images: ['/images/netflix-premium.jpg'],
     categoryId: 'streaming-accounts',
+    category: 'Streaming Accounts',
     rating: 4.9,
     reviewCount: 132,
     inStock: true,
-    in_stock: true, // Add this property
+    in_stock: true,
     stockQuantity: 25,
     stock: 25,
     badges: ['Premium', '4K', 'Warranty'],
@@ -175,10 +179,11 @@ const mockProducts: Product[] = [
     originalPrice: 40000,
     images: ['/images/spotify-premium.jpg'],
     categoryId: 'streaming-accounts',
+    category: 'Streaming Accounts',
     rating: 4.6,
     reviewCount: 94,
     inStock: true,
-    in_stock: true, // Add this property
+    in_stock: true,
     stockQuantity: 50,
     stock: 50,
     badges: ['Premium', 'Popular'],
@@ -209,10 +214,11 @@ const mockProducts: Product[] = [
     originalPrice: 150000,
     images: ['/images/twitter-verified.jpg'],
     categoryId: 'social-accounts',
+    category: 'Social Accounts',
     rating: 4.8,
     reviewCount: 23,
     inStock: false,
-    in_stock: false, // For product that is not in stock
+    in_stock: false,
     stockQuantity: 0,
     stock: 0,
     badges: ['Premium', 'Verified', 'Rare'],
@@ -242,10 +248,11 @@ const mockProducts: Product[] = [
     originalPrice: 30000,
     images: ['/images/discord-nitro.jpg'],
     categoryId: 'gaming-accounts',
+    category: 'Gaming Accounts',
     rating: 4.5,
     reviewCount: 47,
     inStock: true,
-    in_stock: true, // Add this property
+    in_stock: true,
     stockQuantity: 35,
     stock: 35,
     badges: ['Gaming', 'Popular'],
