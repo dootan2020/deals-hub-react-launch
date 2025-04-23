@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Order, normalizeUserField } from './orderUtils';
+import { prepareQueryParam, processSupabaseData } from '@/utils/supabaseTypeUtils';
 
 // Standalone hook for fetching one order by ID & setting selectedOrder
 export function useOrderDetails() {
@@ -19,7 +20,7 @@ export function useOrderDetails() {
           user:user_id(email),
           product:product_id(title, images)
         `)
-        .eq('id', orderId)
+        .eq('id', prepareQueryParam(orderId))
         .maybeSingle();
 
       if (error) throw error;
@@ -28,7 +29,7 @@ export function useOrderDetails() {
         const { data: orderItems } = await supabase
           .from('order_items')
           .select('*')
-          .eq('order_id', data.id);
+          .eq('order_id', prepareQueryParam(data.id));
 
         const userValue = normalizeUserField(data.user || null);
 

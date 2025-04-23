@@ -1,7 +1,9 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Order } from './orderUtils';
+import { prepareQueryParam, prepareUpdateData, prepareInsertData, hasData, safeErrorMessage } from '@/utils/supabaseTypeUtils';
 
 // Actions for use in admin order management views
 export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) => void) {
@@ -12,8 +14,11 @@ export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) =>
       setLoading(true);
       const { error } = await supabase
         .from('orders')
-        .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', orderId);
+        .update(prepareUpdateData({ 
+          status, 
+          updated_at: new Date().toISOString() 
+        }))
+        .eq('id', prepareQueryParam(orderId));
 
       if (error) throw error;
 
@@ -38,7 +43,7 @@ export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) =>
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .select('*')
-        .eq('id', orderId)
+        .eq('id', prepareQueryParam(orderId))
         .maybeSingle();
 
       if (orderError) throw orderError;
@@ -47,25 +52,25 @@ export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) =>
       // Update order
       const { error: updateError } = await supabase
         .from('orders')
-        .update({
+        .update(prepareUpdateData({
           status: 'refunded',
           updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId);
+        }))
+        .eq('id', prepareQueryParam(orderId));
 
       if (updateError) throw updateError;
 
       // Transaction
       const { error: transactionError } = await supabase
         .from('transactions')
-        .insert({
+        .insert(prepareInsertData({
           user_id: orderData.user_id,
           amount: orderData.total_price,
           type: 'refund',
           status: 'completed',
           payment_method: 'system',
           transaction_id: `refund-${orderId}`
-        });
+        }));
 
       if (transactionError) throw transactionError;
 
