@@ -56,4 +56,3 @@ export async function getAllUsers(): Promise<UserWithRolesData[] | null> {
     return null;
   }
 }
-
