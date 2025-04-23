@@ -9,18 +9,12 @@ const mockProducts: Product[] = [
     slug: 'gmail-premium-account',
     description: 'Premium Gmail account with enhanced storage and features',
     price: 19.99,
-    salePrice: 14.99,
     images: ['/placeholder.svg'],
     category: 'Email Accounts',
     categoryId: '1',
     stock: 50,
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: ['email', 'gmail', 'google'],
-    featured: true,
-    status: 'active',
-    rating: 4.8,
-    numberOfRatings: 120
+    updatedAt: new Date().toISOString()
   },
   {
     id: '2',
@@ -28,18 +22,12 @@ const mockProducts: Product[] = [
     slug: 'facebook-business-account',
     description: 'Verified Facebook business account ready for advertising',
     price: 29.99,
-    salePrice: null,
     images: ['/placeholder.svg'],
     category: 'Social Media Accounts',
     categoryId: '2',
     stock: 25,
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: ['social', 'facebook', 'business'],
-    featured: true,
-    status: 'active',
-    rating: 4.5,
-    numberOfRatings: 85
+    updatedAt: new Date().toISOString()
   },
   {
     id: '3',
@@ -47,18 +35,12 @@ const mockProducts: Product[] = [
     slug: 'windows-11-pro-license-key',
     description: 'Genuine Windows 11 Pro license key for 1 PC',
     price: 149.99,
-    salePrice: 119.99,
     images: ['/placeholder.svg'],
     category: 'Software Keys',
     categoryId: '3',
     stock: 100,
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: ['windows', 'microsoft', 'software', 'license'],
-    featured: true,
-    status: 'active',
-    rating: 4.9,
-    numberOfRatings: 210
+    updatedAt: new Date().toISOString()
   }
 ];
 
@@ -71,7 +53,6 @@ export interface FilterParams {
   search?: string;
   page?: number;
   limit?: number;
-  featured?: boolean;
 }
 
 // Sort products based on the sort option
@@ -81,18 +62,14 @@ const sortProducts = (products: Product[], sort?: SortOption): Product[] => {
   return [...products].sort((a, b) => {
     switch (sort) {
       case 'price-asc':
-        return (a.salePrice || a.price) - (b.salePrice || b.price);
+        return a.price - b.price;
       case 'price-desc':
-        return (b.salePrice || b.price) - (a.salePrice || a.price);
+        return b.price - a.price;
       case 'newest':
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      case 'rating':
-        return b.rating - a.rating;
-      case 'popularity':
-        return b.numberOfRatings - a.numberOfRatings;
-      case 'recommended':
+      case 'popular':
       default:
-        return b.featured ? 1 : -1;
+        return 0;
     }
   });
 };
@@ -147,8 +124,7 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
     const lowerQuery = query.toLowerCase();
     return mockProducts.filter(product => 
       product.title.toLowerCase().includes(lowerQuery) || 
-      product.description.toLowerCase().includes(lowerQuery) ||
-      (product.tags && product.tags.some(tag => tag.toLowerCase().includes(lowerQuery)))
+      product.description.toLowerCase().includes(lowerQuery)
     );
   } catch (error) {
     console.error("Error searching products:", error);

@@ -1,120 +1,67 @@
 
 import React from 'react';
 import { Product } from '@/types';
-import { ProductCard } from './ProductCard';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-export interface ProductGridProps {
-  products?: Product[];
-  showSort?: boolean;
-  isLoading?: boolean;
-  loadingMore?: boolean;
-  viewMode?: "grid" | "list";
-  title?: string;
-  description?: string;
-  activeSort?: string;
-  onSortChange?: (value: string) => void;
-  limit?: number;
-  showViewAll?: boolean;
-  viewAllLink?: string;
-  viewAllLabel?: string;
-  hasMore?: boolean;
-  onLoadMore?: () => void;
+interface ProductGridProps {
+  products: Product[];
+  loading?: boolean;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ 
-  products = [], 
-  viewMode = "grid",
-  title,
-  description,
-  isLoading,
-  loadingMore,
-  hasMore,
-  onLoadMore,
-  showViewAll,
-  viewAllLink,
-  viewAllLabel
-}) => {
-  const gridClasses = viewMode === "list"
-    ? "space-y-4"
-    : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-[1200px] mx-auto";
-
-  if (isLoading) {
+const ProductGrid: React.FC<ProductGridProps> = ({ products, loading = false }) => {
+  if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[200px]">
-        <Loader2 className="h-8 w-8 md:h-10 md:w-10 text-primary animate-spin" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="bg-gray-100 animate-pulse rounded-lg h-72"></div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!products || products.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-gray-500">No products found</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      {title && (
-        <h2 className="text-xl md:text-2xl font-bold px-4 md:px-0">{title}</h2>
-      )}
-      {description && (
-        <p className="text-sm md:text-base text-muted-foreground px-4 md:px-0">
-          {description}
-        </p>
-      )}
-      
-      {products.length > 0 ? (
-        <>
-          <div className={gridClasses}>
-            {products.map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product}
-                viewMode={viewMode}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {products.map((product) => (
+        <Link 
+          key={product.id} 
+          to={`/product/${product.slug}`}
+          className="group bg-white overflow-hidden rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all"
+        >
+          <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden bg-gray-200">
+            {product.images && product.images[0] && (
+              <img
+                src={product.images[0]}
+                alt={product.title}
+                className="h-full w-full object-cover object-center group-hover:opacity-90 transition-opacity"
               />
-            ))}
+            )}
           </div>
-          
-          {/* Load More Button */}
-          {hasMore && (
-            <div className="flex justify-center mt-6 md:mt-8">
-              <Button
-                variant="outline"
-                size="lg"
-                className="rounded-full px-6 md:px-8 text-sm transition-all duration-300 ease-in-out hover:border-gray-300 hover:bg-gray-50"
-                onClick={onLoadMore}
-                disabled={loadingMore}
-              >
-                {loadingMore ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  'Load More'
-                )}
-              </Button>
+          <div className="p-4">
+            <h3 className="font-medium text-gray-900 line-clamp-2 group-hover:text-primary transition-colors">
+              {product.title}
+            </h3>
+            <div className="mt-2 flex justify-between items-center">
+              <p className="font-bold text-primary">
+                {new Intl.NumberFormat('vi-VN', {
+                  style: 'currency',
+                  currency: 'VND'
+                }).format(product.price)}
+              </p>
+              <span className={`text-xs px-2 py-1 rounded ${product.stock > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
+              </span>
             </div>
-          )}
-          
-          {showViewAll && viewAllLink && (
-            <div className="flex justify-center mt-6 md:mt-8 px-4 md:px-0">
-              <Button
-                asChild
-                size="lg"
-                className="w-full sm:w-auto transition-all duration-300 ease-in-out"
-              >
-                <a href={viewAllLink} className="flex items-center gap-2">
-                  {viewAllLabel || "View All"}
-                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5 transition-transform duration-200" />
-                </a>
-              </Button>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="text-center py-8 md:py-12">
-          <p className="text-sm md:text-base text-muted-foreground">
-            No products found
-          </p>
-        </div>
-      )}
+          </div>
+        </Link>
+      ))}
     </div>
   );
 };

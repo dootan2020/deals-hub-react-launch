@@ -1,50 +1,44 @@
 
-// Shared types/utilities for transactions
+// Helper to normalize user field from supabase join
+export const normalizeUserField = (userData: any): string => {
+  if (!userData) return '';
+  
+  if (typeof userData === 'string') {
+    return userData;
+  }
+  
+  // If it's an object, assume it has an email property
+  if (typeof userData === 'object' && userData.email) {
+    return userData.email;
+  }
+  
+  return '';
+};
 
 export interface Transaction {
   id: string;
   user_id: string;
+  user?: string; // This will store the normalized user email
   amount: number;
-  payment_method: string;
-  status: string;
   type: string;
+  status: string;
+  payment_method?: string;
   transaction_id?: string;
   created_at: string;
-  updated_at: string;
-  user?: {
-    email: string;
-    display_name?: string;
-  } | null;
+  updated_at?: string;
 }
 
 export interface Deposit {
   id: string;
   user_id: string;
+  user?: string; // This will store the normalized user email
   amount: number;
-  net_amount?: number;
+  net_amount: number;
+  transaction_id: string | null;
   payment_method: string;
   status: string;
-  transaction_id?: string;
-  payer_email?: string | null;
-  payer_id?: string | null;
+  payer_email: string | null;
+  payer_id: string | null;
   created_at: string;
   updated_at: string;
-  user?: {
-    email: string;
-    display_name?: string;
-  } | null;
-}
-
-/** Normalize "user" returned from Supabase SQL result to match type expectations. */
-export function normalizeUserField(user: any): { email: string; display_name?: string } {
-  if (
-    user &&
-    typeof user === 'object' &&
-    user !== null &&
-    !('error' in user) &&
-    typeof user.email === 'string'
-  ) {
-    return user as { email: string; display_name?: string };
-  }
-  return { email: 'N/A' };
 }

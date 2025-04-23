@@ -1,5 +1,5 @@
 
-// Product related types
+// Product related types - simplified
 export interface Product {
   id: string;
   title: string;
@@ -14,18 +14,19 @@ export interface Product {
   updatedAt: string;
 }
 
-// User roles - CHỈ GIỮ Admin & User
+// User roles - only Admin & User
 export enum UserRole {
   Admin = 'Admin',
   User = 'User'
 }
 
-// Sort options core (có thể tạm thời loại các value không dùng)
-export type SortOption = 'newest' | 'popular' | 'price-asc' | 'price-desc';
+// Sort option - simplified
+export type SortOption = string;
 
+// View mode
 export type ViewMode = 'grid' | 'list';
 
-// Basic order types
+// Basic order types - simplified
 export interface Order {
   id: string;
   user_id: string;
@@ -54,4 +55,19 @@ export interface Category {
   parent_id?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+// Basic deposit type
+export interface Deposit {
+  id: string;
+  user_id: string;
+  amount: number;
+  net_amount: number;
+  transaction_id: string | null;
+  payment_method: string;
+  status: string;
+  payer_email: string | null;
+  payer_id: string | null;
+  created_at: string;
+  updated_at: string;
 }

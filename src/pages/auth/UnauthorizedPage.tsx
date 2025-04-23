@@ -1,219 +1,72 @@
+
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import Layout from '@/components/layout/Layout';
-import { ShieldAlert, Home, RefreshCw, LogOut, RefreshCcw, UsersRound, ShieldCheck, HelpCircle } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, ArrowLeft, Lock } from 'lucide-react';
 
-export default function UnauthorizedPage() {
-  const { userRoles, isAuthenticated, refreshUserProfile, user, logout } = useAuth();
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isCheckingDirectly, setIsCheckingDirectly] = useState(false);
-  const [directCheckResult, setDirectCheckResult] = useState<string | null>(null);
-  
-  const handleRefreshSession = async () => {
-    try {
-      setIsRefreshing(true);
-      toast.info("Đang làm mới phiên đăng nhập...");
-      
-      // First, refresh the auth session
-      const { data: sessionData, error: sessionError } = await supabase.auth.refreshSession();
-      
-      if (sessionError) {
-        toast.error("Không thể làm mới phiên đăng nhập", {
-          description: sessionError.message
-        });
-        return;
-      }
-      
-      toast.success("Đã làm mới phiên đăng nhập thành công");
-      
-      // Then refresh the user profile
-      await refreshUserProfile();
-      toast.success('Đã cập nhật thông tin quyền hạn');
-      
-      // Redirect to admin if roles now include admin
-      if (userRoles.includes(UserRole.Admin)) {
-        window.location.href = '/admin';
-      }
-    } catch (error) {
-      console.error('Error refreshing session:', error);
-      toast.error('Không thể cập nhật phiên đăng nhập');
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  const handleRefreshRoles = async () => {
-    if (!isAuthenticated) return;
-    
-    setIsRefreshing(true);
-    try {
-      await refreshUserProfile();
-      toast.success('Đã cập nhật thông tin quyền hạn');
-      // Redirect to admin if roles now include admin
-      if (userRoles.includes(UserRole.Admin)) {
-        window.location.href = '/admin';
-      }
-    } catch (error) {
-      console.error('Error refreshing user profile:', error);
-      toast.error('Không thể cập nhật thông tin quyền hạn');
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  const handleDirectRoleCheck = async () => {
-    if (!user?.id) return;
-    
-    try {
-      setIsCheckingDirectly(true);
-      setDirectCheckResult(null);
-      
-      // Make a direct call to the function to verify roles
-      const { data, error } = await supabase.rpc('get_user_roles', {
-        user_id_param: user.id
-      });
-      
-      if (error) {
-        setDirectCheckResult(`Lỗi kiểm tra: ${error.message}`);
-        return;
-      }
-      
-      setDirectCheckResult(`Kết quả kiểm tra trực tiếp: ${JSON.stringify(data)}`);
-      
-      // If admin role exists but not in current state, force refresh
-      if (data && Array.isArray(data) && data.includes('Admin') && !userRoles.includes(UserRole.Admin)) {
-        toast.warning('Phát hiện quyền admin từ Supabase nhưng chưa được cập nhật trên UI');
-        await refreshUserProfile();
-      }
-    } catch (error) {
-      console.error('Error directly checking roles:', error);
-      setDirectCheckResult(`Lỗi: ${error}`);
-    } finally {
-      setIsCheckingDirectly(false);
-    }
-  };
-  
-  const handleLogout = async () => {
-    try {
-      await logout?.();
-      window.location.href = '/login';
-    } catch (error) {
-      console.error('Error logging out:', error);
-      toast.error('Không thể đăng xuất. Thử tải lại trang');
-    }
-  };
-
-  const renderRoleInfo = () => {
-    return (
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Roles in Our System</h2>
-        
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-            <h3 className="font-medium text-green-700 mb-2 flex items-center gap-2">
-              <UsersRound className="h-5 w-5" />
-              User Role
-            </h3>
-            <p className="text-sm text-gray-600">
-              Standard users can browse products, make purchases, and manage their account.
-            </p>
-          </div>
-          
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h3 className="font-medium text-blue-700 mb-2 flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5" />
-              Admin Role
-            </h3>
-            <p className="text-sm text-gray-600">
-              Administrators have full access to manage products, orders, users and system settings.
-            </p>
-          </div>
-        </div>
-        
-        <div className="mt-6 bg-amber-50 p-4 rounded-lg border border-amber-200">
-          <h3 className="font-medium text-amber-700 mb-2">Need Access?</h3>
-          <p className="text-sm text-gray-600 mb-3">
-            If you believe you should have access to certain areas of the platform:
-          </p>
-          <Button 
-            variant="outline"
-            className="text-sm bg-white"
-            onClick={() => window.location.href = "/support"}
-          >
-            <HelpCircle className="mr-1.5 h-4 w-4" />
-            Contact Support
-          </Button>
-        </div>
-      </div>
-    );
-  };
+const UnauthorizedPage: React.FC = () => {
+  const { isAuthenticated, userRoles } = useAuth();
 
   return (
-    <Layout>
-      <div className="container flex flex-col items-center justify-center min-h-[60vh] py-12 text-center">
-        <ShieldAlert className="h-16 w-16 text-destructive mb-6" />
-        <h1 className="text-4xl font-bold mb-4">Access Denied</h1>
-        <p className="text-lg text-muted-foreground mb-4">
-          You don't have permission to access this page.
-        </p>
-        
-        {isAuthenticated && (
-          <Alert className="mb-6 max-w-lg">
-            <AlertTitle>Thông tin tài khoản</AlertTitle>
-            <AlertDescription>
-              <div className="text-sm text-left">
-                <p>User ID: {user?.id}</p>
-                <p>Email: {user?.email}</p>
-                <p>Current roles: {userRoles.length > 0 ? userRoles.join(', ') : 'No roles assigned'}</p>
-                {directCheckResult && (
-                  <p className="text-amber-600 font-mono text-xs mt-2 p-1 bg-amber-50 rounded">
-                    {directCheckResult}
-                  </p>
-                )}
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        <div className="flex flex-wrap gap-4 justify-center">
-          <Button asChild>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow">
+        <div className="text-center">
+          <div className="mx-auto h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+            <Lock className="h-6 w-6 text-red-600" />
+          </div>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">Access Denied</h2>
+          <p className="mt-2 text-gray-600">
+            You don't have permission to access this page.
+          </p>
+        </div>
+
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-6">
+          <div className="flex">
+            <AlertCircle className="h-5 w-5 text-yellow-400 mr-3" />
+            <div>
+              <p className="text-sm text-yellow-700">
+                {isAuthenticated
+                  ? 'Your current account does not have the required permissions.'
+                  : 'Please log in to access this page.'}
+              </p>
+              {isAuthenticated && (
+                <p className="text-xs text-yellow-600 mt-1">
+                  Current role(s): {userRoles.length ? userRoles.join(', ') : 'No roles assigned'}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-4">
+          <Button asChild className="w-full">
             <Link to="/">
-              <Home className="mr-2 h-4 w-4" />
-              Return Home
+              <ArrowLeft className="mr-2 h-4 w-4" /> Go to Homepage
             </Link>
           </Button>
-          
-          {isAuthenticated && (
-            <>
-              <Button variant="outline" onClick={handleRefreshSession} disabled={isRefreshing}>
-                <RefreshCcw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh Session'}
-              </Button>
-              
-              <Button variant="outline" onClick={handleRefreshRoles} disabled={isRefreshing}>
-                <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh Permissions'}
-              </Button>
-              
-              <Button variant="outline" onClick={handleDirectRoleCheck} disabled={isCheckingDirectly}>
-                <RefreshCw className={`mr-2 h-4 w-4 ${isCheckingDirectly ? 'animate-spin' : ''}`} />
-                {isCheckingDirectly ? 'Checking...' : 'Check Roles Directly'}
-              </Button>
-              
-              <Button variant="destructive" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Log Out
-              </Button>
-            </>
+
+          {!isAuthenticated && (
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/login">Log In</Link>
+            </Button>
+          )}
+
+          {isAuthenticated && !userRoles.includes(UserRole.Admin) && (
+            <div className="text-center text-sm text-gray-500 mt-4">
+              <p>
+                Need admin access?{' '}
+                <a href="mailto:support@example.com" className="text-primary hover:underline">
+                  Request access
+                </a>
+              </p>
+            </div>
           )}
         </div>
       </div>
-    </Layout>
+    </div>
   );
-}
+};
+
+export default UnauthorizedPage;

@@ -2,7 +2,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthState } from '@/hooks/use-auth-state';
-import { UserRole, UserRoleType } from '@/types';
+import { UserRole } from '@/types';
+import { extractSafeData } from '@/utils/helpers';
 
 interface AuthContextType {
   user: any;
@@ -13,7 +14,7 @@ interface AuthContextType {
   balanceLoading: boolean;
   fetchBalance: (userId: string) => Promise<number | null>;
   isAdmin: boolean;
-  userRoles: UserRoleType[];
+  userRoles: UserRole[];
   userBalance: number | null;
   setUserBalance: React.Dispatch<React.SetStateAction<number | null>>;
   fetchUserBalance: (userId: string) => Promise<number | null>;
@@ -25,7 +26,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, metadata?: Record<string, any>) => Promise<any>;
   refreshUserProfile: () => Promise<void>;
   refreshUserBalance: () => Promise<number | null>;
-  checkUserRole?: (role: UserRoleType) => boolean;
+  checkUserRole?: (role: UserRole) => boolean;
 }
 
 // Create a context with default values
@@ -50,13 +51,13 @@ export const AuthContext = createContext<AuthContextType>({
   signUp: async () => ({}),
   refreshUserProfile: async () => {},
   refreshUserBalance: async () => null,
-  checkUserRole: (role: UserRoleType) => false
+  checkUserRole: (role: UserRole) => false
 });
 
 export const useAuth = (): AuthContextType => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [userRoles, setUserRoles] = useState<UserRoleType[]>([]);
+  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [userBalance, setUserBalance] = useState<number | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -99,10 +100,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data && Array.isArray(data)) {
         const roles = data.map(item => {
-          const roleData = extractSafeData<{ role: UserRoleType }>(item);
-          return roleData ? roleData.role : UserRole.User;
+          const roleData = extractSafeData<{ role: string }>(item);
+          // Convert role string to UserRole enum value
+          return roleData?.role === 'admin' ? UserRole.Admin : UserRole.User;
         });
-        setUserRoles(roles as UserRoleType[]);
+        setUserRoles(roles as UserRole[]);
       }
     } catch (error) {
       console.error('Error in fetchUserRoles:', error);
@@ -202,18 +204,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   
-  const checkUserRole = (role: UserRoleType): boolean => {
+  const checkUserRole = (role: UserRole): boolean => {
     return userRoles.includes(role);
-  };
-
-  const extractSafeData = <T,>(data: any): T | null => {
-    if (!data) return null;
-    try {
-      return { ...data } as T;
-    } catch (e) {
-      console.error("Error extracting data:", e);
-      return null;
-    }
   };
 
   return (

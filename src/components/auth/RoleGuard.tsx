@@ -1,117 +1,40 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client'; 
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle } from 'lucide-react';
-import { isValidArray } from '@/utils/supabaseHelpers';
-
-export type UserRole = 'admin' | 'user' | 'editor' | 'manager';
+import { UserRole } from '@/types';
 
 interface RoleGuardProps {
+  requiredRoles: UserRole[];
+  redirectPath?: string;
   children: React.ReactNode;
-  roles: UserRole[];
-  fallback?: React.ReactNode;
-  redirectTo?: string;
 }
 
-interface AuthContextWithLoading {
-  user: any;
-  userRoles: string[];
-  isLoading?: boolean;
-}
-
-const RoleGuard: React.FC<RoleGuardProps> = ({ 
-  children, 
-  roles, 
-  fallback = null, 
-  redirectTo 
+export const RoleGuard: React.FC<RoleGuardProps> = ({
+  requiredRoles,
+  redirectPath = '/unauthorized',
+  children
 }) => {
-  const { user, userRoles, isLoading: authLoading = false } = useAuth() as AuthContextWithLoading;
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const navigate = useNavigate();
+  const { isAuthenticated, userRoles, loading } = useAuth();
 
-  useEffect(() => {
-    const checkAuthorization = async () => {
-      if (authLoading) return;
-
-      if (!user) {
-        setIsAuthorized(false);
-        setIsLoading(false);
-        if (redirectTo) {
-          navigate(redirectTo);
-        }
-        return;
-      }
-
-      // If we have userRoles from context
-      if (userRoles && userRoles.length > 0) {
-        // Type-safe role comparison
-        const hasRole = roles.some(role => 
-          userRoles.includes(role as string));
-        
-        setIsAuthorized(hasRole);
-        setIsLoading(false);
-        
-        if (!hasRole && redirectTo) {
-          navigate(redirectTo);
-        }
-        return;
-      }
-
-      // If we need to fetch roles directly
-      try {
-        const { data, error } = await supabase
-          .rpc('get_user_roles', { user_id_param: user.id });
-          
-        if (error) throw error;
-        
-        const userRoleValues = isValidArray<UserRole>(data) ? 
-          data as UserRole[] : [];
-        
-        const hasRole = roles.some(role => userRoleValues.includes(role));
-        
-        setIsAuthorized(hasRole);
-        
-        if (!hasRole && redirectTo) {
-          navigate(redirectTo);
-        }
-      } catch (error) {
-        console.error('Error checking user roles:', error);
-        setIsAuthorized(false);
-        if (redirectTo) {
-          navigate(redirectTo);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuthorization();
-  }, [user, userRoles, authLoading, roles, navigate, redirectTo]);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full min-h-[200px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+  // Show nothing while loading authentication
+  if (loading) {
+    return null;
   }
 
-  if (!isAuthorized) {
-    if (fallback) return <>{fallback}</>;
-    
-    return (
-      <Alert variant="destructive" className="my-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Access Denied</AlertTitle>
-        <AlertDescription>You don't have permission to access this page.</AlertDescription>
-      </Alert>
-    );
+  // If not authenticated, redirect to login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
   }
 
+  // Check if the user has any of the required roles
+  const hasRequiredRole = requiredRoles.some(role => userRoles.includes(role));
+  
+  if (!hasRequiredRole) {
+    return <Navigate to={redirectPath} replace />;
+  }
+
+  // User has the required role, render children
   return <>{children}</>;
 };
 

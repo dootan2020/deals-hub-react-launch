@@ -61,7 +61,7 @@ describe('ProtectedRoute', () => {
     (useAuth as jest.Mock).mockReturnValue({
       isAuthenticated: true,
       loading: false,
-      userRoles: [UserRole.Admin] as UserRole[],
+      userRoles: [UserRole.Admin],
     });
 
     render(

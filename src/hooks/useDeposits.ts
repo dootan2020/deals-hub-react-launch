@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Deposit, normalizeUserField } from './transactionUtils';
-import { extractSafeData } from '@/utils/supabaseHelpers';
-import { prepareQueryParam, prepareInsertData, prepareUpdateData } from '@/utils/supabaseTypeUtils';
+import { extractSafeData } from '@/utils/helpers';
 
 // Hook for deposit state, fetching, and admin update
 export function useDeposits() {
@@ -39,66 +38,61 @@ export function useDeposits() {
       setDeposits(typedDeposits);
     } catch (err) {
       console.error('Error fetching deposits:', err);
-      setError('Không thể tải danh sách nạp tiền');
-      toast.error("Lỗi", "Không thể tải danh sách nạp tiền");
+      setError('Could not load deposit list');
+      toast.error("Error", "Could not load deposit list");
     } finally {
       setLoading(false);
     }
   };
 
-  // Update a deposit's status and trigger account update and transaction entry.
+  // Update a deposit's status
   const updateDepositStatus = async (depositId: string, newStatus: string): Promise<void> => {
     try {
       setLoading(true);
 
-      const depositResult = await supabase
+      const { data, error } = await supabase
         .from('deposits')
         .select('*')
-        .eq('id', prepareQueryParam(depositId))
-        .maybeSingle();
+        .eq('id', depositId)
+        .single();
 
-      if (depositResult.error) throw depositResult.error;
+      if (error) throw error;
       
-      const deposit = extractSafeData<Deposit>(depositResult);
-      if (!deposit) throw new Error('Deposit not found');
-
-      const updateData = prepareUpdateData({
-        status: newStatus,
-        updated_at: new Date().toISOString()
-      });
+      if (!data) throw new Error('Deposit not found');
 
       const updateResult = await supabase
         .from('deposits')
-        .update(updateData)
-        .eq('id', prepareQueryParam(depositId));
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', depositId);
 
       if (updateResult.error) throw updateResult.error;
 
       // If approving (completed), update the user's balance
-      if (newStatus === 'completed' && deposit.user_id && deposit.amount) {
+      if (newStatus === 'completed' && data.user_id && data.amount) {
         const { error: balanceError } = await supabase.rpc(
           'update_user_balance',
           {
-            user_id_param: deposit.user_id,
-            amount_param: deposit.amount
+            user_id_param: data.user_id,
+            amount_param: data.amount
           }
         );
 
         if (balanceError) throw balanceError;
 
         // Create a transaction record
-        const transactionData = prepareInsertData({
-          user_id: deposit.user_id,
-          amount: deposit.amount,
-          payment_method: deposit.payment_method,
-          status: 'completed',
-          type: 'deposit',
-          transaction_id: deposit.transaction_id
-        });
-
         const { error: transactionError } = await supabase
           .from('transactions')
-          .insert(transactionData);
+          .insert({
+            user_id: data.user_id,
+            amount: data.amount,
+            payment_method: data.payment_method,
+            status: 'completed',
+            type: 'deposit',
+            transaction_id: data.transaction_id
+          });
 
         if (transactionError) throw transactionError;
       }
@@ -108,7 +102,7 @@ export function useDeposits() {
       ));
     } catch (err) {
       console.error('Error updating deposit status:', err);
-      toast.error("Lỗi", "Không thể cập nhật trạng thái nạp tiền");
+      toast.error("Error", "Could not update deposit status");
       throw err;
     } finally {
       setLoading(false);
@@ -125,5 +119,4 @@ export function useDeposits() {
   };
 }
 
-// Use export type for re-exports when isolatedModules is enabled
-export type { Deposit } from './transactionUtils';
+export { type Deposit };

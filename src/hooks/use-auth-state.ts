@@ -1,31 +1,40 @@
-import { useState, useEffect, useCallback } from 'react';
+
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { safeExtractProperty } from '@/utils/supabaseTypeUtils';
 
-// Define our auth state interface
-interface AuthState {
-  user: any;
-  session: any;
-  loading: boolean;
-  isAuthenticated: boolean;
-  balance: number | null;
-}
+export const useAuthState = () => {
+  const [session, setSession] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState<boolean>(false);
+  
+  useEffect(() => {
+    // Set up the auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, sessionData) => {
+        console.log('Auth state changed:', event);
+        setSession(sessionData);
+        setUser(sessionData?.user ?? null);
+        setLoading(false);
+      }
+    );
+    
+    // Get the current session on first render
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      setLoading(false);
+    });
+    
+    // Cleanup
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
-// Initial state
-const initialAuthState: AuthState = {
-  user: null,
-  session: null,
-  loading: true,
-  isAuthenticated: false,
-  balance: null
-};
-
-export function useAuthState() {
-  const [state, setState] = useState<AuthState>(initialAuthState);
-  const [balanceLoading, setBalanceLoading] = useState(false);
-
-  // Fetch user balance
-  const fetchBalance = useCallback(async (userId: string) => {
+  // Fetch user balance from the profiles table
+  const fetchBalance = async (userId: string): Promise<number | null> => {
     if (!userId) return null;
     
     setBalanceLoading(true);
@@ -33,57 +42,42 @@ export function useAuthState() {
       const { data, error } = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', userId as any)
+        .eq('id', userId)
         .single();
       
       if (error) {
-        console.error('Error fetching balance:', error);
+        console.error('Error fetching user balance:', error);
         return null;
       }
       
-      return safeExtractProperty<number>(data, 'balance', 0);
+      const userBalance = data?.balance || 0;
+      setBalance(userBalance);
+      return userBalance;
+      
     } catch (error) {
       console.error('Error in fetchBalance:', error);
       return null;
     } finally {
       setBalanceLoading(false);
     }
-  }, []);
+  };
 
-  // Update user and session state
-  const updateAuthState = useCallback(async (session: any) => {
-    if (!session) {
-      setState({
-        ...initialAuthState,
-        loading: false
-      });
-      return;
+  // Fetch balance when user changes
+  useEffect(() => {
+    if (user?.id) {
+      fetchBalance(user.id);
+    } else {
+      setBalance(null);
     }
+  }, [user]);
 
-    try {
-      const balance = await fetchBalance(session.user.id);
-      
-      setState({
-        user: session.user,
-        session,
-        isAuthenticated: true,
-        loading: false,
-        balance
-      });
-    } catch (error) {
-      console.error('Error updating auth state:', error);
-      setState({
-        ...initialAuthState,
-        loading: false
-      });
-    }
-  }, [fetchBalance]);
-
-  // Rest of the hook implementation...
-  
   return {
-    ...state,
+    session,
+    user,
+    loading,
+    isAuthenticated: !!user,
+    balance,
     balanceLoading,
     fetchBalance
   };
-}
+};

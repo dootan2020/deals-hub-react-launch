@@ -1,60 +1,30 @@
 
-import { ReactNode } from 'react';
-import { UserRole, UserRoleType } from '@/types';
+import React from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { UserRole } from '@/types';
 
 interface AccessControlProps {
-  children: ReactNode;
-  requiredRoles?: UserRoleType[];
-  allowedFor?: UserRoleType[];
-  forbiddenFor?: UserRoleType[];
-  fallback?: ReactNode;
+  requiredRoles?: UserRole[];
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
 }
 
-/**
- * A component that controls access to UI elements based on user roles.
- * It can be used to conditionally render components based on user permissions.
- */
-export const AccessControl = ({
-  children,
+export const AccessControl: React.FC<AccessControlProps> = ({
   requiredRoles = [],
-  allowedFor = [],
-  forbiddenFor = [],
-  fallback = null,
-}: AccessControlProps) => {
-  const { userRoles, isAuthenticated } = useAuth();
-  
-  // Not authenticated - hide the content
-  if (!isAuthenticated) {
-    return <>{fallback}</>;
+  children,
+  fallback = null
+}) => {
+  const { isAuthenticated, userRoles } = useAuth();
+
+  // If no roles are required, just check authentication
+  if (requiredRoles.length === 0) {
+    return isAuthenticated ? <>{children}</> : <>{fallback}</>;
   }
 
-  // Check if user has required roles (if specified)
-  if (requiredRoles.length > 0) {
-    const hasRequiredRole = requiredRoles.some(role => userRoles.includes(role));
-    if (!hasRequiredRole) {
-      return <>{fallback}</>;
-    }
-  }
+  // Check if user has any of the required roles
+  const hasPermission = requiredRoles.some(role => userRoles.includes(role));
 
-  // Check if user has one of the allowed roles (if specified)
-  if (allowedFor.length > 0) {
-    const isAllowed = allowedFor.some(role => userRoles.includes(role));
-    if (!isAllowed) {
-      return <>{fallback}</>;
-    }
-  }
-
-  // Check if user has forbidden roles (if specified)
-  if (forbiddenFor.length > 0) {
-    const isForbidden = forbiddenFor.some(role => userRoles.includes(role));
-    if (isForbidden) {
-      return <>{fallback}</>;
-    }
-  }
-
-  // All checks passed - render the children
-  return <>{children}</>;
+  return hasPermission ? <>{children}</> : <>{fallback}</>;
 };
 
 export default AccessControl;

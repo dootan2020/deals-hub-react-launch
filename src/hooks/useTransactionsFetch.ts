@@ -21,4 +21,3 @@ export async function fetchTransactionsData(): Promise<Transaction[]> {
 
   return typedTransactions;
 }
-

@@ -3,7 +3,6 @@ import React from 'react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { formatCurrency } from '@/utils/currency';
 
 interface ProductPurchaseSectionProps {
   product: Product;
@@ -12,32 +11,22 @@ interface ProductPurchaseSectionProps {
 const ProductPurchaseSection: React.FC<ProductPurchaseSectionProps> = ({ product }) => {
   const { isAuthenticated } = useAuth();
   
-  // Display either sale price or regular price
-  const displayPrice = product.salePrice !== null ? product.salePrice : product.price;
-  const isOnSale = product.salePrice !== null && product.salePrice < product.price;
+  // Format currency helper
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
   
   return (
     <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
       <div className="mb-6">
         <div className="flex items-baseline">
           <span className="text-2xl font-bold text-primary">
-            {formatCurrency(displayPrice)}
+            {formatCurrency(product.price)}
           </span>
-          
-          {isOnSale && (
-            <span className="ml-2 text-gray-500 line-through">
-              {formatCurrency(product.price)}
-            </span>
-          )}
         </div>
-        
-        {isOnSale && (
-          <div className="mt-1">
-            <span className="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded">
-              Save {formatCurrency(product.price - product.salePrice)}
-            </span>
-          </div>
-        )}
       </div>
       
       <div className="mb-6">
