@@ -14,6 +14,7 @@ import DepositPage from './pages/DepositPage';
 import NotFound from './pages/NotFound';
 import PayPalDepositPage from './pages/PayPalDepositPage';
 import UnauthorizedPage from './pages/auth/UnauthorizedPage';
+import TestSecurityPage from './pages/TestSecurityPage';
 
 // Import admin routes
 import { adminRoutes } from './routes/adminRoutes';
@@ -32,6 +33,7 @@ const App = () => {
         <Route path="/deposit" element={<DepositPage />} />
         <Route path="/deposit/paypal" element={<PayPalDepositPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        <Route path="/test-security" element={<TestSecurityPage />} />
         
         {/* Admin Routes */}
         {adminRoutes}
