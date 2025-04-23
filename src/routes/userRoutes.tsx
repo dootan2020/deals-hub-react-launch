@@ -1,3 +1,4 @@
+
 import { lazy } from 'react';
 import { Route } from "react-router-dom";
 import { ProtectedRoute } from "@/components/routing/ProtectedRoute";
@@ -12,7 +13,6 @@ import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
 import DashboardPage from "@/pages/user/DashboardPage";
 import MyAccountPage from "@/pages/user/MyAccountPage";
-import CategoryPage from "@/pages/CategoryPage";
 import ProductPage from "@/pages/ProductPage";
 import ProductsPage from "@/pages/ProductsPage";
 import OrderSuccessPage from "@/pages/OrderSuccessPage";
@@ -53,11 +53,8 @@ export const userRoutes = [
     </ProtectedRoute>
   } />,
   
-  // Category and Product Routes
-  <Route key="category" path="/category/:categorySlug" element={<CategoryPage />} />,
-  <Route key="subcategory" path="/category/:parentCategorySlug/:categorySlug" element={<CategoryPage />} />,
+  // Product Routes (simplified)
   <Route key="product" path="/product/:productSlug" element={<ProductPage />} />,
-  <Route key="product-with-category" path="/:parentCategorySlug/:categorySlug/:productSlug" element={<ProductPage />} />,
   <Route key="products" path="/products" element={<ProductsPage />} />,
   
   // Static Pages

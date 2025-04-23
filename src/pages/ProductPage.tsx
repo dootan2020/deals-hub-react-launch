@@ -1,48 +1,30 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { Helmet } from 'react-helmet';
-import { ProductHeader } from '@/components/product/ProductHeader';
+import ProductHeader from '@/components/product/ProductHeader';
+import ProductDescription from '@/components/product/ProductDescription';
 import ProductPurchaseSection from '@/components/product/ProductPurchaseSection';
-import { ProductDescription } from '@/components/product/ProductDescription';
-import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import ProductRecommendations from '@/components/product/ProductRecommendations';
 import { useProduct } from '@/hooks/useProduct';
-import { ProductTrustBadges } from '@/components/product/ProductTrustBadges';
-import { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { ProductRecommendations } from '@/components/product/ProductRecommendations';
-import { useProductRecommendations } from '@/hooks/useProductRecommendations';
-import { RecommendationStrategy } from '@/hooks/useProductRecommendations';
-import { usePersonalizedRecommendations } from '@/hooks/usePersonalizedRecommendations';
 
-const ProductPage = () => {
-  const { productSlug } = useParams();
-  const { product, loading, error } = useProduct(productSlug);
-  const { user } = useAuth();
+const ProductPage: React.FC = () => {
+  const { productSlug } = useParams<{ productSlug: string }>();
+  const { product, loading, error } = useProduct(productSlug || '');
 
-  // Use the RecommendationStrategy from the hook to ensure type compatibility
-  const [recommendationStrategy] = useState<RecommendationStrategy>('popular');
-  const {
-    recommendations,
-    loading: recLoading,
-    error: recError
-  } = useProductRecommendations(product, recommendationStrategy);
-
-  const {
-    recommendations: personalizedRecs,
-    loading: persLoading,
-    error: persError
-  } = usePersonalizedRecommendations(user?.id || null, product, recommendationStrategy);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [productSlug]);
 
   if (loading) {
     return (
       <Layout>
-        <div className="container-custom py-16">
-          <div className="flex flex-col justify-center items-center h-64">
-            <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-lg">Loading product details...</p>
+        <div className="container mx-auto px-4 py-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="h-64 bg-gray-200 rounded mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
           </div>
         </div>
       </Layout>
@@ -52,14 +34,11 @@ const ProductPage = () => {
   if (error || !product) {
     return (
       <Layout>
-        <div className="container-custom py-16">
-          <div className="bg-destructive/10 text-destructive rounded-lg p-4 mb-6">
-            <h2 className="text-lg font-semibold mb-2">Error</h2>
-            <p>{error || 'Product not found'}</p>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-red-500">Error</h2>
+            <p className="mt-2">{error || 'Product not found'}</p>
           </div>
-          <Button asChild variant="outline">
-            <Link to="/">Back to Home</Link>
-          </Button>
         </div>
       </Layout>
     );
@@ -67,49 +46,21 @@ const ProductPage = () => {
 
   return (
     <Layout>
-      <Helmet>
-        <title>{product.title} | Digital Deals Hub</title>
-        <meta name="description" content={product.shortDescription || product.description?.substring(0, 160)} />
-      </Helmet>
-      
-      <div className="bg-background min-h-screen">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-8 lg:py-12">
-          <ProductHeader 
-            title={product.title}
-            category={product.category}
-          />
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 mt-6">
-            <div className="lg:col-span-7">
-              <ProductPurchaseSection product={product} />
-            </div>
-            
-            <div className="lg:col-span-5">
-              <ProductTrustBadges />
-            </div>
+      <div className="container mx-auto px-4 py-8">
+        <ProductHeader product={product} />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+          <div className="lg:col-span-2">
+            <ProductDescription product={product} />
           </div>
-
-          {recommendations && recommendations.length > 0 && (
-            <ProductRecommendations
-              recommendations={recommendations}
-              loading={recLoading}
-              error={recError}
-            />
-          )}
-
-          <div className="mt-8 w-full">
-            <ProductDescription description={product.description} />
+          <div>
+            <ProductPurchaseSection product={product} />
           </div>
-
-          {personalizedRecs && personalizedRecs.length > 0 && (
-            <ProductRecommendations
-              recommendations={personalizedRecs}
-              loading={persLoading}
-              error={persError}
-              label="Dành riêng cho bạn"
-            />
-          )}
         </div>
+        
+        {product.id && (
+          <ProductRecommendations productId={product.id} strategy="similar" />
+        )}
       </div>
     </Layout>
   );

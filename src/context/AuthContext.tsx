@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthState } from '@/hooks/use-auth-state';
@@ -28,7 +29,7 @@ interface AuthContextType {
   checkUserRole?: (role: UserRoleType) => boolean;
 }
 
-// Create a context with default values
+// Create a context with default values - fix type argument issue
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
