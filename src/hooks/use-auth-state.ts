@@ -1,7 +1,6 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { safeId, extractSafeData } from '@/utils/supabaseHelpers';
+import { safeExtractProperty } from '@/utils/supabaseTypeUtils';
 
 // Define our auth state interface
 interface AuthState {
@@ -34,7 +33,7 @@ export function useAuthState() {
       const { data, error } = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', safeId(userId))
+        .eq('id', userId as any)
         .single();
       
       if (error) {
@@ -42,12 +41,7 @@ export function useAuthState() {
         return null;
       }
       
-      const profileData = extractSafeData<{ balance: number }>(data);
-      
-      if (profileData) {
-        return profileData.balance;
-      }
-      return null;
+      return safeExtractProperty<number>(data, 'balance', 0);
     } catch (error) {
       console.error('Error in fetchBalance:', error);
       return null;

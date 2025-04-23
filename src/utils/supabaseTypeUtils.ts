@@ -79,3 +79,14 @@ export const safeGetProperty = <T, K extends keyof T>(
 export const isDataResponse = <T = any>(response: { data: T | null, error: any | null }): response is { data: T, error: null } => {
   return response.data !== null && response.error === null;
 };
+
+/**
+ * Helper function to safely extract property value from potential database error
+ * This is especially useful for handling properties that might not exist on error types
+ */
+export const safeExtractProperty = <T>(obj: any, propertyName: string, defaultValue: T): T => {
+  if (!obj) return defaultValue;
+  if (typeof obj !== 'object') return defaultValue;
+  if ('error' in obj && obj.error) return defaultValue;
+  return (obj[propertyName] as T) || defaultValue;
+};

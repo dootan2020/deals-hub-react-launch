@@ -9,11 +9,12 @@ export interface DialogFooterButtonsProps {
   isSubmitting: boolean;
   isVerifying: boolean;
   hasEnoughBalance: boolean;
-  onClose?: () => void; // Alias for onCancel
-  onPurchase?: () => Promise<void>; // Alias for onConfirm
-  isProcessing?: boolean; // Alias for isSubmitting
-  hasBalance?: boolean; // Alias for hasEnoughBalance
   isLoadingBalance?: boolean;
+  // Backwards compatibility aliases
+  onClose?: () => void;
+  onPurchase?: () => Promise<void>;
+  isProcessing?: boolean;
+  hasBalance?: boolean;
 }
 
 export const DialogFooterButtons = ({

@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Product } from '@/types';
-import { DialogHeader as CustomDialogHeader } from './purchase-dialog/DialogHeader';
+import { DialogHeader } from './purchase-dialog/DialogHeader';
 import { DialogContent as CustomDialogContent } from './purchase-dialog/DialogContent';
 import { DialogFooterButtons } from './purchase-dialog/DialogFooterButtons';
 import { usePurchaseToast } from '@/hooks/purchase/usePurchaseToast';
@@ -99,7 +99,7 @@ export const PurchaseDialog = ({
   };
 
   // Verify product when dialog opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       handleVerifyProduct();
     }
@@ -108,14 +108,9 @@ export const PurchaseDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Purchase {product.title}</DialogTitle>
-        </DialogHeader>
-        
-        <CustomDialogHeader 
+        <DialogHeader 
           isVerifying={isVerifying}
           title={product.title}
-          onClose={onClose}
         />
         
         <CustomDialogContent

@@ -57,7 +57,7 @@ export interface AuthContextType {
   refreshUserBalance: () => Promise<number | void>;
   refreshBalance: () => Promise<number | void>; // Alias for backward compatibility
   refreshUserProfile: () => Promise<void>;
-  login: (email: string, password: string) => Promise<any>;
+  login: (email: string, password: string) => Promise<any>; // Added login method for tests
   logout: () => Promise<void>;
   register: (email: string, password: string, metadata?: Record<string, any>) => Promise<any>;
   checkUserRole: (role: UserRole) => boolean;
