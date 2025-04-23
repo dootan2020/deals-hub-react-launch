@@ -1,4 +1,3 @@
-
 export type UserRole = 'admin' | 'user' | 'manager' | 'staff' | 'guest';
 
 // Define UserRole as both type and enum-like object
@@ -29,4 +28,5 @@ export interface AuthContextType {
   signup: (email: string, password: string) => Promise<void>; // Alias for register
   logout: () => Promise<void>;
   loading: boolean;
+  checkUserRole?: (role: UserRole) => boolean;
 }

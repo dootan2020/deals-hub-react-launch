@@ -1,8 +1,7 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthState } from '@/hooks/use-auth-state';
-import { UserRole } from '@/types';
+import { UserRole } from '@/types/auth.types';
 import { extractSafeData } from '@/utils/helpers';
 
 interface AuthContextType {
@@ -38,8 +37,8 @@ export const AuthContext = createContext<AuthContextType>({
   balance: null,
   balanceLoading: false,
   fetchBalance: async () => null,
-  isAdmin: false,
   userRoles: [],
+  isAdmin: false,
   userBalance: null,
   setUserBalance: () => {},
   fetchUserBalance: async () => null,
@@ -51,7 +50,7 @@ export const AuthContext = createContext<AuthContextType>({
   signUp: async () => ({}),
   refreshUserProfile: async () => {},
   refreshUserBalance: async () => null,
-  checkUserRole: (role: UserRole) => false
+  checkUserRole: () => false
 });
 
 export const useAuth = (): AuthContextType => useContext(AuthContext);
@@ -99,10 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (data && Array.isArray(data)) {
-        const roles = data.map(item => {
-          // Convert role string to UserRole enum value
-          return item.role === 'admin' ? UserRole.Admin : UserRole.User;
-        });
+        const roles = data.map(item => item.role);
         setUserRoles(roles as UserRole[]);
       }
     } catch (error) {
