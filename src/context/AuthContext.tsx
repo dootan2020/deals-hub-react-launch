@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthState } from '@/hooks/use-auth-state';
 import { UserRole } from '@/types/auth.types';
 import { extractSafeData } from '@/utils/helpers';
+import { getUserWithRoles } from '@/utils/security';
 
 interface AuthContextType {
   user: any;
