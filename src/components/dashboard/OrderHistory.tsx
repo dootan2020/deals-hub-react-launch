@@ -1,7 +1,7 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '@/context/AuthContext';
-import { useOrderHistory, OrderHistoryItem } from '@/hooks/useOrderHistory.tsx';
+import { useOrderHistory, OrderHistoryItem } from '@/hooks/useOrderHistory';
 import { Loader } from 'lucide-react';
 
 const OrderHistory = () => {
@@ -56,7 +56,7 @@ const OrderHistory = () => {
                 {new Intl.NumberFormat('vi-VN', {
                   style: 'currency',
                   currency: 'VND'
-                }).format(order.price * order.quantity)}
+                }).format(order.price)}
               </TableCell>
               <TableCell>
                 {new Date(order.created_at).toLocaleDateString('vi-VN')}
@@ -73,9 +73,9 @@ const OrderHistory = () => {
                 </span>
               </TableCell>
               <TableCell>
-                {order.key_delivered.length > 0 ? (
+                {order.key_delivered ? (
                   <div className="max-w-xs overflow-hidden text-ellipsis">
-                    {order.key_delivered.map((key, index) => (
+                    {order.key_delivered.split('\n').map((key, index) => (
                       <div key={index} className="text-xs font-mono bg-gray-100 p-1 rounded mb-1">
                         {key}
                       </div>

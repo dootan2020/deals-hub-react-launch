@@ -8,7 +8,7 @@ export interface OrderHistoryItem {
   product_id: string;
   quantity: number;
   price: number;
-  key_delivered: string[];
+  key_delivered: string;
   status: string;
   created_at: string;
   product?: {
@@ -57,7 +57,7 @@ export const useOrderHistory = (userId: string | undefined) => {
           product_id: order.product_id,
           quantity: order.qty,
           price: order.total_price,
-          key_delivered: order.keys || [],
+          key_delivered: Array.isArray(order.keys) ? order.keys.join('\n') : String(order.keys || ''),
           status: order.status,
           created_at: order.created_at,
           product: order.products
