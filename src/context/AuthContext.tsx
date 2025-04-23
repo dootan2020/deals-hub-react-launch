@@ -28,7 +28,6 @@ interface AuthContextType {
   checkUserRole?: (role: UserRole) => boolean;
 }
 
-// Create a context with default values
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
@@ -87,19 +86,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user) return;
       
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id);
-        
+      const { data, error } = await supabase.rpc('get_user_with_roles', {
+        user_id_param: user.id
+      });
+      
       if (error) {
         console.error('Error fetching user roles:', error);
         return;
       }
       
-      if (data && Array.isArray(data)) {
-        const roles = data.map(item => item.role);
-        setUserRoles(roles as UserRole[]);
+      if (data && Array.isArray(data.roles)) {
+        setUserRoles(data.roles as UserRole[]);
       }
     } catch (error) {
       console.error('Error in fetchUserRoles:', error);

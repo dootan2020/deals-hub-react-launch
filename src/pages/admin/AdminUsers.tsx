@@ -31,6 +31,7 @@ import { format } from 'date-fns';
 import { Loader2, Eye, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { getAllUsers } from '@/utils/security';
 
 interface User {
   id: string;
@@ -59,13 +60,12 @@ const AdminUsers = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // First get all users with their roles
-      const { data: usersWithRoles, error: usersError } = await supabase
-        .from('users_with_roles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Use the new secure function to get all users
+      const users = await getAllUsers();
       
-      if (usersError) throw usersError;
+      if (!users) {
+        throw new Error('Failed to fetch users');
+      }
       
       // Then get all profiles with balances
       const { data: profiles, error: profilesError } = await supabase
@@ -75,10 +75,11 @@ const AdminUsers = () => {
       if (profilesError) throw profilesError;
       
       // Merge the data
-      const mergedUsers = usersWithRoles.map(user => {
+      const mergedUsers = users.map(user => {
         const profile = profiles.find(p => p.id === user.id);
         return {
           ...user,
+          display_name: user.display_name || user.email.split('@')[0],
           balance: profile?.balance || 0
         };
       });

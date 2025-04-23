@@ -25,3 +25,29 @@ export async function logSecurityEvent(event: SecurityEvent) {
     return null;
   }
 }
+
+export async function getUserWithRoles(userId?: string) {
+  try {
+    const { data, error } = await supabase.rpc('get_user_with_roles', { 
+      user_id_param: userId
+    });
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Failed to get user with roles:', error);
+    return null;
+  }
+}
+
+export async function getAllUsers() {
+  try {
+    const { data, error } = await supabase.rpc('get_all_users');
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Failed to get all users:', error);
+    return null;
+  }
+}
