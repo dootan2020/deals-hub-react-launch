@@ -154,3 +154,20 @@ export function uuidFilter(id: string | null | undefined): string {
   if (!id) return '';
   return id;
 }
+
+// Safe conversion for data types when working with Supabase
+export function safeCastData<T>(data: any): T | null {
+  if (!data) return null;
+  if (isSupabaseError(data)) return null;
+  return data as T;
+}
+
+// Type-safe Supabase ID filter
+export function idEqualFilter<T extends string | number>(column: string, value: T): { [key: string]: T } {
+  return { [column]: value };
+}
+
+// Cast object to Supabase insert/update format
+export function asSupabaseTable<T>(data: Record<string, any>): T {
+  return data as unknown as T;
+}

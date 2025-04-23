@@ -12,6 +12,37 @@ export interface ApiResponse {
   error?: string;
 }
 
+// Normalize product information from API response
+export function normalizeProductInfo(data: any): any {
+  if (!data) return null;
+  
+  return {
+    name: data.name || '',
+    price: data.price || '0',
+    stock: data.stock || '0',
+    description: data.description || '',
+  };
+}
+
+// Convert product info to ApiResponse format
+export function productInfoToApiResponse(info: any, kioskToken?: string): ApiResponse {
+  if (!info) {
+    return {
+      success: "false",
+      error: "Invalid product information"
+    };
+  }
+  
+  return {
+    success: "true",
+    name: info.name || '',
+    price: info.price || '0',
+    stock: info.stock || '0',
+    description: info.description || '',
+    kioskToken: kioskToken || ''
+  };
+}
+
 // Function to fetch API configurations from Supabase
 export async function fetchActiveApiConfig() {
   try {

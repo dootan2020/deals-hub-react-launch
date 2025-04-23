@@ -1,34 +1,34 @@
 
-import { useFormContext } from 'react-hook-form';
-import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { RichTextEditor } from '@/components/ui/RichTextEditor';
+import { useFormContext } from "react-hook-form";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
 export function ProductBasicInfoFields() {
   const form = useFormContext();
-
+  
   const generateSlugFromTitle = () => {
     const title = form.getValues('title');
+    if (!title) return;
+    
     const slug = title.toLowerCase()
       .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '');
-    form.setValue('slug', slug);
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/--+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+    
+    form.setValue('slug', slug, { shouldValidate: true });
   };
-
-  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '');
-    form.setValue('slug', value);
-  };
-
+  
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium">Basic Information</h3>
+      
       <FormField
-        name="title"
         control={form.control}
-        rules={{ required: "Title is required" }}
+        name="title"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Product Title <span className="text-red-500">*</span></FormLabel>
@@ -39,66 +39,62 @@ export function ProductBasicInfoFields() {
           </FormItem>
         )}
       />
-
+      
       <FormField
-        name="description"
         control={form.control}
-        rules={{ required: "Description is required" }}
+        name="description"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Description <span className="text-red-500">*</span></FormLabel>
             <FormControl>
-              <RichTextEditor 
-                value={field.value} 
-                onChange={field.onChange}
-                placeholder="Enter product description..."
-                height="300px"
-              />
+              <Textarea {...field} placeholder="Enter product description" className="min-h-[100px]" />
             </FormControl>
-            <FormDescription>
-              Format your description using the toolbar above
-            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
       />
-
-      <FormField
-        name="slug"
-        control={form.control}
-        rules={{ 
-          required: "Slug is required",
-          pattern: {
-            value: /^[a-z0-9-]+$/,
-            message: "Slug must contain only lowercase letters, numbers, and hyphens"
-          }
-        }}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Slug <span className="text-red-500">*</span></FormLabel>
-            <div className="flex gap-2">
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="slug"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Slug <span className="text-red-500">*</span></FormLabel>
+              <div className="flex space-x-2">
+                <FormControl>
+                  <Input {...field} placeholder="product-slug" />
+                </FormControl>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={generateSlugFromTitle}
+                >
+                  Generate
+                </Button>
+              </div>
+              <FormDescription>
+                URL-friendly identifier for the product
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="externalId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>External ID</FormLabel>
               <FormControl>
-                <Input 
-                  {...field} 
-                  placeholder="product-slug" 
-                  onChange={handleSlugChange}
-                />
+                <Input {...field} placeholder="External product ID (optional)" />
               </FormControl>
-              <Button 
-                type="button"
-                variant="outline"
-                onClick={generateSlugFromTitle}
-              >
-                Generate
-              </Button>
-            </div>
-            <FormDescription>
-              URL-friendly version of the product name
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
     </div>
   );
 }

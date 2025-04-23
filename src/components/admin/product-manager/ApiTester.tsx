@@ -1,211 +1,104 @@
 
 import React, { useState } from 'react';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, RefreshCw, Check, AlertTriangle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { fetchProxySettings, ProxyType, ProxyConfig } from '@/utils/proxyUtils';
-import { 
-  ApiResponse, 
-  fetchActiveApiConfig, 
-  normalizeProductInfo,
-  productInfoToApiResponse
-} from '@/utils/apiUtils';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { isValidRecord } from '@/utils/supabaseHelpers';
+import { Input } from '@/components/ui/input';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { ProxyType } from '@/utils/proxyUtils';
+import { ApiResponse } from '@/utils/apiUtils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ApiTesterProps {
   initialKioskToken?: string;
   onApiDataReceived?: (data: ApiResponse) => void;
 }
 
-export const ApiTester = ({ initialKioskToken = '', onApiDataReceived }: ApiTesterProps) => {
+export function ApiTester({ initialKioskToken = '', onApiDataReceived }: ApiTesterProps) {
   const [kioskToken, setKioskToken] = useState(initialKioskToken);
   const [isLoading, setIsLoading] = useState(false);
-  const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
-  const [proxyType, setProxyType] = useState<ProxyType>('allorigins');
+  const [selectedProxy, setSelectedProxy] = useState<ProxyType>('allorigins');
   
-  const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setKioskToken(e.target.value);
+  const handleProxyChange = (value: string) => {
+    setSelectedProxy(value as ProxyType);
   };
   
-  const handleTest = async () => {
-    if (!kioskToken.trim()) {
-      toast.error('Please enter a Kiosk Token');
+  const handleTestApi = async () => {
+    if (!kioskToken) {
+      alert('Please enter a kiosk token');
       return;
     }
     
     setIsLoading(true);
-    setApiResponse(null);
     
     try {
-      // Get proxy settings
-      const proxyConfig = await fetchProxySettings();
-      setProxyType(proxyConfig.proxyType);
+      // Call the API test endpoint
+      const response = await fetch(`/api/test-api?kioskToken=${encodeURIComponent(kioskToken)}&proxyType=${selectedProxy}`);
+      const data = await response.json();
       
-      // Get API config
-      const apiConfig = await fetchActiveApiConfig();
-      const userToken = apiConfig.user_token || '';
-      
-      if (!userToken) {
-        toast.error('User API Token not configured');
-        return;
+      if (onApiDataReceived && data) {
+        onApiDataReceived(data);
       }
-      
-      // Call the API through serverless function
-      const { data, error } = await supabase.functions.invoke('api-proxy', {
-        body: { 
-          endpoint: 'getStock',
-          kioskToken,
-          userToken
-        }
-      });
-      
-      if (error) {
-        toast.error(`API Error: ${error.message}`);
-        return;
-      }
-      
-      if (data) {
-        const responseData: ApiResponse = data as ApiResponse;
-        setApiResponse(responseData);
-        
-        if (onApiDataReceived && responseData) {
-          onApiDataReceived(responseData);
-        }
-        
-        if (responseData.success === 'true') {
-          toast.success('Product found!');
-        } else {
-          toast.error(`API Error: ${responseData.error || 'Unknown error'}`);
-        }
-      } else {
-        toast.error('No data returned from API');
-      }
-    } catch (error: any) {
-      console.error('API test error:', error);
-      toast.error(`Error: ${error.message || 'Unknown error'}`);
+    } catch (error) {
+      console.error('Error testing API:', error);
     } finally {
       setIsLoading(false);
-    }
-  };
-  
-  const handleManualDataEntry = (productInfo: any) => {
-    if (!isValidRecord(productInfo)) return;
-    
-    const normalizedInfo = normalizeProductInfo(productInfo);
-    if (normalizedInfo) {
-      const apiResponseData = productInfoToApiResponse(normalizedInfo);
-      setApiResponse(apiResponseData);
-      
-      if (onApiDataReceived) {
-        onApiDataReceived(apiResponseData);
-      }
     }
   };
   
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span>API Product Tester</span>
-          <Badge variant="outline">{proxyType}</Badge>
-        </CardTitle>
+        <CardTitle className="text-lg">API Data Retrieval</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <label htmlFor="kioskToken" className="text-sm font-medium">
+          <label className="block text-sm font-medium mb-1">
             Kiosk Token
           </label>
-          <div className="flex mt-1">
-            <Input 
-              id="kioskToken"
-              value={kioskToken} 
-              onChange={handleTokenChange}
-              placeholder="Enter kiosk token..."
-              className="flex-1"
-              disabled={isLoading}
-            />
-            <Button 
-              onClick={handleTest} 
-              className="ml-2" 
-              disabled={isLoading || !kioskToken.trim()}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                  Testing
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" /> 
-                  Test
-                </>
-              )}
-            </Button>
-          </div>
+          <Input
+            value={kioskToken}
+            onChange={(e) => setKioskToken(e.target.value)}
+            placeholder="Enter kiosk token"
+          />
         </div>
         
-        {apiResponse && (
-          <>
-            <Separator />
-            <div>
-              <div className="flex items-center mb-2">
-                <h3 className="text-sm font-medium">API Response</h3>
-                {apiResponse.success === 'true' ? (
-                  <Badge variant="success" className="ml-2">Success</Badge>
-                ) : (
-                  <Badge variant="destructive" className="ml-2">Error</Badge>
-                )}
-              </div>
-              
-              {apiResponse.success === 'true' ? (
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Product Name:</span>
-                    <span>{apiResponse.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Price:</span>
-                    <span>{apiResponse.price}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Stock:</span>
-                    <span>{apiResponse.stock}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3 bg-red-50 rounded-md flex items-center text-red-800">
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  {apiResponse.error || 'Unknown API error'}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </CardContent>
-      <CardFooter className="border-t pt-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Proxy Type
+          </label>
+          <Select value={selectedProxy} onValueChange={handleProxyChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select proxy type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="allorigins">AllOrigins</SelectItem>
+              <SelectItem value="corsproxy">CORS Proxy</SelectItem>
+              <SelectItem value="corsanywhere">CORS Anywhere</SelectItem>
+              <SelectItem value="direct">Direct Request</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
         <Button 
-          variant="outline" 
-          className="w-full" 
-          onClick={() => handleManualDataEntry({
-            name: "Sample Product",
-            price: "10",
-            stock: "100",
-            description: "This is a sample product for testing",
-            success: "true"
-          })}
+          onClick={handleTestApi} 
           disabled={isLoading}
+          className="w-full"
         >
-          <Check className="mr-2 h-4 w-4" />
-          Use Sample Data
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Retrieving Data...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Get Product Data
+            </>
+          )}
         </Button>
-      </CardFooter>
+      </CardContent>
     </Card>
   );
-};
+}
 
-export default ApiTester;
+export { ApiResponse };

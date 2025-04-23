@@ -10,7 +10,7 @@ import { Globe, Save, RefreshCw, TestTube2, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ProxyType, ProxyConfig, buildProxyUrl } from '@/utils/proxyUtils';
-import { isValidRecord, isSupabaseRecord } from '@/utils/supabaseHelpers';
+import { isValidRecord, isSupabaseRecord, asSupabaseTable } from '@/utils/supabaseHelpers';
 
 interface ProxySettingsData {
   id: string;
@@ -84,10 +84,11 @@ const CorsProxySelector: React.FC = () => {
 
       if (fetchError) throw fetchError;
       
-      const settingsData = {
+      // Create table-compatible data object
+      const settingsData = asSupabaseTable({
         proxy_type: proxyConfig.proxyType,
         custom_url: proxyConfig.customUrl || null
-      };
+      });
       
       let error;
       

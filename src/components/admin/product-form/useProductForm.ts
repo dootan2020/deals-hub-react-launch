@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { useProductSync } from '@/hooks/use-product-sync';
 import { Category } from '@/types';
 import { fetchProxySettings } from '@/utils/proxyUtils';
-import { ApiResponse, fetchActiveApiConfig, fetchViaProxy } from '@/utils/apiUtils';
+import { ApiResponse, fetchActiveApiConfig, fetchProductData } from '@/utils/apiUtils';
 import { 
   isValidArray, 
   isValidRecord, 
@@ -20,7 +20,8 @@ import {
   formatUuid,
   processSupabaseData,
   isSupabaseError,
-  isErrorResponse
+  isErrorResponse,
+  asSupabaseTable
 } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
@@ -48,6 +49,21 @@ interface CategoryData {
   image: string;
   count: number;
   parent_id: string | null;
+}
+
+interface ProductData {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  original_price?: number;
+  in_stock: boolean;
+  slug: string;
+  external_id?: string;
+  category_id: string;
+  images?: string[];
+  kiosk_token?: string;
+  stock: number;
 }
 
 export function useProductForm(productId?: string, onSuccess?: () => void) {
@@ -124,26 +140,10 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
     }
   };
 
-  interface ProductData {
-    id: string;
-    title: string;
-    description: string;
-    price: number;
-    original_price?: number;
-    in_stock: boolean;
-    slug: string;
-    external_id?: string;
-    category_id: string;
-    images?: string[];
-    kiosk_token?: string;
-    stock: number;
-  }
-
   const fetchProductDetails = async () => {
     if (!productId) return;
     setIsLoading(true);
     try {
-      // Use text() query parameter for UUID to avoid type coercion issues
       const result = await supabase
         .from('products')
         .select('*')
@@ -154,7 +154,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
         throw result.error;
       }
       
-      if (result.data && isValidRecord(result.data)) {
+      if (result.data) {
         const data = result.data as ProductData;
         form.reset({
           title: safeString(data.title),
@@ -256,27 +256,17 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
         return;
       }
       
-      const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${userToken}`;
-      try {
-        const data = await fetchViaProxy(apiUrl, proxyConfig);
-        
-        if (data?.success === "true") {
-          handleApiDataReceived({
-            success: "true",
-            name: data.name,
-            price: data.price,
-            stock: data.stock,
-            description: data.description,
-            kioskToken: kioskToken
-          });
-          toast.success('Product data fetched successfully!');
-        } else {
-          toast.error(`Failed to fetch product data: ${data?.error || 'Unknown error'}`);
-        }
-      } catch (error) {
-        console.error('API test error:', error);
-        toast.error(`Error fetching product data: ${(error as Error).message}`);
+      const apiResponse = await fetchProductData(kioskToken, userToken, proxyConfig);
+      
+      if (apiResponse.success === "true") {
+        handleApiDataReceived(apiResponse);
+        toast.success('Product data fetched successfully!');
+      } else {
+        toast.error(`Failed to fetch product data: ${apiResponse.error || 'Unknown error'}`);
       }
+    } catch (error) {
+      console.error('API test error:', error);
+      toast.error(`Error fetching product data: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }

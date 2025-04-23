@@ -1,89 +1,66 @@
-import { useState, useEffect } from 'react';
+
+import React, { useState, useEffect } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem,
-  FormLabel, 
-  FormMessage 
-} from '@/components/ui/form';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { Loader2, RefreshCw } from 'lucide-react';
-import { Category } from '@/types';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { ApiResponse } from '@/utils/apiUtils';
-import { 
-  isSupabaseRecord, 
-  safeString, 
-  safeNumber, 
-  isValidRecord,
-  processSupabaseData,
-  isSupabaseError
-} from '@/utils/supabaseHelpers';
-
-const productSchema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters.'),
-  description: z.string().min(10, 'Description must be at least 10 characters.'),
-  price: z.coerce.number().min(0, 'Price must be a positive number.'),
-  originalPrice: z.coerce.number().min(0, 'Original price must be positive').optional(),
-  inStock: z.boolean().default(true),
-  slug: z.string().min(3, 'Slug must be at least 3 characters.')
-    .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens.'),
-  externalId: z.string().optional(),
-  categoryId: z.string().min(1, 'Category is required'),
-  images: z.string().optional(),
-  kioskToken: z.string().min(1, 'Kiosk Token is required'),
-  stock: z.number().int().min(0, 'Stock must be a positive number'),
-});
-
-type ProductFormValues = z.infer<typeof productSchema>;
+import { toast } from 'sonner';
+import { Category } from '@/types';
+import { asSupabaseTable, safeString, safeNumber } from '@/utils/supabaseHelpers';
 
 interface ProductFormProps {
-  onApiTest?: (kioskToken: string) => Promise<void>;
-  onApiDataReceived?: (data: ApiResponse) => void;
   productId?: string;
-  onSubmit?: (data: ProductFormValues) => Promise<void>;
+  onSubmit?: (data: any) => Promise<void>;
+  onApiTest?: (kioskToken: string) => Promise<any>;
+  onApiDataReceived?: (data: ApiResponse) => void;
   categories: Category[];
 }
 
-export function ProductForm({ 
-  onApiTest, 
-  productId, 
-  onSubmit,
-  onApiDataReceived,
-  categories 
-}: ProductFormProps) {
+const formSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().min(1, 'Description is required'),
+  price: z.coerce.number().min(0, 'Price must be positive'),
+  originalPrice: z.coerce.number().positive('Original price must be positive').optional(),
+  inStock: z.boolean().default(true),
+  slug: z.string().min(1, 'Slug is required'),
+  categoryId: z.string().min(1, 'Category is required'),
+  externalId: z.string().optional(),
+  kioskToken: z.string().optional(),
+  stock: z.coerce.number().min(0, 'Stock must be 0 or greater'),
+  images: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+interface ProductData {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  original_price?: number;
+  in_stock: boolean;
+  slug: string;
+  external_id?: string;
+  category_id: string;
+  images?: string[];
+  kiosk_token?: string;
+  stock: number;
+}
+
+export function ProductForm({ productId, onSubmit, onApiTest, onApiDataReceived, categories }: ProductFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [showResetDialog, setShowResetDialog] = useState(false);
-  const [formDirty, setFormDirty] = useState(false);
+  const [isTestingApi, setIsTestingApi] = useState(false);
   
-  const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
       description: '',
@@ -91,311 +68,193 @@ export function ProductForm({
       originalPrice: undefined,
       inStock: true,
       slug: '',
-      externalId: '',
       categoryId: '',
-      images: '',
+      externalId: '',
       kioskToken: '',
       stock: 0,
-    },
-    mode: 'onChange'
+      images: '',
+    }
   });
 
   useEffect(() => {
-    const subscription = form.watch(() => {
-      setFormDirty(true);
-    });
-    return () => subscription.unsubscribe();
-  }, [form.watch]);
-
-  useEffect(() => {
     if (productId) {
-      fetchProductDetails();
+      fetchProductData();
     }
   }, [productId]);
 
-  useEffect(() => {
-    if (onApiDataReceived) {
-      const handleExternalApiData = (data: ApiResponse) => {
-        handleApiData(data);
-      };
-
-      const handleApiDataEvent = (event: CustomEvent<ApiResponse>) => {
-        handleExternalApiData(event.detail);
-      };
-
-      window.addEventListener('apiDataReceived' as any, handleApiDataEvent as any);
-
-      return () => {
-        window.removeEventListener('apiDataReceived' as any, handleApiDataEvent as any);
-      };
-    }
-  }, [onApiDataReceived]);
-
-  interface ProductData {
-    id: string;
-    title: string;
-    description: string;
-    price: number;
-    original_price?: number;
-    in_stock: boolean;
-    slug: string;
-    external_id?: string;
-    category_id: string;
-    images?: string[];
-    kiosk_token?: string;
-    stock: number;
-  }
-
-  const fetchProductDetails = async () => {
+  const fetchProductData = async () => {
     if (!productId) return;
     
     setIsLoading(true);
     try {
-      const response = await supabase
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('id', productId)
         .maybeSingle();
-
-      if (response.error) {
-        throw response.error;
-      }
       
-      if (response.data) {
-        const data = response.data as ProductData;
-        
+      if (error) throw error;
+      
+      if (data) {
         form.reset({
           title: safeString(data.title),
           description: safeString(data.description),
           price: safeNumber(data.price),
-          originalPrice: data.original_price !== undefined ? safeNumber(data.original_price) : undefined,
+          originalPrice: data.original_price ? safeNumber(data.original_price) : undefined,
           inStock: !!data.in_stock,
           slug: safeString(data.slug),
-          externalId: data.external_id ? safeString(data.external_id) : '',
           categoryId: safeString(data.category_id),
-          images: Array.isArray(data.images) && data.images.length > 0 ? data.images.join('\n') : '',
+          externalId: data.external_id ? safeString(data.external_id) : '',
           kioskToken: data.kiosk_token ? safeString(data.kiosk_token) : '',
           stock: safeNumber(data.stock),
+          images: Array.isArray(data.images) && data.images.length > 0 ? data.images.join('\n') : '',
         });
-        setFormDirty(false);
-      } else {
-        toast.error('Product not found');
       }
     } catch (error) {
-      console.error('Error fetching product details:', error);
-      toast.error('Failed to fetch product details');
+      console.error('Error fetching product data:', error);
+      toast.error('Failed to load product data');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleFormSubmit = async (formData: ProductFormValues) => {
-    try {
-      setIsLoading(true);
-      
-      if (onSubmit) {
-        await onSubmit(formData);
-      } else {
-        const productData = {
-          title: formData.title,
-          description: formData.description,
-          price: formData.price,
-          original_price: formData.originalPrice || null,
-          in_stock: formData.inStock,
-          slug: formData.slug,
-          external_id: formData.externalId || null,
-          category_id: formData.categoryId,
-          images: formData.images ? formData.images.split('\n').filter(url => url.trim() !== '') : [],
-          kiosk_token: formData.kioskToken || null,
-          stock: formData.stock || 0,
-        };
+  const generateSlugFromTitle = () => {
+    const title = form.getValues('title');
+    if (!title) return;
+    
+    const slug = title.toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/--+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+    
+    form.setValue('slug', slug, { shouldValidate: true });
+  };
 
+  const handleApiTestClick = async () => {
+    const kioskToken = form.getValues('kioskToken');
+    if (!kioskToken) {
+      toast.error('Please enter a kiosk token');
+      return;
+    }
+
+    if (!onApiTest) {
+      toast.error('API test function not provided');
+      return;
+    }
+
+    setIsTestingApi(true);
+    try {
+      const data = await onApiTest(kioskToken);
+      if (data && onApiDataReceived) {
+        onApiDataReceived(data);
+      }
+    } finally {
+      setIsTestingApi(false);
+    }
+  };
+
+  const handleFormSubmit = async (values: FormValues) => {
+    setIsLoading(true);
+    
+    try {
+      if (onSubmit) {
+        // Convert form values to the format expected by the backend
+        const productData = {
+          title: values.title,
+          description: values.description,
+          price: values.price,
+          original_price: values.originalPrice,
+          in_stock: values.inStock,
+          slug: values.slug,
+          external_id: values.externalId || null,
+          category_id: values.categoryId,
+          images: values.images ? values.images.split('\n').filter(url => url.trim() !== '') : [],
+          kiosk_token: values.kioskToken || null,
+          stock: values.stock || 0,
+        };
+        
+        await onSubmit(productData);
+      } else {
+        // Default handling if onSubmit not provided
+        const productData = asSupabaseTable({
+          title: values.title,
+          description: values.description,
+          price: values.price,
+          original_price: values.originalPrice,
+          in_stock: values.inStock,
+          slug: values.slug,
+          external_id: values.externalId || null,
+          category_id: values.categoryId,
+          images: values.images ? values.images.split('\n').filter(url => url.trim() !== '') : [],
+          kiosk_token: values.kioskToken || null,
+          stock: values.stock || 0,
+        });
+        
         if (productId) {
-          const { error } = await supabase
+          // Update existing product
+          const { error: updateError } = await supabase
             .from('products')
             .update(productData)
             .eq('id', productId);
-
-          if (error) throw error;
+          
+          if (updateError) throw updateError;
           toast.success('Product updated successfully');
         } else {
-          const { error } = await supabase
+          // Create new product
+          const { error: insertError } = await supabase
             .from('products')
-            .insert(productData);
-
-          if (error) throw error;
+            .insert([productData]);
+          
+          if (insertError) throw insertError;
           toast.success('Product created successfully');
+          
+          // Reset the form
+          form.reset();
         }
       }
-
-      setFormDirty(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving product:', error);
-      toast.error(`Failed to save product: ${error.message}`);
+      toast.error(`Failed to save product: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleResetForm = () => {
-    if (formDirty) {
-      setShowResetDialog(true);
-    } else {
-      resetForm();
-    }
-  };
-
-  const resetForm = () => {
-    form.reset({
-      title: '',
-      description: '',
-      price: 0,
-      originalPrice: undefined,
-      inStock: true,
-      slug: '',
-      externalId: '',
-      categoryId: '',
-      images: '',
-      kioskToken: '',
-      stock: 0,
-    });
-    setFormDirty(false);
-    toast.info('Form has been reset');
-  };
-
-  const generateSlug = () => {
-    const title = form.getValues('title');
-    if (!title) {
-      toast.error('Please enter a title first');
-      return;
-    }
-    
-    const slug = title
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^\w\-]+/g, '')
-      .replace(/\-\-+/g, '-')
-      .replace(/^-+/, '')
-      .replace(/-+$/, '');
-      
-    form.setValue('slug', slug);
-    toast.success('Slug generated from title');
-  };
-
-  const handleApiTrigger = async () => {
-    const kioskToken = form.getValues('kioskToken');
-    
-    if (!kioskToken) {
-      toast.error('Please enter a kiosk token first');
-      return;
-    }
-    
-    if (onApiTest) {
-      try {
-        setIsLoading(true);
-        await onApiTest(kioskToken);
-      } catch (error) {
-        console.error('API test error:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const handleApiData = (data: ApiResponse) => {
-    if (!data) {
-      toast.error('No API data to apply');
-      return;
-    }
-
-    try {
-      const currentKioskToken = form.getValues('kioskToken');
-      
-      if (data.name) {
-        form.setValue('title', data.name, { shouldValidate: true, shouldDirty: true });
-      }
-      
-      if (data.kioskToken) {
-        form.setValue('kioskToken', data.kioskToken, { shouldValidate: true, shouldDirty: true });
-      } else if (currentKioskToken) {
-        form.setValue('kioskToken', currentKioskToken, { shouldValidate: true, shouldDirty: true });
-      }
-      
-      if (data.price) {
-        const price = parseFloat(data.price) * 3;
-        form.setValue('price', price, { shouldValidate: true, shouldDirty: true });
-        
-        form.setValue('originalPrice', parseFloat(data.price), { shouldValidate: true, shouldDirty: true });
-      }
-      
-      if (data.stock) {
-        const stockValue = parseInt(data.stock) || 0;
-        form.setValue('stock', stockValue, { shouldValidate: true, shouldDirty: true });
-        
-        form.setValue('inStock', stockValue > 0, { shouldValidate: true, shouldDirty: true });
-      }
-      
-      if (data.name && !form.getValues('slug')) {
-        const slug = data.name.toLowerCase()
-          .replace(/\s+/g, '-')
-          .replace(/[^\w\-]+/g, '')
-          .replace(/\-\-+/g, '-')
-          .replace(/^-+/, '')
-          .replace(/-+$/, '');
-          
-        form.setValue('slug', slug, { shouldValidate: true, shouldDirty: true });
-      }
-      
-      if (data.description) {
-        form.setValue('description', data.description, { shouldValidate: true, shouldDirty: true });
-      } else if (data.name) {
-        form.setValue('description', `${data.name} - Digital Product`, { shouldValidate: true, shouldDirty: true });
-      }
-      
-      setFormDirty(true);
-      toast.success('API data applied to form successfully');
-    } catch (error) {
-      console.error('Error applying API data to form:', error);
-      toast.error('Failed to apply API data to form');
     }
   };
 
   return (
-    <>
+    <FormProvider {...form}>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="kioskToken"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Kiosk Token <span className="text-red-500">*</span></FormLabel>
-                    <div className="flex space-x-2">
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="kioskToken"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="flex-1">
+                      <FormLabel>Kiosk Token</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="Enter Kiosk Token (e.g., DUP32BXSLWAP4847J84B)"
-                          {...field}
-                        />
+                        <Input {...field} placeholder="Enter kiosk token for product data" />
                       </FormControl>
-                      <Button 
-                        type="button" 
-                        variant="secondary"
-                        onClick={handleApiTrigger}
-                      >
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Test API
-                      </Button>
                     </div>
-                    <FormDescription>
-                      This token is used to identify and synchronize the product with external services.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                    <Button 
+                      type="button" 
+                      onClick={handleApiTestClick}
+                      disabled={isTestingApi || !field.value}
+                    >
+                      {isTestingApi ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Get Product Data
+                    </Button>
+                  </div>
+                  <FormDescription>
+                    Enter a kiosk token to retrieve product information from the API.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -404,7 +263,7 @@ export function ProductForm({
                 <FormItem>
                   <FormLabel>Product Title <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter product title" {...field} />
+                    <Input {...field} placeholder="Enter product title" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -418,47 +277,14 @@ export function ProductForm({
                 <FormItem>
                   <FormLabel>Description <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Enter product description" 
-                      className="min-h-[120px]"
-                      {...field}
-                    />
+                    <Textarea {...field} placeholder="Enter product description" className="min-h-[100px]" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="slug"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>URL Slug <span className="text-red-500">*</span></FormLabel>
-                  <div className="flex space-x-2">
-                    <FormControl>
-                      <Input 
-                        placeholder="product-url-slug" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={generateSlug}
-                    >
-                      Generate
-                    </Button>
-                  </div>
-                  <FormDescription>
-                    URL-friendly version of the product name
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="price"
@@ -466,33 +292,31 @@ export function ProductForm({
                   <FormItem>
                     <FormLabel>Price (VND) <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" min="0" step="1" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="originalPrice"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Original Price (Optional)</FormLabel>
+                    <FormLabel>Original Price</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
-                        placeholder="Original price (for discounts)" 
-                        {...field}
-                        value={field.value || ''}
-                        onChange={(e) => {
-                          const value = e.target.value ? parseFloat(e.target.value) : undefined;
-                          field.onChange(value);
-                        }}
+                        min="0" 
+                        step="1" 
+                        placeholder="Original price (for discounts)"
+                        value={field.value || ''} 
+                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} 
                       />
                     </FormControl>
                     <FormDescription>
-                      Leave empty if there's no discount
+                      Optional. Used to show discount from original price.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -500,53 +324,80 @@ export function ProductForm({
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="categoryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category <span className="text-red-500">*</span></FormLabel>
-                    <Select 
-                      value={field.value} 
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem 
-                            key={category.id} 
-                            value={category.id}
-                          >
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="stock"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Stock Quantity</FormLabel>
+                    <FormLabel>Stock <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
-                        {...field}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value);
-                          field.onChange(isNaN(value) ? 0 : value);
-                        }}
+                        min="0" 
+                        step="1" 
+                        {...field} 
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="inStock"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div>
+                      <FormLabel className="text-base">Available for Sale</FormLabel>
+                    </div>
+                    <FormControl>
+                      <Switch 
+                        checked={field.value} 
+                        onCheckedChange={field.onChange} 
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="slug"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Slug <span className="text-red-500">*</span></FormLabel>
+                    <div className="flex space-x-2">
+                      <FormControl>
+                        <Input {...field} placeholder="product-slug" />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={generateSlugFromTitle}
+                      >
+                        Generate
+                      </Button>
+                    </div>
+                    <FormDescription>
+                      URL-friendly identifier for the product
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="externalId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>External ID</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="External product ID (optional)" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -556,23 +407,32 @@ export function ProductForm({
 
             <FormField
               control={form.control}
-              name="inStock"
+              name="categoryId"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">
-                      Product Availability
-                    </FormLabel>
-                    <FormDescription>
-                      Is this product in stock?
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
+                <FormItem>
+                  <FormLabel>Category <span className="text-red-500">*</span></FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value} 
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem 
+                          key={category.id} 
+                          value={category.id}
+                        >
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -582,33 +442,16 @@ export function ProductForm({
               name="images"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Product Images (URLs)</FormLabel>
+                  <FormLabel>Images (one URL per line)</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Enter URLs, one per line"
-                      className="min-h-[80px]"
-                      {...field}
+                    <Textarea 
+                      {...field} 
+                      placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg" 
+                      className="min-h-[100px]"
                     />
                   </FormControl>
                   <FormDescription>
-                    Enter image URLs, one per line. First image will be used as the main product image.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="externalId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>External ID (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="External reference ID" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Optional external reference ID
+                    Enter one image URL per line
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -616,49 +459,25 @@ export function ProductForm({
             />
           </div>
 
-          <div className="flex justify-between">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={handleResetForm}
+          <div className="flex justify-end space-x-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => form.reset()}
               disabled={isLoading}
-              className="border-gray-300"
             >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Reset Form
+              Reset
             </Button>
-            <div className="space-x-2">
-              <Button
-                type="submit"
-                disabled={isLoading}
-              >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {productId ? 'Update Product' : 'Create Product'}
-              </Button>
-            </div>
+            <Button 
+              type="submit" 
+              disabled={isLoading}
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {productId ? 'Update Product' : 'Create Product'}
+            </Button>
           </div>
         </form>
       </Form>
-
-      <AlertDialog 
-        open={showResetDialog} 
-        onOpenChange={setShowResetDialog}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reset form?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will clear all form fields and unsaved changes. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={resetForm}>
-              Reset
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+    </FormProvider>
   );
 }
