@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 export interface PurchaseResult {
   success: boolean;
   orderId?: string;
+  externalOrderId?: string;
   key?: string;
   error?: string;
 }
@@ -17,7 +18,8 @@ export const usePurchase = () => {
   // Main purchase function attaching to edge
   const purchaseProduct = async (
     productId: string, 
-    quantity: number = 1
+    quantity: number = 1,
+    promotionCode?: string
   ): Promise<PurchaseResult> => {
     setIsLoading(true);
     setPurchaseKey(null);
@@ -39,7 +41,8 @@ export const usePurchase = () => {
         body: {
           userId: session.user.id,
           productId,
-          quantity
+          quantity,
+          promotionCode
         }
       });
 
@@ -77,4 +80,3 @@ export const usePurchase = () => {
 
   return { purchaseProduct, isLoading, purchaseKey };
 };
-

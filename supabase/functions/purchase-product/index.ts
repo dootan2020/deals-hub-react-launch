@@ -21,7 +21,20 @@ serve(async (req) => {
     )
 
     // Parse request body
-    const { userId, productId, quantity = 1 } = await req.json()
+    const { userId, productId, quantity = 1, promotionCode } = await req.json()
+
+    // Get the API user token from environment variable
+    const userToken = Deno.env.get('TAPHOAMMO_USER_TOKEN')
+    if (!userToken) {
+      console.error('TAPHOAMMO_USER_TOKEN is not configured')
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'API configuration missing' 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      })
+    }
 
     // Validate input
     if (!userId || !productId) {
@@ -37,11 +50,12 @@ serve(async (req) => {
     // Fetch product details
     const { data: product, error: productError } = await supabase
       .from('products')
-      .select('*')
+      .select('id, title, price, stock, kiosk_token')
       .eq('id', productId)
       .single()
 
     if (productError || !product) {
+      console.error('Product fetch error:', productError)
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'Không tìm thấy sản phẩm' 
@@ -51,7 +65,18 @@ serve(async (req) => {
       })
     }
 
-    // Check product availability
+    // Check if product has kiosk_token
+    if (!product.kiosk_token) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Sản phẩm không có token mua hàng' 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      })
+    }
+
+    // Check product availability in local database
     if (product.stock < quantity) {
       return new Response(JSON.stringify({ 
         success: false, 
@@ -73,6 +98,7 @@ serve(async (req) => {
       .single()
 
     if (profileError || !userProfile) {
+      console.error('User profile fetch error:', profileError)
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'Không tìm thấy thông tin người dùng' 
@@ -92,24 +118,94 @@ serve(async (req) => {
       })
     }
 
-    // Generate product key (in a real scenario, you'd get this from a key database or API)
-    // For now we'll mock it
-    const generateProductKey = () => {
-      const segments = 3;
-      const segmentLength = 3;
-      let key = '';
-      
-      for (let i = 0; i < segments; i++) {
-        for (let j = 0; j < segmentLength; j++) {
-          key += String.fromCharCode(65 + Math.floor(Math.random() * 26)); // A-Z
-        }
-        if (i < segments - 1) key += '-';
-      }
-      
-      return key;
-    };
+    // STEP 1: Call taphoammo API to buy product
+    console.log(`Calling buyProducts API with kioskToken=${product.kiosk_token}, quantity=${quantity}`)
     
-    const productKey = generateProductKey();
+    const buyUrl = new URL('https://taphoammo.net/api/buyProducts')
+    buyUrl.searchParams.append('kioskToken', product.kiosk_token)
+    buyUrl.searchParams.append('userToken', userToken)
+    buyUrl.searchParams.append('quantity', quantity.toString())
+    
+    if (promotionCode) {
+      buyUrl.searchParams.append('promotion', promotionCode)
+    }
+
+    const buyResponse = await fetch(buyUrl.toString(), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!buyResponse.ok) {
+      console.error('Buy API error:', await buyResponse.text())
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Lỗi khi gọi API mua hàng' 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      })
+    }
+
+    const buyData = await buyResponse.json()
+    
+    if (!buyData.success || !buyData.data || !buyData.data.orderId) {
+      console.error('Buy API returned error:', buyData)
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: buyData.message || 'API mua hàng không trả về orderId' 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      })
+    }
+
+    const orderId = buyData.data.orderId
+
+    // STEP 2: Call getProducts API to retrieve the purchased keys
+    console.log(`Calling getProducts API with orderId=${orderId}`)
+    
+    const getUrl = new URL('https://taphoammo.net/api/getProducts')
+    getUrl.searchParams.append('orderId', orderId)
+    getUrl.searchParams.append('userToken', userToken)
+
+    const getResponse = await fetch(getUrl.toString(), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!getResponse.ok) {
+      console.error('Get Products API error:', await getResponse.text())
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Lỗi khi lấy sản phẩm đã mua' 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      })
+    }
+
+    const getData = await getResponse.json()
+    
+    if (!getData.success || !getData.data || !getData.data.products) {
+      console.error('Get Products API returned error:', getData)
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: getData.message || 'API không trả về sản phẩm' 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      })
+    }
+
+    // Process the returned products (keys)
+    const productKeys = getData.data.products
+    
+    // Join multiple keys into a newline-separated string if there are multiple
+    const keyDelivered = Array.isArray(productKeys) ? productKeys.join('\n') : productKeys
 
     // Create order transaction
     const { data: order, error: orderError } = await supabase
@@ -120,12 +216,14 @@ serve(async (req) => {
         total_price: totalPrice,
         qty: quantity,
         status: 'completed',
-        keys: [{ key: productKey }]
+        keys: [{ key: keyDelivered }],
+        external_order_id: orderId
       })
       .select()
       .single()
 
     if (orderError) {
+      console.error('Order creation error:', orderError)
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'Không thể tạo đơn hàng' 
@@ -142,6 +240,7 @@ serve(async (req) => {
     })
 
     if (balanceError) {
+      console.error('Balance update error:', balanceError)
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'Không thể cập nhật số dư' 
@@ -158,6 +257,7 @@ serve(async (req) => {
       .eq('id', productId)
 
     if (stockError) {
+      console.error('Stock update error:', stockError)
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'Không thể cập nhật số lượng sản phẩm' 
@@ -171,7 +271,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       orderId: order.id, 
-      key: productKey 
+      externalOrderId: orderId,
+      key: keyDelivered 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200

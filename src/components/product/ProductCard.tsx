@@ -5,7 +5,7 @@ import { ShoppingCart, ArrowRight } from 'lucide-react';
 import { ProductLogo } from './ProductLogo';
 import { Button } from '@/components/ui/button';
 import { usePurchase } from '@/hooks/use-purchase';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 
 export interface ProductCardProps {
@@ -37,19 +37,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const { isAuthenticated, user } = useAuth();
   const { purchaseProduct, isLoading, purchaseKey } = usePurchase();
   const [showKey, setShowKey] = useState<string | null>(null);
+  const [promotionCode, setPromotionCode] = useState<string>('');
 
   const handleBuyNow = async () => {
     if (!isAuthenticated) {
-      toast.error('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để mua sản phẩm.');
+      toast.error('Yêu cầu đăng nhập', {
+        description: 'Vui lòng đăng nhập để mua sản phẩm.'
+      });
       return;
     }
     toast.info('Đang xử lý giao dịch...');
-    const result = await purchaseProduct(id, 1);
+    const result = await purchaseProduct(id, 1, promotionCode || undefined);
     if (result.success && result.key) {
       setShowKey(result.key);
       toast.success('Mua hàng thành công', `Key: ${result.key}`);
     } else if (result.error) {
-      toast.error('Mua hàng thất bại', result.error);
+      toast.error('Mua hàng thất bại', {
+        description: result.error
+      });
     }
   };
 
@@ -129,4 +134,3 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 };
 
 export default ProductCard;
-
