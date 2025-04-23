@@ -3,6 +3,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types';
 import { toast } from "@/hooks/use-toast";
+import { 
+  prepareQueryParam, 
+  getSafeProperty,
+  isSupabaseError
+} from '@/utils/supabaseTypeUtils';
 
 export const useProduct = (productSlug: string | undefined) => {
   const [loading, setLoading] = useState(true);
@@ -20,7 +25,7 @@ export const useProduct = (productSlug: string | undefined) => {
         const { data: productData, error: productError } = await supabase
           .from('products')
           .select('*, categories:category_id(*)')
-          .eq('slug', productSlug)
+          .eq('slug', prepareQueryParam(productSlug))
           .maybeSingle();
         
         if (productError) throw productError;
@@ -30,35 +35,47 @@ export const useProduct = (productSlug: string | undefined) => {
           setLoading(false);
           return;
         }
+
+        // Check if result is an error
+        if (isSupabaseError(productData)) {
+          throw new Error('Invalid product data');
+        }
         
+        // Safely extract specifications
         const specifications: Record<string, string> = {};
-        if (productData.specifications && typeof productData.specifications === 'object') {
-          Object.entries(productData.specifications).forEach(([key, value]) => {
+        const productSpecs = getSafeProperty(productData, 'specifications', {});
+        if (productSpecs && typeof productSpecs === 'object') {
+          Object.entries(productSpecs).forEach(([key, value]) => {
             specifications[key] = String(value);
           });
         }
         
         const mappedProduct: Product = {
-          id: productData.id,
-          title: productData.title,
-          description: productData.description,
-          shortDescription: productData.short_description || '',
-          price: Number(productData.price),
-          originalPrice: productData.original_price ? Number(productData.original_price) : undefined,
-          images: productData.images || [],
-          categoryId: productData.category_id,
-          rating: productData.rating || 0,
-          reviewCount: productData.review_count || 0,
-          inStock: productData.in_stock === true,
-          stockQuantity: productData.stock_quantity ?? (productData.in_stock === true ? 10 : 0),
-          badges: productData.badges || [],
-          slug: productData.slug,
-          features: productData.features || [],
+          id: getSafeProperty(productData, 'id', ''),
+          title: getSafeProperty(productData, 'title', ''),
+          description: getSafeProperty(productData, 'description', ''),
+          shortDescription: getSafeProperty(productData, 'short_description', '') || 
+                          getSafeProperty(productData, 'description', '').substring(0, 160),
+          price: Number(getSafeProperty(productData, 'price', 0)),
+          originalPrice: getSafeProperty(productData, 'original_price', null) ? 
+                        Number(getSafeProperty(productData, 'original_price', 0)) : 
+                        undefined,
+          images: getSafeProperty(productData, 'images', []),
+          categoryId: getSafeProperty(productData, 'category_id', ''),
+          rating: Number(getSafeProperty(productData, 'rating', 0)),
+          reviewCount: Number(getSafeProperty(productData, 'review_count', 0)),
+          inStock: getSafeProperty(productData, 'in_stock', false) === true,
+          stockQuantity: getSafeProperty(productData, 'stock_quantity', 0) ?? 
+                        (getSafeProperty(productData, 'in_stock', false) === true ? 10 : 0),
+          badges: getSafeProperty(productData, 'badges', []),
+          slug: getSafeProperty(productData, 'slug', ''),
+          features: getSafeProperty(productData, 'features', []),
           specifications,
-          salesCount: Number(0),
-          stock: productData.stock || 0,
-          kiosk_token: productData.kiosk_token || '',
-          createdAt: productData.created_at || new Date().toISOString()
+          salesCount: 0,
+          stock: getSafeProperty(productData, 'stock', 0),
+          kiosk_token: getSafeProperty(productData, 'kiosk_token', ''),
+          createdAt: getSafeProperty(productData, 'created_at', new Date().toISOString()),
+          category: getSafeProperty(productData, 'categories', null)
         };
           
         setProduct(mappedProduct);

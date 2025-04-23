@@ -6,7 +6,8 @@ import {
   prepareQueryParam, 
   safeCastArray, 
   processSupabaseData, 
-  isSupabaseError 
+  isSupabaseError,
+  getSafeProperty
 } from '@/utils/supabaseTypeUtils';
 
 export type { Invoice };
@@ -28,8 +29,18 @@ export const useInvoices = (userId: string) => {
         if (invoiceError) throw invoiceError;
 
         // Filter and safely cast array
-        const validInvoices = safeCastArray<Invoice>(invoiceData)
-          .filter(invoice => !isSupabaseError(invoice));
+        const validInvoices = safeCastArray<any>(invoiceData)
+          .filter(invoice => !isSupabaseError(invoice))
+          .map(invoice => ({
+            id: getSafeProperty(invoice, 'id', ''),
+            invoice_number: getSafeProperty(invoice, 'invoice_number', ''),
+            user_id: getSafeProperty(invoice, 'user_id', ''),
+            order_id: getSafeProperty(invoice, 'order_id', ''),
+            amount: getSafeProperty(invoice, 'amount', 0),
+            details: getSafeProperty(invoice, 'details', { products: [] }),
+            status: getSafeProperty(invoice, 'status', ''),
+            created_at: getSafeProperty(invoice, 'created_at', '')
+          })) as Invoice[];
           
         setInvoices(validInvoices);
       } catch (err) {
@@ -59,7 +70,19 @@ export const useInvoices = (userId: string) => {
         throw new Error('Invalid invoice data received');
       }
       
-      return processSupabaseData<Invoice>(data);
+      // Map to ensure type safety
+      const invoice: Invoice = {
+        id: getSafeProperty(data, 'id', ''),
+        invoice_number: getSafeProperty(data, 'invoice_number', ''),
+        user_id: getSafeProperty(data, 'user_id', ''),
+        order_id: getSafeProperty(data, 'order_id', ''),
+        amount: getSafeProperty(data, 'amount', 0),
+        details: getSafeProperty(data, 'details', { products: [] }),
+        status: getSafeProperty(data, 'status', ''),
+        created_at: getSafeProperty(data, 'created_at', '')
+      };
+      
+      return invoice;
     } catch (err) {
       console.error('Error fetching invoice:', err);
       throw err;

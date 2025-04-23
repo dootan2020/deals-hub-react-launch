@@ -10,7 +10,8 @@ import {
   hasData, 
   safeErrorMessage, 
   processQueryResult,
-  isSupabaseError
+  isSupabaseError,
+  getSafeProperty
 } from '@/utils/supabaseTypeUtils';
 
 // Actions for use in admin order management views
@@ -57,7 +58,12 @@ export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) =>
       if (orderError) throw orderError;
       if (!orderData) throw new Error('Không tìm thấy đơn hàng');
 
-      // Update order
+      // Check if orderData is a Supabase error
+      if (isSupabaseError(orderData)) {
+        throw new Error('Không thể xử lý dữ liệu đơn hàng');
+      }
+
+      // Update order status to refunded
       const { error: updateError } = await supabase
         .from('orders')
         .update(prepareUpdateData({
@@ -68,17 +74,18 @@ export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) =>
 
       if (updateError) throw updateError;
 
-      // Process order data safely for transaction
-      if (isSupabaseError(orderData)) {
-        throw new Error('Không thể xử lý dữ liệu đơn hàng');
-      }
+      // Get safe values for refund transaction
+      const userId = getSafeProperty(orderData, 'user_id', '');
+      const totalPrice = getSafeProperty(orderData, 'total_price', 0);
 
-      // Transaction
+      if (!userId) throw new Error('User ID missing from order data');
+      
+      // Create refund transaction
       const { error: transactionError } = await supabase
         .from('transactions')
         .insert(prepareInsertData({
-          user_id: orderData.user_id,
-          amount: orderData.total_price,
+          user_id: userId,
+          amount: totalPrice,
           type: 'refund',
           status: 'completed',
           payment_method: 'system',
@@ -87,22 +94,23 @@ export function useOrderAdminActions(orders: Order[], setOrders: (o: Order[]) =>
 
       if (transactionError) throw transactionError;
 
-      // Balance
+      // Update user balance
       const { error: balanceError } = await supabase.rpc(
         'update_user_balance',
         {
-          user_id_param: orderData.user_id,
-          amount_param: orderData.total_price
+          user_id_param: userId,
+          amount_param: totalPrice
         }
       );
 
       if (balanceError) throw balanceError;
 
+      // Update orders state
       setOrders(orders.map(order =>
         order.id === orderId ? { ...order, status: 'refunded', updated_at: new Date().toISOString() } : order
       ));
 
-      toast.success("Hoàn tiền thành công", `Số tiền ${orderData.total_price.toLocaleString('vi-VN')} VNĐ đã được hoàn trả cho người dùng`);
+      toast.success("Hoàn tiền thành công", `Số tiền ${totalPrice.toLocaleString('vi-VN')} VNĐ đã được hoàn trả cho người dùng`);
       return true;
     } catch (err) {
       console.error('Error processing refund:', err);

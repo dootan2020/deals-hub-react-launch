@@ -7,7 +7,8 @@ import {
   prepareQueryParam, 
   processSupabaseData, 
   isSupabaseError, 
-  isSafeToSpread 
+  isSafeToSpread,
+  getSafeProperty 
 } from '@/utils/supabaseTypeUtils';
 
 // Standalone hook for fetching one order by ID & setting selectedOrder
@@ -30,25 +31,36 @@ export function useOrderDetails() {
 
       if (error) throw error;
 
-      if (data && !isSupabaseError(data)) {
-        const { data: orderItems } = await supabase
-          .from('order_items')
-          .select('*')
-          .eq('order_id', prepareQueryParam(data.id));
-
-        const userValue = normalizeUserField(data.user || null);
-
-        // Only spread data if it's a valid object
-        const orderWithDetails: Order = {
-          ...(isSafeToSpread(data) ? data : {}),
-          user: userValue,
-          order_items: orderItems || []
-        };
-
-        setSelectedOrder(orderWithDetails);
-        return orderWithDetails;
+      if (!data) {
+        return null;
       }
-      return null;
+
+      if (isSupabaseError(data)) {
+        throw new Error('Invalid order data');
+      }
+
+      const { data: orderItems } = await supabase
+        .from('order_items')
+        .select('*')
+        .eq('order_id', prepareQueryParam(getSafeProperty(data, 'id', '')));
+
+      const userValue = normalizeUserField(getSafeProperty(data, 'user', null));
+
+      // Create order object with safe properties
+      const orderWithDetails: Order = {
+        id: getSafeProperty(data, 'id', ''),
+        user_id: getSafeProperty(data, 'user_id', ''),
+        external_order_id: getSafeProperty(data, 'external_order_id', null),
+        status: getSafeProperty(data, 'status', ''),
+        total_amount: getSafeProperty(data, 'total_price', 0),
+        created_at: getSafeProperty(data, 'created_at', ''),
+        updated_at: getSafeProperty(data, 'updated_at', ''),
+        user: userValue,
+        order_items: orderItems || []
+      };
+
+      setSelectedOrder(orderWithDetails);
+      return orderWithDetails;
     } catch (err) {
       console.error('Error fetching order details:', err);
       toast.error("Lỗi", "Không thể tải thông tin đơn hàng");

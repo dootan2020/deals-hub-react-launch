@@ -210,3 +210,31 @@ export function processQueryResult<T, R>(
 export function isSafeToSpread(value: any): boolean {
   return value && typeof value === 'object' && !isSupabaseError(value);
 }
+
+/**
+ * Gets a property safely from any object, handling potential errors and undefined values
+ * @param obj Any object or error
+ * @param key The key to access
+ * @param defaultValue Default value to return if the property doesn't exist
+ * @returns The property value or default value
+ */
+export function getSafeProperty<T>(obj: any, key: string, defaultValue: T): T {
+  if (!obj || typeof obj !== 'object' || isSupabaseError(obj)) {
+    return defaultValue;
+  }
+  return (obj[key] as T) ?? defaultValue;
+}
+
+/**
+ * A more comprehensive typeguard for checking objects
+ * @param value The value to check
+ * @param requiredProps An array of property names that must exist
+ * @returns True if the value is a valid object with all required properties
+ */
+export function isValidObject(value: any, requiredProps: string[] = []): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || isSupabaseError(value)) {
+    return false;
+  }
+  
+  return requiredProps.every(prop => prop in value);
+}

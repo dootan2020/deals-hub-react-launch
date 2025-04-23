@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { prepareQueryParam, safeCastArray, isSafeToSpread } from '@/utils/supabaseTypeUtils';
+import { prepareQueryParam, safeCastArray, isSafeToSpread, isSupabaseError, getSafeProperty } from '@/utils/supabaseTypeUtils';
 
 interface Order {
   id: string;
@@ -53,27 +53,30 @@ export const useOrderHistory = (userId: string) => {
       }
 
       // Process and filter out any error objects
-      const validOrders = safeCastArray<any>(orderData).filter(order => !order.error && order);
+      const validOrders = safeCastArray<any>(orderData).filter(order => !isSupabaseError(order));
 
       // Chuyển đổi dữ liệu và thêm tiêu đề sản phẩm
       const ordersWithProductTitle = validOrders.map(order => {
         let productTitle = 'N/A';
         
         // Safely check if order_items exists and has data
-        if (order.order_items && 
-            Array.isArray(order.order_items) && 
-            order.order_items.length > 0 && 
-            order.order_items[0].product) {
-          productTitle = order.order_items[0].product.title;
+        const orderItems = getSafeProperty(order, 'order_items', []);
+        if (Array.isArray(orderItems) && orderItems.length > 0) {
+          const firstItem = orderItems[0];
+          if (firstItem && firstItem.product) {
+            productTitle = getSafeProperty(firstItem.product, 'title', 'N/A');
+          }
         }
-        
-        // Only spread order if it's safe to do so
-        const baseOrder = isSafeToSpread(order) ? order : {}; 
         
         // Map the database fields to the Order interface
         return {
-          ...baseOrder,
-          total_amount: order.total_price || 0, // Map total_price to total_amount
+          id: getSafeProperty(order, 'id', ''),
+          user_id: getSafeProperty(order, 'user_id', ''),
+          external_order_id: getSafeProperty(order, 'external_order_id', null),
+          status: getSafeProperty(order, 'status', ''),
+          total_amount: getSafeProperty(order, 'total_price', 0), // Map total_price to total_amount
+          created_at: getSafeProperty(order, 'created_at', ''),
+          updated_at: getSafeProperty(order, 'updated_at', ''),
           product_title: productTitle
         } as Order;
       });

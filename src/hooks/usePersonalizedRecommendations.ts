@@ -3,7 +3,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types";
 import { AISource } from "@/types/ai";
-import { prepareQueryParam, safeCastArray, isSupabaseError } from "@/utils/supabaseTypeUtils";
+import { 
+  prepareQueryParam, 
+  safeCastArray, 
+  isSupabaseError,
+  getSafeProperty
+} from "@/utils/supabaseTypeUtils";
 
 export interface Recommendation {
   title: string;
@@ -48,11 +53,12 @@ async function localRecommend(userId: string, currentProductSlug: string): Promi
   const catCount: Record<string, number> = {};
 
   history.forEach(order => {
-    if (order.order_items && Array.isArray(order.order_items)) {
-      order.order_items.forEach(item => {
-        if (item && item.product && item.product.slug !== currentProductSlug) {
+    const orderItems = getSafeProperty(order, 'order_items', []);
+    if (Array.isArray(orderItems)) {
+      orderItems.forEach(item => {
+        if (item && item.product && getSafeProperty(item.product, 'slug', '') !== currentProductSlug) {
           bought.push(item.product);
-          const cid = item.product.category_id || "";
+          const cid = getSafeProperty(item.product, 'category_id', "");
           if (cid) catCount[cid] = (catCount[cid] || 0) + 1;
         }
       });
@@ -70,18 +76,21 @@ async function localRecommend(userId: string, currentProductSlug: string): Promi
       .limit(5);
 
     if (!error && data) {
-      const boughtSlugs = bought.map((p: any) => p.slug);
+      const boughtSlugs = bought.map((p: any) => getSafeProperty(p, 'slug', ''));
       
       // Filter out any error objects
       const validProducts = safeCastArray<any>(data).filter(p => !isSupabaseError(p));
       
-      const recs = validProducts.filter(p => !boughtSlugs.includes(p.slug)).map(p => ({
-        title: p.title,
-        slug: p.slug,
-        description: p.description,
-        image: Array.isArray(p.images) ? p.images[0] : undefined,
-        category: p.category_id
-      }));
+      const recs = validProducts
+        .filter(p => !boughtSlugs.includes(getSafeProperty(p, 'slug', '')))
+        .map(p => ({
+          title: getSafeProperty(p, 'title', ''),
+          slug: getSafeProperty(p, 'slug', ''),
+          description: getSafeProperty(p, 'description', ''),
+          image: Array.isArray(getSafeProperty(p, 'images', [])) ? 
+                getSafeProperty(p, 'images', [])[0] : undefined,
+          category: getSafeProperty(p, 'category_id', '')
+        }));
       return recs.slice(0, 5);
     }
   }
@@ -99,11 +108,12 @@ async function fetchAiRecommendations(
   const boughtSlugs = [];
 
   history.forEach(order => {
-    if (order.order_items && Array.isArray(order.order_items)) {
-      order.order_items.forEach(item => {
-        if (item && item.product && item.product.slug !== currentProductSlug) {
-          productNames.push(item.product.title);
-          boughtSlugs.push(item.product.slug);
+    const orderItems = getSafeProperty(order, 'order_items', []);
+    if (Array.isArray(orderItems)) {
+      orderItems.forEach(item => {
+        if (item && item.product && getSafeProperty(item.product, 'slug', '') !== currentProductSlug) {
+          productNames.push(getSafeProperty(item.product, 'title', ''));
+          boughtSlugs.push(getSafeProperty(item.product, 'slug', ''));
         }
       });
     }
@@ -125,11 +135,14 @@ async function fetchAiRecommendations(
       aiModel
     }
   });
-  if (error || !data?.recommendations) throw new Error(data?.error || error?.message || "AI error");
+  if (error || !getSafeProperty(data, 'recommendations', null)) {
+    throw new Error(getSafeProperty(data, 'error', '') || error?.message || "AI error");
+  }
   
   // Filter out recommendations that match the current product
-  return (data.recommendations || [])
-    .filter((rec: any) => rec && typeof rec === 'object' && rec.slug !== currentProductSlug)
+  const recommendations = getSafeProperty(data, 'recommendations', []) || [];
+  return recommendations
+    .filter((rec: any) => rec && typeof rec === 'object' && getSafeProperty(rec, 'slug', '') !== currentProductSlug)
     .slice(0, 5);
 }
 
