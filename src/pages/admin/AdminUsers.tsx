@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -31,9 +32,13 @@ import { Loader2, Eye, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getAllUsers, UserWithRolesData } from '@/utils/security';
+import { SimplifiedUser } from '@/integrations/supabase/types-extension';
 
-interface User extends UserWithRolesData {
+interface User extends SimplifiedUser {
   balance: number;
+  email_confirmed_at?: string | null;
+  last_sign_in_at?: string | null;
+  created_at: string;
 }
 
 const AdminUsers = () => {
@@ -69,7 +74,8 @@ const AdminUsers = () => {
         return {
           ...user,
           display_name: user.display_name || user.email.split('@')[0],
-          balance: profile?.balance || 0
+          balance: profile?.balance || 0,
+          created_at: new Date().toISOString() // Providing a default value for created_at
         } as User;
       });
       
