@@ -10,7 +10,7 @@ import { Globe, Save, RefreshCw, TestTube2, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ProxyType, ProxyConfig, buildProxyUrl } from '@/utils/proxyUtils';
-import { isValidRecord, isSupabaseRecord, prepareForUpdate, prepareForInsert } from '@/utils/supabaseHelpers';
+import { isValidRecord, isSupabaseRecord, prepareForUpdate, prepareForInsert, extractSafeData } from '@/utils/supabaseHelpers';
 
 interface ProxySettingsData {
   id: string;
@@ -75,14 +75,14 @@ const CorsProxySelector: React.FC = () => {
     setIsLoading(true);
     try {
       // First check if we have existing settings
-      const { data: existingSettings, error: fetchError } = await supabase
+      const result = await supabase
         .from('proxy_settings')
         .select('id')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (fetchError) throw fetchError;
+      const existingSettings = extractSafeData<{id: string}>(result);
       
       // Create table-compatible data object with proper typing
       const settingsData = prepareForUpdate<any>({
@@ -90,7 +90,7 @@ const CorsProxySelector: React.FC = () => {
         custom_url: proxyConfig.customUrl || null
       });
       
-      if (existingSettings && isSupabaseRecord(existingSettings)) {
+      if (existingSettings && existingSettings.id) {
         // Update existing settings
         const { error: updateError } = await supabase
           .from('proxy_settings')

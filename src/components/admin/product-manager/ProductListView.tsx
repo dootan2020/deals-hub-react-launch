@@ -1,7 +1,41 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Category } from '@/types';
 import { toFilterableUUID } from '@/utils/supabaseHelpers';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription 
+} from '@/components/ui/card';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Search,
+  RefreshCw, 
+  Loader2, 
+  PencilIcon, 
+  TrashIcon
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Product {
   id: string;
@@ -64,7 +98,7 @@ export function ProductListView({
         return;
       }
       
-      setProducts(data || []);
+      setProducts(data as Product[] || []);
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +138,7 @@ export function ProductListView({
       const { error: syncLogsError } = await supabase
         .from('sync_logs')
         .delete()
-        .eq('product_id', toFilterableUUID(productId));
+        .eq('product_id', productId);
 
       if (syncLogsError) throw syncLogsError;
       
@@ -112,7 +146,7 @@ export function ProductListView({
       const { error: productError } = await supabase
         .from('products')
         .delete()
-        .eq('id', toFilterableUUID(productId));
+        .eq('id', productId);
 
       if (productError) throw productError;
 

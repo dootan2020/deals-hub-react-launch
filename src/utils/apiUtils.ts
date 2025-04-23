@@ -1,92 +1,97 @@
 
-import { fetchViaProxy, ProxyConfig } from './proxyUtils';
+import { ProxyConfig, buildProxyUrl } from './proxyUtils';
 
-// Define the ApiResponse type for consistent use across the application
 export interface ApiResponse {
   success: string;
+  kioskToken?: string;
   name?: string;
   price?: string;
   stock?: string;
   description?: string;
-  kioskToken?: string;
   error?: string;
 }
 
-// Normalize product information from API response
-export function normalizeProductInfo(data: any): any {
-  if (!data) return null;
-  
-  return {
-    name: data.name || '',
-    price: data.price || '0',
-    stock: data.stock || '0',
-    description: data.description || '',
-  };
+export interface ApiConfig {
+  user_token: string;
+  kiosk_token?: string;
+  name?: string;
+  id?: string;
+  is_active?: boolean;
 }
 
-// Convert product info to ApiResponse format
-export function productInfoToApiResponse(info: any, kioskToken?: string): ApiResponse {
-  if (!info) {
-    return {
-      success: "false",
-      error: "Invalid product information"
-    };
-  }
-  
-  return {
-    success: "true",
-    name: info.name || '',
-    price: info.price || '0',
-    stock: info.stock || '0',
-    description: info.description || '',
-    kioskToken: kioskToken || ''
-  };
-}
-
-// Function to fetch API configurations from Supabase
-export async function fetchActiveApiConfig() {
+/**
+ * Helper function to fetch active API configuration
+ */
+export async function fetchActiveApiConfig(): Promise<ApiConfig> {
   try {
-    const response = await fetch('/api/api-config');
-    if (!response.ok) {
-      throw new Error(`API config fetch failed with status: ${response.status}`);
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data, error } = await supabase
+      .from('api_configs')
+      .select('*')
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching API config:', error);
+      return { user_token: '' };
     }
-    const data = await response.json();
-    return data || { user_token: '', kiosk_token: '' };
+
+    return data as ApiConfig || { user_token: '' };
   } catch (error) {
-    console.error('Error fetching API config:', error);
-    return { user_token: '', kiosk_token: '' };
+    console.error('Error in fetchActiveApiConfig:', error);
+    return { user_token: '' };
   }
 }
 
-// Function to fetch product data via proxy using API tokens
-export async function fetchProductData(kioskToken: string, userToken: string, proxyConfig: ProxyConfig): Promise<ApiResponse> {
+/**
+ * Fetch product data using a kiosk token
+ */
+export async function fetchProductData(
+  kioskToken: string,
+  userToken: string,
+  proxyConfig?: ProxyConfig
+): Promise<ApiResponse> {
   try {
-    const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${userToken}`;
-    const data = await fetchViaProxy(apiUrl, proxyConfig);
+    if (!kioskToken || !userToken) {
+      return { 
+        success: 'false', 
+        error: 'Missing kiosk token or user token' 
+      };
+    }
+
+    // Call the serverless function
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data, error } = await supabase.functions.invoke('api-proxy', {
+      body: { 
+        endpoint: 'getStock',
+        kioskToken,
+        userToken
+      }
+    });
     
-    if (data?.success === "true") {
+    if (error) {
       return {
-        success: "true",
-        name: data.name || '',
-        price: data.price || '0',
-        stock: data.stock || '0',
-        description: data.description || '',
-        kioskToken: kioskToken
-      };
-    } else {
-      return {
-        success: "false",
-        error: data?.error || 'Unknown error fetching product data',
+        success: 'false',
+        error: `Serverless function error: ${error.message}`
       };
     }
-  } catch (error) {
-    console.error('Error fetching product data:', error);
+    
+    if (!data) {
+      return {
+        success: 'false',
+        error: 'Empty response from API'
+      };
+    }
+    
+    // Add the kioskToken to the response for reference
     return {
-      success: "false",
-      error: `API error: ${(error as Error).message}`,
+      ...data,
+      kioskToken
+    };
+  } catch (error) {
+    return {
+      success: 'false',
+      error: `Error: ${(error as Error).message}`
     };
   }
 }
-
-// Export the fetchViaProxy function from proxyUtils for direct usage
-export { fetchViaProxy };

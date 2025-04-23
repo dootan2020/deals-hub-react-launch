@@ -1,66 +1,79 @@
 
-import React, { useState, useEffect } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { ApiResponse } from '@/utils/apiUtils';
+import { Label } from '@/components/ui/label';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Category } from '@/types';
-import { safeString, safeNumber, prepareForUpdate, prepareForInsert, isSupabaseError } from '@/utils/supabaseHelpers';
+import { supabase } from '@/integrations/supabase/client';
+import { ApiTester } from './ApiTester';
+import { ApiResponse } from '@/utils/apiUtils';
+import { extractSafeData } from '@/utils/supabaseHelpers';
+import { Loader2 } from 'lucide-react';
 
 interface ProductFormProps {
   productId?: string;
-  onSubmit?: (data: any) => Promise<void>;
-  onApiTest?: (kioskToken: string) => Promise<any>;
+  categories: { id: string, name: string }[];
   onApiDataReceived?: (data: ApiResponse) => void;
-  categories: Category[];
+  onApiTest?: (kioskToken: string) => Promise<ApiResponse | null>;
+  onSubmit: (data: any) => Promise<void>;
 }
-
-const formSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  description: z.string().min(1, 'Description is required'),
-  price: z.coerce.number().min(0, 'Price must be positive'),
-  originalPrice: z.coerce.number().positive('Original price must be positive').optional(),
-  inStock: z.boolean().default(true),
-  slug: z.string().min(1, 'Slug is required'),
-  categoryId: z.string().min(1, 'Category is required'),
-  externalId: z.string().optional(),
-  kioskToken: z.string().optional(),
-  stock: z.coerce.number().min(0, 'Stock must be 0 or greater'),
-  images: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
 
 interface ProductData {
   id: string;
   title: string;
   description: string;
   price: number;
-  original_price?: number;
+  original_price?: number | null;
   in_stock: boolean;
   slug: string;
-  external_id?: string;
+  external_id?: string | null;
   category_id: string;
   images?: string[];
-  kiosk_token?: string;
+  kiosk_token?: string | null;
   stock: number;
 }
 
-export function ProductForm({ productId, onSubmit, onApiTest, onApiDataReceived, categories }: ProductFormProps) {
+const productSchema = z.object({
+  title: z.string().min(3, 'Title must be at least 3 characters.'),
+  description: z.string().min(10, 'Description must be at least 10 characters.'),
+  price: z.coerce.number().min(0, 'Price must be a positive number.'),
+  originalPrice: z.coerce.number().min(0, 'Original price must be positive').optional(),
+  inStock: z.boolean().default(true),
+  slug: z.string().min(3, 'Slug must be at least 3 characters.')
+    .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens.'),
+  externalId: z.string().optional(),
+  categoryId: z.string().min(1, 'Category is required'),
+  images: z.string().optional(),
+  kioskToken: z.string().optional(),
+  stock: z.coerce.number().int().min(0, 'Stock must be a positive number'),
+});
+
+type ProductFormValues = z.infer<typeof productSchema>;
+
+export function ProductForm({ 
+  productId, 
+  categories,
+  onApiDataReceived,
+  onApiTest,
+  onSubmit
+}: ProductFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [isTestingApi, setIsTestingApi] = useState(false);
-  
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+
+  const form = useForm<ProductFormValues>({
+    resolver: zodResolver(productSchema),
     defaultValues: {
       title: '',
       description: '',
@@ -68,433 +81,346 @@ export function ProductForm({ productId, onSubmit, onApiTest, onApiDataReceived,
       originalPrice: undefined,
       inStock: true,
       slug: '',
-      categoryId: '',
       externalId: '',
+      categoryId: '',
+      images: '',
       kioskToken: '',
       stock: 0,
-      images: '',
-    }
+    },
   });
 
   useEffect(() => {
     if (productId) {
-      fetchProductData();
+      fetchProductDetails();
     }
   }, [productId]);
 
-  const fetchProductData = async () => {
+  const fetchProductDetails = async () => {
     if (!productId) return;
     
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      const result = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId.toString())
+        .eq('id', productId)
         .maybeSingle();
       
-      if (error) throw error;
+      const productData = extractSafeData<ProductData>(result);
       
-      if (data) {
-        // Type cast safely
-        const productData = data as ProductData;
-        
+      if (productData) {
         form.reset({
-          title: safeString(productData.title),
-          description: safeString(productData.description),
-          price: safeNumber(productData.price),
-          originalPrice: productData.original_price ? safeNumber(productData.original_price) : undefined,
-          inStock: !!productData.in_stock,
-          slug: safeString(productData.slug),
-          categoryId: safeString(productData.category_id),
-          externalId: productData.external_id ? safeString(productData.external_id) : '',
-          kioskToken: productData.kiosk_token ? safeString(productData.kiosk_token) : '',
-          stock: safeNumber(productData.stock),
-          images: Array.isArray(productData.images) && productData.images.length > 0 ? productData.images.join('\n') : '',
+          title: productData.title,
+          description: productData.description,
+          price: productData.price,
+          originalPrice: productData.original_price || undefined,
+          inStock: productData.in_stock,
+          slug: productData.slug,
+          externalId: productData.external_id || '',
+          categoryId: productData.category_id,
+          images: Array.isArray(productData.images) && productData.images.length > 0 
+            ? productData.images.join('\n') 
+            : '',
+          kioskToken: productData.kiosk_token || '',
+          stock: productData.stock || 0,
         });
       }
     } catch (error) {
-      console.error('Error fetching product data:', error);
-      toast.error('Failed to load product data');
+      console.error('Error fetching product details:', error);
+      toast.error('Failed to fetch product details');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateSlugFromTitle = () => {
+  const handleApiDataReceived = (data: ApiResponse) => {
+    if (!data) return;
+    
+    try {
+      if (data.name) {
+        form.setValue('title', data.name);
+      }
+      
+      if (data.kioskToken) {
+        form.setValue('kioskToken', data.kioskToken);
+      }
+      
+      if (data.price) {
+        const originalPrice = parseFloat(data.price) || 0;
+        form.setValue('price', originalPrice * 2.5); // Markup price
+        form.setValue('originalPrice', originalPrice);
+      }
+      
+      if (data.stock) {
+        const stockValue = parseInt(data.stock) || 0;
+        form.setValue('stock', stockValue);
+        form.setValue('inStock', stockValue > 0);
+      }
+      
+      if (data.name && !form.getValues('slug')) {
+        const slug = data.name.toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w\-]+/g, '')
+          .replace(/\-\-+/g, '-')
+          .replace(/^-+/, '')
+          .replace(/-+$/, '');
+        
+        form.setValue('slug', slug);
+      }
+      
+      if (data.description) {
+        form.setValue('description', data.description);
+      } else if (data.name) {
+        form.setValue('description', `${data.name} - Digital Product`);
+      }
+      
+      if (onApiDataReceived) {
+        onApiDataReceived(data);
+      }
+      
+      toast.success('Product data applied successfully');
+    } catch (error) {
+      console.error('Error applying API data:', error);
+      toast.error('Failed to apply API data to form');
+    }
+  };
+
+  const handleTestApi = async (kioskToken: string) => {
+    if (!onApiTest) return;
+    
+    setIsLoading(true);
+    try {
+      const apiData = await onApiTest(kioskToken);
+      if (apiData) {
+        handleApiDataReceived(apiData);
+      }
+    } catch (error) {
+      console.error('API test error:', error);
+      toast.error('Error fetching API data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmitForm = async (data: ProductFormValues) => {
+    setIsLoading(true);
+    try {
+      await onSubmit(data);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast.error('Failed to save product');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generateSlug = () => {
     const title = form.getValues('title');
     if (!title) return;
     
     const slug = title.toLowerCase()
       .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-      .replace(/--+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
       .replace(/^-+/, '')
       .replace(/-+$/, '');
-    
+      
     form.setValue('slug', slug, { shouldValidate: true });
   };
 
-  const handleApiTestClick = async () => {
-    const kioskToken = form.getValues('kioskToken');
-    if (!kioskToken) {
-      toast.error('Please enter a kiosk token');
-      return;
-    }
-
-    if (!onApiTest) {
-      toast.error('API test function not provided');
-      return;
-    }
-
-    setIsTestingApi(true);
-    try {
-      const data = await onApiTest(kioskToken);
-      if (data && onApiDataReceived) {
-        onApiDataReceived(data);
-      }
-    } finally {
-      setIsTestingApi(false);
-    }
-  };
-
-  const handleFormSubmit = async (values: FormValues) => {
-    setIsLoading(true);
-    
-    try {
-      if (onSubmit) {
-        // Convert form values to the format expected by the backend
-        const productData = {
-          title: values.title,
-          description: values.description,
-          price: values.price,
-          original_price: values.originalPrice,
-          in_stock: values.inStock,
-          slug: values.slug,
-          external_id: values.externalId || null,
-          category_id: values.categoryId,
-          images: values.images ? values.images.split('\n').filter(url => url.trim() !== '') : [],
-          kiosk_token: values.kioskToken || null,
-          stock: values.stock || 0,
-        };
-        
-        await onSubmit(productData);
-      } else {
-        // Default handling if onSubmit not provided
-        if (productId) {
-          // Update existing product
-          const updateData = prepareForUpdate<any>({
-            title: values.title,
-            description: values.description,
-            price: values.price,
-            original_price: values.originalPrice,
-            in_stock: values.inStock,
-            slug: values.slug,
-            external_id: values.externalId || null,
-            category_id: values.categoryId,
-            images: values.images ? values.images.split('\n').filter(url => url.trim() !== '') : [],
-            kiosk_token: values.kioskToken || null,
-            stock: values.stock || 0,
-          });
-          
-          const { error: updateError } = await supabase
-            .from('products')
-            .update(updateData)
-            .eq('id', productId.toString());
-          
-          if (updateError) throw updateError;
-          toast.success('Product updated successfully');
-        } else {
-          // Create new product
-          const insertData = prepareForInsert<any>({
-            title: values.title,
-            description: values.description,
-            price: values.price,
-            original_price: values.originalPrice,
-            in_stock: values.inStock,
-            slug: values.slug,
-            external_id: values.externalId || null,
-            category_id: values.categoryId,
-            images: values.images ? values.images.split('\n').filter(url => url.trim() !== '') : [],
-            kiosk_token: values.kioskToken || null,
-            stock: values.stock || 0,
-          });
-          
-          const { error: insertError } = await supabase
-            .from('products')
-            .insert([insertData]);
-          
-          if (insertError) throw insertError;
-          toast.success('Product created successfully');
-          
-          // Reset the form
-          form.reset();
-        }
-      }
-    } catch (error) {
-      console.error('Error saving product:', error);
-      toast.error(`Failed to save product: ${(error as Error).message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <FormProvider {...form}>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-          <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="kioskToken"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex flex-wrap items-end gap-2">
-                    <div className="flex-1">
-                      <FormLabel>Kiosk Token</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Enter kiosk token for product data" />
-                      </FormControl>
-                    </div>
+    <div className="space-y-6">
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <ApiTester 
+            initialKioskToken={form.getValues('kioskToken')}
+            onApiDataReceived={handleApiDataReceived}
+          />
+        </CardContent>
+      </Card>
+      
+      <form onSubmit={form.handleSubmit(handleSubmitForm)} className="space-y-6">
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="text-lg font-medium mb-4">Product Information</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  {...form.register('title')}
+                  placeholder="Product title"
+                />
+                {form.formState.errors.title && (
+                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.title.message}</p>
+                )}
+              </div>
+              
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  {...form.register('description')}
+                  placeholder="Product description"
+                  rows={4}
+                />
+                {form.formState.errors.description && (
+                  <p className="text-red-500 text-sm mt-1">{form.formState.errors.description.message}</p>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="price">Price (VND)</Label>
+                  <Input 
+                    id="price"
+                    type="number" 
+                    {...form.register('price', { valueAsNumber: true })}
+                  />
+                  {form.formState.errors.price && (
+                    <p className="text-red-500 text-sm mt-1">{form.formState.errors.price.message}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <Label htmlFor="originalPrice">Original Price (Optional)</Label>
+                  <Input 
+                    id="originalPrice"
+                    type="number" 
+                    {...form.register('originalPrice', { valueAsNumber: true })}
+                    placeholder="Original price (for discounts)"
+                  />
+                  {form.formState.errors.originalPrice && (
+                    <p className="text-red-500 text-sm mt-1">{form.formState.errors.originalPrice.message}</p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="slug">Slug</Label>
+                  <div className="flex space-x-2">
+                    <Input
+                      id="slug"
+                      {...form.register('slug')}
+                      placeholder="product-url-slug"
+                    />
                     <Button 
-                      type="button" 
-                      onClick={handleApiTestClick}
-                      disabled={isTestingApi || !field.value}
+                      type="button"
+                      variant="outline"
+                      onClick={generateSlug}
                     >
-                      {isTestingApi ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Get Product Data
+                      Generate
                     </Button>
                   </div>
-                  <FormDescription>
-                    Enter a kiosk token to retrieve product information from the API.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Product Title <span className="text-red-500">*</span></FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Enter product title" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description <span className="text-red-500">*</span></FormLabel>
-                  <FormControl>
-                    <Textarea {...field} placeholder="Enter product description" className="min-h-[100px]" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price (VND) <span className="text-red-500">*</span></FormLabel>
-                    <FormControl>
-                      <Input type="number" min="0" step="1" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="originalPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Original Price</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min="0" 
-                        step="1" 
-                        placeholder="Original price (for discounts)"
-                        value={field.value || ''} 
-                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Optional. Used to show discount from original price.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="stock"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Stock <span className="text-red-500">*</span></FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min="0" 
-                        step="1" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="inStock"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div>
-                      <FormLabel className="text-base">Available for Sale</FormLabel>
-                    </div>
-                    <FormControl>
-                      <Switch 
-                        checked={field.value} 
-                        onCheckedChange={field.onChange} 
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="slug"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Slug <span className="text-red-500">*</span></FormLabel>
-                    <div className="flex space-x-2">
-                      <FormControl>
-                        <Input {...field} placeholder="product-slug" />
-                      </FormControl>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={generateSlugFromTitle}
-                      >
-                        Generate
-                      </Button>
-                    </div>
-                    <FormDescription>
-                      URL-friendly identifier for the product
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="externalId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>External ID</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="External product ID (optional)" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="categoryId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category <span className="text-red-500">*</span></FormLabel>
+                  {form.formState.errors.slug && (
+                    <p className="text-red-500 text-sm mt-1">{form.formState.errors.slug.message}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <Label htmlFor="categoryId">Category</Label>
                   <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value} 
-                    value={field.value}
+                    value={form.getValues('categoryId')} 
+                    onValueChange={(value) => form.setValue('categoryId', value, { shouldValidate: true })}
                   >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                    </FormControl>
+                    <SelectTrigger id="categoryId">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
                     <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem 
-                          key={category.id} 
-                          value={category.id}
-                        >
+                      {categories.map(category => (
+                        <SelectItem key={category.id} value={category.id}>
                           {category.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="images"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Images (one URL per line)</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      {...field} 
-                      placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg" 
-                      className="min-h-[100px]"
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Enter one image URL per line
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="flex justify-end space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => form.reset()}
-              disabled={isLoading}
-            >
-              Reset
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-            >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {productId ? 'Update Product' : 'Create Product'}
-            </Button>
-          </div>
-        </form>
-      </Form>
-    </FormProvider>
+                  {form.formState.errors.categoryId && (
+                    <p className="text-red-500 text-sm mt-1">{form.formState.errors.categoryId.message}</p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="stock">Stock</Label>
+                  <Input 
+                    id="stock"
+                    type="number" 
+                    {...form.register('stock', { valueAsNumber: true })}
+                  />
+                  {form.formState.errors.stock && (
+                    <p className="text-red-500 text-sm mt-1">{form.formState.errors.stock.message}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <Label htmlFor="kioskToken">Kiosk Token</Label>
+                  <Input 
+                    id="kioskToken"
+                    {...form.register('kioskToken')}
+                    placeholder="API Kiosk Token"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="externalId">External ID (Optional)</Label>
+                <Input 
+                  id="externalId"
+                  {...form.register('externalId')}
+                  placeholder="External product identifier"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="images">Images (One URL per line)</Label>
+                <Textarea 
+                  id="images"
+                  {...form.register('images')}
+                  placeholder="https://example.com/image1.jpg
+https://example.com/image2.jpg"
+                  rows={3}
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="inStock" 
+                  checked={form.getValues('inStock')} 
+                  onCheckedChange={(checked) => form.setValue('inStock', checked, { shouldValidate: true })}
+                />
+                <Label htmlFor="inStock">Product is in stock</Label>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <div className="flex justify-end space-x-4">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => window.history.back()}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+            className="min-w-[150px]"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {productId ? 'Updating...' : 'Creating...'}
+              </>
+            ) : (
+              productId ? 'Update Product' : 'Create Product'
+            )}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

@@ -150,6 +150,7 @@ export function isSupabaseError(result: any): boolean {
   return result && typeof result === 'object' && 'error' in result && result.error !== null;
 }
 
+// Safely handle UUID for filter operations (cast UUID to string)
 export function uuidFilter(id: string | null | undefined): string {
   if (!id) return '';
   return id;
@@ -196,4 +197,24 @@ export function prepareForUpdate<T>(data: Record<string, any>): T {
 export function prepareForInsert<T>(data: Record<string, any>): T {
   // This ensures the type is cast properly for Supabase's strict typing
   return data as unknown as T;
+}
+
+/**
+ * Helper function to safely extract data from Supabase responses
+ * Handles type safety with SingleMaybeSingleResponse
+ */
+export function extractSafeData<T>(result: { data: any, error: PostgrestError | null }): T | null {
+  if (result.error || !result.data) {
+    return null;
+  }
+  return result.data as T;
+}
+
+/**
+ * Type-safe way to handle Supabase UUID filter comparisons
+ */
+export function safeUuidEq<T>(column: string, uuid: string | null | undefined): any {
+  if (!uuid) return null;
+  // Return a filter object for the .eq method
+  return { [column]: uuid.toString() };
 }

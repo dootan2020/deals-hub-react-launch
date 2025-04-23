@@ -22,7 +22,8 @@ import {
   isSupabaseError,
   isErrorResponse,
   checkAndCastQueryData,
-  prepareForUpdate
+  prepareForUpdate,
+  extractSafeData
 } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
@@ -148,17 +149,12 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
       const result = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId.toString())
+        .eq('id', productId)
         .maybeSingle();
 
-      if (result.error) {
-        throw result.error;
-      }
+      const productData = extractSafeData<ProductData>(result);
       
-      if (result.data) {
-        // Use safe type casting
-        const productData = result.data as ProductData;
-        
+      if (productData) {
         form.reset({
           title: safeString(productData.title),
           description: safeString(productData.description),
