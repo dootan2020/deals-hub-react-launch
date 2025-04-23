@@ -1,4 +1,6 @@
 
+import { safeDatabaseData } from './supabaseTypeUtils';
+
 export type ProxyType = 'allorigins' | 'corsproxy' | 'corsanywhere' | 'direct' | 'custom';
 
 export interface ProxyConfig {

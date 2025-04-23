@@ -1,7 +1,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { safeExtractProperty } from '@/utils/supabaseTypeUtils';
+import { safeExtractProperty, safeDatabaseData } from '@/utils/supabaseTypeUtils';
 
 export const useBalanceListener = (userId: string | undefined) => {
   const [balance, setBalance] = useState<number | null>(null);
@@ -15,7 +15,7 @@ export const useBalanceListener = (userId: string | undefined) => {
       const { data, error } = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', userId)
+        .eq('id', safeDatabaseData(userId))
         .maybeSingle();
         
       if (error) {

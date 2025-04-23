@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
-  prepareQueryParam, 
-  prepareInsertData, 
-  prepareUpdateData, 
-  safeExtractProperty 
+  prepareQueryParam,
+  safeExtractProperty,
+  prepareInsertData,
+  prepareUpdateData,
+  safeDatabaseData
 } from '@/utils/supabaseTypeUtils';
 
-type ProxyType = 'allorigins' | 'corsproxy' | 'custom';
+type ProxyType = 'allorigins' | 'corsproxy' | 'direct' | 'custom';
 
 interface ProxySettings {
   type: ProxyType;
@@ -40,7 +41,7 @@ export const CorsProxySelector = () => {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (!proxyError && proxyData) {
         // Use safe extraction to avoid TypeScript errors
@@ -54,7 +55,7 @@ export const CorsProxySelector = () => {
       const { data: settingsData, error: settingsError } = await supabase
         .from('site_settings')
         .select('value')
-        .eq('key', 'cors_proxy');
+        .eq('key', safeDatabaseData('cors_proxy'));
 
       if (settingsError) {
         if (settingsError.code !== 'PGRST116') { // Not found error
@@ -95,25 +96,25 @@ export const CorsProxySelector = () => {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (existingSettings && existingSettings.length > 0) {
+      if (existingSettings && existingSettings.length > 0 && existingSettings[0]?.id) {
         // Update existing record using our safe update function
-        const updateData = {
+        const updateData = safeDatabaseData({
           proxy_type: proxyType,
           custom_url: proxyType === 'custom' ? customUrl : null
-        };
+        });
         
         const { error: updateError } = await supabase
           .from('proxy_settings')
           .update(updateData)
-          .eq('id', existingSettings[0].id);
+          .eq('id', safeDatabaseData(existingSettings[0].id));
 
         if (updateError) throw updateError;
       } else {
         // Insert new record using our safe insert function
-        const insertData = {
+        const insertData = safeDatabaseData({
           proxy_type: proxyType,
           custom_url: proxyType === 'custom' ? customUrl : null
-        };
+        });
         
         const { error: insertError } = await supabase
           .from('proxy_settings')
@@ -126,29 +127,29 @@ export const CorsProxySelector = () => {
       const { data: existingSetting, error: settingFetchError } = await supabase
         .from('site_settings')
         .select('*')
-        .eq('key', 'cors_proxy')
+        .eq('key', safeDatabaseData('cors_proxy'))
         .maybeSingle();
 
       if (existingSetting) {
         // Update existing record
-        const updateData = {
+        const updateData = safeDatabaseData({
           value: settings,
           updated_at: new Date().toISOString()
-        };
+        });
         
         const { error: updateError } = await supabase
           .from('site_settings')
           .update(updateData)
-          .eq('key', 'cors_proxy');
+          .eq('key', safeDatabaseData('cors_proxy'));
 
         if (updateError) throw updateError;
       } else {
         // Insert new record
-        const insertData = {
+        const insertData = safeDatabaseData({
           key: 'cors_proxy',
           value: settings,
           updated_at: new Date().toISOString()
-        };
+        });
         
         const { error: insertError } = await supabase
           .from('site_settings')

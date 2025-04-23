@@ -20,34 +20,34 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-// Mock for AuthContext with all required properties
-const mockAuthContext: AuthContextType = {
-  user: { id: 'test-user' },
-  session: {},
+// Create complete mock for AuthContext with all required properties
+const createMockAuthContext = (overrides: Partial<AuthContextType> = {}): AuthContextType => ({
+  user: null,
+  session: null,
   loading: false,
-  isAuthenticated: true,
+  isAuthenticated: false,
   isAdmin: false,
   isStaff: false,
   userRoles: [],
   userBalance: 0,
+  balance: null,
+  balanceLoading: false,
+  isLoadingBalance: false,
+  fetchBalance: vi.fn().mockResolvedValue(0),
+  setUserBalance: vi.fn(),
+  fetchUserBalance: vi.fn().mockResolvedValue(0),
   refreshUserBalance: vi.fn().mockResolvedValue(0),
   refreshBalance: vi.fn().mockResolvedValue(0),
   refreshUserProfile: vi.fn().mockResolvedValue(undefined),
-  login: vi.fn().mockResolvedValue({}),
+  refreshUserData: vi.fn().mockResolvedValue(undefined),
   logout: vi.fn().mockResolvedValue(undefined),
   register: vi.fn().mockResolvedValue({}),
   checkUserRole: vi.fn(),
   isEmailVerified: true,
-  isLoadingBalance: false,
-  // Additional required properties
-  balance: 0,
-  balanceLoading: false,
-  fetchBalance: vi.fn().mockResolvedValue(0),
-  setUserBalance: vi.fn(),
-  fetchUserBalance: vi.fn().mockResolvedValue(0),
-  refreshUserData: vi.fn().mockResolvedValue(undefined),
+  resendVerificationEmail: vi.fn().mockResolvedValue(true),
   authError: null,
-};
+  ...overrides
+});
 
 describe('ProtectedRoute', () => {
   beforeEach(() => {
@@ -56,15 +56,14 @@ describe('ProtectedRoute', () => {
 
   it('redirects to login when user is not authenticated', () => {
     // Set up the mock to return unauthenticated state
-    vi.mocked(useAuth).mockReturnValue({
-      ...mockAuthContext,
+    vi.mocked(useAuth).mockReturnValue(createMockAuthContext({
       isAuthenticated: false, 
       loading: false,
       user: null,
       session: null,
       userRoles: [],
       balance: null,
-    });
+    }));
 
     render(
       <MemoryRouter>
@@ -81,14 +80,13 @@ describe('ProtectedRoute', () => {
 
   it('shows unauthorized page when user lacks required role', () => {
     // Set up the mock to return authenticated but without required role
-    vi.mocked(useAuth).mockReturnValue({
-      ...mockAuthContext,
+    vi.mocked(useAuth).mockReturnValue(createMockAuthContext({
       isAuthenticated: true, 
       loading: false,
       checkUserRole: vi.fn(() => false),
       user: { id: '1', email: 'test@example.com' } as any,
       userRoles: [UserRole.User],
-    });
+    }));
 
     render(
       <MemoryRouter>
@@ -105,15 +103,14 @@ describe('ProtectedRoute', () => {
 
   it('renders protected content for authorized users', () => {
     // Set up the mock to return authenticated with required role
-    vi.mocked(useAuth).mockReturnValue({
-      ...mockAuthContext,
+    vi.mocked(useAuth).mockReturnValue(createMockAuthContext({
       isAuthenticated: true, 
       loading: false,
       checkUserRole: vi.fn(() => true),
       user: { id: '1', email: 'admin@example.com' } as any,
       userRoles: [UserRole.Admin],
       isAdmin: true,
-    });
+    }));
 
     render(
       <MemoryRouter>
@@ -126,6 +123,4 @@ describe('ProtectedRoute', () => {
     // Check if the protected content is rendered
     expect(screen.getByText('Admin Content')).toBeInTheDocument();
   });
-
-  // Removed the isPublic test since that prop doesn't exist
 });

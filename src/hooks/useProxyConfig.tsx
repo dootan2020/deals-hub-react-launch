@@ -17,7 +17,7 @@ export const useProxyConfig = () => {
       } catch (error) {
         console.error('Error fetching proxy settings:', error);
         // Return default configuration on error
-        return { type: 'allorigins' };
+        return { proxyType: 'allorigins' };
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -27,7 +27,7 @@ export const useProxyConfig = () => {
   });
 
   return {
-    proxyConfig: proxyConfig || { type: 'allorigins' },
+    proxyConfig: proxyConfig || { proxyType: 'allorigins' },
     isLoading,
     error,
     refetch

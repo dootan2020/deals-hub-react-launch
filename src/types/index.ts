@@ -1,10 +1,11 @@
+
 export interface Product {
   id: string;
   title: string;
   description: string;
   price: number;
-  imageUrl?: string;
   category: string;
+  imageUrl?: string;
   createdAt: string;
   updatedAt?: string;
   slug: string;
@@ -52,17 +53,15 @@ export interface AuthContextType {
   isAdmin: boolean;
   isStaff: boolean;
   userRoles: UserRole[];
-  userBalance: number;
+  userBalance: number | null;
   refreshUserBalance: () => Promise<number | void>;
   refreshBalance: () => Promise<number | void>; // Alias for backward compatibility
   refreshUserProfile: () => Promise<void>;
-  login: (email: string, password: string) => Promise<any>; // Added for test compatibility
-  logout: () => Promise<void>;
   register: (email: string, password: string, metadata?: Record<string, any>) => Promise<any>;
   checkUserRole: (role: UserRole) => boolean;
-  isEmailVerified?: boolean;
-  resendVerificationEmail?: (email: string) => Promise<boolean>;
-  isLoadingBalance?: boolean;
+  isEmailVerified: boolean;
+  resendVerificationEmail: (email: string) => Promise<boolean>;
+  isLoadingBalance: boolean;
   // Added properties to match the context in AuthContext.tsx
   balance: number | null;
   balanceLoading: boolean;
@@ -71,4 +70,5 @@ export interface AuthContextType {
   fetchUserBalance: (userId: string) => Promise<number | null>;
   refreshUserData: () => Promise<void>;
   authError: string | null;
+  logout: () => Promise<void>;
 }
