@@ -8,6 +8,7 @@ export interface Product {
   kiosk_token: string;
   stock: number;
   inStock: boolean;
+  in_stock: boolean; // Adding this field to fix type errors
   slug: string;
   createdAt: string;
   specifications: Record<string, string | number | boolean | object>;
@@ -87,4 +88,11 @@ export interface TableProps<T> extends TableHTMLAttributes<HTMLTableElement> {
   data: T[];
   columns: TableColumn<T>[];
   isLoading?: boolean;
+}
+
+// Add types for user roles
+export enum UserRole {
+  User = 'user',
+  Admin = 'admin',
+  Staff = 'staff'
 }

@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { safeId } from '@/utils/supabaseHelpers';
+import { safeId, extractSafeData } from '@/utils/supabaseHelpers';
 
 interface ProxyConfig {
   proxyType: string;
@@ -55,8 +56,9 @@ export function useProductSync() {
       if (data && data.length > 0) {
         // Sync each product
         for (const product of data) {
-          if (product.external_id) {
-            await syncProduct(product.external_id);
+          const externalId = extractSafeData<{external_id: string}>(product)?.external_id;
+          if (externalId) {
+            await syncProduct(externalId);
           }
         }
       }
@@ -110,12 +112,58 @@ export function useProductSync() {
       fetchProducts();
     }
   };
+
+  const createProduct = async (productData: any) => {
+    setIsLoading(true);
+    try {
+      const { error, data } = await supabase
+        .from('products')
+        .insert(productData)
+        .select();
+
+      if (error) throw error;
+      
+      toast.success('Product created successfully');
+      return data;
+    } catch (error) {
+      console.error(`Error creating product:`, error);
+      toast.error(`Failed to create product`);
+      throw error;
+    } finally {
+      setIsLoading(false);
+      fetchProducts();
+    }
+  };
+
+  const updateProduct = async (productData: any) => {
+    const { id, ...updatedData } = productData;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update(updatedData)
+        .eq('id', safeId(id));
+
+      if (error) throw error;
+      
+      toast.success('Product updated successfully');
+    } catch (error) {
+      console.error(`Error updating product:`, error);
+      toast.error(`Failed to update product`);
+      throw error;
+    } finally {
+      setIsLoading(false);
+      fetchProducts();
+    }
+  };
   
   return {
     products,
     isLoading,
     syncAllProducts,
     syncProduct,
-    deleteProduct
+    deleteProduct,
+    createProduct,
+    updateProduct
   };
 }

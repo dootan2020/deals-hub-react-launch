@@ -1,6 +1,7 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { extractSafeData, safeId } from '@/utils/supabaseHelpers';
+import { safeId, extractSafeData } from '@/utils/supabaseHelpers';
 
 // Define our auth state interface
 interface AuthState {
@@ -41,7 +42,6 @@ export function useAuthState() {
         return null;
       }
       
-      // Use extractSafeData to safely handle the response
       const profileData = extractSafeData<{ balance: number }>(data);
       
       if (profileData) {

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ProductCard } from './ProductCard'; // Fix import to use named export
+import { ProductCard } from './ProductCard';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { Product } from '@/types';
@@ -78,7 +78,7 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
           products.map((product) => (
             <ProductCard 
               key={product.id} 
-              product={product}
+              product={{...product, in_stock: product.inStock !== undefined ? product.inStock : true}}
               viewMode={viewMode}
             />
           ))

@@ -5,7 +5,7 @@ import { ShoppingCart } from 'lucide-react';
 
 export interface BuyNowButtonProps {
   productId: string;
-  quantity?: number; // Add quantity prop to fix TypeScript error
+  quantity?: number;
   onPurchaseSuccess: () => void;
   className?: string;
   disabled?: boolean;

@@ -1,6 +1,7 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { safeId } from '@/utils/supabaseHelpers';
+import { safeId, extractSafeData } from '@/utils/supabaseHelpers';
 
 export const useBalanceListener = (userId: string | undefined) => {
   const [balance, setBalance] = useState<number | null>(null);
@@ -19,8 +20,11 @@ export const useBalanceListener = (userId: string | undefined) => {
         
       if (error) {
         console.error('Error fetching balance:', error);
-      } else if (data && 'balance' in data) {
-        setBalance(data.balance);
+      } else {
+        const profileData = extractSafeData<{ balance: number }>(data);
+        if (profileData) {
+          setBalance(profileData.balance);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch balance:', err);

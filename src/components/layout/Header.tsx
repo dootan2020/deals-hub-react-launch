@@ -7,7 +7,7 @@ import { UserButton } from './header/UserButton';
 import MobileMenuToggle from './header/MobileMenuToggle';
 import MobileNavigation from './header/MobileNavigation';
 import { DepositOptions } from './header/DepositOptions';
-import { RealtimeNotifier } from './header/RealtimeNotifier'; // Fix import to use named export
+import { RealtimeNotifier } from './header/RealtimeNotifier';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

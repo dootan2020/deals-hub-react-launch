@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeId, extractSafeData } from '@/utils/supabaseHelpers';
@@ -37,7 +38,7 @@ export function useCategory(slug?: string, initialFetch: boolean = true) {
       const { data: categoryData, error: categoryError } = await supabase
         .from('categories')
         .select('*')
-        .eq('slug', slug)
+        .eq('slug', safeId(slug))
         .maybeSingle();
 
       if (categoryError) throw new Error(categoryError.message);

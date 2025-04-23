@@ -1,3 +1,4 @@
+
 import { PostgrestError, PostgrestSingleResponse } from '@supabase/supabase-js';
 
 // Type guard to check if a value is a record (object)
@@ -70,13 +71,6 @@ export function isErrorResponse(response: any): response is { error: PostgrestEr
   return isValidRecord(response) && 'error' in response && response.error !== null;
 }
 
-// Helper to format UUID for Supabase queries
-// Uses type casting to make TypeScript happy while ensuring the UUID is passed correctly
-export function formatUuid(id: string | null | undefined): any {
-  if (!id) return '';
-  return id as any;
-}
-
 /**
  * Safely process the ID field for Supabase queries to fix TypeScript errors related to UUID handling
  * This is a crucial helper function to fix the TypeScript errors with ID comparisons
@@ -109,63 +103,27 @@ export function safeBoolean(value: any): boolean {
   return Boolean(value);
 }
 
-// Helper to handle Supabase data safely
-export function handleSupabaseData<T>(response: { data: any, error: PostgrestError | null }): T | null {
-  if (response.error) {
-    console.error('Supabase error:', response.error);
-    return null;
-  }
-  
-  if (!response.data) {
-    return null;
-  }
-  
-  return response.data as T;
-}
-
-// Helper to safely process Supabase query results
-export function processSupabaseData<T>(result: { data: any, error: PostgrestError | null }): T | null {
-  if (result.error) {
-    console.error('Supabase query error:', result.error);
-    return null;
-  }
-  return result.data as T;
-}
-
-// Helper for typed query results
-export function ensureDataIsValid<T>(data: any): T | null {
-  if (!data || typeof data !== 'object') return null;
-  return data as T;
-}
-
-// Determine if result is an error
-export function isSupabaseError(result: any): boolean {
-  return result && typeof result === 'object' && 'error' in result && result.error !== null;
-}
-
-// Safely cast data to desired type, checking for errors first
-export function safeCastData<T>(data: any): T | null {
-  if (!data) return null;
-  if (isSupabaseError(data)) return null;
-  return data as T;
-}
-
 /**
  * Universal helper to safely extract data from Supabase responses
  * Handles type safety with PostgrestSingleResponse
  */
-export function extractSafeData<T>(result: PostgrestError | PostgrestSingleResponse<any>): T | null {
-  if ('error' in result && result.error) {
-    console.error('Supabase error:', result.error);
+export function extractSafeData<T>(result: any): T | null {
+  try {
+    if (!result || (result.error && result.error !== null)) {
+      console.error('Supabase error:', result?.error);
+      return null;
+    }
+    
+    if (result.data === undefined || result.data === null) {
+      return null;
+    }
+    
+    // Ensure we're returning correctly typed data
+    return result.data as T;
+  } catch (error) {
+    console.error('Error extracting data:', error);
     return null;
   }
-  
-  if (!('data' in result) || !result.data) {
-    return null;
-  }
-  
-  // Ensure we're returning correctly typed data
-  return result.data as T;
 }
 
 /**
@@ -204,4 +162,21 @@ export function safeTableName(table: string): any {
  */
 export function safeColumnName(column: string): any {
   return column as any;
+}
+
+/**
+ * Helper to safely handle Supabase PostgrestSingleResponse results
+ */
+export function handlePostgrestResponse<T>(response: any): T | null {
+  try {
+    if (response?.error) {
+      console.error('Supabase query error:', response.error);
+      return null;
+    }
+    
+    return response?.data as T || null;
+  } catch (error) {
+    console.error('Error handling Postgrest response:', error);
+    return null;
+  }
 }
