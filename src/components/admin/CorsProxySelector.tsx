@@ -10,7 +10,13 @@ import { Globe, Save, RefreshCw, TestTube2, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ProxyType, ProxyConfig, buildProxyUrl } from '@/utils/proxyUtils';
-import { isValidRecord, isSupabaseRecord, prepareForUpdate, prepareForInsert, extractSafeData } from '@/utils/supabaseHelpers';
+import { 
+  isValidRecord, 
+  prepareForUpdate, 
+  prepareForInsert, 
+  extractSafeData,
+  safeId
+} from '@/utils/supabaseHelpers';
 
 interface ProxySettingsData {
   id: string;
@@ -95,7 +101,7 @@ const CorsProxySelector: React.FC = () => {
         const { error: updateError } = await supabase
           .from('proxy_settings')
           .update(settingsData)
-          .eq('id', existingSettings.id);
+          .eq('id', safeId(existingSettings.id));
           
         if (updateError) throw updateError;
       } else {

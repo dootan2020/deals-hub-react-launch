@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,10 +14,9 @@ import {
 } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { 
-  isDataResponse, 
-  toFilterableUUID,
+  extractSafeData,
   safeNumber, 
-  uuidFilter
+  safeId
 } from '@/utils/supabaseHelpers';
 
 interface PurchaseConfirmDialogProps {
@@ -25,6 +25,14 @@ interface PurchaseConfirmDialogProps {
   productId: string;
   quantity: number;
   onPurchaseSuccess: () => void;
+}
+
+interface ProductPrice {
+  price: number;
+}
+
+interface UserBalance {
+  balance: number;
 }
 
 export function PurchaseConfirmDialog({ 
@@ -59,16 +67,16 @@ export function PurchaseConfirmDialog({
 
   const fetchProductPrice = async () => {
     try {
-      const { data, error } = await supabase
+      const result = await supabase
         .from('products')
         .select('price')
-        .eq('id', toFilterableUUID(productId))
+        .eq('id', safeId(productId))
         .single();
 
-      if (error) throw error;
+      const productData = extractSafeData<ProductPrice>(result);
       
-      if (isDataResponse({ data, error }) && data.price !== undefined) {
-        return safeNumber(data.price);
+      if (productData) {
+        return safeNumber(productData.price);
       }
 
       return 0;
@@ -82,16 +90,16 @@ export function PurchaseConfirmDialog({
     if (!user) return 0;
     
     try {
-      const { data, error } = await supabase
+      const result = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', toFilterableUUID(user.id))
+        .eq('id', safeId(user.id))
         .single();
       
-      if (error) throw error;
+      const userData = extractSafeData<UserBalance>(result);
       
-      if (isDataResponse({ data, error }) && data.balance !== undefined) {
-        const balance = typeof data.balance === 'number' ? data.balance : parseFloat(data.balance);
+      if (userData) {
+        const balance = typeof userData.balance === 'number' ? userData.balance : parseFloat(userData.balance);
         return isNaN(balance) ? 0 : balance;
       }
       
