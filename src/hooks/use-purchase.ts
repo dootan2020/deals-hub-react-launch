@@ -1,68 +1,56 @@
 
 import { useState } from 'react';
-import { Product } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
-interface UsePurchaseOptions {
-  onSuccess?: () => void;
+interface PurchaseResult {
+  success: boolean;
+  orderId?: string;
+  key?: string;
+  error?: string;
 }
 
-export const usePurchase = (options?: UsePurchaseOptions) => {
+export const usePurchase = () => {
   const [isLoading, setIsLoading] = useState(false);
 
-  const purchaseProduct = async (product: Product, quantity: number = 1) => {
-    if (!product || !product.id) {
-      toast.error("Invalid product", "Cannot purchase this product");
-      return false;
-    }
-
+  const purchaseProduct = async (productId: string, quantity: number = 1) => {
     setIsLoading(true);
+    
     try {
-      // Check if user is authenticated
+      // Get current user session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user) {
-        toast.error("Authentication required", "Please log in to purchase products");
-        return false;
+        toast.error('Authentication required', 'Please log in to make a purchase');
+        return { success: false, error: 'Not authenticated' };
       }
-      
-      // Calculate total price
-      const totalPrice = product.price * quantity;
-      
-      // Create order record
-      const { data, error } = await supabase
-        .from('orders')
-        .insert({
-          user_id: session.user.id,
-          product_id: product.id,
-          total_price: totalPrice,
-          status: 'completed',
-          qty: quantity
+
+      // Call the edge function
+      const response = await supabase.functions.invoke('purchase-product', {
+        body: JSON.stringify({
+          userId: session.user.id,
+          productId,
+          quantity
         })
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      toast.success("Purchase successful", "Your order has been placed");
-      
-      if (options?.onSuccess) {
-        options.onSuccess();
+      });
+
+      const result: PurchaseResult = response.data;
+
+      if (result.success) {
+        toast.success('Purchase Successful', `Order ID: ${result.orderId}`);
+      } else {
+        toast.error('Purchase Failed', result.error);
       }
-      
-      return true;
-    } catch (error: any) {
-      console.error("Purchase error:", error);
-      toast.error("Purchase failed", error.message || "An error occurred during purchase");
-      return false;
+
+      return result;
+    } catch (error) {
+      console.error('Purchase error:', error);
+      toast.error('Purchase Error', 'An unexpected error occurred');
+      return { success: false, error: 'Unexpected error' };
     } finally {
       setIsLoading(false);
     }
   };
 
-  return {
-    purchaseProduct,
-    isLoading
-  };
+  return { purchaseProduct, isLoading };
 };
