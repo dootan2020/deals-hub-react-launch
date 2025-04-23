@@ -27,7 +27,7 @@ serve(async (req) => {
     if (!userId || !productId) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'Invalid input: userId and productId are required' 
+        error: 'Dữ liệu không hợp lệ: userId và productId là bắt buộc' 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400
@@ -44,7 +44,7 @@ serve(async (req) => {
     if (productError || !product) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'Product not found' 
+        error: 'Không tìm thấy sản phẩm' 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 404
@@ -55,7 +55,7 @@ serve(async (req) => {
     if (product.stock < quantity) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'Insufficient stock' 
+        error: 'Sản phẩm đã hết hàng' 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400
@@ -75,7 +75,7 @@ serve(async (req) => {
     if (profileError || !userProfile) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'User profile not found' 
+        error: 'Không tìm thấy thông tin người dùng' 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 404
@@ -85,15 +85,31 @@ serve(async (req) => {
     if (userProfile.balance < totalPrice) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'Insufficient balance' 
+        error: 'Số dư không đủ để thanh toán' 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400
       })
     }
 
-    // Simulate getting product key (replace with actual key retrieval logic)
-    const productKey = `KEY-${Math.random().toString(36).substring(7)}`
+    // Generate product key (in a real scenario, you'd get this from a key database or API)
+    // For now we'll mock it
+    const generateProductKey = () => {
+      const segments = 3;
+      const segmentLength = 3;
+      let key = '';
+      
+      for (let i = 0; i < segments; i++) {
+        for (let j = 0; j < segmentLength; j++) {
+          key += String.fromCharCode(65 + Math.floor(Math.random() * 26)); // A-Z
+        }
+        if (i < segments - 1) key += '-';
+      }
+      
+      return key;
+    };
+    
+    const productKey = generateProductKey();
 
     // Create order transaction
     const { data: order, error: orderError } = await supabase
@@ -112,7 +128,7 @@ serve(async (req) => {
     if (orderError) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'Failed to create order' 
+        error: 'Không thể tạo đơn hàng' 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
@@ -128,7 +144,7 @@ serve(async (req) => {
     if (balanceError) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'Failed to update balance' 
+        error: 'Không thể cập nhật số dư' 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
@@ -144,14 +160,14 @@ serve(async (req) => {
     if (stockError) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'Failed to update product stock' 
+        error: 'Không thể cập nhật số lượng sản phẩm' 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
       })
     }
 
-    // Return success response with order details
+    // Return success response with order details and key
     return new Response(JSON.stringify({ 
       success: true, 
       orderId: order.id, 
@@ -165,7 +181,7 @@ serve(async (req) => {
     console.error('Purchase Error:', error)
     return new Response(JSON.stringify({ 
       success: false, 
-      error: 'Internal server error' 
+      error: 'Lỗi hệ thống' 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface PurchaseResult {
+export interface PurchaseResult {
   success: boolean;
   orderId?: string;
   key?: string;
@@ -12,17 +12,19 @@ interface PurchaseResult {
 
 export const usePurchase = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [purchaseKey, setPurchaseKey] = useState<string | null>(null);
 
-  const purchaseProduct = async (productId: string, quantity: number = 1) => {
+  const purchaseProduct = async (productId: string, quantity: number = 1): Promise<PurchaseResult> => {
     setIsLoading(true);
+    setPurchaseKey(null);
     
     try {
       // Get current user session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user) {
-        toast.error('Authentication required', {
-          description: 'Please log in to make a purchase'
+        toast.error('Yêu cầu đăng nhập', {
+          description: 'Vui lòng đăng nhập để mua sản phẩm'
         });
         return { success: false, error: 'Not authenticated' };
       }
@@ -39,20 +41,24 @@ export const usePurchase = () => {
       const result: PurchaseResult = response.data;
 
       if (result.success) {
-        toast.success('Purchase Successful', {
-          description: `Order ID: ${result.orderId}`
+        toast.success('Mua hàng thành công', {
+          description: `Mã đơn hàng: ${result.orderId}`
         });
+        
+        if (result.key) {
+          setPurchaseKey(result.key);
+        }
       } else {
-        toast.error('Purchase Failed', {
-          description: result.error || 'Unknown error'
+        toast.error('Mua hàng thất bại', {
+          description: result.error || 'Lỗi không xác định'
         });
       }
 
       return result;
     } catch (error) {
       console.error('Purchase error:', error);
-      toast.error('Purchase Error', {
-        description: 'An unexpected error occurred'
+      toast.error('Lỗi giao dịch', {
+        description: 'Đã xảy ra lỗi không mong muốn'
       });
       return { success: false, error: 'Unexpected error' };
     } finally {
@@ -60,5 +66,5 @@ export const usePurchase = () => {
     }
   };
 
-  return { purchaseProduct, isLoading };
+  return { purchaseProduct, isLoading, purchaseKey };
 };

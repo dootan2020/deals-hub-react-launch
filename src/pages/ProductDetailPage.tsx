@@ -1,11 +1,11 @@
-
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Check, Package, Zap } from 'lucide-react';
+import { ShoppingCart, Check, Package } from 'lucide-react';
 import { ProductLogo } from '@/components/product/ProductLogo';
 import { ProductBadge } from '@/components/product/ProductBadge';
+import ProductPurchaseSection from '@/components/product/ProductPurchaseSection';
 
 // Mock data for demonstration
 const mockProducts = [
@@ -63,17 +63,16 @@ const mockProducts = [
       <h3>Lưu ý quan trọng</h3>
       <p>Sau khi mua hàng, bạn sẽ nhận được toàn bộ thông tin đăng nhập bao gồm mã 2FA và hướng dẫn chi tiết cách truy cập.</p>
     `,
-  },
-] as {
-  id: string;
-  slug: string;
-  platform: 'gmail' | 'facebook' | 'outlook' | 'default';
-  title: string;
-  stock: number;
-  sold: number;
-  price: number;
-  description: string;
-  longDescription: string;
+  } as {
+    id: string;
+    slug: string;
+    platform: 'gmail' | 'facebook' | 'outlook' | 'default';
+    title: string;
+    stock: number;
+    sold: number;
+    price: number;
+    description: string;
+    longDescription: string;
 }[];
 
 const ProductDetailPage: React.FC = () => {
@@ -157,48 +156,7 @@ const ProductDetailPage: React.FC = () => {
               </div>
               
               {/* Right column - Purchase section */}
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <div className="mb-6">
-                  <h3 className="font-semibold mb-4">Thông tin mua hàng</h3>
-                  
-                  <div className="space-y-3 mb-4">
-                    <div className="flex justify-between">
-                      <span>Đơn giá:</span>
-                      <span className="font-medium">
-                        {new Intl.NumberFormat('vi-VN', {
-                          style: 'currency',
-                          currency: 'VND'
-                        }).format(product.price)}
-                      </span>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span>Số lượng:</span>
-                      <span>1</span>
-                    </div>
-                    
-                    <div className="flex justify-between border-t pt-2">
-                      <span>Tổng thanh toán:</span>
-                      <span className="font-semibold text-primary">
-                        {new Intl.NumberFormat('vi-VN', {
-                          style: 'currency',
-                          currency: 'VND'
-                        }).format(product.price)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <Button size="lg" className="w-full gap-2 mb-3">
-                  <Zap className="h-5 w-5" />
-                  Mua ngay
-                </Button>
-                
-                <Button variant="outline" className="w-full gap-2">
-                  <ShoppingCart className="h-5 w-5" />
-                  Thêm vào giỏ hàng
-                </Button>
-              </div>
+              <ProductPurchaseSection product={product} />
             </div>
           </div>
           
