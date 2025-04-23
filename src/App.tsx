@@ -15,6 +15,7 @@ import NotFound from './pages/NotFound';
 
 const App = () => {
   return (
+    // Removed any extraneous props that could be causing issues
     <BrowserRouter>
       <Toaster />
       <Routes>
