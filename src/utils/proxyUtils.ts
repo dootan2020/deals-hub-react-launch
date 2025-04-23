@@ -1,78 +1,36 @@
 
-import { safeDatabaseData, safeExtractProperty } from './supabaseTypeUtils';
-
-export type ProxyType = 'allorigins' | 'corsproxy' | 'corsanywhere' | 'direct' | 'custom';
+export type ProxyType = 'allorigins' | 'corsproxy' | 'corsanywhere' | 'direct';
 
 export interface ProxyConfig {
-  proxyType: ProxyType;
-  customUrl?: string;
+  proxy_type: ProxyType | string;
+  custom_url?: string;
+  type?: ProxyType | string; // Added for compatibility with existing code
 }
 
-export function buildProxyUrl(targetUrl: string, config: ProxyConfig): { url: string, method: string } {
-  const encodedUrl = encodeURIComponent(targetUrl);
+export const buildProxyUrl = (originalUrl: string, config: ProxyConfig): { url: string, isProxied: boolean } => {
+  const proxyType = config.type || config.proxy_type;
   
-  switch(config.proxyType) {
+  switch (proxyType) {
     case 'allorigins':
-      return { 
-        url: `https://api.allorigins.win/raw?url=${encodedUrl}`,
-        method: 'GET'
+      return {
+        url: `https://api.allorigins.win/get?url=${encodeURIComponent(originalUrl)}`,
+        isProxied: true
       };
     case 'corsproxy':
-      return { 
-        url: `https://corsproxy.io/?${encodedUrl}`,
-        method: 'GET'
+      return {
+        url: `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`,
+        isProxied: true
       };
     case 'corsanywhere':
-      return { 
-        url: `https://cors-anywhere.herokuapp.com/${targetUrl}`,
-        method: 'GET'
-      };
-    case 'custom':
-      if (config.customUrl) {
-        return { 
-          url: config.customUrl.replace('{{url}}', encodedUrl),
-          method: 'GET'
-        };
-      }
-      // Fall back to allorigins if no custom URL provided
-      return { 
-        url: `https://api.allorigins.win/raw?url=${encodedUrl}`,
-        method: 'GET'
+      return {
+        url: `https://cors-anywhere.herokuapp.com/${originalUrl}`,
+        isProxied: true
       };
     case 'direct':
     default:
-      return { 
-        url: targetUrl,
-        method: 'GET'
-      };
-  }
-}
-
-export async function fetchProxySettings(): Promise<ProxyConfig> {
-  try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data, error } = await supabase
-      .from('proxy_settings')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error fetching proxy settings:', error);
-      return { proxyType: 'allorigins' };
-    }
-
-    if (data && typeof data === 'object') {
       return {
-        proxyType: safeExtractProperty(data, 'proxy_type', 'allorigins') as ProxyType,
-        customUrl: safeExtractProperty(data, 'custom_url', undefined)
+        url: originalUrl,
+        isProxied: false
       };
-    }
-
-    return { proxyType: 'allorigins' };
-  } catch (error) {
-    console.error('Error in fetchProxySettings:', error);
-    return { proxyType: 'allorigins' };
   }
-}
+};

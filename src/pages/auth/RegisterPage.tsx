@@ -20,7 +20,7 @@ export default function RegisterPage() {
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
   const resendTimerRef = useRef<NodeJS.Timeout | null>(null);
   
-  const { register, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading, signUp } = useAuth();
   const { resendVerificationEmail } = useAuthActions();
   const navigate = useNavigate();
   
@@ -65,7 +65,8 @@ export default function RegisterPage() {
       // Show loading toast
       const loadingToast = toast.loading("Đang đăng ký tài khoản...");
       
-      const result = await register(values.email, values.password, {
+      // Use signUp instead of register
+      const result = await signUp(values.email, values.password, {
         display_name: values.displayName
       });
       

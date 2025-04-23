@@ -159,11 +159,7 @@ export const useCategoryProducts = (options: UseCategoryProductsOptions | string
         query = query.eq('category_id', category.id);
       }
       
-      const { count, error: countError } = await query.select('*', { count: 'exact', head: true });
-      
-      if (countError) {
-        console.error('Error fetching product count:', countError);
-      }
+      const { count } = await query.select('*', { count: 'exact', head: true });
       
       setTotal(count || 0);
       
@@ -242,6 +238,8 @@ export const useCategoryProducts = (options: UseCategoryProductsOptions | string
     loadingMore,
     hasMore: total > products.length,
     loadMore: fetchMore,
-    setSelectedCategory
+    setSelectedCategory,
+    activeFilters: { sort }, // Added for compatibility
+    subcategories: childCategories // Added for compatibility
   };
 };

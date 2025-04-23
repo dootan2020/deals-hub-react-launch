@@ -13,7 +13,8 @@ export function adaptCategory(dbCategory: any): Category {
     image: dbCategory.image,
     count: dbCategory.count || 0,
     parentId: dbCategory.parent_id || dbCategory.parentId || null,
-    createdAt: dbCategory.created_at || dbCategory.createdAt
+    createdAt: dbCategory.created_at || dbCategory.createdAt,
+    category: null // Add category property with null value
   };
 }
 

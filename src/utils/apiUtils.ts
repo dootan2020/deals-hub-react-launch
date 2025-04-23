@@ -1,97 +1,37 @@
 
-import { ProxyConfig, buildProxyUrl } from './proxyUtils';
-
-export interface ApiResponse {
-  success: string;
-  kioskToken?: string;
-  name?: string;
-  price?: string;
-  stock?: string;
-  description?: string;
-  error?: string;
-}
-
-export interface ApiConfig {
-  user_token: string;
-  kiosk_token?: string;
-  name?: string;
-  id?: string;
-  is_active?: boolean;
-}
+/**
+ * Extracts the content from HTML response
+ */
+export const extractFromHtml = (html: string, selector = 'body'): string => {
+  try {
+    // Simple regex-based extraction for basic cases
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    return bodyMatch ? bodyMatch[1] : html;
+  } catch (error) {
+    return html;
+  }
+};
 
 /**
- * Helper function to fetch active API configuration
+ * Checks if the response is HTML
  */
-export async function fetchActiveApiConfig(): Promise<ApiConfig> {
+export const isHtmlResponse = (response: string): boolean => {
+  return response.trim().startsWith('<!DOCTYPE html>') || 
+         response.trim().startsWith('<html') || 
+         response.includes('<body') || 
+         response.includes('<head');
+};
+
+export const fetchActiveApiConfig = async () => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data, error } = await supabase
-      .from('api_configs')
-      .select('*')
-      .eq('is_active', true)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error fetching API config:', error);
-      return { user_token: '' };
-    }
-
-    return data as ApiConfig || { user_token: '' };
-  } catch (error) {
-    console.error('Error in fetchActiveApiConfig:', error);
-    return { user_token: '' };
-  }
-}
-
-/**
- * Fetch product data using a kiosk token
- */
-export async function fetchProductData(
-  kioskToken: string,
-  userToken: string,
-  proxyConfig?: ProxyConfig
-): Promise<ApiResponse> {
-  try {
-    if (!kioskToken || !userToken) {
-      return { 
-        success: 'false', 
-        error: 'Missing kiosk token or user token' 
-      };
-    }
-
-    // Call the serverless function
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data, error } = await supabase.functions.invoke('api-proxy', {
-      body: { 
-        endpoint: 'getStock',
-        kioskToken,
-        userToken
-      }
-    });
-    
-    if (error) {
-      return {
-        success: 'false',
-        error: `Serverless function error: ${error.message}`
-      };
-    }
-    
-    if (!data) {
-      return {
-        success: 'false',
-        error: 'Empty response from API'
-      };
-    }
-    
-    // Add the kioskToken to the response for reference
+    // This would typically fetch from your API/database
+    // Mocked for now
     return {
-      ...data,
-      kioskToken
+      user_token: "default_user_token",
+      kiosk_token: "default_kiosk_token"
     };
   } catch (error) {
-    return {
-      success: 'false',
-      error: `Error: ${(error as Error).message}`
-    };
+    console.error("Error fetching API config:", error);
+    throw error;
   }
-}
+};

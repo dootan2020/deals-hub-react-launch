@@ -15,25 +15,25 @@ import { useProductRecommendations } from '@/hooks/useProductRecommendations';
 import { ProductRecommendations } from '@/components/product/ProductRecommendations';
 import { useAuth } from '@/context/AuthContext';
 import { usePersonalizedRecommendations } from '@/hooks/usePersonalizedRecommendations';
-import { AISource, RecommendationStrategy } from '@/types';
+import { RecommendationStrategy } from '@/types';
 
 const ProductPage = () => {
   const { productSlug } = useParams();
   const { product, loading, error } = useProduct(productSlug);
   const { user } = useAuth();
 
-  const [aiSource] = useState<AISource>('popular');
+  const [recommendationStrategy] = useState<RecommendationStrategy>('popular');
   const {
     recommendations,
     loading: recLoading,
     error: recError
-  } = useProductRecommendations(product, aiSource as unknown as RecommendationStrategy);
+  } = useProductRecommendations(product, recommendationStrategy);
 
   const {
     recommendations: personalizedRecs,
     loading: persLoading,
     error: persError
-  } = usePersonalizedRecommendations(user?.id || null, product, aiSource as unknown as RecommendationStrategy);
+  } = usePersonalizedRecommendations(user?.id || null, product, recommendationStrategy);
 
   if (loading) {
     return (
@@ -90,7 +90,7 @@ const ProductPage = () => {
 
           {recommendations && recommendations.length > 0 && (
             <ProductRecommendations
-              recommendations={recommendations}
+              recommendations={recommendations as any[]}
               loading={recLoading}
               error={recError}
             />
@@ -102,7 +102,7 @@ const ProductPage = () => {
 
           {personalizedRecs && personalizedRecs.length > 0 && (
             <ProductRecommendations
-              recommendations={personalizedRecs}
+              recommendations={personalizedRecs as any[]}
               loading={persLoading}
               error={persError}
               label="Dành riêng cho bạn"

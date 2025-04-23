@@ -48,7 +48,7 @@ const ProductManagerPage = () => {
         .order('name');
 
       if (error) throw error;
-      setCategories(data || []);
+      setCategories(data ? convertCategoryFields(data) : []);
     } catch (error) {
       console.error('Error loading categories:', error);
       toast.error('Failed to load categories');

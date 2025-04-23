@@ -1,4 +1,3 @@
-
 export interface Category {
   id: string;
   name: string;
@@ -59,13 +58,13 @@ export interface Order {
   user_id: string;
   external_order_id: string | null;
   status: string;
-  total_amount: number; // Used instead of total_price for consistency
-  total_price: number; // Changed to required for compatibility with OrdersAdmin
+  total_amount: number;
+  total_price: number; // Made required in both interfaces for consistency
   created_at: string;
   updated_at: string;
   user: any;
   order_items: OrderItem[];
-  qty?: number;
+  qty?: number; // Made optional to match both interfaces
   product_id?: string;
   keys?: any;
   promotion_code?: string;
@@ -103,5 +102,5 @@ export interface ProxyConfig {
   proxy_type: string;
   custom_url?: string;
   id?: string;
-  type?: string;  // Added for compatibility
+  type?: string;  // Added for compatibility with existing code
 }

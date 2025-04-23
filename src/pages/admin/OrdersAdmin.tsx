@@ -19,6 +19,7 @@ const OrdersAdmin = () => {
   const orders: Order[] = fetchedOrders.map(order => ({
     ...order,
     total_price: order.total_price ?? order.total_amount,
+    qty: order.qty ?? 1 // Ensure qty is defined with default value of 1
   }));
 
   useEffect(() => {

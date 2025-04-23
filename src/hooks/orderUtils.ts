@@ -7,12 +7,12 @@ export interface Order {
   external_order_id: string | null;
   status: string;
   total_amount: number;
-  total_price: number; // Changed to required for compatibility
+  total_price: number; // Made required for consistency
   created_at: string;
   updated_at: string;
   user: any;
   order_items: OrderItem[];
-  qty?: number;
+  qty?: number; // Made optional to match both interfaces
   product_id?: string;
   keys?: any;
   promotion_code?: string;

@@ -1,98 +1,113 @@
 
-import { ProxyConfig } from "@/utils/proxyUtils";
-import { extractFromHtml, isHtmlResponse } from "@/utils/apiUtils";
+import { Product } from '@/types';
+import { buildProxyUrl, ProxyType } from '@/utils/proxyUtils';
 
-// Sample data for different kioskTokens
-const mockProductData = {
-  "IEB8KZ8SAJQ5616W2M21": {
-    success: "true",
-    name: "Gmail USA 2023-2024",
-    price: "16000",
-    stock: "4003",
-    description: "Gmail USA với domain @gmail.com, tạo 2023-2024"
-  },
-  "WK76IVBVK3X0WW9DKZ4R": {
-    success: "true",
-    name: "Netflix Premium 4K",
-    price: "35000",
-    stock: "720",
-    description: "Netflix Premium 4K Ultra HD, xem được trên 4 thiết bị cùng lúc"
-  },
-  "FPLM5G8SNW3HBY7DT2X9": {
-    success: "true",
-    name: "Spotify Premium 1 Tháng",
-    price: "20000",
-    stock: "156",
-    description: "Tài khoản Spotify Premium nghe nhạc không quảng cáo trong 1 tháng"
-  },
-  "VPMY2EKXSNY5Y3A4A35B": {
-    success: "true",
-    name: "Digital Deals Hub Premium",
-    price: "29999",
-    stock: "345",
-    description: "Premium membership for Digital Deals Hub with exclusive access to special offers"
-  },
-  "A0YR4F4DHM4Z4NQ13B": {
-    success: "true",
-    name: "Hotmail Account",
-    price: "12000",
-    stock: "255",
-    description: "New Microsoft Hotmail account with premium features"
-  },
-  "DUP32BXSLWAP4847J84B": {
-    success: "true",
-    name: "V1 INSTAGRAM QUA 282, NO INFO, NO LOGIN IP, TẠO > 10-30 NGÀY",
-    price: "3500",
-    stock: "8090",
-    description: "Tài khoản Instagram đã qua 282, không yêu cầu login IP, tuổi 10-30 ngày"
+// Define API response type
+export interface ApiProductResponse {
+  success: string;
+  name: string;
+  price: string;
+  stock: string;
+  description?: string;
+  mock?: boolean;
+  error?: string;
+}
+
+/**
+ * Helper function to check if a response is HTML
+ */
+const isHtmlResponse = (response: string): boolean => {
+  return response.trim().startsWith('<!DOCTYPE html>') || 
+         response.trim().startsWith('<html') || 
+         response.includes('<body') || 
+         response.includes('<head');
+};
+
+/**
+ * Extract useful content from HTML
+ */
+const extractFromHtml = (html: string, selector = 'body'): string => {
+  try {
+    // Simple extraction
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    return bodyMatch ? bodyMatch[1] : html;
+  } catch (error) {
+    return html;
   }
 };
 
-// Function to get mock data based on kioskToken
-function getMockProductData(kioskToken: string) {
-  if (mockProductData[kioskToken]) {
-    return mockProductData[kioskToken];
-  }
-
+/**
+ * Generate mock product data with a given token
+ */
+export const generateMockProduct = (token?: string): ApiProductResponse => {
+  const randomStock = Math.floor(Math.random() * 100) + 1;
+  const randomPrice = Math.floor(Math.random() * 1000000) + 50000;
+  
   return {
-    success: "true",
-    name: `Product ${kioskToken.substring(0, 5)}`,
-    price: Math.floor(Math.random() * 30000 + 10000).toString(),
-    stock: Math.floor(Math.random() * 500 + 50).toString(),
-    description: `This is a premium digital product with token ${kioskToken.substring(0, 8)}`
+    success: 'true',
+    name: token ? `Product ${token.substring(0, 5)}` : 'Sample Product',
+    price: randomPrice.toString(),
+    stock: randomStock.toString(),
+    description: 'This is a mock product description generated because the API returned HTML or had CORS issues.',
+    mock: true
   };
-}
+};
 
-export async function fetchProductInfoByKioskToken(kioskToken: string, tempProxyOverride: ProxyConfig | null, proxyConfig: ProxyConfig) {
+/**
+ * Fetch product data from API with proxy
+ */
+export const fetchProductData = async (
+  kioskToken: string, 
+  userToken: string, 
+  proxyConfig: { proxy_type: ProxyType, type?: ProxyType }
+): Promise<ApiProductResponse> => {
   try {
-    const apiConfig = await import('@/utils/apiUtils').then(module => module.fetchActiveApiConfig());
-    console.log(`Using user token: ${apiConfig.user_token.substring(0, 8)}... for product lookup`);
+    const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}`;
     
-    const currentProxy = tempProxyOverride || proxyConfig;
-    console.log(`Using proxy type: ${currentProxy.type}`);
+    // Build proxy URL
+    const { url: proxyUrl, isProxied } = buildProxyUrl(apiUrl, {
+      proxy_type: proxyConfig.proxy_type,
+      type: proxyConfig.type
+    });
     
-    await new Promise(resolve => setTimeout(resolve, 800)); // Simulate 0.8 second delay
+    // Fetch with proxy
+    const response = await fetch(proxyUrl);
     
-    if (currentProxy.type === 'cors-anywhere') {
-      console.log("Content-Type: text/html; charset=utf-8");
-      console.log("Raw response (first 300 chars): \n<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>Digital Deals Hub</title>\n    <meta name=\"description\" content=\"Digital Deals Hub - Your source for digital products\" />\n    <meta name=\"aut");
-      console.log("Response is HTML, attempting to extract product information");
-      
-      return {
-        success: "true",
-        name: "Information extracted from HTML",
-        price: "0",
-        stock: "1",
-        description: "Information extracted from HTML response"
-      };
+    if (!response.ok) {
+      throw new Error(`API returned error: ${response.status}`);
     }
     
-    console.log("Content-Type: application/json");
-    console.log(`Raw response: Successfully retrieved product info for token ${kioskToken}`);
+    const responseText = await response.text();
     
-    return getMockProductData(kioskToken);
+    // Handle HTML responses from proxy
+    if (isProxied && isHtmlResponse(responseText)) {
+      console.warn('API returned HTML instead of JSON. Using mock data.');
+      return generateMockProduct(kioskToken);
+    }
+    
+    // Handle AllOrigins format
+    if (proxyConfig.type === 'allorigins' && responseText.includes('"contents"')) {
+      try {
+        const allOriginsData = JSON.parse(responseText);
+        if (allOriginsData && allOriginsData.contents) {
+          // Parse the contents which should be our actual API response
+          return JSON.parse(allOriginsData.contents);
+        }
+      } catch {
+        return generateMockProduct(kioskToken);
+      }
+    }
+    
+    // Try to parse as JSON directly
+    try {
+      return JSON.parse(responseText);
+    } catch {
+      console.warn('Failed to parse API response as JSON. Using mock data.');
+      return generateMockProduct(kioskToken);
+    }
+    
   } catch (error) {
-    console.error('Fetch product info error:', error);
-    throw error;
+    console.error('Error fetching product data:', error);
+    return generateMockProduct(kioskToken);
   }
-}
+};

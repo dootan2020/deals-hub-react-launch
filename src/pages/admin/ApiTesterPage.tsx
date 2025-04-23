@@ -1,4 +1,3 @@
-
 // src/pages/admin/ApiTesterPage.tsx
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
@@ -86,7 +85,10 @@ const ApiTesterPage = () => {
       const apiUrl = `https://taphoammo.net/api/getStock?kioskToken=${encodeURIComponent(kioskToken)}&userToken=${encodeURIComponent(userToken)}`;
       addLog(`API URL: ${apiUrl}`);
       
-      const { url: proxyUrl } = buildProxyUrl(apiUrl, { type: selectedProxy });
+      const { url: proxyUrl } = buildProxyUrl(apiUrl, { 
+        proxy_type: selectedProxy,
+        type: selectedProxy  // Add the type property for compatibility
+      });
       addLog(`Proxy URL: ${proxyUrl}`);
       
       try {

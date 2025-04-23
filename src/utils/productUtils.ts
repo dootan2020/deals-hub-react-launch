@@ -2,65 +2,42 @@
 import { Product } from '@/types';
 
 /**
- * Ensures a mock product has all required fields according to the Product interface
+ * Calculate discount percentage between original price and current price
  */
-export const ensureProductFields = (product: Partial<Product>): Product => {
+export const calculateDiscountPercentage = (originalPrice: number, currentPrice: number): number => {
+  if (!originalPrice || originalPrice <= 0 || !currentPrice || currentPrice <= 0) {
+    return 0;
+  }
+  
+  const discount = ((originalPrice - currentPrice) / originalPrice) * 100;
+  return Math.round(discount);
+};
+
+/**
+ * Generate mock product data for testing
+ */
+export const generateMockProduct = (overrides: Partial<Product> = {}): Product => {
   return {
-    id: product.id || '',
-    title: product.title || '',
-    price: product.price || 0,
-    inStock: product.inStock !== undefined ? product.inStock : true,
-    slug: product.slug || '',
-    createdAt: product.createdAt || new Date().toISOString(),
-    kiosk_token: product.kiosk_token || '',
-    stock: product.stock !== undefined ? product.stock : 0,
-    specifications: product.specifications || {},
-    
-    // Optional fields
-    description: product.description,
-    shortDescription: product.shortDescription,
-    images: product.images,
-    categoryId: product.categoryId,
-    badges: product.badges,
-    originalPrice: product.originalPrice,
-    stockQuantity: product.stockQuantity,
-    salesCount: product.salesCount,
-    sales_count: product.sales_count,
-    rating: product.rating,
-    reviewCount: product.reviewCount,
-    features: product.features
+    id: `product-${Math.random().toString(36).substring(2, 9)}`,
+    title: overrides.title || 'Sample Product',
+    slug: overrides.slug || 'sample-product',
+    description: overrides.description || 'This is a sample product description',
+    shortDescription: overrides.shortDescription || 'Sample product short description',
+    price: overrides.price || 99000,
+    originalPrice: overrides.originalPrice || 149000,
+    images: overrides.images || ['/images/placeholder.jpg'],
+    categoryId: overrides.categoryId || 'category-1',
+    rating: overrides.rating || 4.5,
+    reviewCount: overrides.reviewCount || 12,
+    inStock: overrides.inStock !== undefined ? overrides.inStock : true,
+    stockQuantity: overrides.stockQuantity || 10,
+    badges: overrides.badges || ['new', 'sale'],
+    features: overrides.features || ['Feature 1', 'Feature 2'],
+    specifications: overrides.specifications || { key1: 'value1', key2: 'value2' },
+    salesCount: overrides.salesCount || 25,
+    stock: overrides.stock || 10,
+    kiosk_token: overrides.kiosk_token || '',
+    createdAt: overrides.createdAt || new Date().toISOString(),
+    category: overrides.category || null
   };
-};
-
-/**
- * Ensures an array of mock products have all required fields
- */
-export const ensureProductsFields = (products: Partial<Product>[]): Product[] => {
-  return products.map(ensureProductFields);
-};
-
-/**
- * Formats a price from cents to a currency string
- */
-export const formatPrice = (price: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(price / 100); // Assuming price is stored in cents
-};
-
-export const getStockBadgeClasses = (stock: number): string => {
-  if (stock > 15) {
-    return 'bg-green-500/10 text-green-700';
-  } else if (stock >= 6) {
-    return 'bg-amber-500/10 text-amber-700';
-  } 
-  return 'bg-red-500/10 text-red-700';
-};
-
-export const getSoldDisplay = (salesCount: number = 0): number => {
-  // Generate a random number between 45 and 200 and add it to salesCount
-  return salesCount + Math.floor(Math.random() * (200 - 45 + 1) + 45);
 };

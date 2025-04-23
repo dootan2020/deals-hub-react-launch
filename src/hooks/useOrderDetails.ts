@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Order, OrderItem } from '@/types';
+import { Order } from '@/types';
 import { 
   prepareQueryParam, 
   processSupabaseData, 
@@ -66,6 +66,7 @@ export function useOrderDetails() {
         external_order_id: getSafeProperty(data, 'external_order_id', null),
         status: getSafeProperty(data, 'status', ''),
         total_amount: getSafeProperty(data, 'total_price', 0),
+        total_price: getSafeProperty(data, 'total_price', 0), // Ensure total_price is set
         created_at: getSafeProperty(data, 'created_at', ''),
         updated_at: getSafeProperty(data, 'updated_at', ''),
         user: userValue,
@@ -76,7 +77,7 @@ export function useOrderDetails() {
       return orderWithDetails;
     } catch (err) {
       console.error('Error fetching order details:', err);
-      toast.error("Lỗi", "Không thể tải thông tin đơn hàng");
+      toast.error('Lỗi', 'Không thể tải thông tin đơn hàng');
       return null;
     } finally {
       setLoading(false);
