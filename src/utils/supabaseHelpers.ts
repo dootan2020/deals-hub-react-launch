@@ -66,10 +66,15 @@ export function isDataResponse<T = any>(response: { data: T | null, error: Postg
   return response.data !== null && response.error === null;
 }
 
-// Helper to format UUID for Supabase queries (removes hyphens)
-export function uuidFilter(id: string | null | undefined): string {
+// Type guard to check if a value is an error response
+export function isErrorResponse(response: any): response is { error: PostgrestError } {
+  return isValidRecord(response) && 'error' in response && response.error !== null;
+}
+
+// Helper to format UUID for Supabase queries
+export function formatUuid(id: string | null | undefined): string {
   if (!id) return '';
-  return id.replace(/-/g, '');
+  return id;
 }
 
 // Helper to return a safer UUID format for filtering
@@ -125,22 +130,7 @@ export function handleSupabaseData<T>(response: { data: any, error: PostgrestErr
   return response.data as T;
 }
 
-// Helper to safely use .eq() method with UUID strings
-export function safeEq(query: any, field: string, value: string | null | undefined): any {
-  if (!value) return query;
-  return query.eq(field, toFilterableUUID(value));
-}
-
-// Helper to safely handle data with potential errors
-export function safeDataAccess<T = any>(data: any, fallback: T): T {
-  if (data === null || data === undefined || 
-      (typeof data === 'object' && 'error' in data)) {
-    return fallback;
-  }
-  return data as T;
-}
-
-// Helper for safely typing Supabase queries
+// Helper to safely process Supabase query results
 export function processSupabaseData<T>(result: { data: any, error: PostgrestError | null }): T | null {
   if (result.error) {
     console.error('Supabase query error:', result.error);
@@ -149,7 +139,18 @@ export function processSupabaseData<T>(result: { data: any, error: PostgrestErro
   return result.data as T;
 }
 
+// Helper for typed query results
+export function ensureDataIsValid<T>(data: any): T | null {
+  if (!data || typeof data !== 'object') return null;
+  return data as T;
+}
+
 // Determine if result is an error
 export function isSupabaseError(result: any): boolean {
   return result && typeof result === 'object' && 'error' in result && result.error !== null;
+}
+
+export function uuidFilter(id: string | null | undefined): string {
+  if (!id) return '';
+  return id;
 }

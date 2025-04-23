@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { useProductSync } from '@/hooks/use-product-sync';
 import { Category } from '@/types';
 import { fetchProxySettings } from '@/utils/proxyUtils';
-import { fetchActiveApiConfig, ApiResponse, fetchViaProxy } from '@/utils/apiUtils';
+import { ApiResponse, fetchActiveApiConfig, fetchViaProxy } from '@/utils/apiUtils';
 import { 
   isValidArray, 
   isValidRecord, 
@@ -17,12 +17,10 @@ import {
   isSupabaseRecord, 
   safeString, 
   safeNumber, 
-  safeUUID, 
-  uuidFilter,
-  toFilterableUUID,
-  handleSupabaseData,
+  formatUuid,
+  processSupabaseData,
   isSupabaseError,
-  processSupabaseData
+  isErrorResponse
 } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
@@ -145,20 +143,18 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
     if (!productId) return;
     setIsLoading(true);
     try {
-      // Use maybeSingle instead of single to avoid errors when no record is found
+      // Use text() query parameter for UUID to avoid type coercion issues
       const result = await supabase
         .from('products')
         .select('*')
         .eq('id', productId)
         .maybeSingle();
 
-      // Check if we got an error from Supabase
       if (result.error) {
         throw result.error;
       }
       
-      // Check if we got valid data
-      if (result.data) {
+      if (result.data && isValidRecord(result.data)) {
         const data = result.data as ProductData;
         form.reset({
           title: safeString(data.title),
@@ -265,7 +261,14 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
         const data = await fetchViaProxy(apiUrl, proxyConfig);
         
         if (data?.success === "true") {
-          handleApiDataReceived(data);
+          handleApiDataReceived({
+            success: "true",
+            name: data.name,
+            price: data.price,
+            stock: data.stock,
+            description: data.description,
+            kioskToken: kioskToken
+          });
           toast.success('Product data fetched successfully!');
         } else {
           toast.error(`Failed to fetch product data: ${data?.error || 'Unknown error'}`);

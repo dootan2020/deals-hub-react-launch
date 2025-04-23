@@ -9,7 +9,14 @@ import { toast } from 'sonner';
 import { Globe, Save, RefreshCw, TestTube2, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ProxyType, ProxyConfig } from '@/utils/proxyUtils';
+import { ProxyType, ProxyConfig, buildProxyUrl } from '@/utils/proxyUtils';
+import { isValidRecord, isSupabaseRecord } from '@/utils/supabaseHelpers';
+
+interface ProxySettingsData {
+  id: string;
+  proxy_type: string;
+  custom_url: string | null;
+}
 
 const CorsProxySelector: React.FC = () => {
   const [proxyConfig, setProxyConfig] = useState<ProxyConfig>({
@@ -32,11 +39,11 @@ const CorsProxySelector: React.FC = () => {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
-      if (data) {
+      if (data && isValidRecord<ProxySettingsData>(data)) {
         setProxyConfig({
           proxyType: data.proxy_type as ProxyType,
           customUrl: data.custom_url || ''
@@ -51,17 +58,17 @@ const CorsProxySelector: React.FC = () => {
   };
 
   const handleChangeProxyType = (value: ProxyType) => {
-    setProxyConfig({
-      ...proxyConfig,
+    setProxyConfig(prev => ({
+      ...prev,
       proxyType: value
-    });
+    }));
   };
 
   const handleCustomUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setProxyConfig({
-      ...proxyConfig,
+    setProxyConfig(prev => ({
+      ...prev,
       customUrl: e.target.value
-    });
+    }));
   };
 
   const handleSaveSettings = async () => {
@@ -77,16 +84,18 @@ const CorsProxySelector: React.FC = () => {
 
       if (fetchError) throw fetchError;
       
+      const settingsData = {
+        proxy_type: proxyConfig.proxyType,
+        custom_url: proxyConfig.customUrl || null
+      };
+      
       let error;
       
-      if (existingSettings) {
+      if (existingSettings && isSupabaseRecord(existingSettings)) {
         // Update existing settings
         const { error: updateError } = await supabase
           .from('proxy_settings')
-          .update({
-            proxy_type: proxyConfig.proxyType,
-            custom_url: proxyConfig.customUrl || null
-          })
+          .update(settingsData)
           .eq('id', existingSettings.id);
           
         error = updateError;
@@ -94,10 +103,7 @@ const CorsProxySelector: React.FC = () => {
         // Insert new settings
         const { error: insertError } = await supabase
           .from('proxy_settings')
-          .insert({
-            proxy_type: proxyConfig.proxyType,
-            custom_url: proxyConfig.customUrl || null
-          });
+          .insert(settingsData);
           
         error = insertError;
       }
@@ -149,30 +155,6 @@ const CorsProxySelector: React.FC = () => {
       toast.error(`Proxy test failed: ${(error as Error).message}`);
     } finally {
       setIsTesting(false);
-    }
-  };
-
-  const buildProxyUrl = (targetUrl: string, config: ProxyConfig): string => {
-    const encodedUrl = encodeURIComponent(targetUrl);
-    
-    switch (config.proxyType) {
-      case 'allorigins':
-        return `https://api.allorigins.win/get?url=${encodedUrl}`;
-        
-      case 'corsproxy':
-        return `https://corsproxy.io/?${encodedUrl}`;
-        
-      case 'corsanywhere':
-        return `https://cors-anywhere.herokuapp.com/${targetUrl}`;
-        
-      case 'direct':
-        return targetUrl;
-        
-      default:
-        if (config.customUrl) {
-          return config.customUrl.replace('{{url}}', encodedUrl);
-        }
-        return `https://api.allorigins.win/get?url=${encodedUrl}`;
     }
   };
 

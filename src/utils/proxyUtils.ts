@@ -1,6 +1,6 @@
 
 // Define the available proxy types
-export type ProxyType = "allorigins" | "corsproxy" | "corsanywhere" | "direct" | "yproxy";
+export type ProxyType = "allorigins" | "corsproxy" | "corsanywhere" | "direct" | "yproxy" | "custom";
 
 // Define the proxy configuration interface
 export interface ProxyConfig {
@@ -28,10 +28,13 @@ export function buildProxyUrl(targetUrl: string, config: ProxyConfig): string {
     case "direct":
       return targetUrl;
     
-    default:
+    case "custom":
       if (config.customUrl) {
         return config.customUrl.replace('{{url}}', encodedUrl);
       }
+      return `https://api.allorigins.win/get?url=${encodedUrl}`;
+      
+    default:
       // Default to allorigins if no type or custom URL is specified
       return `https://api.allorigins.win/get?url=${encodedUrl}`;
   }
