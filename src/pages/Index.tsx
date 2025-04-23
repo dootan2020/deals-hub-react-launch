@@ -1,8 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { fetchProductsWithFilters } from '@/services/product/productService';
-import { ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import Layout from '@/components/layout/Layout';
 import HeroSection from '@/components/home/HeroSection';
 import SearchSection from '@/components/home/SearchSection';
@@ -13,9 +11,11 @@ import TestimonialsSection from '@/components/home/TestimonialsSection';
 import NewsletterSection from '@/components/home/NewsletterSection';
 import { toast } from '@/hooks/use-toast';
 import { SortOption } from '@/types';
+import { ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSort, setActiveSort] = useState<SortOption>('newest');
 
@@ -23,9 +23,12 @@ const Index = () => {
     const loadProducts = async () => {
       try {
         setLoading(true);
-        const fetchedProducts = await fetchProductsWithFilters({
+        const result = await fetchProductsWithFilters({
           sort: activeSort,
         });
+        
+        // Fix: Access the products array from the result
+        const fetchedProducts = result.products || [];
         
         console.log('Featured products in Index page:', fetchedProducts.map(p => ({
           title: p.title,
@@ -35,7 +38,11 @@ const Index = () => {
         setProducts(fetchedProducts);
       } catch (error) {
         console.error('Error loading products:', error);
-        toast.error('Failed to load products');
+        toast({
+          title: 'Error',
+          description: 'Failed to load products',
+          variant: 'destructive'
+        });
       } finally {
         setLoading(false);
       }

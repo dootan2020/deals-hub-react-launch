@@ -2,10 +2,9 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import ProductHeader from '@/components/product/ProductHeader';
-import ProductDescription from '@/components/product/ProductDescription';
+import { ProductHeader } from '@/components/product/ProductHeader';
+import { ProductDescription } from '@/components/product/ProductDescription';
 import ProductPurchaseSection from '@/components/product/ProductPurchaseSection';
-import ProductRecommendations from '@/components/product/ProductRecommendations';
 import { useProduct } from '@/hooks/useProduct';
 
 const ProductPage: React.FC = () => {
@@ -47,20 +46,16 @@ const ProductPage: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <ProductHeader product={product} />
+        <ProductHeader title={product.title} category={product.category} />
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           <div className="lg:col-span-2">
-            <ProductDescription product={product} />
+            <ProductDescription description={product.description || ''} />
           </div>
           <div>
             <ProductPurchaseSection product={product} />
           </div>
         </div>
-        
-        {product.id && (
-          <ProductRecommendations productId={product.id} strategy="similar" />
-        )}
       </div>
     </Layout>
   );
