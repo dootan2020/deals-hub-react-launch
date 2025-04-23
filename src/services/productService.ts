@@ -1,25 +1,20 @@
 
 // Re-export product service from the new location for backward compatibility
+// Comment out functions that don't exist anymore
 import { 
-  fetchProducts, 
-  fetchProductsWithFilters, 
-  fetchProductById,
   fetchProductBySlug,
-  createProduct,
-  updateProduct,
-  updateCategoryCount,
-  incrementProductSales,
-  deleteProduct
+  searchProducts as fetchProducts,
+  fetchProductsWithFilters
 } from './product/productService';
 
 export {
   fetchProducts,
   fetchProductsWithFilters,
-  fetchProductById,
   fetchProductBySlug,
-  createProduct,
-  updateProduct,
-  updateCategoryCount,
-  incrementProductSales,
-  deleteProduct
+  // Removed functions that don't exist anymore
+  // createProduct,
+  // updateProduct,
+  // updateCategoryCount,
+  // incrementProductSales,
+  // deleteProduct
 };

@@ -1,8 +1,8 @@
 
 import { SortOption } from '@/types';
 
-// Export SortOption type for use in components
-export { SortOption };
+// Export SortOption type as type for isolated modules
+export type { SortOption };
 
 /**
  * Get the display name for a sort option

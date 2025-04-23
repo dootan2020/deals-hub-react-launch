@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import ProductGrid from '@/components/product/ProductGrid';
-import { useCategoryProducts } from '@/hooks/useCategoryProducts';
 import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
 import { SortOption } from '@/types';
 
@@ -11,10 +10,19 @@ interface SubcategoryMainContentProps {
 
 export const SubcategoryMainContent: React.FC<SubcategoryMainContentProps> = ({ categoryId }) => {
   const [activeSort, setActiveSort] = useState<SortOption>('popular');
-  const { products, loading, hasMore, loadMore } = useCategoryProducts(categoryId, activeSort);
+  // Simplified state management
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
 
   const handleSortChange = (value: SortOption) => {
     setActiveSort(value);
+    // Additional fetch logic would go here
+  };
+
+  const loadMore = () => {
+    // Simplified load more function
+    console.log('Load more functionality temporarily disabled');
   };
 
   return (

@@ -9,14 +9,14 @@ export const normalizeUserField = (userData: any) => {
   return userData;
 };
 
-// Helper function to transform order data from database to our Order interface
+// Basic transform function that uses any to avoid type issues
 export const transformOrderData = (data: any): Order => {
   return {
     id: data.id,
     user_id: data.user_id,
     external_order_id: data.external_order_id,
     status: data.status,
-    total_amount: data.total_price, // Use total_price as total_amount for consistency
+    total_amount: data.total_price,
     total_price: data.total_price,
     created_at: data.created_at,
     updated_at: data.updated_at,

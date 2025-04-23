@@ -208,6 +208,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return userRoles.includes(role);
   };
 
+  const extractSafeData = (data: any) => {
+    if (!data) return null;
+    // Basic safe extraction
+    try {
+      return {
+        ...data
+      };
+    } catch (e) {
+      console.error("Error extracting data:", e);
+      return null;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{

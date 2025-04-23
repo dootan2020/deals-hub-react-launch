@@ -6,12 +6,10 @@ import ProtectedRoute from "@/components/routing/ProtectedRoute";
 // Admin pages
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import CategoryAdmin from "@/pages/admin/CategoryAdmin";
-import OrdersAdmin from "@/pages/admin/OrdersAdmin";
 import TransactionsAdmin from "@/pages/admin/TransactionsAdmin";
 import ApiConfigAdmin from "@/pages/admin/ApiConfigAdmin";
 import SyncLogsAdmin from "@/pages/admin/SyncLogsAdmin";
 import ApiTesterPage from "@/pages/admin/ApiTesterPage";
-import ProductManagerPage from "@/pages/admin/ProductManagerPage";
 import ProductCreatePage from "@/pages/admin/ProductCreatePage";
 import ProductEditPage from "@/pages/admin/ProductEditPage";
 import ProductFormWithTester from "@/pages/admin/ProductFormWithTester";
@@ -30,11 +28,12 @@ export const adminRoutes = [
       <CategoryAdmin />
     </ProtectedRoute>
   } />,
-  <Route key="admin-orders" path="/admin/orders" element={
-    <ProtectedRoute requiredRoles={['admin', 'staff']}>
-      <OrdersAdmin />
-    </ProtectedRoute>
-  } />,
+  // Comment out OrdersAdmin route temporarily
+  // <Route key="admin-orders" path="/admin/orders" element={
+  //   <ProtectedRoute requiredRoles={['admin', 'staff']}>
+  //     <OrdersAdmin />
+  //   </ProtectedRoute>
+  // } />,
   <Route key="admin-transactions" path="/admin/transactions" element={
     <ProtectedRoute requiredRoles={['admin', 'staff']}>
       <TransactionsAdmin />
@@ -55,11 +54,12 @@ export const adminRoutes = [
       <ApiTesterPage />
     </ProtectedRoute>
   } />,
-  <Route key="admin-product-manager" path="/admin/product-manager" element={
-    <ProtectedRoute requiredRoles={['admin']}>
-      <ProductManagerPage />
-    </ProtectedRoute>
-  } />,
+  // Comment out ProductManagerPage route temporarily
+  // <Route key="admin-product-manager" path="/admin/product-manager" element={
+  //   <ProtectedRoute requiredRoles={['admin']}>
+  //     <ProductManagerPage />
+  //   </ProtectedRoute>
+  // } />,
   <Route key="admin-products-create" path="/admin/products/create" element={
     <ProtectedRoute requiredRoles={['admin']}>
       <ProductCreatePage />

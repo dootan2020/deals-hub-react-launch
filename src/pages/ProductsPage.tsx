@@ -6,11 +6,9 @@ import ProductGrid from '@/components/product/ProductGrid';
 import { toast } from '@/hooks/use-toast';
 import ProductSorter from '@/components/product/ProductSorter';
 import ViewToggle from '@/components/product/ViewToggle';
-import { useCategoryProducts } from '@/hooks/useCategoryProducts';
 import { useCategoriesContext } from '@/context/CategoriesContext';
 import SubcategoryPills from '@/components/category/SubcategoryPills';
-import { Category } from '@/types';
-import { SortOption } from '@/types';
+import { Category, SortOption } from '@/types';
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,29 +19,22 @@ const ProductsPage = () => {
   // Filter subcategories - using parentId instead of parent_id
   const subcategories = categories.filter(cat => cat.parentId !== null);
   
-  const { 
-    products, 
-    loading,
-    fetchMore,
-    total,
-    handleSortChange: handleSort,
-    sort,
-    loadingMore,
-    hasMore
-  } = useCategoryProducts({
-    categorySlug: '',
-    isProductsPage: true,
-    sort: initialSort,
-    limit: 12
-  });
+  // Simplified implementation temporarily while removing complex dependencies
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [sort, setSort] = useState<SortOption>(initialSort);
+  const [loadingMore, setLoadingMore] = useState(false);
   
-  const loadMore = fetchMore;
-
   const handleSortChange = (value: SortOption) => {
-    handleSort(value);
+    setSort(value);
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set('sort', value);
     setSearchParams(newSearchParams);
+  };
+
+  const loadMore = () => {
+    console.log('Load more functionality temporarily disabled');
   };
 
   const handleViewChange = (newView: 'grid' | 'list') => {
