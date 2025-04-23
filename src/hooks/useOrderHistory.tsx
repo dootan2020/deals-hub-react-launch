@@ -36,9 +36,9 @@ export const useOrderHistory = (userId: string | undefined) => {
             id,
             user_id,
             product_id,
-            qty as quantity,
-            total_price as price,
-            keys as key_delivered,
+            qty,
+            total_price,
+            keys,
             status,
             created_at,
             products (
@@ -50,9 +50,16 @@ export const useOrderHistory = (userId: string | undefined) => {
 
         if (err) throw err;
 
-        const formattedOrders = data.map(order => ({
-          ...order,
-          key_delivered: order.key_delivered || [],
+        // Transform the raw data into the expected format
+        const formattedOrders: OrderHistoryItem[] = data.map(order => ({
+          id: order.id,
+          user_id: order.user_id,
+          product_id: order.product_id,
+          quantity: order.qty,
+          price: order.total_price,
+          key_delivered: order.keys || [],
+          status: order.status,
+          created_at: order.created_at,
           product: order.products
         }));
 
