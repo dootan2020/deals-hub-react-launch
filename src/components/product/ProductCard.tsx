@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,7 +26,7 @@ export function ProductCard({ product, loading = false, viewMode = "grid" }: Pro
     ? product.images[0] 
     : 'https://placehold.co/400x300?text=No+Image';
   
-  const isInStock = product.inStock !== undefined ? product.inStock : product.in_stock !== undefined ? product.in_stock : true;
+  const isInStock = product.inStock;
     
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">

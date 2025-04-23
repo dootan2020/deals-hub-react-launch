@@ -1,34 +1,22 @@
 
-import { User, Session } from '@supabase/supabase-js';
+export type UserRole = 'admin' | 'user' | 'manager';
 
-// Enum for user roles
-export enum UserRole {
-  User = 'user',
-  Admin = 'admin',
-  Staff = 'staff'
-}
-
-export interface AuthUser extends User {
-  role?: UserRole;
+export interface UserWithRoles {
+  id: string;
+  email: string;
+  roles: UserRole[];
+  displayName?: string;
+  avatarUrl?: string;
 }
 
 export interface AuthContextType {
-  user: AuthUser | null;
-  session: Session | null;
-  loading: boolean;
   isAuthenticated: boolean;
-  isAdmin: boolean;
-  isStaff: boolean;
+  user: any;
   userRoles: UserRole[];
-  userBalance: number;
-  isLoadingBalance?: boolean;
-  refreshUserBalance: () => Promise<number | void>;
-  refreshBalance: () => Promise<number | void>; // Alias for backward compatibility
-  refreshUserProfile: () => Promise<void>;
-  login: (email: string, password: string) => Promise<any>;
+  isAdmin: boolean;
+  isManager: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (email: string, password: string, metadata?: Record<string, any>) => Promise<any>;
-  checkUserRole: (role: UserRole) => boolean;
-  isEmailVerified: boolean;
-  resendVerificationEmail: (email: string) => Promise<boolean>;
+  loading: boolean;
 }

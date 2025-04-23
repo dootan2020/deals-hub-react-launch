@@ -1,7 +1,18 @@
 
-// Shared types and utilities for Orders
+import { Product } from "@/types";
 
-import { Json } from '@/integrations/supabase/types';
+export interface Order {
+  id: string;
+  user_id: string;
+  external_order_id: string | null;
+  status: string;
+  total_amount: number;
+  total_price?: number; // For backward compatibility
+  created_at: string;
+  updated_at: string;
+  user: any;
+  order_items: OrderItem[];
+}
 
 export interface OrderItem {
   id: string;
@@ -9,42 +20,14 @@ export interface OrderItem {
   product_id: string;
   price: number;
   quantity: number;
-  created_at: string | null;
-  external_product_id: string | null;
+  product?: Product;
+  external_product_id?: string;
 }
 
-export interface Order {
-  id: string;
-  user_id: string;
-  total_price: number;
-  status: string;
-  created_at: string | null;
-  updated_at: string;
-  product_id?: string;
-  qty: number;
-  keys?: Json;
-  promotion_code?: string;
-  external_order_id?: string;
-  user?: { 
-    email: string;
-    display_name?: string;
-  } | null;
-  product?: {
-    title: string;
-    images?: string[] | null;
-  };
-  order_items?: OrderItem[];
-}
-
-export function normalizeUserField(user: any): { email: string; display_name?: string } {
-  if (
-    user &&
-    typeof user === 'object' &&
-    user !== null &&
-    !('error' in user) &&
-    typeof user.email === 'string'
-  ) {
-    return user as { email: string; display_name?: string };
+export const normalizeUserField = (userData: any) => {
+  if (!userData) return null;
+  if (typeof userData === 'object' && 'email' in userData) {
+    return userData.email;
   }
-  return { email: 'N/A' };
-}
+  return userData;
+};

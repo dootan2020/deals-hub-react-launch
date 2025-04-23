@@ -45,8 +45,7 @@ export function ProductPurchaseSection({ product, quantity, onQuantityChange }: 
   };
 
   // Use safe property checks with fallbacks
-  const productInStock = product.inStock !== undefined ? product.inStock : 
-                        product.in_stock !== undefined ? product.in_stock : true;
+  const productInStock = product.inStock;
   const productStock = product.stock || 0;
 
   return (

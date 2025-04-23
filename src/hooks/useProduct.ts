@@ -51,8 +51,8 @@ export const useProduct = (productSlug: string | undefined) => {
         }
         
         // Fix boolean comparisons
-        const inStock = getSafeProperty(productData, 'in_stock', false);
-        const hasStock = inStock === true || getSafeProperty(productData, 'stock', 0) > 0;
+        const inStock = Boolean(getSafeProperty(productData, 'in_stock', false));
+        const hasStock = inStock || getSafeProperty(productData, 'stock', 0) > 0;
         
         const mappedProduct: Product = {
           id: getSafeProperty(productData, 'id', ''),

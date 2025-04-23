@@ -42,8 +42,8 @@ export const CategoriesProvider = ({ children }: CategoriesProviderProps) => {
       const data = await fetchAllCategories();
       setCategories(data);
       
-      // Filter main categories (those without parent_id)
-      const main = data.filter(category => !category.parent_id);
+      // Filter main categories (those without parentId)
+      const main = data.filter(category => !category.parentId);
       setMainCategories(main);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch categories'));
@@ -62,7 +62,7 @@ export const CategoriesProvider = ({ children }: CategoriesProviderProps) => {
   };
 
   const getSubcategoriesByParentId = (parentId: string) => {
-    return categories.filter(category => category.parent_id === parentId);
+    return categories.filter(category => category.parentId === parentId);
   };
 
   const refreshCategories = async () => {

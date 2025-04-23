@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Order, normalizeUserField } from './orderUtils';
+import { Order, OrderItem } from '@/types';
 import { 
   prepareQueryParam, 
   processSupabaseData, 
@@ -11,6 +11,15 @@ import {
   getSafeProperty,
   processOrderItems
 } from '@/utils/supabaseTypeUtils';
+
+// Helper function to normalize user field
+export const normalizeUserField = (userData: any) => {
+  if (!userData) return null;
+  if (typeof userData === 'object' && 'email' in userData) {
+    return userData.email;
+  }
+  return userData;
+};
 
 // Standalone hook for fetching one order by ID & setting selectedOrder
 export function useOrderDetails() {

@@ -16,7 +16,7 @@ const CategoryOverview: React.FC<CategoryOverviewProps> = ({
   products 
 }) => {
   // Get subcategories using the hook
-  const { subcategories, featuredProducts } = useSubcategories(category.id);
+  const { subcategories, products: featuredProducts, loading, error } = useSubcategories(category.id);
   
   return (
     <>

@@ -4,7 +4,16 @@ import { Product } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { prepareQueryParam, getSafeProperty } from '@/utils/supabaseTypeUtils';
 
-type RecommendationStrategy = 'similar' | 'popular' | 'related';
+export type RecommendationStrategy = 'similar' | 'popular' | 'related';
+
+// Export this interface to be used by other components
+export interface Recommendation {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string;
+  image?: string;
+}
 
 export const useProductRecommendations = (
   product: Product | null,

@@ -4,9 +4,10 @@ import { Recommendation } from "@/hooks/useProductRecommendations";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Product } from "@/types";
 
 interface ProductRecommendationsProps {
-  recommendations: Recommendation[];
+  recommendations: Product[] | Recommendation[];
   loading: boolean;
   error: string | null;
   label?: string;
@@ -36,9 +37,15 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {recommendations.map((rec, idx) => (
           <Card key={rec.slug || idx} className="p-4 rounded-lg border shadow-sm">
-            {rec.image && <img src={rec.image} alt={rec.title} className="w-full h-32 object-cover rounded mb-3" />}
+            {'images' in rec && rec.images && rec.images[0] ? (
+              <img src={rec.images[0]} alt={rec.title} className="w-full h-32 object-cover rounded mb-3" />
+            ) : rec.image ? (
+              <img src={rec.image} alt={rec.title} className="w-full h-32 object-cover rounded mb-3" />
+            ) : null}
             <div className="font-medium text-base mb-1">{rec.title}</div>
-            {rec.description && <div className="text-sm text-muted-foreground mb-2">{rec.description}</div>}
+            {rec.description && <div className="text-sm text-muted-foreground mb-2">{
+              'shortDescription' in rec ? rec.shortDescription : rec.description.substring(0, 100) + '...'
+            }</div>}
             {rec.slug && (
               <Link to={`/product/${rec.slug}`} className="text-blue-600 hover:underline text-sm font-medium">
                 Xem chi tiết

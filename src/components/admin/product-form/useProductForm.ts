@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -123,7 +124,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
               slug: safeString(item.slug),
               image: safeString(item.image),
               count: safeNumber(item.count),
-              parent_id: item.parent_id ? safeString(item.parent_id) : null
+              parentId: item.parent_id ? safeString(item.parent_id) : null
             });
           }
         });

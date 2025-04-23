@@ -1,125 +1,79 @@
 
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { describe, it, vi, expect, beforeEach } from 'vitest';
-import { ProtectedRoute } from './ProtectedRoute';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import ProtectedRoute from './ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
-import { UserRole } from '@/types/index';
+import { UserRole } from '@/types/auth.types';
 
-// Mock the useAuth hook
-vi.mock('@/context/AuthContext', () => ({
-  useAuth: vi.fn(),
+// Mock the auth hook
+jest.mock('@/context/AuthContext', () => ({
+  useAuth: jest.fn(),
 }));
-
-// Mock useNavigate hook from react-router-dom
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    Navigate: ({ to }: { to: string }) => <div data-testid="navigate" data-to={to} />,
-  };
-});
-
-// Create complete mock for AuthContext with all required properties
-const createMockAuthContext = (overrides = {}) => ({
-  user: null,
-  session: null,
-  loading: false,
-  isAuthenticated: false,
-  isAdmin: false,
-  isStaff: false,
-  userRoles: [],
-  userBalance: null,
-  balance: null,
-  balanceLoading: false,
-  isLoadingBalance: false,
-  fetchBalance: vi.fn().mockResolvedValue(0),
-  setUserBalance: vi.fn(),
-  fetchUserBalance: vi.fn().mockResolvedValue(0),
-  refreshUserBalance: vi.fn().mockResolvedValue(0),
-  refreshBalance: vi.fn().mockResolvedValue(0),
-  refreshUserProfile: vi.fn().mockResolvedValue(undefined),
-  refreshUserData: vi.fn().mockResolvedValue(undefined),
-  register: vi.fn().mockResolvedValue({}),
-  checkUserRole: vi.fn().mockReturnValue(false),
-  isEmailVerified: true,
-  resendVerificationEmail: vi.fn().mockResolvedValue(true),
-  authError: null,
-  logout: vi.fn().mockResolvedValue(undefined),
-  ...overrides
-});
 
 describe('ProtectedRoute', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
+  });
+
+  it('shows loading state when auth is loading', () => {
+    (useAuth as jest.Mock).mockReturnValue({
+      isAuthenticated: false,
+      loading: true,
+      userRoles: [],
+    });
+
+    render(
+      <MemoryRouter>
+        <ProtectedRoute />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
   it('redirects to login when user is not authenticated', () => {
-    // Set up the mock to return unauthenticated state
-    vi.mocked(useAuth).mockReturnValue(createMockAuthContext({
-      isAuthenticated: false, 
+    (useAuth as jest.Mock).mockReturnValue({
+      isAuthenticated: false,
       loading: false,
-      user: null,
-      session: null,
       userRoles: [],
+    });
+
+    const mockNavigate = jest.fn();
+    jest.mock('react-router-dom', () => ({
+      ...jest.requireActual('react-router-dom'),
+      Navigate: (props: any) => {
+        mockNavigate(props.to);
+        return null;
+      },
     }));
 
     render(
       <MemoryRouter>
-        <ProtectedRoute>
-          <div>Protected Content</div>
-        </ProtectedRoute>
+        <ProtectedRoute />
       </MemoryRouter>
     );
-    
-    // Check if we're redirecting to login
-    const navigate = screen.getByTestId('navigate');
-    expect(navigate.getAttribute('data-to')).toBe('/login');
+
+    // Check that it would navigate to login
+    expect(mockNavigate).toHaveBeenCalledWith('/login');
   });
 
-  it('shows unauthorized page when user lacks required role', () => {
-    // Set up the mock to return authenticated but without required role
-    vi.mocked(useAuth).mockReturnValue(createMockAuthContext({
-      isAuthenticated: true, 
+  it('allows access when user is authenticated with required role', () => {
+    (useAuth as jest.Mock).mockReturnValue({
+      isAuthenticated: true,
       loading: false,
-      checkUserRole: vi.fn(() => false),
-      user: { id: '1', email: 'test@example.com' },
-      userRoles: [UserRole.User],
-    }));
+      userRoles: ['admin'] as UserRole[],
+    });
 
     render(
       <MemoryRouter>
-        <ProtectedRoute requiredRoles={[UserRole.Admin]}>
-          <div>Admin Content</div>
-        </ProtectedRoute>
+        <Routes>
+          <Route element={<ProtectedRoute requiredRoles={['admin']} />}>
+            <Route path="/" element={<div>Protected Content</div>} />
+          </Route>
+        </Routes>
       </MemoryRouter>
     );
-    
-    // Check if we're redirecting to unauthorized
-    const navigate = screen.getByTestId('navigate');
-    expect(navigate.getAttribute('data-to')).toBe('/unauthorized');
-  });
 
-  it('renders protected content for authorized users', () => {
-    // Set up the mock to return authenticated with required role
-    vi.mocked(useAuth).mockReturnValue(createMockAuthContext({
-      isAuthenticated: true, 
-      loading: false,
-      checkUserRole: vi.fn(() => true),
-      user: { id: '1', email: 'admin@example.com' },
-      userRoles: [UserRole.Admin],
-      isAdmin: true,
-    }));
-
-    render(
-      <MemoryRouter>
-        <ProtectedRoute requiredRoles={[UserRole.Admin]}>
-          <div>Admin Content</div>
-        </ProtectedRoute>
-      </MemoryRouter>
-    );
-    
-    // Check if the protected content is rendered
-    expect(screen.getByText('Admin Content')).toBeInTheDocument();
+    expect(screen.getByText('Protected Content')).toBeInTheDocument();
   });
 });

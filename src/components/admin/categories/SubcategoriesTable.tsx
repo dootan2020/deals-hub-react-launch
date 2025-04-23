@@ -68,7 +68,7 @@ export const SubcategoriesTable: React.FC<SubcategoriesTableProps> = ({
   };
 
   const filteredSubcategories = selectedParentId 
-    ? subcategories.filter(subcat => subcat.parent_id === selectedParentId)
+    ? subcategories.filter(subcat => subcat.parentId === selectedParentId)
     : subcategories;
 
   return (
@@ -122,7 +122,7 @@ export const SubcategoriesTable: React.FC<SubcategoriesTableProps> = ({
             </TableRow>
           ) : (
             filteredSubcategories.map((subcategory) => {
-              const parentCategory = mainCategories.find(cat => cat.id === subcategory.parent_id);
+              const parentCategory = mainCategories.find(cat => cat.id === subcategory.parentId);
               
               return (
                 <TableRow key={subcategory.id}>
