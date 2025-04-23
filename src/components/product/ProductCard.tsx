@@ -50,7 +50,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     const result = await purchaseProduct(id, 1, promotionCode || undefined);
     if (result.success && result.key) {
       setShowKey(result.key);
-      toast.success('Mua hàng thành công', `Key: ${result.key}`);
+      toast.success('Mua hàng thành công', {
+        description: `Key: ${result.key}`
+      });
     } else if (result.error) {
       toast.error('Mua hàng thất bại', {
         description: result.error
