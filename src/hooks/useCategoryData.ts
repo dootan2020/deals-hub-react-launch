@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Product, Category, SortOption, FilterParams } from '@/types';
-import { useCategoryProducts } from './useCategoryProducts';
+import { useCategoryProducts, UseCategoryProductsOptions } from './useCategoryProducts';
 import { useCategory } from './useCategory';
 
 interface UseCategoryDataOptions {

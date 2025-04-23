@@ -25,8 +25,8 @@ export interface AuthContextType {
   isAdmin: boolean;
   isManager: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register?: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string) => Promise<void>; // Alias for register
   logout: () => Promise<void>;
   loading: boolean;
 }

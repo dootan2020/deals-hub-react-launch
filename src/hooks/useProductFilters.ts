@@ -133,7 +133,8 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
     minPrice: filters.priceRange[0],
     maxPrice: filters.priceRange[1],
     inStock: filters.stockFilter === 'in-stock' ? true : undefined,
-    categoryId: filters.activeSubcategories.length > 0 ? filters.activeSubcategories[0] : undefined,
+    category: filters.activeSubcategories.length > 0 ? filters.activeSubcategories[0] : undefined,
+    // Use category instead of categoryId to match FilterParams interface
   });
 
   return {

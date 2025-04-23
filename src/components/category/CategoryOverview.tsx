@@ -16,7 +16,10 @@ const CategoryOverview: React.FC<CategoryOverviewProps> = ({
   products 
 }) => {
   // Get subcategories using the hook
-  const { subcategories, products: featuredProducts, loading, error } = useSubcategories(category.id);
+  const { subcategories, loading, error } = useSubcategories(category.id);
+  
+  // The featuredProducts were in the incorrect destructuring pattern
+  // We'll use the products passed as props instead
   
   return (
     <>

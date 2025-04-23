@@ -45,6 +45,7 @@ export interface FilterParams {
   page?: number;
   perPage?: number;
   isProductsPage?: boolean;
+  categoryId?: string; // Added for compatibility
 }
 
 export type SortOption = 'popular' | 'price-low' | 'price-high' | 'newest';

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, Category, FilterParams, SortOption } from '@/types';
@@ -11,14 +10,15 @@ export interface UseCategoryProductsOptions {
   limit?: number;
   page?: number;
   isProductsPage?: boolean;
+  sort?: SortOption;
 }
 
 export const useCategoryProducts = (options: UseCategoryProductsOptions | string) => {
-  // Handle string parameter for backwards compatibility
   const categorySlug = typeof options === 'string' ? options : options.categorySlug;
   const filterParams = typeof options !== 'string' ? options.filterParams || {} : {};
   const limit = typeof options !== 'string' ? options.limit || 10 : 10;
   const initialPage = typeof options !== 'string' ? options.page || 1 : 1;
+  const customSort = typeof options !== 'string' ? options.sort : undefined;
   
   const [products, setProducts] = useState<Product[]>([]);
   const [category, setCategory] = useState<Category | null>(null);
@@ -26,7 +26,7 @@ export const useCategoryProducts = (options: UseCategoryProductsOptions | string
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [total, setTotal] = useState<number>(0);
-  const [sort, setSort] = useState<SortOption>(filterParams.sort || 'popular');
+  const [sort, setSort] = useState<SortOption>(customSort || filterParams.sort || 'popular');
   const [page, setPage] = useState<number>(initialPage);
 
   const refresh = () => {
@@ -40,14 +40,12 @@ export const useCategoryProducts = (options: UseCategoryProductsOptions | string
     setPage(nextPage);
     
     try {
-      // Products query
       let query = supabase
         .from('products')
         .select('*')
         .eq('category_id', category.id)
         .range((nextPage - 1) * limit, (nextPage * limit) - 1);
       
-      // Apply filters
       if (filterParams.minPrice) {
         query = query.gte('price', filterParams.minPrice);
       }
@@ -60,7 +58,6 @@ export const useCategoryProducts = (options: UseCategoryProductsOptions | string
         query = query.eq('in_stock', filterParams.inStock);
       }
       
-      // Apply sorting
       const sortOption = filterParams.sort || sort;
       switch (sortOption) {
         case 'price-low':
@@ -106,7 +103,6 @@ export const useCategoryProducts = (options: UseCategoryProductsOptions | string
     setError('');
     
     try {
-      // First, get the category
       const { data: categoryData, error: categoryError } = await supabase
         .from('categories')
         .select('*')
@@ -121,11 +117,9 @@ export const useCategoryProducts = (options: UseCategoryProductsOptions | string
         throw new Error('Category not found');
       }
       
-      // Safely extract category data and adapt to our model
       const categoryObj = adaptCategory(categoryData);
       setCategory(categoryObj);
       
-      // Get child categories
       const { data: childCategoriesData, error: childCategoriesError } = await supabase
         .from('categories')
         .select('*')
@@ -142,7 +136,6 @@ export const useCategoryProducts = (options: UseCategoryProductsOptions | string
         setChildCategories([]);
       }
       
-      // Get total count of products
       const { count, error: countError } = await supabase
         .from('products')
         .select('*', { count: 'exact', head: true })
@@ -154,14 +147,12 @@ export const useCategoryProducts = (options: UseCategoryProductsOptions | string
       
       setTotal(count || 0);
       
-      // Query products
       let query = supabase
         .from('products')
         .select('*')
         .eq('category_id', categoryObj.id)
         .range(0, limit - 1);
       
-      // Apply filters
       if (filterParams.minPrice) {
         query = query.gte('price', filterParams.minPrice);
       }
@@ -172,23 +163,6 @@ export const useCategoryProducts = (options: UseCategoryProductsOptions | string
       
       if (filterParams.inStock !== undefined) {
         query = query.eq('in_stock', filterParams.inStock);
-      }
-      
-      // Apply sorting
-      const sortOption = filterParams.sort || sort;
-      switch (sortOption) {
-        case 'price-low':
-          query = query.order('price', { ascending: true });
-          break;
-        case 'price-high':
-          query = query.order('price', { ascending: false });
-          break;
-        case 'newest':
-          query = query.order('created_at', { ascending: false });
-          break;
-        case 'popular':
-        default:
-          query = query.order('sales_count', { ascending: false });
       }
       
       const { data: productsData, error: productsError } = await query;
@@ -233,7 +207,6 @@ export const useCategoryProducts = (options: UseCategoryProductsOptions | string
     refresh, 
     sort, 
     handleSortChange,
-    // Add missing properties needed by consumers
     loadingMore: false,
     hasMore: total > products.length,
     loadMore: fetchMore,

@@ -1,8 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { fetchProductsWithFilters } from '@/services/productService';
-import { Product, FilterParams } from '@/types';
-import { SortOption } from '@/types';
+import { Product, FilterParams, SortOption } from '@/types';
 
 interface ProductsResponse {
   products: Product[];
