@@ -40,6 +40,13 @@ export interface UserWithRolesRow {
   confirmed_at: string | null;
 }
 
+// Create a simplified user type for get_all_users
+export interface SimplifiedUser {
+  id: string;
+  email: string;
+  roles: UserRole[];
+}
+
 // Extend the original Database type
 export interface Database extends OriginalDatabase {
   public: {
@@ -81,3 +88,4 @@ export interface Database extends OriginalDatabase {
     CompositeTypes: OriginalDatabase['public']['CompositeTypes'];
   };
 }
+

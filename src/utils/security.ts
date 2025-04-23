@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { UserWithRolesRow } from '@/integrations/supabase/types-extension';
+import { UserWithRolesRow, SimplifiedUser } from '@/integrations/supabase/types-extension';
 
 export interface SecurityEvent {
   type: 'login' | 'purchase';
@@ -56,3 +56,4 @@ export async function getAllUsers(): Promise<UserWithRolesData[] | null> {
     return null;
   }
 }
+
