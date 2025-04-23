@@ -101,4 +101,5 @@ export function ApiTester({ initialKioskToken = '', onApiDataReceived }: ApiTest
   );
 }
 
-export { ApiResponse };
+// Use export type to fix the TS1205 error
+export type { ApiResponse };

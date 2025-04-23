@@ -21,7 +21,8 @@ import {
   processSupabaseData,
   isSupabaseError,
   isErrorResponse,
-  asSupabaseTable
+  checkAndCastQueryData,
+  prepareForUpdate
 } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
@@ -147,7 +148,7 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
       const result = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId)
+        .eq('id', productId.toString())
         .maybeSingle();
 
       if (result.error) {
@@ -155,19 +156,21 @@ export function useProductForm(productId?: string, onSuccess?: () => void) {
       }
       
       if (result.data) {
-        const data = result.data as ProductData;
+        // Use safe type casting
+        const productData = result.data as ProductData;
+        
         form.reset({
-          title: safeString(data.title),
-          description: safeString(data.description),
-          price: safeNumber(data.price),
-          originalPrice: data.original_price !== undefined ? safeNumber(data.original_price) : undefined,
-          inStock: !!data.in_stock,
-          slug: safeString(data.slug),
-          externalId: data.external_id ? safeString(data.external_id) : '',
-          categoryId: safeString(data.category_id),
-          images: Array.isArray(data.images) && data.images.length > 0 ? data.images.join('\n') : '',
-          kioskToken: data.kiosk_token ? safeString(data.kiosk_token) : '',
-          stock: safeNumber(data.stock),
+          title: safeString(productData.title),
+          description: safeString(productData.description),
+          price: safeNumber(productData.price),
+          originalPrice: productData.original_price !== undefined ? safeNumber(productData.original_price) : undefined,
+          inStock: !!productData.in_stock,
+          slug: safeString(productData.slug),
+          externalId: productData.external_id ? safeString(productData.external_id) : '',
+          categoryId: safeString(productData.category_id),
+          images: Array.isArray(productData.images) && productData.images.length > 0 ? productData.images.join('\n') : '',
+          kioskToken: productData.kiosk_token ? safeString(productData.kiosk_token) : '',
+          stock: safeNumber(productData.stock),
         });
         setFormDirty(false);
       } else {

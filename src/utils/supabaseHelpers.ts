@@ -167,7 +167,33 @@ export function idEqualFilter<T extends string | number>(column: string, value: 
   return { [column]: value };
 }
 
-// Cast object to Supabase insert/update format
+// Cast object to Supabase insert/update format safely
 export function asSupabaseTable<T>(data: Record<string, any>): T {
+  return data as unknown as T;
+}
+
+// For safely checking and typing query results
+export function checkAndCastQueryData<T>(result: { data: any, error: PostgrestError | null }): T | null {
+  if (result.error) {
+    console.error('Query error:', result.error);
+    return null;
+  }
+  
+  if (!result.data) {
+    return null;
+  }
+  
+  return result.data as T;
+}
+
+// Special helper for safely updating data with proper typing
+export function prepareForUpdate<T>(data: Record<string, any>): T {
+  // This ensures the type is cast properly for Supabase's strict typing
+  return data as unknown as T;
+}
+
+// Helper for safe insert operations with proper typing
+export function prepareForInsert<T>(data: Record<string, any>): T {
+  // This ensures the type is cast properly for Supabase's strict typing
   return data as unknown as T;
 }

@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ApiResponse } from '@/utils/apiUtils';
 import { toast } from 'sonner';
 import { Category } from '@/types';
-import { asSupabaseTable, safeString, safeNumber } from '@/utils/supabaseHelpers';
+import { safeString, safeNumber, prepareForUpdate, prepareForInsert, isSupabaseError } from '@/utils/supabaseHelpers';
 
 interface ProductFormProps {
   productId?: string;
@@ -90,24 +90,27 @@ export function ProductForm({ productId, onSubmit, onApiTest, onApiDataReceived,
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId)
+        .eq('id', productId.toString())
         .maybeSingle();
       
       if (error) throw error;
       
       if (data) {
+        // Type cast safely
+        const productData = data as ProductData;
+        
         form.reset({
-          title: safeString(data.title),
-          description: safeString(data.description),
-          price: safeNumber(data.price),
-          originalPrice: data.original_price ? safeNumber(data.original_price) : undefined,
-          inStock: !!data.in_stock,
-          slug: safeString(data.slug),
-          categoryId: safeString(data.category_id),
-          externalId: data.external_id ? safeString(data.external_id) : '',
-          kioskToken: data.kiosk_token ? safeString(data.kiosk_token) : '',
-          stock: safeNumber(data.stock),
-          images: Array.isArray(data.images) && data.images.length > 0 ? data.images.join('\n') : '',
+          title: safeString(productData.title),
+          description: safeString(productData.description),
+          price: safeNumber(productData.price),
+          originalPrice: productData.original_price ? safeNumber(productData.original_price) : undefined,
+          inStock: !!productData.in_stock,
+          slug: safeString(productData.slug),
+          categoryId: safeString(productData.category_id),
+          externalId: productData.external_id ? safeString(productData.external_id) : '',
+          kioskToken: productData.kiosk_token ? safeString(productData.kiosk_token) : '',
+          stock: safeNumber(productData.stock),
+          images: Array.isArray(productData.images) && productData.images.length > 0 ? productData.images.join('\n') : '',
         });
       }
     } catch (error) {
@@ -178,34 +181,48 @@ export function ProductForm({ productId, onSubmit, onApiTest, onApiDataReceived,
         await onSubmit(productData);
       } else {
         // Default handling if onSubmit not provided
-        const productData = asSupabaseTable({
-          title: values.title,
-          description: values.description,
-          price: values.price,
-          original_price: values.originalPrice,
-          in_stock: values.inStock,
-          slug: values.slug,
-          external_id: values.externalId || null,
-          category_id: values.categoryId,
-          images: values.images ? values.images.split('\n').filter(url => url.trim() !== '') : [],
-          kiosk_token: values.kioskToken || null,
-          stock: values.stock || 0,
-        });
-        
         if (productId) {
           // Update existing product
+          const updateData = prepareForUpdate<any>({
+            title: values.title,
+            description: values.description,
+            price: values.price,
+            original_price: values.originalPrice,
+            in_stock: values.inStock,
+            slug: values.slug,
+            external_id: values.externalId || null,
+            category_id: values.categoryId,
+            images: values.images ? values.images.split('\n').filter(url => url.trim() !== '') : [],
+            kiosk_token: values.kioskToken || null,
+            stock: values.stock || 0,
+          });
+          
           const { error: updateError } = await supabase
             .from('products')
-            .update(productData)
-            .eq('id', productId);
+            .update(updateData)
+            .eq('id', productId.toString());
           
           if (updateError) throw updateError;
           toast.success('Product updated successfully');
         } else {
           // Create new product
+          const insertData = prepareForInsert<any>({
+            title: values.title,
+            description: values.description,
+            price: values.price,
+            original_price: values.originalPrice,
+            in_stock: values.inStock,
+            slug: values.slug,
+            external_id: values.externalId || null,
+            category_id: values.categoryId,
+            images: values.images ? values.images.split('\n').filter(url => url.trim() !== '') : [],
+            kiosk_token: values.kioskToken || null,
+            stock: values.stock || 0,
+          });
+          
           const { error: insertError } = await supabase
             .from('products')
-            .insert([productData]);
+            .insert([insertData]);
           
           if (insertError) throw insertError;
           toast.success('Product created successfully');

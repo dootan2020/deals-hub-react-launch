@@ -10,7 +10,7 @@ import { Globe, Save, RefreshCw, TestTube2, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ProxyType, ProxyConfig, buildProxyUrl } from '@/utils/proxyUtils';
-import { isValidRecord, isSupabaseRecord, asSupabaseTable } from '@/utils/supabaseHelpers';
+import { isValidRecord, isSupabaseRecord, prepareForUpdate, prepareForInsert } from '@/utils/supabaseHelpers';
 
 interface ProxySettingsData {
   id: string;
@@ -84,13 +84,11 @@ const CorsProxySelector: React.FC = () => {
 
       if (fetchError) throw fetchError;
       
-      // Create table-compatible data object
-      const settingsData = asSupabaseTable({
+      // Create table-compatible data object with proper typing
+      const settingsData = prepareForUpdate<any>({
         proxy_type: proxyConfig.proxyType,
         custom_url: proxyConfig.customUrl || null
       });
-      
-      let error;
       
       if (existingSettings && isSupabaseRecord(existingSettings)) {
         // Update existing settings
@@ -99,17 +97,20 @@ const CorsProxySelector: React.FC = () => {
           .update(settingsData)
           .eq('id', existingSettings.id);
           
-        error = updateError;
+        if (updateError) throw updateError;
       } else {
         // Insert new settings
+        const insertData = prepareForInsert<any>({
+          proxy_type: proxyConfig.proxyType,
+          custom_url: proxyConfig.customUrl || null
+        });
+        
         const { error: insertError } = await supabase
           .from('proxy_settings')
-          .insert(settingsData);
+          .insert(insertData);
           
-        error = insertError;
+        if (insertError) throw insertError;
       }
-
-      if (error) throw error;
       
       toast.success('Proxy settings saved successfully');
     } catch (error) {
