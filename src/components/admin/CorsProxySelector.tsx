@@ -12,7 +12,9 @@ import {
   safeExtractProperty,
   prepareInsertData,
   prepareUpdateData,
-  safeDatabaseData
+  safeDatabaseData,
+  hasId,
+  safeExtractId
 } from '@/utils/supabaseTypeUtils';
 
 type ProxyType = 'allorigins' | 'corsproxy' | 'direct' | 'custom';
@@ -55,7 +57,7 @@ export const CorsProxySelector = () => {
       const { data: settingsData, error: settingsError } = await supabase
         .from('site_settings')
         .select('value')
-        .eq('key', safeDatabaseData('cors_proxy'));
+        .eq('key', prepareQueryParam('cors_proxy'));
 
       if (settingsError) {
         if (settingsError.code !== 'PGRST116') { // Not found error
@@ -96,43 +98,42 @@ export const CorsProxySelector = () => {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (existingSettings && existingSettings.length > 0 && existingSettings[0]?.id) {
-        // Update existing record using our safe update function
-        const updateData = safeDatabaseData({
-          proxy_type: proxyType,
-          custom_url: proxyType === 'custom' ? customUrl : null
-        });
+      if (existingSettings && existingSettings.length > 0) {
+        // Safely extract the ID
+        const settingId = safeExtractId(existingSettings[0]);
         
-        const { error: updateError } = await supabase
-          .from('proxy_settings')
-          .update(updateData)
-          .eq('id', safeDatabaseData(existingSettings[0].id));
+        if (settingId) {
+          // Update existing record using our safe update function
+          const updateData = prepareUpdateData({
+            proxy_type: proxyType,
+            custom_url: proxyType === 'custom' ? customUrl : null
+          });
+          
+          const { error: updateError } = await supabase
+            .from('proxy_settings')
+            .update(updateData)
+            .eq('id', prepareQueryParam(settingId));
 
-        if (updateError) throw updateError;
+          if (updateError) throw updateError;
+        } else {
+          // Insert new record if we couldn't extract the ID
+          await insertNewProxySettings();
+        }
       } else {
         // Insert new record using our safe insert function
-        const insertData = safeDatabaseData({
-          proxy_type: proxyType,
-          custom_url: proxyType === 'custom' ? customUrl : null
-        });
-        
-        const { error: insertError } = await supabase
-          .from('proxy_settings')
-          .insert(insertData);
-
-        if (insertError) throw insertError;
+        await insertNewProxySettings();
       }
 
       // Also save to site_settings for backward compatibility
       const { data: existingSetting, error: settingFetchError } = await supabase
         .from('site_settings')
         .select('*')
-        .eq('key', safeDatabaseData('cors_proxy'))
+        .eq('key', prepareQueryParam('cors_proxy'))
         .maybeSingle();
 
       if (existingSetting) {
         // Update existing record
-        const updateData = safeDatabaseData({
+        const updateData = prepareUpdateData({
           value: settings,
           updated_at: new Date().toISOString()
         });
@@ -140,12 +141,12 @@ export const CorsProxySelector = () => {
         const { error: updateError } = await supabase
           .from('site_settings')
           .update(updateData)
-          .eq('key', safeDatabaseData('cors_proxy'));
+          .eq('key', prepareQueryParam('cors_proxy'));
 
         if (updateError) throw updateError;
       } else {
         // Insert new record
-        const insertData = safeDatabaseData({
+        const insertData = prepareInsertData({
           key: 'cors_proxy',
           value: settings,
           updated_at: new Date().toISOString()
@@ -165,6 +166,19 @@ export const CorsProxySelector = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const insertNewProxySettings = async () => {
+    const insertData = prepareInsertData({
+      proxy_type: proxyType,
+      custom_url: proxyType === 'custom' ? customUrl : null
+    });
+    
+    const { error: insertError } = await supabase
+      .from('proxy_settings')
+      .insert(insertData);
+
+    if (insertError) throw insertError;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -206,6 +220,10 @@ export const CorsProxySelector = () => {
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="corsproxy" id="corsproxy" />
               <Label htmlFor="corsproxy">CORS Proxy (corsproxy.io)</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="direct" id="direct" />
+              <Label htmlFor="direct">Direct API Call</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="custom" id="custom" />

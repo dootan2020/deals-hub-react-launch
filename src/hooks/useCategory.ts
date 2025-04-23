@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Category } from '@/types';
 import { extractSafeData } from '@/utils/supabaseHelpers';
-import { safeDatabaseData } from '@/utils/supabaseTypeUtils';
+import { prepareQueryParam } from '@/utils/supabaseTypeUtils';
 
 // Define the extended Category type with parent data
 export interface CategoryWithParent extends Category {
@@ -35,7 +35,7 @@ export const useCategory = ({ categorySlug, parentCategorySlug }: UseCategoryPro
       const { data: categoryData, error: categoryError } = await supabase
         .from('categories')
         .select('*')
-        .eq('slug', safeDatabaseData(categorySlug))
+        .eq('slug', prepareQueryParam(categorySlug))
         .single();
 
       if (categoryError) throw new Error(categoryError.message);
@@ -52,7 +52,7 @@ export const useCategory = ({ categorySlug, parentCategorySlug }: UseCategoryPro
         const { data: parentData, error: parentError } = await supabase
           .from('categories')
           .select('*')
-          .eq('id', safeDatabaseData(category.parent_id))
+          .eq('id', prepareQueryParam(category.parent_id))
           .single();
 
         if (parentError) {
@@ -69,7 +69,7 @@ export const useCategory = ({ categorySlug, parentCategorySlug }: UseCategoryPro
         const { data: parentData, error: parentError } = await supabase
           .from('categories')
           .select('*')
-          .eq('slug', safeDatabaseData(parentCategorySlug))
+          .eq('slug', prepareQueryParam(parentCategorySlug))
           .single();
 
         if (parentError) {

@@ -7,96 +7,29 @@
 export const asUnknown = <T>(value: T): unknown => value as unknown;
 
 /**
- * Helper function to safely prepare query parameters for Supabase filters to avoid TypeScript errors
- * @param value - The value to prepare as a query parameter
- * @returns The value cast to unknown to bypass TypeScript's strict type checking
+ * Helper function to safely cast database query parameters to avoid TypeScript errors
+ * This can be used to safely pass string IDs where Supabase expects complex types
  */
-export const prepareQueryParam = <T>(value: T): any => {
-  // Cast to any to ensure compatibility with Supabase filter operations
-  return value as any;
-};
+export function safeQueryParam<T>(param: T): any {
+  return param as any;
+}
 
 /**
- * Helper function to safely prepare data for insert operations
- * @param data - The data to prepare for insert
- * @returns The data cast to any to bypass TypeScript's strict type checking
+ * Helper function to safely handle database data with proper typing
  */
-export const prepareInsertData = <T extends Record<string, any>>(data: T): any => {
+export function safeDatabaseData<T>(data: T): any {
   return data as any;
-};
-
-/**
- * Helper function to safely prepare data for update operations
- * @param data - The data to prepare for update
- * @returns The data cast to any to bypass TypeScript's strict type checking
- */
-export const prepareUpdateData = <T extends Record<string, any>>(data: T): any => {
-  return data as any;
-};
-
-/**
- * Helper function to safely extract data from Supabase responses
- * @param result - The Supabase query result
- * @returns The data extracted from the result, or null if there's an error or no data
- */
-export const extractSafeData = <T>(result: any): T | null => {
-  if (!result || result.error) {
-    return null;
-  }
-  
-  // Handle case where data might be directly available
-  if (result && typeof result === 'object' && !('data' in result)) {
-    return result as T;
-  }
-  
-  // Handle case where data is null or undefined
-  if (!result.data) {
-    return null;
-  }
-  
-  return result.data as T;
-};
-
-/**
- * Helper function to safely access properties from Supabase query results
- * @param obj - The object from which to safely access properties
- * @param key - The key of the property to access
- * @param defaultValue - The default value to return if the property does not exist
- * @returns The property value or default value
- */
-export const safeGetProperty = <T, K extends keyof T>(
-  obj: T | null | undefined,
-  key: K,
-  defaultValue?: T[K]
-): T[K] | undefined => {
-  if (!obj) return defaultValue;
-  const value = obj[key];
-  return value !== undefined ? value : defaultValue;
-};
-
-/**
- * Helper function to check if a response contains data and no error
- */
-export const isDataResponse = <T = any>(response: { data: T | null, error: any | null }): response is { data: T, error: null } => {
-  return response.data !== null && response.error === null;
-};
+}
 
 /**
  * Helper function to safely extract property value from potential database error
  * This is especially useful for handling properties that might not exist on error types
  */
-export const safeExtractProperty = <T>(obj: any, propertyName: string, defaultValue: T): T => {
+export function safeExtractProperty<T>(obj: any, propertyName: string, defaultValue: T): T {
   if (!obj) return defaultValue;
   if (typeof obj !== 'object') return defaultValue;
   if ('error' in obj && obj.error) return defaultValue;
   return (obj[propertyName] as T) || defaultValue;
-};
-
-/**
- * Helper function to safely cast database query parameters to avoid TypeScript errors
- */
-export function safeQueryParam(param: any): any {
-  return param as any;
 }
 
 /**
@@ -108,8 +41,59 @@ export function safeResponseData<T>(response: any): T | null {
 }
 
 /**
- * Helper function to safely prepare data for database operations
+ * Helper function to safely extract ID from a Supabase response
+ * This is safer than directly accessing id which might not exist on error types
  */
-export function safeDatabaseData<T extends Record<string, any>>(data: T): any {
+export function safeExtractId<T extends string | number>(data: any, defaultValue: T | null = null): T | null {
+  return safeExtractProperty<T | null>(data, 'id', defaultValue);
+}
+
+/**
+ * Helper function to safely prepare data for insert operations
+ */
+export function prepareInsertData<T extends Record<string, any>>(data: T): any {
   return data as any;
+}
+
+/**
+ * Helper function to safely prepare data for update operations
+ */
+export function prepareUpdateData<T extends Record<string, any>>(data: T): any {
+  return data as any;
+}
+
+/**
+ * Helper function to safely prepare query parameters for Supabase filters to avoid TypeScript errors
+ */
+export function prepareQueryParam<T>(value: T): any {
+  return value as any;
+}
+
+/**
+ * Helper function to safely check if the response contains a specific ID
+ */
+export function hasId(data: any): boolean {
+  if (!data) return false;
+  if (typeof data !== 'object') return false;
+  return 'id' in data && data.id !== null && data.id !== undefined;
+}
+
+/**
+ * Helper function to check if a response contains data and no error
+ */
+export function isDataResponse<T = any>(response: { data: T | null, error: any | null }): response is { data: T, error: null } {
+  return response.data !== null && response.error === null;
+}
+
+/**
+ * Helper function to safely access properties from Supabase query results
+ */
+export function safeGetProperty<T, K extends keyof T>(
+  obj: T | null | undefined, 
+  key: K, 
+  defaultValue?: T[K]
+): T[K] | undefined {
+  if (!obj) return defaultValue;
+  const value = obj[key];
+  return value !== undefined ? value : defaultValue;
 }

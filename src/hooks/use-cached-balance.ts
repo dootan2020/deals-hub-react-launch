@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { safeDatabaseData } from '@/utils/supabaseTypeUtils';
+import { prepareQueryParam } from '@/utils/supabaseTypeUtils';
 import { extractSafeData } from '@/utils/supabaseHelpers';
 
 const CACHE_TIME = 60 * 1000; // 1 minute in milliseconds
@@ -30,7 +30,7 @@ export const useCachedBalance = (userId: string | undefined) => {
       const { data, error } = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', safeDatabaseData(userId))
+        .eq('id', prepareQueryParam(userId))
         .maybeSingle();
       
       if (error) {

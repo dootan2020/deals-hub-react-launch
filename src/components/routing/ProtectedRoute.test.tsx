@@ -40,12 +40,12 @@ const createMockAuthContext = (overrides: Partial<AuthContextType> = {}): AuthCo
   refreshBalance: vi.fn().mockResolvedValue(0),
   refreshUserProfile: vi.fn().mockResolvedValue(undefined),
   refreshUserData: vi.fn().mockResolvedValue(undefined),
-  logout: vi.fn().mockResolvedValue(undefined),
   register: vi.fn().mockResolvedValue({}),
   checkUserRole: vi.fn(),
   isEmailVerified: true,
   resendVerificationEmail: vi.fn().mockResolvedValue(true),
   authError: null,
+  logout: vi.fn().mockResolvedValue(undefined),
   ...overrides
 });
 
@@ -62,7 +62,6 @@ describe('ProtectedRoute', () => {
       user: null,
       session: null,
       userRoles: [],
-      balance: null,
     }));
 
     render(

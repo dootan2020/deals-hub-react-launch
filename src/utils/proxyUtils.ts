@@ -1,5 +1,5 @@
 
-import { safeDatabaseData } from './supabaseTypeUtils';
+import { safeDatabaseData, safeExtractProperty } from './supabaseTypeUtils';
 
 export type ProxyType = 'allorigins' | 'corsproxy' | 'corsanywhere' | 'direct' | 'custom';
 
@@ -8,25 +8,43 @@ export interface ProxyConfig {
   customUrl?: string;
 }
 
-export function buildProxyUrl(targetUrl: string, config: ProxyConfig): string {
+export function buildProxyUrl(targetUrl: string, config: ProxyConfig): { url: string, method: string } {
   const encodedUrl = encodeURIComponent(targetUrl);
   
   switch(config.proxyType) {
     case 'allorigins':
-      return `https://api.allorigins.win/raw?url=${encodedUrl}`;
+      return { 
+        url: `https://api.allorigins.win/raw?url=${encodedUrl}`,
+        method: 'GET'
+      };
     case 'corsproxy':
-      return `https://corsproxy.io/?${encodedUrl}`;
+      return { 
+        url: `https://corsproxy.io/?${encodedUrl}`,
+        method: 'GET'
+      };
     case 'corsanywhere':
-      return `https://cors-anywhere.herokuapp.com/${targetUrl}`;
+      return { 
+        url: `https://cors-anywhere.herokuapp.com/${targetUrl}`,
+        method: 'GET'
+      };
     case 'custom':
       if (config.customUrl) {
-        return config.customUrl.replace('{{url}}', encodedUrl);
+        return { 
+          url: config.customUrl.replace('{{url}}', encodedUrl),
+          method: 'GET'
+        };
       }
       // Fall back to allorigins if no custom URL provided
-      return `https://api.allorigins.win/raw?url=${encodedUrl}`;
+      return { 
+        url: `https://api.allorigins.win/raw?url=${encodedUrl}`,
+        method: 'GET'
+      };
     case 'direct':
     default:
-      return targetUrl;
+      return { 
+        url: targetUrl,
+        method: 'GET'
+      };
   }
 }
 
@@ -45,10 +63,10 @@ export async function fetchProxySettings(): Promise<ProxyConfig> {
       return { proxyType: 'allorigins' };
     }
 
-    if (data && typeof data === 'object' && 'proxy_type' in data) {
+    if (data && typeof data === 'object') {
       return {
-        proxyType: data.proxy_type as ProxyType,
-        customUrl: data.custom_url || undefined
+        proxyType: safeExtractProperty(data, 'proxy_type', 'allorigins') as ProxyType,
+        customUrl: safeExtractProperty(data, 'custom_url', undefined)
       };
     }
 
