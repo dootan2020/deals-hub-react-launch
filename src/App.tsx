@@ -16,6 +16,15 @@ import PayPalDepositPage from './pages/PayPalDepositPage';
 import UnauthorizedPage from './pages/auth/UnauthorizedPage';
 import TestSecurityPage from './pages/TestSecurityPage';
 
+// Import standard content pages
+import AboutPage from './pages/AboutPage';
+import SupportPage from './pages/SupportPage';
+import WarrantyPage from './pages/WarrantyPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
+import FaqsPage from './pages/FaqsPage';
+import ContactPage from './pages/ContactPage';
+
 // Import admin routes
 import { adminRoutes } from './routes/adminRoutes';
 
@@ -34,6 +43,15 @@ const App = () => {
         <Route path="/deposit/paypal" element={<PayPalDepositPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/test-security" element={<TestSecurityPage />} />
+        
+        {/* Standard content pages */}
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/support" element={<SupportPage />} />
+        <Route path="/warranty" element={<WarrantyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/faq" element={<FaqsPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         
         {/* Admin Routes */}
         {adminRoutes}
