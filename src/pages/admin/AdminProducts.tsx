@@ -27,24 +27,18 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, PlusCircle, FileEdit, Trash } from 'lucide-react';
+import { Loader2, PlusCircle, FileEdit, Trash, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { Product, SyncStatus } from '@/types';
+import { format } from 'date-fns';
 
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  stock: number;
-  external_id?: string;
-  kiosk_token?: string;
-  slug: string;
-  created_at: string;
-  description: string;
+interface ProductWithSyncStatus extends Product {
+  syncStatus?: SyncStatus;
 }
 
 const productSchema = z.object({
@@ -63,13 +57,14 @@ const productSchema = z.object({
 type ProductFormValues = z.infer<typeof productSchema>;
 
 const AdminProducts = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductWithSyncStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
+  const [currentProduct, setCurrentProduct] = useState<ProductWithSyncStatus | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [syncingProductId, setSyncingProductId] = useState<string | null>(null);
 
   const addForm = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -106,11 +101,11 @@ const AdminProducts = () => {
       editForm.reset({
         title: currentProduct.title,
         price: currentProduct.price,
-        stock: currentProduct.stock,
+        stock: currentProduct.stock || 0,
         external_id: currentProduct.external_id || '',
         kiosk_token: currentProduct.kiosk_token || '',
-        slug: currentProduct.slug,
-        description: currentProduct.description,
+        slug: currentProduct.slug || '',
+        description: currentProduct.description || '',
       });
     }
   }, [currentProduct, isEditDialogOpen, editForm]);
@@ -120,7 +115,7 @@ const AdminProducts = () => {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('id, title, price, stock, external_id, kiosk_token, slug, created_at, description')
+        .select('id, title, price, stock, external_id, kiosk_token, slug, created_at, description, api_name, api_price, api_stock, last_synced_at')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -218,14 +213,137 @@ const AdminProducts = () => {
     }
   };
 
-  const openEditDialog = (product: Product) => {
+  const handleSyncProduct = async (product: ProductWithSyncStatus) => {
+    if (!product.kiosk_token) {
+      toast.error('Sản phẩm không có Kiosk Token');
+      return;
+    }
+
+    // Update local state to show sync is in progress
+    setSyncingProductId(product.id);
+    setProducts(prevProducts => prevProducts.map(p => 
+      p.id === product.id ? { ...p, syncStatus: 'loading' } : p
+    ));
+
+    try {
+      // Get API config for userToken
+      const { data: apiConfig, error: configError } = await supabase
+        .from('api_configs')
+        .select('user_token')
+        .eq('is_active', true)
+        .single();
+
+      if (configError || !apiConfig) {
+        throw new Error('Không tìm thấy cấu hình API');
+      }
+
+      // Call the edge function
+      const { data, error } = await supabase.functions.invoke('syncProductFromTaphoammo', {
+        body: JSON.stringify({
+          kioskToken: product.kiosk_token,
+          userToken: apiConfig.user_token
+        })
+      });
+
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Không thể đồng bộ sản phẩm');
+      }
+
+      // Update local state to reflect successful sync
+      setProducts(prevProducts => prevProducts.map(p => 
+        p.id === product.id 
+          ? { 
+              ...p, 
+              syncStatus: 'success',
+              title: data.data.name,
+              price: data.data.price,
+              stock: data.data.stock,
+              api_name: data.data.name,
+              api_price: data.data.price,
+              api_stock: data.data.stock,
+              last_synced_at: new Date().toISOString()
+            } 
+          : p
+      ));
+
+      toast.success(`Đồng bộ thành công: ${data.data.name}`);
+    } catch (error: any) {
+      console.error('Error syncing product:', error);
+      
+      // Update local state to show sync failed
+      setProducts(prevProducts => prevProducts.map(p => 
+        p.id === product.id ? { ...p, syncStatus: 'error' } : p
+      ));
+      
+      toast.error(`Lỗi đồng bộ: ${error.message}`);
+    } finally {
+      // Clear syncing state after a delay
+      setTimeout(() => {
+        setProducts(prevProducts => prevProducts.map(p => 
+          p.id === product.id ? { ...p, syncStatus: 'idle' } : p
+        ));
+        setSyncingProductId(null);
+      }, 3000);
+    }
+  };
+
+  const openEditDialog = (product: ProductWithSyncStatus) => {
     setCurrentProduct(product);
     setIsEditDialogOpen(true);
   };
 
-  const openDeleteDialog = (product: Product) => {
+  const openDeleteDialog = (product: ProductWithSyncStatus) => {
     setCurrentProduct(product);
     setIsDeleteDialogOpen(true);
+  };
+
+  const formatSyncDate = (dateString?: string) => {
+    if (!dateString) return 'Chưa đồng bộ';
+    try {
+      return format(new Date(dateString), 'dd/MM/yyyy HH:mm');
+    } catch (e) {
+      return 'Không hợp lệ';
+    }
+  };
+
+  const getSyncButtonProps = (product: ProductWithSyncStatus) => {
+    if (!product.kiosk_token) {
+      return {
+        disabled: true,
+        title: 'Sản phẩm không có Kiosk Token',
+        variant: 'ghost' as const
+      };
+    }
+
+    switch (product.syncStatus) {
+      case 'loading':
+        return {
+          disabled: true,
+          title: 'Đang đồng bộ...',
+          variant: 'ghost' as const,
+          children: <Loader2 className="h-4 w-4 animate-spin" />
+        };
+      case 'success':
+        return {
+          disabled: false,
+          title: 'Đồng bộ thành công',
+          variant: 'ghost' as const,
+          className: 'text-green-500'
+        };
+      case 'error':
+        return {
+          disabled: false,
+          title: 'Đồng bộ thất bại. Nhấp để thử lại',
+          variant: 'ghost' as const,
+          className: 'text-red-500'
+        };
+      default:
+        return {
+          disabled: syncingProductId !== null,
+          title: 'Đồng bộ giá & tồn kho',
+          variant: 'ghost' as const
+        };
+    }
   };
 
   return (
@@ -380,7 +498,8 @@ const AdminProducts = () => {
                     <TableHead>Giá (USD)</TableHead>
                     <TableHead>Số lượng</TableHead>
                     <TableHead>Slug</TableHead>
-                    <TableHead>External ID</TableHead>
+                    <TableHead>Kiosk Token</TableHead>
+                    <TableHead>Đồng bộ lần cuối</TableHead>
                     <TableHead>Thao tác</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -392,7 +511,8 @@ const AdminProducts = () => {
                         <TableCell>${product.price}</TableCell>
                         <TableCell>{product.stock}</TableCell>
                         <TableCell>{product.slug}</TableCell>
-                        <TableCell>{product.external_id || '-'}</TableCell>
+                        <TableCell>{product.kiosk_token || '-'}</TableCell>
+                        <TableCell>{formatSyncDate(product.last_synced_at)}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
                             <Button
@@ -401,6 +521,16 @@ const AdminProducts = () => {
                               onClick={() => openEditDialog(product)}
                             >
                               <FileEdit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant={getSyncButtonProps(product).variant}
+                              size="icon"
+                              onClick={() => handleSyncProduct(product)}
+                              disabled={getSyncButtonProps(product).disabled}
+                              title={getSyncButtonProps(product).title}
+                              className={getSyncButtonProps(product).className}
+                            >
+                              {getSyncButtonProps(product).children || <RefreshCw className="h-4 w-4" />}
                             </Button>
                             <Button
                               variant="ghost"
@@ -416,7 +546,7 @@ const AdminProducts = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-10">
+                      <TableCell colSpan={7} className="text-center py-10">
                         Không có sản phẩm nào. Thêm sản phẩm mới để bắt đầu.
                       </TableCell>
                     </TableRow>

@@ -9,6 +9,12 @@ export interface Product {
   slug?: string;
   description?: string;
   category?: string;
+  kiosk_token?: string;
+  external_id?: string;
+  api_name?: string;
+  api_stock?: number;
+  api_price?: number;
+  last_synced_at?: string;
 }
 
 // Basic order types
@@ -65,3 +71,6 @@ export interface Category {
   image?: string;
   parent_id?: string;
 }
+
+// Sync status type
+export type SyncStatus = 'idle' | 'loading' | 'success' | 'error';
