@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Deposit, normalizeUserField } from './transactionUtils';
 import { extractSafeData } from '@/utils/supabaseHelpers';
+import { prepareQueryParam, prepareInsertData, prepareUpdateData } from '@/utils/supabaseTypeUtils';
 
 // Hook for deposit state, fetching, and admin update
 export function useDeposits() {
@@ -53,7 +54,7 @@ export function useDeposits() {
       const depositResult = await supabase
         .from('deposits')
         .select('*')
-        .eq('id', depositId)
+        .eq('id', prepareQueryParam(depositId))
         .maybeSingle();
 
       if (depositResult.error) throw depositResult.error;
@@ -61,15 +62,15 @@ export function useDeposits() {
       const deposit = extractSafeData<Deposit>(depositResult);
       if (!deposit) throw new Error('Deposit not found');
 
-      const updateData = {
+      const updateData = prepareUpdateData({
         status: newStatus,
         updated_at: new Date().toISOString()
-      };
+      });
 
       const updateResult = await supabase
         .from('deposits')
         .update(updateData)
-        .eq('id', depositId);
+        .eq('id', prepareQueryParam(depositId));
 
       if (updateResult.error) throw updateResult.error;
 
@@ -86,14 +87,14 @@ export function useDeposits() {
         if (balanceError) throw balanceError;
 
         // Create a transaction record
-        const transactionData = {
+        const transactionData = prepareInsertData({
           user_id: deposit.user_id,
           amount: deposit.amount,
           payment_method: deposit.payment_method,
           status: 'completed',
           type: 'deposit',
           transaction_id: deposit.transaction_id
-        };
+        });
 
         const { error: transactionError } = await supabase
           .from('transactions')

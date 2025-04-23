@@ -1,3 +1,4 @@
+
 export interface Product {
   id: string;
   title: string;
@@ -53,8 +54,8 @@ export interface AuthContextType {
   isStaff: boolean;
   userRoles: UserRole[];
   userBalance: number | null;
-  refreshUserBalance: () => Promise<number | void>;
-  refreshBalance: () => Promise<number | void>; // Alias for backward compatibility
+  refreshUserBalance: () => Promise<number | null>;
+  refreshBalance: () => Promise<number | null>; // Alias for backward compatibility
   refreshUserProfile: () => Promise<void>;
   register: (email: string, password: string, metadata?: Record<string, any>) => Promise<any>;
   checkUserRole: (role: UserRole) => boolean;

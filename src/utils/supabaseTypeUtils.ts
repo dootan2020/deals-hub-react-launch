@@ -97,3 +97,4 @@ export function safeGetProperty<T, K extends keyof T>(
   const value = obj[key];
   return value !== undefined ? value : defaultValue;
 }
+

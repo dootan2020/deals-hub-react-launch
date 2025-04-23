@@ -34,7 +34,7 @@ export const useCategoryProducts = (categoryId?: string) => {
       const countQuery = await supabase
         .from('products')
         .select('id', { count: 'exact' })
-        .eq('category_id', categoryId);
+        .eq('category_id', prepareQueryParam(categoryId));
         
       if (countQuery.error) throw new Error(countQuery.error.message);
       setTotal(countQuery.count || 0);
@@ -43,7 +43,7 @@ export const useCategoryProducts = (categoryId?: string) => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('category_id', categoryId)
+        .eq('category_id', prepareQueryParam(categoryId))
         .order('created_at', { ascending: false })
         .range(from, to);
         
@@ -79,7 +79,7 @@ export const useCategoryProducts = (categoryId?: string) => {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
-        .eq('parent_id', categoryId);
+        .eq('parent_id', prepareQueryParam(categoryId));
         
       if (error) throw new Error(error.message);
       
@@ -92,7 +92,8 @@ export const useCategoryProducts = (categoryId?: string) => {
             description: '',
             slug: '',
             image: '',
-            count: 0
+            count: 0,
+            parent_id: null
           } as Category;
         }
         return safeCategory;
