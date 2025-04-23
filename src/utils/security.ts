@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { UserWithRolesRow, SimplifiedUser } from '@/integrations/supabase/types-extension';
 
@@ -22,12 +21,10 @@ export async function logSecurityEvent(event: SecurityEvent) {
     return data;
   } catch (error) {
     console.error('Failed to log security event:', error);
-    // Don't throw the error as this is a non-critical operation
     return null;
   }
 }
 
-// Use the UserWithRolesRow interface from types-extension.ts to ensure consistency
 export type UserWithRolesData = UserWithRolesRow;
 
 export async function getUserWithRoles(userId?: string): Promise<UserWithRolesData | null> {
@@ -37,7 +34,6 @@ export async function getUserWithRoles(userId?: string): Promise<UserWithRolesDa
     });
     
     if (error) throw error;
-    // The function returns an array but we want a single item
     return Array.isArray(data) && data.length > 0 ? data[0] as UserWithRolesData : null;
   } catch (error) {
     console.error('Failed to get user with roles:', error);
@@ -47,7 +43,6 @@ export async function getUserWithRoles(userId?: string): Promise<UserWithRolesDa
 
 export async function getAllUsers(): Promise<SimplifiedUser[] | null> {
   try {
-    // Use the get_all_users RPC function that we've now properly typed
     const { data, error } = await supabase.rpc('get_all_users');
     
     if (error) throw error;
