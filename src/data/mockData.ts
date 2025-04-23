@@ -14,6 +14,7 @@ const mockProducts: Product[] = [
     rating: 4.5,
     reviewCount: 120,
     inStock: true,
+    in_stock: true, // Add this property
     stockQuantity: 100,
     stock: 100,
     badges: ['Best Seller', 'New'],
@@ -44,6 +45,7 @@ const mockProducts: Product[] = [
     rating: 4.8,
     reviewCount: 89,
     inStock: true,
+    in_stock: true, // Add this property
     stockQuantity: 45,
     stock: 45,
     badges: ['Premium', 'Verified'],
@@ -206,6 +208,7 @@ const mockProducts: Product[] = [
     rating: 4.8,
     reviewCount: 23,
     inStock: false,
+    in_stock: false, // For product that is not in stock
     stockQuantity: 0,
     stock: 0,
     badges: ['Premium', 'Verified', 'Rare'],

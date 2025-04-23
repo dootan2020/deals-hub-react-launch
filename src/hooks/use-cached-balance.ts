@@ -1,34 +1,30 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeId, extractSafeData } from '@/utils/supabaseHelpers';
 
-interface UseCachedBalanceOptions {
-  userId?: string;
-  initialRefresh?: boolean;
-  strategy?: 'auto' | 'manual';
-  refreshInterval?: number;
-  cacheTime?: number;
-}
+const CACHE_TIME = 60 * 1000; // 1 minute in milliseconds
 
-export function useCachedBalance({
-  userId,
-  initialRefresh = true,
-  strategy = 'auto',
-  refreshInterval = 30000, // 30 seconds
-  cacheTime = 10000 // 10 seconds
-}: UseCachedBalanceOptions = {}) {
+export const useCachedBalance = (userId: string | undefined) => {
   const [balance, setBalance] = useState<number | null>(null);
-  const [loading, setLoading] = useState<boolean>(initialRefresh);
-  const [error, setError] = useState<Error | null>(null);
-  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [lastFetched, setLastFetched] = useState<Date>(new Date(0)); // Initialize with old date
   
-  // Fetch balance from API
-  const fetchBalance = useCallback(async () => {
-    if (!userId) return null;
+  const isCacheStale = useCallback(() => {
+    const now = new Date();
+    const timeDiff = now.getTime() - lastFetched.getTime();
+    return timeDiff > CACHE_TIME;
+  }, [lastFetched]);
+  
+  const fetchBalance = useCallback(async (forceRefresh: boolean = false) => {
+    if (!userId) return;
+    
+    // Return cached balance if it's available and not stale
+    if (!forceRefresh && balance !== null && !isCacheStale()) {
+      return balance;
+    }
     
     setLoading(true);
-    setError(null);
-    
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -36,87 +32,68 @@ export function useCachedBalance({
         .eq('id', safeId(userId))
         .maybeSingle();
       
-      if (error) throw new Error(error.message);
-      
-      const profileData = extractSafeData<{balance: number}>(data);
-      
-      if (profileData && profileData.balance !== undefined) {
-        const newBalance = Number(profileData.balance);
-        setBalance(newBalance);
-        setLastRefreshed(new Date());
-        return newBalance;
+      if (error) {
+        throw new Error(error.message);
       }
       
-      throw new Error('Balance data not available');
+      const profileData = extractSafeData<{ balance: number }>(data);
+      
+      if (profileData) {
+        setBalance(profileData.balance);
+        setLastFetched(new Date()); // Set the current time as the last fetch time
+        return profileData.balance;
+      }
+      return null;
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch balance';
-      console.error('Error fetching balance:', errorMsg);
-      setError(err instanceof Error ? err : new Error(String(err)));
+      console.error('Failed to fetch balance:', err);
       return null;
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, balance, isCacheStale]);
   
-  // Function to invalidate cache and force refresh
-  const refreshBalance = useCallback(() => {
-    return fetchBalance();
+  const refreshBalance = useCallback(async () => {
+    return fetchBalance(true);
   }, [fetchBalance]);
   
-  // Set up realtime subscription for balance changes
   useEffect(() => {
-    if (!userId) return;
-    
-    // Fetch on mount if initialRefresh is true
-    if (initialRefresh) {
+    if (userId) {
+      // Only fetch on initial render or if userId changes
       fetchBalance();
+    } else {
+      // Reset balance if userId is not provided
+      setBalance(null);
     }
     
-    // Set up realtime subscription to profiles table
-    const channel = supabase
-      .channel('profile-balance-changes')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
-        (payload) => {
-          console.log('Profile realtime update:', payload);
-          if (payload.new && 'balance' in payload.new && typeof payload.new.balance === 'number') {
-            setBalance(payload.new.balance);
-            setLastRefreshed(Date.now());
+    // Setup real-time listener for balance updates
+    if (userId) {
+      const channel = supabase
+        .channel('profile-balance-changes')
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${userId}`
+        }, (payload) => {
+          const newBalance = payload.new?.balance;
+          if (newBalance !== undefined) {
+            setBalance(Number(newBalance));
+            // Update the lastFetched timestamp without creating a new Date object
+            setLastFetched(new Date()); // Fix: Use new Date() instead of a number
           }
-        }
-      )
-      .subscribe((status) => {
-        console.log('Profile balance subscription status:', status);
-        
-        if (status !== 'SUBSCRIBED') {
-          console.warn('Failed to subscribe to profile updates, falling back to polling');
-        }
-      });
-    
-    // Set up auto-refresh interval if strategy is 'auto'
-    let intervalId: number | undefined;
-    if (strategy === 'auto' && refreshInterval > 0) {
-      intervalId = window.setInterval(() => {
-        console.log('Auto-refreshing balance');
-        fetchBalance();
-      }, refreshInterval);
+        })
+        .subscribe();
+      
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
-    
-    // Clean up on unmount
-    return () => {
-      supabase.removeChannel(channel);
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [userId, fetchBalance, initialRefresh, refreshInterval, strategy]);
+  }, [userId, fetchBalance]);
   
   return {
     balance,
     loading,
-    error,
     refreshBalance,
-    lastRefreshed: lastRefreshed ? new Date(lastRefreshed) : null
+    fetchBalance
   };
-}
+};

@@ -9,7 +9,7 @@ interface ProxyConfig {
   customUrl?: string;
 }
 
-// Fix type error by removing 'type' property
+// Fix by removing the 'type' property
 const defaultProxyConfig: ProxyConfig = {
   proxyType: 'allorigins'
 };

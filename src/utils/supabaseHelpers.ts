@@ -180,3 +180,20 @@ export function handlePostgrestResponse<T>(response: any): T | null {
     return null;
   }
 }
+
+/**
+ * Process Supabase data safely to proper type
+ */
+export function processSupabaseData<T>(data: any): T | null {
+  if (!data) return null;
+  return data as T;
+}
+
+/**
+ * Safely cast data to a specific type
+ */
+export function safeCastData<T>(data: any): T | null {
+  if (data === null || data === undefined) return null;
+  return data as T;
+}
+

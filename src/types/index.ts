@@ -8,7 +8,7 @@ export interface Product {
   kiosk_token: string;
   stock: number;
   inStock: boolean;
-  in_stock: boolean; // Adding this field to fix type errors
+  in_stock: boolean; // This field is needed for compatibility
   slug: string;
   createdAt: string;
   specifications: Record<string, string | number | boolean | object>;

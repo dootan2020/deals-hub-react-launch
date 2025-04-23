@@ -1,122 +1,141 @@
-
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { PlusIcon, MinusIcon } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { BuyNowButton } from '@/components/checkout/BuyNowButton';
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  original_price?: number;
-  stock: number;
-  in_stock: boolean;
-  kiosk_token?: string;
-}
+import { Product } from '@/types';
+import { formatCurrency } from '@/utils/currency';
+import { Badge } from '@/components/ui/badge';
+import { Minus, Plus, ShoppingCart } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { PurchaseDialog } from '@/components/checkout/PurchaseDialog';
 
 interface ProductPurchaseSectionProps {
   product: Product;
-  className?: string;
+  quantity: number;
+  onQuantityChange: (quantity: number) => void;
 }
 
-export function ProductPurchaseSection({ product, className = '' }: ProductPurchaseSectionProps) {
-  const [quantity, setQuantity] = useState(1);
-  
-  const discount = product.original_price && product.original_price > product.price
-    ? Math.round(((product.original_price - product.price) / product.original_price) * 100)
-    : 0;
-    
-  const decreaseQuantity = () => {
-    if (quantity > 1) {
-      setQuantity(quantity - 1);
-    }
-  };
-  
-  const increaseQuantity = () => {
-    if (product.stock && quantity < product.stock) {
-      setQuantity(quantity + 1);
-    } else if (!product.stock) {
-      setQuantity(quantity + 1);
-    }
-  };
+export function ProductPurchaseSection({ product, quantity, onQuantityChange }: ProductPurchaseSectionProps) {
+  const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
   
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
-    if (isNaN(value) || value < 1) {
-      setQuantity(1);
-    } else if (product.stock && value > product.stock) {
-      setQuantity(product.stock);
-    } else {
-      setQuantity(value);
+    if (!isNaN(value) && value > 0 && value <= product.stock) {
+      onQuantityChange(value);
     }
   };
-  
+
+  const incrementQuantity = () => {
+    if (quantity < product.stock) {
+      onQuantityChange(quantity + 1);
+    }
+  };
+
+  const decrementQuantity = () => {
+    if (quantity > 1) {
+      onQuantityChange(quantity - 1);
+    }
+  };
+
+  const handlePurchaseSuccess = () => {
+    // Handle successful purchase
+    console.log('Purchase successful');
+  };
+
   return (
-    <Card className={`border-primary/10 ${className}`}>
-      <CardContent className="p-6">
-        <div className="space-y-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="text-2xl font-bold text-primary">
-                {product.price.toLocaleString()} VND
-              </div>
-              {discount > 0 && (
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-sm text-muted-foreground line-through">
-                    {product.original_price?.toLocaleString()} VND
-                  </span>
-                  <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
-                    Save {discount}%
-                  </Badge>
-                </div>
-              )}
-            </div>
-            
-            <Badge variant={product.in_stock ? "outline" : "destructive"} className={product.in_stock ? "bg-green-50 text-green-700 border-green-200" : ""}>
-              {product.in_stock ? "In Stock" : "Out of Stock"}
-            </Badge>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col space-y-2">
+        <div className="flex items-baseline justify-between">
+          <span className="text-3xl font-bold text-primary">
+            {formatCurrency(product.price)}
+          </span>
           
+          {product.originalPrice && product.originalPrice > product.price && (
+            <span className="text-lg text-gray-500 line-through">
+              {formatCurrency(product.originalPrice)}
+            </span>
+          )}
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          {product.inStock ? (
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              In Stock
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+              Out of Stock
+            </Badge>
+          )}
+          
+          {product.stock > 0 && (
+            <span className="text-sm text-muted-foreground">
+              {product.stock} available
+            </span>
+          )}
+        </div>
+      </div>
+      
+      {product.inStock && (
+        <div className="flex items-center space-x-4">
           <div className="flex items-center">
-            <Button 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               size="icon"
-              onClick={decreaseQuantity}
+              onClick={decrementQuantity}
               disabled={quantity <= 1}
+              className="h-10 w-10 rounded-r-none"
             >
-              <MinusIcon className="h-4 w-4" />
+              <Minus className="h-4 w-4" />
             </Button>
-            
             <Input
               type="number"
-              min="1"
-              max={product.stock || 999}
+              min={1}
+              max={product.stock}
               value={quantity}
               onChange={handleQuantityChange}
-              className="w-16 mx-2 text-center p-0 h-9"
+              className="h-10 w-16 rounded-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
-            
-            <Button 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               size="icon"
-              onClick={increaseQuantity}
-              disabled={product.stock ? quantity >= product.stock : false}
+              onClick={incrementQuantity}
+              disabled={quantity >= product.stock}
+              className="h-10 w-10 rounded-l-none"
             >
-              <PlusIcon className="h-4 w-4" />
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
-          
-          <BuyNowButton
-            productId={product.id}
-            quantity={quantity}
-            onPurchaseSuccess={() => {}}
-            className="w-full"
-          />
         </div>
-      </CardContent>
-    </Card>
+      )}
+      
+      <div className="flex flex-col sm:flex-row gap-2">
+        <BuyNowButton
+          productId={product.id}
+          quantity={quantity}
+          onPurchaseSuccess={handlePurchaseSuccess}
+          className="w-full sm:w-auto"
+        />
+        
+        <Button 
+          variant="outline" 
+          className="w-full sm:w-auto"
+          onClick={() => setIsPurchaseDialogOpen(true)}
+        >
+          <ShoppingCart className="mr-2 h-4 w-4" />
+          Purchase
+        </Button>
+      </div>
+      
+      <PurchaseDialog 
+        product={product}
+        isOpen={isPurchaseDialogOpen}
+        onClose={() => setIsPurchaseDialogOpen(false)}
+        initialQuantity={quantity}
+      />
+    </div>
   );
 }
+
+export default ProductPurchaseSection;

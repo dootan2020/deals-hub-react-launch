@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -16,9 +15,9 @@ import {
   isSupabaseRecord, 
   safeString, 
   safeNumber,
-  processSupabaseData,
+  extractSafeData,
   safeCastData,
-  extractSafeData
+  processSupabaseData
 } from '@/utils/supabaseHelpers';
 
 const productSchema = z.object({
