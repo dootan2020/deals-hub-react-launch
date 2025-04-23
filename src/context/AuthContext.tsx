@@ -100,9 +100,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data && Array.isArray(data)) {
         const roles = data.map(item => {
-          const roleData = extractSafeData<{ role: string }>(item);
           // Convert role string to UserRole enum value
-          return roleData?.role === 'admin' ? UserRole.Admin : UserRole.User;
+          return item.role === 'admin' ? UserRole.Admin : UserRole.User;
         });
         setUserRoles(roles as UserRole[]);
       }

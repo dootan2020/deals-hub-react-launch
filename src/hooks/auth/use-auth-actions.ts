@@ -2,22 +2,12 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { isTemporaryEmail, fetchClientIP } from './auth-utils';
-import { recordLoginAttempt } from '@/utils/fraud-detection';
 
 export const useAuthActions = () => {
   const login = async (email: string, password: string) => {
     try {
       // Start loading toast
       const loadingToastId = toast.loading("Đang đăng nhập...");
-      
-      // Record login attempt (before success/failure)
-      const isSuspicious = await recordLoginAttempt(email, false);
-      
-      if (isSuspicious) {
-        // Add slight delay for security reasons
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        throw new Error('Suspicious login activity detected');
-      }
       
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
@@ -28,9 +18,6 @@ export const useAuthActions = () => {
       toast.dismiss(loadingToastId);
       
       if (error) throw error;
-      
-      // Record successful login
-      await recordLoginAttempt(email, true, data.user?.id);
       
       toast.success("Đăng nhập thành công", "Chào mừng bạn quay trở lại!");
       
@@ -126,59 +113,63 @@ export const useAuthActions = () => {
     }
   };
 
+  const resendVerificationEmail = async (email: string) => {
+    try {
+      // Show loading toast
+      const loadingToastId = toast.loading("Đang gửi lại email xác nhận...");
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/verify`,
+        }
+      });
+
+      // Dismiss loading toast
+      toast.dismiss(loadingToastId);
+
+      if (error) throw error;
+
+      toast.success("Gửi lại email thành công", "Vui lòng kiểm tra hộp thư của bạn để xác nhận tài khoản.");
+
+      return true;
+    } catch (error: any) {
+      toast.error("Gửi lại email thất bại", error.message || 'Không thể gửi lại email xác nhận');
+      
+      throw error;
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      // Show loading toast
+      const loadingToastId = toast.loading("Đang gửi yêu cầu đặt lại mật khẩu...");
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      // Dismiss loading toast
+      toast.dismiss(loadingToastId);
+
+      if (error) throw error;
+
+      toast.success("Yêu cầu đặt lại mật khẩu đã được gửi", "Vui lòng kiểm tra email của bạn để tiếp tục.");
+
+      return true;
+    } catch (error: any) {
+      toast.error("Đặt lại mật khẩu thất bại", error.message || 'Không thể gửi yêu cầu đặt lại mật khẩu');
+      
+      throw error;
+    }
+  };
+
   return {
     login,
     logout,
     register,
-    resendVerificationEmail: async (email: string) => {
-      try {
-        // Show loading toast
-        const loadingToastId = toast.loading("Đang gửi lại email xác nhận...");
-
-        const { error } = await supabase.auth.resend({
-          type: 'signup',
-          email,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/verify`,
-          }
-        });
-
-        // Dismiss loading toast
-        toast.dismiss(loadingToastId);
-
-        if (error) throw error;
-
-        toast.success("Gửi lại email thành công", "Vui lòng kiểm tra hộp thư của bạn để xác nhận tài khoản.");
-
-        return true;
-      } catch (error: any) {
-        toast.error("Gửi lại email thất bại", error.message || 'Không thể gửi lại email xác nhận');
-        
-        throw error;
-      }
-    },
-    resetPassword: async (email: string) => {
-      try {
-        // Show loading toast
-        const loadingToastId = toast.loading("Đang gửi yêu cầu đặt lại mật khẩu...");
-
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
-        });
-
-        // Dismiss loading toast
-        toast.dismiss(loadingToastId);
-
-        if (error) throw error;
-
-        toast.success("Yêu cầu đặt lại mật khẩu đã được gửi", "Vui lòng kiểm tra email của bạn để tiếp tục.");
-
-        return true;
-      } catch (error: any) {
-        toast.error("Đặt lại mật khẩu thất bại", error.message || 'Không thể gửi yêu cầu đặt lại mật khẩu');
-        
-        throw error;
-      }
-    }
+    resendVerificationEmail,
+    resetPassword
   };
 };

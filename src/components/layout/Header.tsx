@@ -3,6 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
+import { formatCurrency } from '@/utils/helpers';
 
 // Simple logo component
 const Logo = () => (
@@ -12,7 +13,7 @@ const Logo = () => (
 );
 
 const Header = () => {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, userBalance } = useAuth();
   
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -27,10 +28,18 @@ const Header = () => {
             
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
-                <Link to="/account">
-                  <Button variant="outline">My Account</Button>
+                {userBalance !== null && (
+                  <div className="hidden sm:block text-sm font-medium">
+                    Balance: {formatCurrency(userBalance)}
+                  </div>
+                )}
+                <Link to="/deposit">
+                  <Button variant="outline" size="sm">Deposit</Button>
                 </Link>
-                <Button variant="ghost" onClick={() => logout()}>Logout</Button>
+                <Link to="/account">
+                  <Button variant="outline" size="sm">My Account</Button>
+                </Link>
+                <Button variant="ghost" size="sm" onClick={() => logout()}>Logout</Button>
               </div>
             ) : (
               <Link to="/login">

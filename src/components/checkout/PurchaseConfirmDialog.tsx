@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { 
   Dialog, 
@@ -13,10 +13,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
-import { 
-  extractSafeData,
-  safeNumber
-} from '@/utils/supabaseHelpers';
+import { extractSafeData, safeNumber } from '@/utils/helpers';
 
 interface PurchaseConfirmDialogProps {
   isOpen: boolean;
@@ -69,7 +66,7 @@ export function PurchaseConfirmDialog({
       const result = await supabase
         .from('products')
         .select('price')
-        .eq('id', productId as any)
+        .eq('id', productId)
         .single();
 
       const productData = extractSafeData<ProductPrice>(result);
@@ -92,7 +89,7 @@ export function PurchaseConfirmDialog({
       const result = await supabase
         .from('profiles')
         .select('balance')
-        .eq('id', user.id as any)
+        .eq('id', user.id)
         .single();
       
       const userData = extractSafeData<UserBalance>(result);
@@ -123,30 +120,37 @@ export function PurchaseConfirmDialog({
 
     setIsLoading(true);
     try {
-      setUserBalance(prevBalance => prevBalance - productPrice * quantity);
-
-      const { data, error } = await supabase.functions.invoke('purchase-product', {
-        body: {
-          productId: productId,
-          quantity: quantity,
-          userId: user.id
+      // Deduct balance
+      const { error: balanceError } = await supabase.rpc(
+        'update_user_balance',
+        {
+          user_id_param: user.id,
+          amount_param: -(productPrice * quantity)
         }
-      });
+      );
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (balanceError) throw new Error(balanceError.message);
 
-      if (data?.success) {
-        toast.success('Purchase successful!');
-        onPurchaseSuccess();
-      } else {
-        throw new Error(data?.message || 'Purchase failed');
-      }
+      // Create order
+      const { error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          product_id: productId,
+          total_price: productPrice * quantity,
+          status: 'completed',
+          qty: quantity
+        });
+
+      if (orderError) throw new Error(orderError.message);
+
+      toast.success('Purchase successful!');
+      onPurchaseSuccess();
     } catch (error: any) {
       console.error('Purchase failed:', error);
       toast.error(`Purchase failed: ${error.message}`);
       
+      // Refresh balance
       setUserBalance(await checkUserBalance());
     } finally {
       setIsLoading(false);
