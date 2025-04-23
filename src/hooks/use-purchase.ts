@@ -21,7 +21,9 @@ export const usePurchase = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user) {
-        toast.error('Authentication required', 'Please log in to make a purchase');
+        toast.error('Authentication required', {
+          description: 'Please log in to make a purchase'
+        });
         return { success: false, error: 'Not authenticated' };
       }
 
@@ -37,15 +39,21 @@ export const usePurchase = () => {
       const result: PurchaseResult = response.data;
 
       if (result.success) {
-        toast.success('Purchase Successful', `Order ID: ${result.orderId}`);
+        toast.success('Purchase Successful', {
+          description: `Order ID: ${result.orderId}`
+        });
       } else {
-        toast.error('Purchase Failed', result.error);
+        toast.error('Purchase Failed', {
+          description: result.error || 'Unknown error'
+        });
       }
 
       return result;
     } catch (error) {
       console.error('Purchase error:', error);
-      toast.error('Purchase Error', 'An unexpected error occurred');
+      toast.error('Purchase Error', {
+        description: 'An unexpected error occurred'
+      });
       return { success: false, error: 'Unexpected error' };
     } finally {
       setIsLoading(false);
