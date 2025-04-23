@@ -44,6 +44,7 @@ interface Product {
   kiosk_token?: string;
   slug: string;
   created_at: string;
+  description: string;
 }
 
 const productSchema = z.object({
@@ -56,6 +57,7 @@ const productSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
       message: "Slug chỉ được chứa chữ thường, số và dấu gạch ngang"
     }),
+  description: z.string().min(3, { message: "Mô tả sản phẩm phải có ít nhất 3 ký tự" }),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -78,6 +80,7 @@ const AdminProducts = () => {
       external_id: '',
       kiosk_token: '',
       slug: '',
+      description: '',
     },
   });
 
@@ -90,6 +93,7 @@ const AdminProducts = () => {
       external_id: '',
       kiosk_token: '',
       slug: '',
+      description: '',
     },
   });
 
@@ -106,6 +110,7 @@ const AdminProducts = () => {
         external_id: currentProduct.external_id || '',
         kiosk_token: currentProduct.kiosk_token || '',
         slug: currentProduct.slug,
+        description: currentProduct.description,
       });
     }
   }, [currentProduct, isEditDialogOpen, editForm]);
@@ -115,7 +120,7 @@ const AdminProducts = () => {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('id, title, price, stock, external_id, kiosk_token, slug, created_at')
+        .select('id, title, price, stock, external_id, kiosk_token, slug, created_at, description')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -141,6 +146,7 @@ const AdminProducts = () => {
           external_id: values.external_id || null,
           kiosk_token: values.kiosk_token || null,
           slug: values.slug,
+          description: values.description,
         }])
         .select();
       
@@ -172,6 +178,7 @@ const AdminProducts = () => {
           external_id: values.external_id || null,
           kiosk_token: values.kiosk_token || null,
           slug: values.slug,
+          description: values.description,
         })
         .eq('id', currentProduct.id);
       
@@ -282,6 +289,19 @@ const AdminProducts = () => {
                     )}
                   />
                 </div>
+                <FormField
+                  control={addForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mô tả sản phẩm</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nhập mô tả sản phẩm" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={addForm.control}
                   name="slug"
@@ -460,6 +480,19 @@ const AdminProducts = () => {
                   )}
                 />
               </div>
+              <FormField
+                control={editForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mô tả sản phẩm</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={editForm.control}
                 name="slug"

@@ -37,23 +37,7 @@ import { format } from 'date-fns';
 import { Loader2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-
-interface Order {
-  id: string;
-  user_id: string;
-  total_price: number;
-  status: string;
-  product_id: string;
-  qty: number;
-  created_at: string;
-  keys: string[];
-  user?: {
-    email: string;
-  };
-  product?: {
-    title: string;
-  };
-}
+import { Order } from '@/types';
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -80,7 +64,8 @@ const AdminOrders = () => {
       
       if (error) throw error;
       
-      setOrders(data || []);
+      // Type assertion to help TypeScript understand the structure
+      setOrders(data as Order[] || []);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Không thể tải danh sách đơn hàng');
@@ -138,6 +123,18 @@ const AdminOrders = () => {
       return format(new Date(dateString), 'dd/MM/yyyy HH:mm');
     } catch (e) {
       return 'Invalid date';
+    }
+  };
+
+  // Helper function to safely get keys as an array
+  const getKeysAsArray = (keys: any): string[] => {
+    if (!keys) return [];
+    if (Array.isArray(keys)) return keys;
+    try {
+      // If it's a JSON string or object, try to convert it
+      return Array.isArray(JSON.parse(JSON.stringify(keys))) ? JSON.parse(JSON.stringify(keys)) : [];
+    } catch {
+      return [];
     }
   };
 
@@ -264,9 +261,9 @@ const AdminOrders = () => {
               <div>
                 <p className="text-sm font-semibold text-gray-500">Keys</p>
                 <div className="p-2 bg-gray-50 rounded border mt-1 max-h-32 overflow-y-auto">
-                  {currentOrder.keys && currentOrder.keys.length > 0 ? (
+                  {currentOrder.keys && getKeysAsArray(currentOrder.keys).length > 0 ? (
                     <div className="font-mono text-xs break-all space-y-1">
-                      {currentOrder.keys.map((key, index) => (
+                      {getKeysAsArray(currentOrder.keys).map((key, index) => (
                         <div key={index} className="p-1 bg-white rounded border">{key}</div>
                       ))}
                     </div>

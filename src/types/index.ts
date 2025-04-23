@@ -19,6 +19,16 @@ export interface Order {
   total_price: number;
   created_at: string;
   updated_at?: string;
+  // Update the keys type to allow for Json type from Supabase
+  keys?: string[] | any; // Making it flexible to handle Json type
+  product_id?: string;
+  qty?: number;
+  user?: {
+    email: string;
+  };
+  product?: {
+    title: string;
+  };
 }
 
 export interface OrderItem {
