@@ -29,7 +29,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Tìm deposit bằng transaction_id
+    // Find deposit by transaction_id
     const { data: deposit, error: depositError } = await supabase
       .from('deposits')
       .select('id, user_id, amount, net_amount, status, created_at')
@@ -51,7 +51,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
     
-    // Nếu trạng thái đã là completed, chỉ trả về thông tin
+    // If status is already completed, just return info
     if (deposit.status === 'completed') {
       return new Response(
         JSON.stringify({ 
@@ -69,7 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
     
-    // Nếu pending và có transaction_id, cập nhật thành completed
+    // If pending and has transaction_id, update to completed
     if (deposit.status === 'pending' && transactionId) {
       const { error: updateError } = await supabase
         .from('deposits')
@@ -84,7 +84,7 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
       
-      // Cập nhật số dư người dùng
+      // Update user balance
       const { error: balanceError } = await supabase.rpc(
         'update_user_balance',
         {
@@ -111,7 +111,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
     
-    // Trường hợp giao dịch có trạng thái khác
+    // If transaction has other status
     return new Response(
       JSON.stringify({ 
         success: true, 

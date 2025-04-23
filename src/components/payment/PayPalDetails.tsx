@@ -1,36 +1,26 @@
 
-import React from 'react';
-import { calculateFee, calculateNetAmount } from '@/utils/payment';
-
 interface PayPalDetailsProps {
   amount: number;
 }
 
-export const PayPalDetails: React.FC<PayPalDetailsProps> = ({ amount }) => {
-  // Guard against invalid amounts
-  if (isNaN(amount) || amount <= 0) {
-    return null;
-  }
-  
-  const fee = calculateFee(amount);
-  const netAmount = calculateNetAmount(amount);
-  
+export const PayPalDetails = ({ amount }: PayPalDetailsProps) => {
+  const netAmount = amount; // In this case net amount is the same since we're not charging fees
+
   return (
-    <div className="bg-gray-50 p-4 rounded-md">
-      <h3 className="text-sm font-medium mb-2">Chi tiết thanh toán</h3>
-      <div className="space-y-1 text-sm">
-        <div className="flex justify-between">
-          <span>Số tiền nạp:</span>
-          <span>${amount.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between text-gray-500">
-          <span>Phí PayPal:</span>
-          <span>-${fee.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between font-medium pt-2 border-t border-gray-200 mt-2">
-          <span>Số tiền thực nhận:</span>
-          <span>${netAmount.toFixed(2)}</span>
-        </div>
+    <div className="space-y-3 border rounded-md p-4 bg-blue-50/50">
+      <div className="flex justify-between text-sm">
+        <span>Số tiền nạp:</span>
+        <span className="font-medium">${amount.toFixed(2)}</span>
+      </div>
+      
+      <div className="flex justify-between text-sm text-green-600">
+        <span>Phí giao dịch:</span>
+        <span className="font-medium">$0.00</span>
+      </div>
+      
+      <div className="flex justify-between pt-2 border-t">
+        <span className="font-medium">Tổng thanh toán:</span>
+        <span className="font-bold text-primary">${netAmount.toFixed(2)}</span>
       </div>
     </div>
   );

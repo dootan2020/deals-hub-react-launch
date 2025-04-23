@@ -1,37 +1,24 @@
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
-import { Helmet } from 'react-helmet';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Wallet, AlertCircle, CheckCircle2, DollarSign } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
-import { PayPalDetails } from '@/components/payment/PayPalDetails';
-import { PayPalCheckoutButton } from '@/components/payment/PayPalCheckoutButton';
-import { PayPalTransactionResult } from '@/components/payment/PayPalTransactionResult';
-import { PayPalStateError } from '@/components/payment/PayPalStateError';
-import { usePayPalVerification } from '@/hooks/use-paypal-verification';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PayPalProvider } from '@/components/payment/PayPalProvider';
+import { PayPalDetails } from '@/components/payment/PayPalDetails';
+import { useNavigate } from 'react-router-dom';
+import { PayPalCheckoutButton } from '@/components/payment/PayPalCheckoutButton';
+import { Wallet, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
-const PayPalDepositPage = () => {
+const predefinedAmounts = [10, 25, 50, 100];
+
+const PayPalDepositPage: React.FC = () => {
   const [amount, setAmount] = useState<string>('');
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
-  const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [transactionId, setTransactionId] = useState<string | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'completed' | 'failed' | null>(null);
-  const { user, userBalance, refreshUserBalance } = useAuth();
   const navigate = useNavigate();
-  const { isVerifying, verifyPayment } = usePayPalVerification();
-
-  const predefinedAmounts = [10, 25, 50, 100];
 
   const numAmount = parseFloat(amount);
-
   const isValidAmount = !isNaN(numAmount) && numAmount >= 1;
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,108 +30,21 @@ const PayPalDepositPage = () => {
 
   const handlePaymentSuccess = () => {
     setIsSuccess(true);
-    setPaymentStatus('pending');
-    setTransactionId(null);
-    refreshUserBalance();
+    toast.success('Nạp tiền thành công!');
   };
-
-  const handlePaymentError = (error: string) => {
-    console.error("Payment error:", error);
-    setPaymentError(error);
-  };
-
-  const handleVerifyTransaction = async () => {
-    if (!transactionId) return;
-
-    const result = await verifyPayment(transactionId);
-    if (result?.success) {
-      setPaymentStatus(result.status as any);
-      if (result.status === 'completed') {
-        refreshUserBalance();
-      } else if (result.status === 'failed') {
-        setPaymentError(result.error || "Giao dịch thất bại.");
-      }
-    } else if (result && result.error) {
-      setPaymentStatus('failed');
-      setPaymentError(result.error || "Xác minh giao dịch thất bại.");
-    }
-  };
-
-  const handleCloseError = () => {
-    setPaymentError(null);
-  };
-
-  useEffect(() => {
-    const savedTransaction = sessionStorage.getItem('pendingPayPalTransaction');
-    if (savedTransaction) {
-      try {
-        const txData = JSON.parse(savedTransaction);
-        if (txData.id) {
-          console.log("Found pending transaction:", txData);
-          setTransactionId(txData.id);
-          setPaymentStatus('pending');
-          handleVerifyTransaction();
-        }
-      } catch (e) {
-        console.error("Error parsing saved transaction:", e);
-        sessionStorage.removeItem('pendingPayPalTransaction');
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (transactionId) {
-      sessionStorage.setItem('pendingPayPalTransaction', JSON.stringify({
-        id: transactionId,
-        timestamp: new Date().toISOString()
-      }));
-    }
-  }, [transactionId]);
-
-  useEffect(() => {
-    if (paymentStatus === 'completed') {
-      sessionStorage.removeItem('pendingPayPalTransaction');
-    }
-  }, [paymentStatus]);
 
   return (
     <Layout>
-      <Helmet>
-        <title>Nạp tiền qua PayPal | Digital Deals Hub</title>
-        <meta name="description" content="Nạp tiền vào tài khoản Digital Deals Hub của bạn qua PayPal" />
-      </Helmet>
-      
       <div className="container-custom py-12">
         <div className="max-w-2xl mx-auto">
           {isSuccess ? (
             <Card className="border-success bg-success/5">
               <CardHeader>
-                <div className="flex items-center justify-center mb-4">
-                  <CheckCircle2 className="h-16 w-16 text-success" />
-                </div>
-                <CardTitle className="text-center text-2xl">Nạp tiền thành công!</CardTitle>
+                <CardTitle className="text-center">Nạp tiền thành công!</CardTitle>
                 <CardDescription className="text-center">
-                  Giao dịch của bạn đang được xử lý. Số dư sẽ được cập nhật trong vài giây.
+                  Giao dịch của bạn đã được xác nhận. Số dư sẽ được cập nhật trong vài giây.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="text-center text-lg pt-4">
-                <p>Số dư hiện tại: <span className="font-bold">{formatCurrency(userBalance)}</span></p>
-                <p className="mt-2 text-sm text-gray-600">
-                  Mã giao dịch đã được ghi nhận. Chúng tôi sẽ xác nhận và cập nhật số dư cho bạn ngay sau khi nhận được thông báo từ PayPal.
-                </p>
-
-                <div className="mt-6">
-                  <PayPalTransactionResult 
-                    paymentError={paymentError}
-                    transactionId={transactionId}
-                    isShowPayPal={false}
-                    onCloseError={handleCloseError}
-                    onVerify={handleVerifyTransaction}
-                    isVerifying={isVerifying}
-                    paymentStatus={paymentStatus}
-                  />
-                </div>
-              </CardContent>
               <CardFooter className="flex justify-center gap-4 pt-4">
                 <Button onClick={() => navigate('/deposit')}>Quay lại Nạp tiền</Button>
                 <Button onClick={() => navigate('/')}>Về trang chủ</Button>
@@ -156,16 +56,6 @@ const PayPalDepositPage = () => {
                 <Wallet className="mr-3 h-8 w-8 text-primary" />
                 Nạp tiền qua PayPal
               </h1>
-              
-              <PayPalTransactionResult 
-                paymentError={paymentError}
-                transactionId={transactionId}
-                isShowPayPal={!isSuccess}
-                onCloseError={handleCloseError}
-                onVerify={handleVerifyTransaction}
-                isVerifying={isVerifying}
-                paymentStatus={paymentStatus}
-              />
               
               <Card>
                 <CardHeader>
@@ -227,19 +117,8 @@ const PayPalDepositPage = () => {
                         <PayPalCheckoutButton 
                           amount={numAmount} 
                           onSuccess={handlePaymentSuccess}
-                          onError={handlePaymentError}
                         />
                       </PayPalProvider>
-                      
-                      <div className="mt-4 text-center">
-                        <Button 
-                          className="w-full"
-                          onClick={() => navigate('/deposit')}
-                          variant="outline"
-                        >
-                          Quay lại
-                        </Button>
-                      </div>
                     </>
                   )}
                 </CardContent>

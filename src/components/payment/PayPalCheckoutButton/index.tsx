@@ -1,13 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   PayPalButtons,
   usePayPalScriptReducer,
   SCRIPT_LOADING_STATE
 } from '@paypal/react-paypal-js';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { PayPalProcessingState } from '../PayPalProcessingState';
 import { PayPalStateError } from '../PayPalStateError';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PayPalCheckoutButtonProps {
   amount: number;

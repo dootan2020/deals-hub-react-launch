@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from "sonner";
@@ -12,10 +11,10 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import DepositPage from './pages/DepositPage';
 import NotFound from './pages/NotFound';
+import PayPalDepositPage from './pages/PayPalDepositPage';
 
 const App = () => {
   return (
-    // Removed any extraneous props that could be causing issues
     <BrowserRouter>
       <Toaster />
       <Routes>
@@ -26,6 +25,7 @@ const App = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/deposit" element={<DepositPage />} />
+        <Route path="/deposit/paypal" element={<PayPalDepositPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
