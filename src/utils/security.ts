@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { UserWithRolesRow, SimplifiedUser } from '@/integrations/supabase/types-extension';
 
@@ -15,41 +14,38 @@ export interface SecurityEvent {
 export async function logSecurityEvent(event: SecurityEvent) {
   try {
     const { data, error } = await supabase.functions.invoke('security-events', {
-      body: { event }
+      body: { event },
     });
-
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Failed to log security event:', error);
+    console.error('❌ Failed to log security event:', error);
     return null;
   }
 }
 
-export type UserWithRolesData = UserWithRolesRow;
-
-export async function getUserWithRoles(userId?: string): Promise<UserWithRolesData | null> {
+export async function getUserWithRoles(userId?: string): Promise<UserWithRolesRow | null> {
   try {
-    const { data, error } = await supabase.rpc('get_user_with_roles', { 
-      user_id_param: userId
+    const { data, error } = await supabase.rpc<'get_user_with_roles'>('get_user_with_roles', {
+      user_id_param: userId,
     });
-    
+
     if (error) throw error;
-    return Array.isArray(data) && data.length > 0 ? data[0] as UserWithRolesData : null;
+    return Array.isArray(data) && data.length > 0 ? data[0] : null;
   } catch (error) {
-    console.error('Failed to get user with roles:', error);
+    console.error('❌ Failed to get user with roles:', error);
     return null;
   }
 }
 
 export async function getAllUsers(): Promise<SimplifiedUser[] | null> {
   try {
-    const { data, error } = await supabase.rpc('get_all_users');
-    
+    const { data, error } = await supabase.rpc<'get_all_users'>('get_all_users');
+
     if (error) throw error;
-    return data as SimplifiedUser[];
+    return Array.isArray(data) ? data : null;
   } catch (error) {
-    console.error('Failed to get all users:', error);
+    console.error('❌ Failed to get all users:', error);
     return null;
   }
 }
