@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { SortOption, FilterParams } from '@/types';
 import { useSearchParams } from 'react-router-dom';
@@ -13,9 +14,17 @@ export interface ProductFilters {
 export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
   const [searchParams, setSearchParams] = useSearchParams();
   
+  // Helper to safely cast string to SortOption
+  const getSortOption = (value: string | null): SortOption => {
+    const validOptions: SortOption[] = ['popular', 'price-low', 'price-high', 'newest'];
+    return value && validOptions.includes(value as SortOption) 
+      ? value as SortOption 
+      : initialFilters?.sort || 'popular';
+  };
+  
   // Initialize filters from URL or defaults
   const [filters, setFilters] = useState<ProductFilters>({
-    sort: (searchParams.get('sort') as SortOption) || initialFilters?.sort || 'popular',
+    sort: getSortOption(searchParams.get('sort')),
     priceRange: [
       Number(searchParams.get('minPrice')) || initialFilters?.priceRange?.[0] || 0,
       Number(searchParams.get('maxPrice')) || initialFilters?.priceRange?.[1] || 500
@@ -98,7 +107,8 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
   };
 
   const handleSortChange = (newSort: string) => {
-    updateFilters({ sort: newSort as SortOption });
+    // Safely cast the string to SortOption
+    updateFilters({ sort: getSortOption(newSort) });
   };
 
   const handlePriceChange = (min: number, max: number) => {
@@ -119,7 +129,7 @@ export const useProductFilters = (initialFilters?: Partial<ProductFilters>) => {
 
   // Convert filters to FilterParams for API requests
   const getFilterParams = (): FilterParams => ({
-    sort: String(filters.sort),
+    sort: filters.sort,
     minPrice: filters.priceRange[0],
     maxPrice: filters.priceRange[1],
     inStock: filters.stockFilter === 'in-stock' ? true : undefined,

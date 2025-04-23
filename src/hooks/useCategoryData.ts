@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Product, Category, SortOption } from '@/types';
+import { Product, Category, SortOption, FilterParams } from '@/types';
 import { useCategoryProducts } from './useCategoryProducts';
 import { useCategory } from './useCategory';
 
@@ -31,8 +31,17 @@ export function useCategoryData(options: UseCategoryDataOptions) {
     error: productsError,
     total,
     fetchMore: originalFetchMore,
-    refresh
-  } = useCategoryProducts(category?.id);
+    refresh,
+    handleSortChange: handleSortChangeFromProducts,
+    sort: sortFromProducts
+  } = useCategoryProducts({
+    categorySlug,
+    filterParams: {
+      sort
+    },
+    limit: 10,
+    page: 1
+  });
   
   // Handle additional loading state when fetching more
   const loadMore = async () => {
@@ -47,7 +56,11 @@ export function useCategoryData(options: UseCategoryDataOptions) {
   // Handle sort changes
   const handleSortChange = (newSort: SortOption) => {
     setSort(newSort);
-    refresh();
+    if (handleSortChangeFromProducts) {
+      handleSortChangeFromProducts(newSort);
+    } else {
+      refresh();
+    }
   };
   
   return {
@@ -59,7 +72,6 @@ export function useCategoryData(options: UseCategoryDataOptions) {
     total,
     fetchMore: originalFetchMore,
     refresh,
-    // Add the missing properties
     loadingMore,
     hasMore,
     loadMore,

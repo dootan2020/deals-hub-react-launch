@@ -1,11 +1,13 @@
 
-export type UserRole = 'admin' | 'user' | 'manager';
+export type UserRole = 'admin' | 'user' | 'manager' | 'staff' | 'guest';
 
 // Define UserRole as both type and enum-like object
 export const UserRole = {
   Admin: 'admin' as UserRole,
   User: 'user' as UserRole,
-  Manager: 'manager' as UserRole
+  Manager: 'manager' as UserRole,
+  Staff: 'staff' as UserRole,
+  Guest: 'guest' as UserRole
 };
 
 export interface UserWithRoles {
@@ -23,6 +25,7 @@ export interface AuthContextType {
   isAdmin: boolean;
   isManager: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register?: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;

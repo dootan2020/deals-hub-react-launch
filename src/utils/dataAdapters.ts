@@ -12,8 +12,8 @@ export function adaptCategory(dbCategory: any): Category {
     description: dbCategory.description,
     image: dbCategory.image,
     count: dbCategory.count || 0,
-    parentId: dbCategory.parent_id || null,
-    createdAt: dbCategory.created_at
+    parentId: dbCategory.parent_id || dbCategory.parentId || null,
+    createdAt: dbCategory.created_at || dbCategory.createdAt
   };
 }
 
@@ -58,4 +58,20 @@ export function adaptCategories(dbCategories: any[]): Category[] {
  */
 export function adaptProducts(dbProducts: any[]): Product[] {
   return Array.isArray(dbProducts) ? dbProducts.map(adaptProduct) : [];
+}
+
+/**
+ * Helper for safely converting parent_id property to parentId
+ */
+export function convertCategoryFields(categories: any[]): Category[] {
+  return categories.map(cat => ({
+    id: cat.id || '',
+    name: cat.name || '',
+    slug: cat.slug || '',
+    description: cat.description || '',
+    image: cat.image || '',
+    count: cat.count || 0,
+    parentId: cat.parent_id || cat.parentId || null,
+    createdAt: cat.created_at || cat.createdAt
+  }));
 }

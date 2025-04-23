@@ -9,7 +9,15 @@ export interface CategoryWithParent extends Category {
   parent?: Category | null;
 }
 
-export const useCategory = (categorySlug: string) => {
+interface UseCategoryOptions {
+  categorySlug: string;
+  parentCategorySlug?: string;
+}
+
+export const useCategory = (options: string | UseCategoryOptions) => {
+  // Handle different parameter types
+  const categorySlug = typeof options === 'string' ? options : options.categorySlug;
+  
   const [category, setCategory] = useState<CategoryWithParent | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');

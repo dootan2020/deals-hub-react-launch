@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { fetchProductsWithFilters } from '@/services/productService';
-import { Product } from '@/types';
+import { Product, FilterParams } from '@/types';
 import { SortOption } from '@/types';
 
 interface ProductsResponse {
@@ -37,7 +37,8 @@ export const useSubcategoryProducts = ({
       setError(null);
       
       try {
-        const response = await fetchProductsWithFilters({
+        // Create a FilterParams-compatible object
+        const filterParams: FilterParams = {
           subcategory: slug,
           page: currentPage,
           perPage: 12,
@@ -45,7 +46,9 @@ export const useSubcategoryProducts = ({
           minPrice: priceRange[0],
           maxPrice: priceRange[1],
           inStock: stockFilter === "in-stock" ? true : undefined
-        }) as ProductServiceResponse;
+        };
+        
+        const response = await fetchProductsWithFilters(filterParams) as ProductServiceResponse;
         
         // Handle response based on type
         if (Array.isArray(response)) {

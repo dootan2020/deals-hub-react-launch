@@ -41,8 +41,10 @@ export interface FilterParams {
   maxPrice?: number;
   inStock?: boolean;
   sortBy?: SortOption;
-  sort?: SortOption; // Added for backward compatibility
-  page?: number;     // Added page for pagination
+  sort?: SortOption;
+  page?: number;
+  perPage?: number;
+  isProductsPage?: boolean;
 }
 
 export type SortOption = 'popular' | 'price-low' | 'price-high' | 'newest';
@@ -62,6 +64,10 @@ export interface Order {
   updated_at: string;
   user: any;
   order_items: OrderItem[];
+  qty?: number; // Added to fix Order[] compatibility issues
+  product_id?: string; // Added for compatibility with existing code
+  keys?: any; // Added for compatibility with existing code
+  promotion_code?: string; // Added for compatibility
 }
 
 export interface OrderItem {
@@ -85,11 +91,11 @@ export interface Recommendation {
   reason?: string;
 }
 
-// Define this to fix AISource/RecommendationStrategy error
+// Define RecommendationStrategy to include all possible values
 export type RecommendationStrategy = 'similar' | 'popular' | 'trending' | 'local';
 export type AISource = RecommendationStrategy;
 
-// Add ProxyConfig type to fix ApiTesterPage error
+// Add ProxyConfig type with all needed properties
 export interface ProxyConfig {
   proxy_type: string;
   custom_url?: string;
