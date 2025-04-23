@@ -13,6 +13,7 @@ export function adaptCategory(dbCategory: any): Category {
     image: dbCategory.image,
     count: dbCategory.count || 0,
     parentId: dbCategory.parent_id || dbCategory.parentId || null,
+    parent_id: dbCategory.parent_id || dbCategory.parentId || null, // Keep both for compatibility
     createdAt: dbCategory.created_at || dbCategory.createdAt
   };
 }
@@ -42,7 +43,8 @@ export function adaptProduct(dbProduct: any): Product {
     stock: Number(dbProduct.stock) || 0,
     kiosk_token: dbProduct.kiosk_token || '',
     createdAt: dbProduct.created_at || dbProduct.createdAt || new Date().toISOString(),
-    category: null // This would typically be filled in separately if needed
+    category: dbProduct.category || null, // This would typically be filled in separately if needed
+    categories: dbProduct.categories || null // For backward compatibility
   };
 }
 
@@ -72,6 +74,7 @@ export function convertCategoryFields(categories: any[]): Category[] {
     image: cat.image || '',
     count: cat.count || 0,
     parentId: cat.parent_id || cat.parentId || null,
+    parent_id: cat.parent_id || cat.parentId || null, // Keep both for compatibility
     createdAt: cat.created_at || cat.createdAt
   }));
 }

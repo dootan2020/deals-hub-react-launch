@@ -1,8 +1,9 @@
 
 /**
  * Available AI source engines for chatbot/recommendation features
+ * Aligned with RecommendationStrategy for compatibility
  */
-export type AISource = "openai" | "claude" | "local";
+export type AISource = "openai" | "claude" | "local" | "similar" | "popular" | "trending";
 
 /**
  * Response structure from the AI Assistant edge function

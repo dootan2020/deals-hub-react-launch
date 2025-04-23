@@ -6,7 +6,7 @@ import Layout from '@/components/layout/Layout';
 import EnhancedProductGrid from '@/components/product/EnhancedProductGrid';
 import SimplifiedCategoryFilters from '@/components/category/SimplifiedCategoryFilters';
 import ViewToggle from '@/components/category/ViewToggle';
-import { FilterParams, Product } from '@/types';
+import { FilterParams, Product, SortOption } from '@/types';
 import { fetchProductsWithFilters } from '@/services/product';
 import { toast } from "@/hooks/use-toast";
 import { 
@@ -28,7 +28,7 @@ const EnhancedProductsPage = () => {
   
   // Active filters from URL search params or defaults
   const [activeFilters, setActiveFilters] = useState<FilterParams>({
-    sort: searchParams.get('sort') || 'recommended',
+    sort: (searchParams.get('sort') as SortOption) || 'recommended',
   });
 
   // Fetch products based on active filters
@@ -39,6 +39,8 @@ const EnhancedProductsPage = () => {
         const result = await fetchProductsWithFilters(activeFilters);
         if (result && Array.isArray(result.products)) {
           setProducts(result.products);
+        } else if (Array.isArray(result)) {
+          setProducts(result);
         } else {
           setProducts([]);
         }
@@ -60,7 +62,7 @@ const EnhancedProductsPage = () => {
     const newSearchParams = new URLSearchParams();
     
     if (activeFilters.sort) {
-      newSearchParams.set('sort', activeFilters.sort);
+      newSearchParams.set('sort', activeFilters.sort.toString());
     }
     
     // Only update if changed to avoid unnecessary history entries
@@ -72,7 +74,7 @@ const EnhancedProductsPage = () => {
     }
   }, [activeFilters, setSearchParams, searchParams]);
 
-  const handleSortChange = (sort: string) => {
+  const handleSortChange = (sort: SortOption) => {
     setActiveFilters(prev => ({ ...prev, sort }));
   };
 

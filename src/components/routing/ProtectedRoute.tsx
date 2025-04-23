@@ -8,11 +8,13 @@ import { Loader2 } from 'lucide-react';
 interface ProtectedRouteProps {
   requiredRoles?: UserRole[];
   redirectPath?: string;
+  children?: React.ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRoles = [],
   redirectPath = '/login',
+  children
 }) => {
   const { isAuthenticated, userRoles, loading } = useAuth();
 
@@ -39,7 +41,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }
 
-  return <Outlet />;
+  // Either render children directly or use Outlet for Route context
+  return children ? <>{children}</> : <Outlet />;
 };
 
+export { ProtectedRoute };
 export default ProtectedRoute;

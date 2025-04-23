@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Helmet } from 'react-helmet';
 import { ProductHeader } from '@/components/product/ProductHeader';
-import { ProductPurchaseSection } from '@/components/product/ProductPurchaseSection';
+import ProductPurchaseSection from '@/components/product/ProductPurchaseSection';
 import { ProductDescription } from '@/components/product/ProductDescription';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -15,14 +15,14 @@ import { useProductRecommendations } from '@/hooks/useProductRecommendations';
 import { ProductRecommendations } from '@/components/product/ProductRecommendations';
 import { useAuth } from '@/context/AuthContext';
 import { usePersonalizedRecommendations } from '@/hooks/usePersonalizedRecommendations';
-import { AISource } from '@/types/ai';
+import { AISource } from '@/types';
 
 const ProductPage = () => {
   const { productSlug } = useParams();
   const { product, loading, error } = useProduct(productSlug);
   const { user } = useAuth();
 
-  const [aiSource] = useState<AISource>('openai');
+  const [aiSource] = useState<AISource>('popular');
   const {
     recommendations,
     loading: recLoading,
@@ -75,7 +75,7 @@ const ProductPage = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-8 lg:py-12">
           <ProductHeader 
             title={product.title}
-            category={product.categories}
+            category={product.category}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 mt-6">
@@ -88,22 +88,26 @@ const ProductPage = () => {
             </div>
           </div>
 
-          <ProductRecommendations
-            recommendations={recommendations}
-            loading={recLoading}
-            error={recError}
-          />
+          {recommendations && recommendations.length > 0 && (
+            <ProductRecommendations
+              recommendations={recommendations}
+              loading={recLoading}
+              error={recError}
+            />
+          )}
 
           <div className="mt-8 w-full">
             <ProductDescription description={product.description} />
           </div>
 
-          <ProductRecommendations
-            recommendations={personalizedRecs}
-            loading={persLoading}
-            error={persError}
-            label="Dành riêng cho bạn"
-          />
+          {personalizedRecs && personalizedRecs.length > 0 && (
+            <ProductRecommendations
+              recommendations={personalizedRecs}
+              loading={persLoading}
+              error={persError}
+              label="Dành riêng cho bạn"
+            />
+          )}
         </div>
       </div>
     </Layout>

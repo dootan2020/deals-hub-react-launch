@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -20,6 +19,7 @@ import { MainCategoriesTable } from '@/components/admin/categories/MainCategorie
 import { SubcategoriesTable } from '@/components/admin/categories/SubcategoriesTable';
 import { CategoryForm, categorySchema, CategoryFormValues } from '@/components/admin/categories/CategoryForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { adaptCategory, adaptCategories } from '@/utils/dataAdapters';
 
 const CategoryAdmin = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -73,8 +73,8 @@ const CategoryAdmin = () => {
 
   useEffect(() => {
     if (categories.length > 0) {
-      const main = categories.filter(category => !category.parent_id);
-      const sub = categories.filter(category => category.parent_id);
+      const main = categories.filter(category => !category.parentId);
+      const sub = categories.filter(category => category.parentId);
       
       setMainCategories(main);
       setSubcategories(sub);
@@ -88,7 +88,7 @@ const CategoryAdmin = () => {
         description: selectedCategory.description,
         slug: selectedCategory.slug,
         image: selectedCategory.image,
-        parent_id: selectedCategory.parent_id || null,
+        parent_id: selectedCategory.parentId || null,
       });
     }
   }, [selectedCategory, isEditOpen, editForm]);
@@ -102,7 +102,10 @@ const CategoryAdmin = () => {
         .order('name');
 
       if (error) throw error;
-      setCategories(data as Category[]);
+      if (data) {
+        const adaptedCategories = adaptCategories(data);
+        setCategories(adaptedCategories);
+      }
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast.error('Failed to fetch categories');
@@ -172,11 +175,8 @@ const CategoryAdmin = () => {
     if (!selectedCategory) return;
 
     try {
-      // Check if we're editing a main category or subcategory
-      const isMainCategory = !selectedCategory.parent_id;
+      const isMainCategory = !selectedCategory.parentId;
       
-      // If editing a main category, ensure parent_id is null
-      // If editing a subcategory, ensure parent_id is set
       const parent_id = isMainCategory ? null : data.parent_id;
       
       if (!isMainCategory && !parent_id) {
@@ -238,7 +238,6 @@ const CategoryAdmin = () => {
   };
 
   const handleAddSubClick = () => {
-    // Reset form and set a default parent if one is selected in the filter
     subcategoryForm.reset({
       name: '',
       description: '',
@@ -319,7 +318,6 @@ const CategoryAdmin = () => {
         )}
       </Tabs>
 
-      {/* Add Main Category Sheet */}
       <Sheet open={isAddMainOpen} onOpenChange={setIsAddMainOpen}>
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
@@ -340,7 +338,6 @@ const CategoryAdmin = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Add Subcategory Sheet */}
       <Sheet open={isAddSubOpen} onOpenChange={setIsAddSubOpen}>
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
@@ -361,11 +358,10 @@ const CategoryAdmin = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Edit Category Sheet */}
       <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>Edit {selectedCategory?.parent_id ? 'Subcategory' : 'Main Category'}</SheetTitle>
+            <SheetTitle>Edit {selectedCategory?.parentId ? 'Subcategory' : 'Main Category'}</SheetTitle>
             <SheetDescription>
               Update category details
             </SheetDescription>
@@ -374,7 +370,7 @@ const CategoryAdmin = () => {
             <CategoryForm 
               form={editForm}
               onSubmit={onSubmitEdit}
-              isSubcategory={Boolean(selectedCategory?.parent_id)}
+              isSubcategory={Boolean(selectedCategory?.parentId)}
               mainCategories={mainCategories}
               isEdit={true}
             />

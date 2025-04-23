@@ -1,8 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { Product, Category, SortOption, FilterParams } from '@/types';
-import { useCategoryProducts, UseCategoryProductsOptions } from './useCategoryProducts';
+import { UseCategoryProductsOptions, useCategoryProducts } from './useCategoryProducts';
 import { useCategory } from './useCategory';
+import { CategoryWithParent } from '@/types/category.types';
 
 interface UseCategoryDataOptions {
   categorySlug: string;
@@ -23,10 +24,10 @@ export function useCategoryData(options: UseCategoryDataOptions) {
     error: categoryError
   } = useCategory({ categorySlug, parentCategorySlug });
   
-  // Get products for this category
+  // Get products for this category using the options object format
   const {
     products, 
-    childCategories,
+    childCategories: subcategories,
     loading: productsLoading,
     error: productsError,
     total,
@@ -41,7 +42,7 @@ export function useCategoryData(options: UseCategoryDataOptions) {
     },
     limit: 10,
     page: 1
-  });
+  } as UseCategoryProductsOptions);
   
   // Handle additional loading state when fetching more
   const loadMore = async () => {
@@ -62,11 +63,17 @@ export function useCategoryData(options: UseCategoryDataOptions) {
       refresh();
     }
   };
+
+  // Create an activeFilters object for components that expect it
+  const activeFilters: FilterParams = {
+    sort
+  };
   
   return {
     products,
     category,
-    childCategories,
+    childCategories: subcategories,
+    subcategories, // Added for compatibility
     loading: categoryLoading || productsLoading,
     error: categoryError || productsError,
     total,
@@ -77,6 +84,7 @@ export function useCategoryData(options: UseCategoryDataOptions) {
     loadMore,
     handleSortChange,
     setSelectedCategory,
-    sort
+    sort,
+    activeFilters // Added for compatibility
   };
 }

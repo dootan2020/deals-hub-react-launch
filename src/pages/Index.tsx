@@ -12,12 +12,13 @@ import ProductGrid from '@/components/product/ProductGrid';
 import TestimonialsSection from '@/components/home/TestimonialsSection';
 import NewsletterSection from '@/components/home/NewsletterSection';
 import { toast } from '@/hooks/use-toast';
+import { SortOption } from '@/types';
 
 const Index = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Đổi giá trị mặc định từ 'recommended' thành 'newest'
-  const [activeSort, setActiveSort] = useState('newest');
+  // Use a valid SortOption value
+  const [activeSort, setActiveSort] = useState<SortOption>('newest');
 
   useEffect(() => {
     const loadProducts = async () => {

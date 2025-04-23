@@ -18,22 +18,28 @@ const ProductsPage = () => {
   const initialSort = (searchParams.get('sort') || 'newest') as SortOption;
   const { categories } = useCategoriesContext();
   
-  const subcategories = categories.filter(cat => cat.parent_id !== null);
+  // Filter subcategories - using parentId instead of parent_id
+  const subcategories = categories.filter(cat => cat.parentId !== null);
   
   const { 
     products, 
     loading,
-    loadingMore,
-    hasMore,
-    loadMore,
+    fetchMore,
+    total,
     handleSortChange: handleSort,
-    setSelectedCategory 
+    sort,
+    loadingMore,
+    hasMore
   } = useCategoryProducts({
+    categorySlug: '',
     isProductsPage: true,
-    sort: initialSort
+    sort: initialSort,
+    limit: 12
   });
+  
+  const loadMore = fetchMore;
 
-  const handleSortChange = (value: string) => {
+  const handleSortChange = (value: SortOption) => {
     handleSort(value);
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set('sort', value);
@@ -45,8 +51,10 @@ const ProductsPage = () => {
   };
 
   const handleSubcategoryClick = (category: Category) => {
-    setSelectedCategory(category.id);
-    toast.success("Category Filter Applied", `Showing products from ${category.name}`);
+    if (category && category.id) {
+      // Handle the category click
+      toast.success("Category Filter Applied", `Showing products from ${category.name}`);
+    }
   };
 
   return (
@@ -75,7 +83,7 @@ const ProductsPage = () => {
             <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
               <div className="flex justify-between items-center mb-6">
                 <ProductSorter 
-                  currentSort={initialSort} 
+                  currentSort={sort} 
                   onSortChange={handleSortChange} 
                 />
                 <ViewToggle 

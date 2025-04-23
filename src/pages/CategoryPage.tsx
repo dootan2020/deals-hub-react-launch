@@ -29,14 +29,14 @@ const CategoryPage: React.FC = () => {
     subcategories,
     setSelectedCategory
   } = useCategoryData({
-    categorySlug: params.categorySlug,
+    categorySlug: params.categorySlug || '',
     parentCategorySlug: params.parentCategorySlug
   });
   
   if (loading) return <LoadingState />;
   if (error || !category) return <ErrorState />;
 
-  const showSubcategories = !category.parent_id && subcategories.length > 0;
+  const showSubcategories = !category.parentId && subcategories && subcategories.length > 0;
 
   const handleSubcategoryClick = (subcategory: any) => {
     setSelectedCategory(subcategory.id);

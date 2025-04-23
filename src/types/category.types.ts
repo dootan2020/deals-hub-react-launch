@@ -1,8 +1,11 @@
+
 import { Category } from '@/types';
 
 export interface CategoryWithParent extends Category {
   parent?: CategoryWithParent;
   created_at?: string;
+  parentId?: string; // Added for compatibility with Category
+  parent_id?: string; // Added for compatibility with database
   icon?: string;
   tags?: string[];
 }

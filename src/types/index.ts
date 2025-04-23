@@ -48,7 +48,7 @@ export interface FilterParams {
   categoryId?: string; // Added for compatibility
 }
 
-export type SortOption = 'popular' | 'price-low' | 'price-high' | 'newest';
+export type SortOption = 'popular' | 'price-low' | 'price-high' | 'newest' | 'recommended';
 
 // Re-export for compatibility with existing code
 export { UserRole } from './auth.types';
@@ -94,6 +94,8 @@ export interface Recommendation {
 
 // Define RecommendationStrategy to include all possible values
 export type RecommendationStrategy = 'similar' | 'popular' | 'trending' | 'local';
+
+// Update AISource type to match RecommendationStrategy
 export type AISource = RecommendationStrategy;
 
 // Add ProxyConfig type with all needed properties

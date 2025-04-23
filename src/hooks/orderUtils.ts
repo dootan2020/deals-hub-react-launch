@@ -12,6 +12,9 @@ export interface Order {
   updated_at: string;
   user: any;
   order_items: OrderItem[];
+  qty?: number; // Add this to match the global Order type
+  product_id?: string; // Add this to match the global Order type
+  keys?: any; // Add this to match the global Order type
 }
 
 export interface OrderItem {
