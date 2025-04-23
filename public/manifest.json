@@ -1,0 +1,22 @@
+
+{
+  "name": "AccZen.net - Nền tảng mua sắm số tự động",
+  "short_name": "AccZen",
+  "description": "Chuyên cung cấp tài khoản số, key phần mềm bản quyền với giao dịch tự động 24/7",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2ECC71",
+  "icons": [
+    {
+      "src": "/lovable-uploads/0ca2b166-5fe2-47ec-acdf-dee17e47ec20.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/lovable-uploads/0ca2b166-5fe2-47ec-acdf-dee17e47ec20.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
