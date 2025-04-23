@@ -1,53 +1,22 @@
 
 import React from 'react';
-import { useProductForm } from './product-form/useProductForm';
-import { Form } from '@/components/ui/form';
-import { ProductFormFields } from './product-form/ProductFormFields';
-import { ProductFormHeader } from './product-form/ProductFormHeader';
-import { ProductFormActions } from './product-form/ProductFormActions';
+// Đã xoá useProductForm và các thành phần product-form không còn phù hợp
+// import { useProductForm } from './product-form/useProductForm';
+// import { Form } from '@/components/ui/form';
+// import { ProductFormFields } from './product-form/ProductFormFields';
+// import { ProductFormHeader } from './product-form/ProductFormHeader';
+// import { ProductFormActions } from './product-form/ProductFormActions';
 
 interface ProductFormProps {
   productId?: string;
   onSuccess?: () => void;
 }
 
+// Tạm thời render thông báo hoặc ẩn hoàn toàn thành phần này
 export function ProductForm({ productId, onSuccess }: ProductFormProps) {
-  const {
-    form,
-    categories,
-    isLoading,
-    formDirty,
-    showResetDialog,
-    setShowResetDialog,
-    resetForm,
-    onSubmit,
-    handleApiDataReceived
-  } = useProductForm(productId, onSuccess);
-
   return (
-    <>
-      <ProductFormHeader 
-        onApiDataReceived={handleApiDataReceived} 
-        initialKioskToken={form.getValues('kioskToken')}
-      />
-      
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <ProductFormFields 
-            categories={categories} 
-            isEditMode={!!productId}
-          />
-
-          <ProductFormActions 
-            isLoading={isLoading}
-            productId={productId}
-            onReset={resetForm}
-            formDirty={formDirty}
-            showResetDialog={showResetDialog}
-            setShowResetDialog={setShowResetDialog}
-          />
-        </form>
-      </Form>
-    </>
+    <div className="p-6 text-center text-muted-foreground">
+      <p>Chức năng quản lý sản phẩm đang được nâng cấp. Vui lòng quay lại sau.</p>
+    </div>
   );
 }
