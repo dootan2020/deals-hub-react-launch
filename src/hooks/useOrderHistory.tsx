@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-interface OrderHistoryItem {
+export interface OrderHistoryItem {
   id: string;
   product_title: string;
   quantity: number;
