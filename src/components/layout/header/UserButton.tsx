@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -17,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/utils/currency";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,9 +31,11 @@ export const UserButton = () => {
 
   const handleLogout = async () => {
     try {
-      await logout();
-      toast.success("Đăng xuất thành công", "Hẹn gặp lại bạn!");
-      navigate('/login');
+      if (logout) {
+        await logout();
+        toast.success("Đăng xuất thành công", "Hẹn gặp lại bạn!");
+        navigate('/login');
+      }
     } catch (error) {
       toast.error("Đăng xuất thất bại", "Vui lòng thử lại");
       console.error("Logout error:", error);
@@ -43,7 +46,7 @@ export const UserButton = () => {
     event.preventDefault();
     event.stopPropagation();
     
-    if (isRefreshing) return;
+    if (isRefreshing || !refreshUserBalance) return;
     
     setIsRefreshing(true);
     try {
@@ -97,7 +100,7 @@ export const UserButton = () => {
           <span>Số dư:</span>
           <div className="flex items-center">
             <span className="font-medium text-primary mr-2">
-              {isLoadingBalance ? "Đang tải..." : formatCurrency(userBalance)}
+              {isLoadingBalance ? "Đang tải..." : formatCurrency(userBalance ?? 0)}
             </span>
             <Button 
               variant="ghost" 

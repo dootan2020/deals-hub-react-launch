@@ -1,267 +1,229 @@
-
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { Globe, Save, RefreshCw, TestTube2, CheckCircle2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ProxyType, ProxyConfig, buildProxyUrl } from '@/utils/proxyUtils';
-import { 
-  isValidRecord, 
-  prepareForUpdate, 
-  prepareForInsert, 
-  extractSafeData,
-  safeId
-} from '@/utils/supabaseHelpers';
+import { Loader2, Check, AlertCircle } from 'lucide-react';
 
-interface ProxySettingsData {
-  id: string;
-  proxy_type: string;
-  custom_url: string | null;
+interface CorsProxySelectorProps {
+  onProxyChange?: (proxy: string) => void;
+  defaultProxy?: string;
 }
 
-const CorsProxySelector: React.FC = () => {
-  const [proxyConfig, setProxyConfig] = useState<ProxyConfig>({
-    proxyType: 'allorigins',
-    customUrl: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
+const PROXY_OPTIONS = [
+  {
+    id: 'direct',
+    name: 'Direct Connection',
+    description: 'Connect directly to the API without a proxy',
+    value: '',
+  },
+  {
+    id: 'corsanywhere',
+    name: 'CORS Anywhere',
+    description: 'Use the CORS Anywhere proxy service',
+    value: 'https://cors-anywhere.herokuapp.com/',
+  },
+  {
+    id: 'corsproxy',
+    name: 'CORS Proxy',
+    description: 'Use the CORS Proxy service',
+    value: 'https://corsproxy.io/?',
+  },
+  {
+    id: 'custom',
+    name: 'Custom Proxy',
+    description: 'Use a custom proxy URL',
+    value: 'custom',
+  },
+];
+
+export const CorsProxySelector: React.FC<CorsProxySelectorProps> = ({
+  onProxyChange,
+  defaultProxy = '',
+}) => {
+  const [selectedProxy, setSelectedProxy] = useState(
+    defaultProxy ? (PROXY_OPTIONS.some(p => p.value === defaultProxy) ? defaultProxy : 'custom') : ''
+  );
+  const [customProxy, setCustomProxy] = useState(
+    defaultProxy && !PROXY_OPTIONS.some(p => p.value === defaultProxy) ? defaultProxy : ''
+  );
   const [isTesting, setIsTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{success: boolean, message: string} | null>(null);
+  const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
+  const [savedProxy, setSavedProxy] = useState(defaultProxy);
 
   useEffect(() => {
-    fetchSettings();
+    // Load saved proxy from database or local storage
+    const loadSavedProxy = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'cors_proxy')
+          .single();
+
+        if (error) {
+          console.error('Error loading proxy setting:', error);
+          return;
+        }
+
+        if (data?.value) {
+          const proxyValue = data.value;
+          setSavedProxy(proxyValue);
+          
+          // Set the appropriate radio button
+          const matchingOption = PROXY_OPTIONS.find(option => option.value === proxyValue);
+          if (matchingOption) {
+            setSelectedProxy(matchingOption.value);
+          } else {
+            setSelectedProxy('custom');
+            setCustomProxy(proxyValue);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load proxy setting:', err);
+      }
+    };
+
+    loadSavedProxy();
   }, []);
 
-  const fetchSettings = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('proxy_settings')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data && isValidRecord<ProxySettingsData>(data)) {
-        setProxyConfig({
-          proxyType: data.proxy_type as ProxyType,
-          customUrl: data.custom_url || ''
-        });
+  const handleProxyChange = (value: string) => {
+    setSelectedProxy(value);
+    setTestResult(null);
+    
+    if (value !== 'custom') {
+      if (onProxyChange) {
+        onProxyChange(value);
       }
-    } catch (error) {
-      console.error('Error fetching proxy settings:', error);
-      toast.error('Failed to load proxy settings');
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const handleChangeProxyType = (value: ProxyType) => {
-    setProxyConfig(prev => ({
-      ...prev,
-      proxyType: value
-    }));
+  const handleCustomProxyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomProxy(e.target.value);
+    setTestResult(null);
   };
 
-  const handleCustomUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setProxyConfig(prev => ({
-      ...prev,
-      customUrl: e.target.value
-    }));
-  };
+  const testProxy = async () => {
+    const proxyUrl = selectedProxy === 'custom' ? customProxy : selectedProxy;
+    if (!proxyUrl && selectedProxy !== 'direct') {
+      toast.error('Please enter a proxy URL');
+      return;
+    }
 
-  const handleSaveSettings = async () => {
-    setIsLoading(true);
+    setIsTesting(true);
+    setTestResult(null);
+
     try {
-      // First check if we have existing settings
-      const result = await supabase
-        .from('proxy_settings')
-        .select('id')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      // Test URL that requires CORS
+      const testUrl = 'https://api.github.com/users/octocat';
+      const finalUrl = selectedProxy === 'direct' ? testUrl : `${proxyUrl}${testUrl}`;
 
-      const existingSettings = extractSafeData<{id: string}>(result);
-      
-      // Create table-compatible data object with proper typing
-      const settingsData = {
-        proxy_type: proxyConfig.proxyType,
-        custom_url: proxyConfig.customUrl || null
-      };
-      
-      if (existingSettings && existingSettings.id) {
-        // Update existing settings using the new safeId helper
-        const { error: updateError } = await supabase
-          .from('proxy_settings')
-          .update(prepareForUpdate(settingsData))
-          .eq('id', safeId(existingSettings.id));
-          
-        if (updateError) throw updateError;
+      const response = await fetch(finalUrl);
+      if (response.ok) {
+        setTestResult('success');
+        toast.success('Proxy test successful!');
       } else {
-        // Insert new settings
-        const { error: insertError } = await supabase
-          .from('proxy_settings')
-          .insert(prepareForInsert(settingsData));
-          
-        if (insertError) throw insertError;
+        setTestResult('error');
+        toast.error(`Proxy test failed: ${response.statusText}`);
+      }
+    } catch (error) {
+      setTestResult('error');
+      toast.error(`Proxy test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const saveProxy = async () => {
+    const proxyUrl = selectedProxy === 'custom' ? customProxy : selectedProxy;
+    
+    try {
+      const { error } = await supabase
+        .from('settings')
+        .upsert({ 
+          key: 'cors_proxy', 
+          value: proxyUrl,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      setSavedProxy(proxyUrl);
+      if (onProxyChange) {
+        onProxyChange(proxyUrl);
       }
       
       toast.success('Proxy settings saved successfully');
     } catch (error) {
-      console.error('Error saving proxy settings:', error);
-      toast.error('Failed to save proxy settings');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleTestProxy = async () => {
-    setIsTesting(true);
-    setTestResult(null);
-    
-    try {
-      // Test URL
-      const testUrl = 'https://httpbin.org/get';
-      const proxyUrl = buildProxyUrl(testUrl, proxyConfig);
-      
-      toast.info(`Testing proxy: ${proxyConfig.proxyType}`);
-      
-      const response = await fetch(proxyUrl);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      setTestResult({
-        success: true,
-        message: 'Proxy test successful!'
-      });
-      
-      toast.success('Proxy test successful!');
-    } catch (error) {
-      console.error('Proxy test error:', error);
-      
-      setTestResult({
-        success: false,
-        message: `Test failed: ${(error as Error).message}`
-      });
-      
-      toast.error(`Proxy test failed: ${(error as Error).message}`);
-    } finally {
-      setIsTesting(false);
+      toast.error(`Failed to save proxy settings: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Globe className="h-5 w-5" />
-          CORS Proxy Configuration
-        </CardTitle>
+        <CardTitle>CORS Proxy Settings</CardTitle>
         <CardDescription>
-          Select a CORS proxy service to use for API requests. This allows the frontend to make requests to APIs that don't support CORS.
+          Configure a CORS proxy to help with API requests that have CORS restrictions
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <RadioGroup 
-          value={proxyConfig.proxyType} 
-          onValueChange={(value) => handleChangeProxyType(value as ProxyType)}
-          className="space-y-3"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="allorigins" id="allorigins" />
-            <Label htmlFor="allorigins" className="font-medium">AllOrigins</Label>
-            <span className="text-xs text-muted-foreground ml-2">
-              (api.allorigins.win)
-            </span>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="corsproxy" id="corsproxy" />
-            <Label htmlFor="corsproxy" className="font-medium">CORS Proxy</Label>
-            <span className="text-xs text-muted-foreground ml-2">
-              (corsproxy.io)
-            </span>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="corsanywhere" id="corsanywhere" />
-            <Label htmlFor="corsanywhere" className="font-medium">CORS Anywhere</Label>
-            <span className="text-xs text-muted-foreground ml-2">
-              (cors-anywhere.herokuapp.com)
-            </span>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="direct" id="direct" />
-            <Label htmlFor="direct" className="font-medium">Direct Request</Label>
-            <span className="text-xs text-muted-foreground ml-2">
-              (No proxy, API must support CORS)
-            </span>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="custom" id="custom" />
-            <Label htmlFor="custom" className="font-medium">Custom Proxy URL</Label>
-          </div>
+      <CardContent>
+        <RadioGroup value={selectedProxy} onValueChange={handleProxyChange} className="space-y-4">
+          {PROXY_OPTIONS.map((option) => (
+            <div key={option.id} className="flex items-start space-x-2">
+              <RadioGroupItem value={option.value} id={option.id} />
+              <div className="grid gap-1.5">
+                <Label htmlFor={option.id} className="font-medium">
+                  {option.name}
+                </Label>
+                <p className="text-sm text-muted-foreground">{option.description}</p>
+                {option.id === 'custom' && selectedProxy === 'custom' && (
+                  <Input
+                    value={customProxy}
+                    onChange={handleCustomProxyChange}
+                    placeholder="Enter custom proxy URL"
+                    className="mt-2"
+                  />
+                )}
+              </div>
+            </div>
+          ))}
         </RadioGroup>
-        
-        {proxyConfig.proxyType === 'custom' && (
-          <div className="pt-2">
-            <Label htmlFor="customUrl" className="text-sm">Custom Proxy URL</Label>
-            <Input 
-              id="customUrl"
-              placeholder="https://your-proxy-service.com/?url={{url}}"
-              value={proxyConfig.customUrl || ''}
-              onChange={handleCustomUrlChange}
-              className="mt-1"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Use {{url}} as a placeholder where the target URL should be inserted.
-            </p>
+
+        {testResult === 'success' && (
+          <div className="flex items-center mt-4 p-2 bg-green-50 text-green-700 rounded-md">
+            <Check className="h-5 w-5 mr-2" />
+            <span>Proxy test successful!</span>
           </div>
         )}
-        
-        {testResult && (
-          <Alert className={testResult.success ? "bg-green-50" : "bg-red-50"}>
-            <CheckCircle2 className={`h-4 w-4 ${testResult.success ? "text-green-500" : "text-red-500"}`} />
-            <AlertDescription className={testResult.success ? "text-green-700" : "text-red-700"}>
-              {testResult.message}
-            </AlertDescription>
-          </Alert>
+
+        {testResult === 'error' && (
+          <div className="flex items-center mt-4 p-2 bg-red-50 text-red-700 rounded-md">
+            <AlertCircle className="h-5 w-5 mr-2" />
+            <span>Proxy test failed. Please check the URL and try again.</span>
+          </div>
         )}
-        
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button 
-            onClick={handleSaveSettings} 
-            disabled={isLoading}
-            className="flex-1"
-          >
-            {isLoading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save Settings
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            onClick={handleTestProxy}
-            disabled={isTesting}
-            className="flex-1"
-          >
-            {isTesting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <TestTube2 className="mr-2 h-4 w-4" />}
-            Test Proxy
-          </Button>
-        </div>
       </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={testProxy} disabled={isTesting}>
+          {isTesting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Testing...
+            </>
+          ) : (
+            'Test Proxy'
+          )}
+        </Button>
+        <Button onClick={saveProxy}>
+          Save Settings
+        </Button>
+      </CardFooter>
     </Card>
   );
 };

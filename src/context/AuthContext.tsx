@@ -2,7 +2,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthState } from '@/hooks/use-auth-state';
-import { UserRole } from '@/types';
+import { UserRole } from '@/types/index';
+import { extractSafeData } from '@/utils/supabaseHelpers';
 
 interface AuthContextType {
   user: any;
@@ -21,6 +22,10 @@ interface AuthContextType {
   refreshUserData: () => Promise<void>;
   isLoadingBalance: boolean;
   authError: string | null;
+  logout: () => Promise<void>;
+  refreshUserProfile: () => Promise<void>;
+  refreshUserBalance: () => Promise<number | null>;
+  checkUserRole?: (role: UserRole) => boolean;
 }
 
 // Create a context with default values
@@ -40,7 +45,11 @@ export const AuthContext = createContext<AuthContextType>({
   fetchUserBalance: async () => null,
   refreshUserData: async () => {},
   isLoadingBalance: false,
-  authError: null
+  authError: null,
+  logout: async () => {},
+  refreshUserProfile: async () => {},
+  refreshUserBalance: async () => null,
+  checkUserRole: (role: UserRole) => false
 });
 
 export const useAuth = (): AuthContextType => useContext(AuthContext);
@@ -91,7 +100,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (data && Array.isArray(data)) {
-        const roles = data.map(item => item.role as UserRole);
+        const roles = data.map(item => {
+          const roleData = extractSafeData<{ role: UserRole }>(item);
+          return roleData ? roleData.role : UserRole.User;
+        });
         setUserRoles(roles);
       }
     } catch (error) {
@@ -127,6 +139,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error refreshing user data:', error);
     }
   };
+  
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUserRoles([]);
+      setUserBalance(null);
+    } catch (error) {
+      console.error('Error during logout:', error);
+      throw error;
+    }
+  };
+  
+  const refreshUserBalance = async (): Promise<number | null> => {
+    if (!user || !user.id) return null;
+    return fetchUserBalance(user.id);
+  };
+  
+  const refreshUserProfile = async (): Promise<void> => {
+    try {
+      if (!user || !user.id) return;
+      
+      // Refresh the session
+      await supabase.auth.refreshSession();
+      
+      // Refresh the user data
+      await refreshUserData();
+    } catch (error) {
+      console.error('Error refreshing user profile:', error);
+    }
+  };
+  
+  const checkUserRole = (role: UserRole): boolean => {
+    return userRoles.includes(role);
+  };
 
   // Provide auth context to the app
   return (
@@ -147,7 +193,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fetchUserBalance,
         refreshUserData,
         isLoadingBalance,
-        authError
+        authError,
+        logout,
+        refreshUserProfile,
+        refreshUserBalance,
+        checkUserRole
       }}
     >
       {children}

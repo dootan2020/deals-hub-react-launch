@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { UserRole } from '@/types/auth.types';
+import { UserRole } from '@/types/index';
 import AuthLoadingScreen from '@/components/auth/AuthLoadingScreen';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -62,9 +62,11 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
       }
       
       // Then refresh user profile with updated session
-      await refreshUserProfile();
-      setHasTriedRefresh(true);
-      console.log("Profile refreshed successfully in ProtectedRoute");
+      if (refreshUserProfile) {
+        await refreshUserProfile();
+        setHasTriedRefresh(true);
+        console.log("Profile refreshed successfully in ProtectedRoute");
+      }
       
     } catch (err) {
       console.error("Failed to refresh auth in ProtectedRoute:", err);
@@ -119,14 +121,16 @@ export const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteP
           setIsRefreshing(false);
           
           // Also refresh user profile/roles after successful session refresh
-          refreshUserProfile()
-            .then(() => {
-              console.log("User profile refreshed after session refresh");
-              setHasTriedRefresh(true);
-            })
-            .catch(err => {
-              console.error('Error refreshing profile after session refresh:', err);
-            });
+          if (refreshUserProfile) {
+            refreshUserProfile()
+              .then(() => {
+                console.log("User profile refreshed after session refresh");
+                setHasTriedRefresh(true);
+              })
+              .catch(err => {
+                console.error('Error refreshing profile after session refresh:', err);
+              });
+          }
         }
       });
     }

@@ -1,100 +1,98 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Category } from '@/types';
 import { safeId, extractSafeData } from '@/utils/supabaseHelpers';
 
-// Type definitions for category data
-interface Category {
-  id: string;
-  name: string;
-  description: string;
-  slug: string;
-  image?: string;
-  count?: number;
-  parent_id?: string | null;
-}
-
-interface CategoryWithParent extends Category {
+// Define the extended Category type with parent data
+export interface CategoryWithParent extends Category {
   parent?: Category | null;
 }
 
-export function useCategory(slug?: string, initialFetch: boolean = true) {
+interface UseCategoryProps {
+  categorySlug?: string;
+  parentCategorySlug?: string;
+}
+
+export const useCategory = ({ categorySlug, parentCategorySlug }: UseCategoryProps) => {
   const [category, setCategory] = useState<CategoryWithParent | null>(null);
-  const [loading, setLoading] = useState(initialFetch);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const fetchCategory = useCallback(async () => {
-    if (!slug) {
+    if (!categorySlug) {
       setCategory(null);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    setError(null);
+    setError('');
 
     try {
-      // Fetch the category by slug
+      // First, fetch the category by slug
       const { data: categoryData, error: categoryError } = await supabase
         .from('categories')
         .select('*')
-        .eq('slug', safeId(slug))
-        .maybeSingle();
+        .eq('slug', safeId(categorySlug))
+        .single();
 
       if (categoryError) throw new Error(categoryError.message);
       
-      // Use extractSafeData to handle the response safely
-      const safeCategoryData = extractSafeData<Category>(categoryData);
-      
-      if (!safeCategoryData) {
+      const safeCategory = extractSafeData<Category>(categoryData);
+      if (!safeCategory) {
         throw new Error('Category not found');
       }
-      
-      // Now we have a properly typed category
-      const result: CategoryWithParent = {
-        ...safeCategoryData,
-        parent: null
-      };
 
-      // If this category has a parent, fetch the parent data
-      if (safeCategoryData.parent_id) {
+      const category: CategoryWithParent = { ...safeCategory, parent: null };
+
+      // If this category has a parent_id, fetch the parent category
+      if (category.parent_id) {
         const { data: parentData, error: parentError } = await supabase
           .from('categories')
           .select('*')
-          .eq('id', safeId(safeCategoryData.parent_id))
-          .maybeSingle();
+          .eq('id', safeId(category.parent_id))
+          .single();
 
         if (parentError) {
           console.error('Error fetching parent category:', parentError);
         } else {
-          // Use extractSafeData to handle the parent response safely
-          const safeParentData = extractSafeData<Category>(parentData);
-          if (safeParentData) {
-            result.parent = safeParentData;
+          const safeParent = extractSafeData<Category>(parentData);
+          if (safeParent) {
+            category.parent = safeParent;
+          }
+        }
+      } 
+      // If parentCategorySlug is provided but no parent_id, look up by slug
+      else if (parentCategorySlug) {
+        const { data: parentData, error: parentError } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('slug', safeId(parentCategorySlug))
+          .single();
+
+        if (parentError) {
+          console.error('Error fetching parent category by slug:', parentError);
+        } else {
+          const safeParent = extractSafeData<Category>(parentData);
+          if (safeParent) {
+            category.parent = safeParent;
           }
         }
       }
 
-      setCategory(result);
+      setCategory(category);
     } catch (err) {
-      console.error('Error in fetchCategory:', err);
-      setError(err instanceof Error ? err.message : String(err));
-      setCategory(null);
+      console.error('Error fetching category:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch category');
     } finally {
       setLoading(false);
     }
-  }, [slug]);
+  }, [categorySlug, parentCategorySlug]);
 
   useEffect(() => {
-    if (initialFetch) {
-      fetchCategory();
-    }
-  }, [fetchCategory, initialFetch]);
+    fetchCategory();
+  }, [fetchCategory]);
 
-  return {
-    category,
-    loading,
-    error,
-    fetchCategory,
-  };
-}
+  return { category, loading, error, refetch: fetchCategory };
+};

@@ -78,6 +78,7 @@ const mockProducts: Product[] = [
     rating: 4.2,
     reviewCount: 215,
     inStock: true,
+    in_stock: true, // Add this property
     stockQuantity: 1000,
     stock: 1000,
     badges: ['Popular', 'Fast Delivery'],
@@ -110,6 +111,7 @@ const mockProducts: Product[] = [
     rating: 4.7,
     reviewCount: 67,
     inStock: true,
+    in_stock: true, // Add this property
     stockQuantity: 30,
     stock: 30,
     badges: ['Premium', 'Warranty'],
@@ -142,6 +144,7 @@ const mockProducts: Product[] = [
     rating: 4.9,
     reviewCount: 132,
     inStock: true,
+    in_stock: true, // Add this property
     stockQuantity: 25,
     stock: 25,
     badges: ['Premium', '4K', 'Warranty'],
@@ -175,6 +178,7 @@ const mockProducts: Product[] = [
     rating: 4.6,
     reviewCount: 94,
     inStock: true,
+    in_stock: true, // Add this property
     stockQuantity: 50,
     stock: 50,
     badges: ['Premium', 'Popular'],
@@ -241,6 +245,7 @@ const mockProducts: Product[] = [
     rating: 4.5,
     reviewCount: 47,
     inStock: true,
+    in_stock: true, // Add this property
     stockQuantity: 35,
     stock: 35,
     badges: ['Gaming', 'Popular'],

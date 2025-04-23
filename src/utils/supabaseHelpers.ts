@@ -109,11 +109,20 @@ export function safeBoolean(value: any): boolean {
  */
 export function extractSafeData<T>(result: any): T | null {
   try {
-    if (!result || (result.error && result.error !== null)) {
-      console.error('Supabase error:', result?.error);
+    if (!result) return null;
+    
+    // Handle error case
+    if (result.error && result.error !== null) {
+      console.error('Supabase error:', result.error);
       return null;
     }
     
+    // Handle case where data might be directly available
+    if (typeof result === 'object' && !('data' in result)) {
+      return result as T;
+    }
+    
+    // Handle case where data is null or undefined
     if (result.data === undefined || result.data === null) {
       return null;
     }
@@ -167,14 +176,18 @@ export function safeColumnName(column: string): any {
 /**
  * Helper to safely handle Supabase PostgrestSingleResponse results
  */
-export function handlePostgrestResponse<T>(response: any): T | null {
+export function handlePostgrestResponse<T>(response: PostgrestError | PostgrestSingleResponse<any>): T | null {
   try {
-    if (response?.error) {
+    if ('error' in response && response.error) {
       console.error('Supabase query error:', response.error);
       return null;
     }
     
-    return response?.data as T || null;
+    if ('data' in response) {
+      return response.data as T;
+    }
+    
+    return null;
   } catch (error) {
     console.error('Error handling Postgrest response:', error);
     return null;
@@ -196,4 +209,3 @@ export function safeCastData<T>(data: any): T | null {
   if (data === null || data === undefined) return null;
   return data as T;
 }
-

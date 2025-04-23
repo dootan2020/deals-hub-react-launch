@@ -1,70 +1,70 @@
 
-import { useState } from 'react';
-import { CategoryPageParams } from '@/types/category.types';
-import { useCategory } from './useCategory';
+import { useState, useEffect } from 'react';
+import { Product, Category, SortOption } from '@/types';
 import { useCategoryProducts } from './useCategoryProducts';
-import { useSubcategories } from './useSubcategories';
-import { SortOption } from '@/utils/productFilters';
+import { useCategory } from './useCategory';
 
-export const useCategoryData = ({ categorySlug, parentCategorySlug }: CategoryPageParams) => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [activeFilters, setActiveFilters] = useState({ sort: 'popular' as SortOption });
+interface UseCategoryDataOptions {
+  categorySlug: string;
+  parentCategorySlug?: string;
+  initialSort?: SortOption;
+}
+
+export function useCategoryData(options: UseCategoryDataOptions) {
+  const { categorySlug, parentCategorySlug } = options;
+  const [sort, setSort] = useState<SortOption>(options.initialSort || 'newest');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   
-  const { category, loading: categoryLoading, error } = useCategory({ 
-    categorySlug, 
-    parentCategorySlug 
-  });
-  
+  // Get category data
   const { 
-    products, 
-    loading: productsLoading,
-    loadingMore,
-    hasMore,
-    loadMore,
-    handleSortChange, 
-    setSelectedCategory
-  } = useCategoryProducts({
-    categoryId: category?.id,
-    isProductsPage: !categorySlug && !parentCategorySlug,
-    sort: activeFilters.sort
-  });
-
-  const loading = categoryLoading || productsLoading;
-
-  const { subcategories, featuredProducts } = useSubcategories(category?.id);
-  
-  const buildBreadcrumbs = () => {
-    const result = [];
-    if (category?.parent) {
-      result.push(category.parent);
-    }
-    if (category) {
-      result.push(category);
-    }
-    return result;
-  };
-
-  const handleSort = (newSort: string) => {
-    setActiveFilters(prev => ({ ...prev, sort: newSort as SortOption }));
-    handleSortChange(newSort);
-  };
-
-  return {
     category,
+    loading: categoryLoading,
+    error: categoryError
+  } = useCategory({ categorySlug, parentCategorySlug });
+  
+  // Get products for this category
+  const {
+    products, 
+    childCategories,
+    loading: productsLoading,
+    error: productsError,
+    total,
+    fetchMore: originalFetchMore,
+    refresh
+  } = useCategoryProducts(category?.id);
+  
+  // Handle additional loading state when fetching more
+  const loadMore = async () => {
+    setLoadingMore(true);
+    await originalFetchMore();
+    setLoadingMore(false);
+  };
+  
+  // Calculate if more products can be loaded
+  const hasMore = total > products.length;
+  
+  // Handle sort changes
+  const handleSortChange = (newSort: SortOption) => {
+    setSort(newSort);
+    refresh();
+  };
+  
+  return {
     products,
-    loading,
-    error,
+    category,
+    childCategories,
+    loading: categoryLoading || productsLoading,
+    error: categoryError || productsError,
+    total,
+    fetchMore: originalFetchMore,
+    refresh,
+    // Add the missing properties
     loadingMore,
     hasMore,
     loadMore,
-    activeTab,
-    setActiveTab,
-    activeFilters,
-    handleSortChange: handleSort,
-    buildBreadcrumbs,
-    subcategories,
-    featuredProducts,
+    handleSortChange,
     setSelectedCategory,
-    isProductsPage: !categorySlug && !parentCategorySlug
+    sort
   };
-};
+}

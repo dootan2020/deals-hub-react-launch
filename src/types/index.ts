@@ -1,6 +1,12 @@
 
 import { TableHTMLAttributes } from 'react';
 
+export enum UserRole {
+  User = 'user',
+  Admin = 'admin',
+  Staff = 'staff'
+}
+
 export interface Product {
   id: string;
   title: string;
@@ -90,9 +96,26 @@ export interface TableProps<T> extends TableHTMLAttributes<HTMLTableElement> {
   isLoading?: boolean;
 }
 
-// Add types for user roles
-export enum UserRole {
-  User = 'user',
-  Admin = 'admin',
-  Staff = 'staff'
+// Export AuthContextType to make it consistent with the rest of the application
+export interface AuthContextType {
+  user: any;
+  session: any;
+  loading: boolean;
+  isAuthenticated: boolean;
+  balance: number | null;
+  balanceLoading: boolean;
+  fetchBalance: (userId: string) => Promise<number | null>;
+  isAdmin: boolean;
+  isStaff: boolean;
+  userRoles: UserRole[];
+  userBalance: number | null;
+  setUserBalance: React.Dispatch<React.SetStateAction<number | null>>;
+  fetchUserBalance: (userId: string) => Promise<number | null>;
+  refreshUserData: () => Promise<void>;
+  isLoadingBalance: boolean;
+  authError: string | null;
+  logout?: () => Promise<void>;
+  refreshUserProfile?: () => Promise<void>;
+  refreshUserBalance?: () => Promise<number | null>;
+  checkUserRole?: (role: UserRole) => boolean;
 }

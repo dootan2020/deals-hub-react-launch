@@ -78,8 +78,8 @@ export const useCachedBalance = (userId: string | undefined) => {
           const newBalance = payload.new?.balance;
           if (newBalance !== undefined) {
             setBalance(Number(newBalance));
-            // Update the lastFetched timestamp without creating a new Date object
-            setLastFetched(new Date()); // Fix: Use new Date() instead of a number
+            // Update the lastFetched timestamp
+            setLastFetched(new Date()); // Fixed: Use new Date() object, not a number
           }
         })
         .subscribe();

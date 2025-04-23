@@ -78,10 +78,7 @@ const EnhancedProductGrid: React.FC<EnhancedProductGridProps> = ({
           products.map((product) => (
             <ProductCard 
               key={product.id} 
-              product={{
-                ...product, 
-                in_stock: product.inStock !== undefined ? product.inStock : true
-              }}
+              product={product}
               viewMode={viewMode}
             />
           ))

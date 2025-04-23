@@ -1,45 +1,38 @@
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { ShoppingCart } from 'lucide-react';
+import { Button, ButtonProps } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { ShoppingBag } from 'lucide-react';
 
-export interface BuyNowButtonProps {
+export interface BuyNowButtonProps extends ButtonProps {
   productId: string;
-  quantity?: number;
-  onPurchaseSuccess: () => void;
-  className?: string;
-  disabled?: boolean;
-  variant?: "default" | "secondary" | "outline";
-  size?: "default" | "sm" | "lg" | "icon";
+  onPurchaseSuccess?: () => void;
+  quantity?: number; // Add quantity prop
 }
 
-export function BuyNowButton({
-  productId,
-  quantity = 1,
-  onPurchaseSuccess,
-  className = '',
-  disabled = false,
-  variant = "default",
-  size = "default"
-}: BuyNowButtonProps) {
+export const BuyNowButton = ({ 
+  productId, 
+  onPurchaseSuccess, 
+  className, 
+  quantity = 1, // Default to 1
+  ...props 
+}: BuyNowButtonProps) => {
   const handleClick = () => {
-    // Buy now logic here
+    // Add purchase logic here
     console.log(`Buying product ${productId}, quantity: ${quantity}`);
-    onPurchaseSuccess();
+    if (onPurchaseSuccess) {
+      onPurchaseSuccess();
+    }
   };
 
   return (
     <Button
-      variant={variant}
-      size={size}
+      variant="default"
+      className={cn('bg-primary hover:bg-primary-dark transition-colors', className)}
       onClick={handleClick}
-      disabled={disabled}
-      className={className}
+      {...props}
     >
-      <ShoppingCart className="mr-2 h-4 w-4" />
-      Buy
+      <ShoppingBag className="mr-2 h-4 w-4" />
+      Buy Now
     </Button>
   );
-}
-
-export default BuyNowButton;
+};
