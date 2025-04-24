@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -80,6 +79,9 @@ const RegisterPage: React.FC = () => {
       
       setServerError(errorMessage);
       toast.error("Đăng ký thất bại", errorMessage);
+      
+      // Define currentUserAgent here to fix the undefined variable issue
+      const currentUserAgent = navigator.userAgent;
       
       // Log the failed registration attempt
       await logSecurityEvent({

@@ -8,7 +8,7 @@ import Home from './pages/Home';
 import ProductsPage from './pages/ProductsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
+import { RegisterPage } from './pages/RegisterPage'; // Fixed import to use named export
 import DashboardPage from './pages/DashboardPage';
 import DepositPage from './pages/DepositPage';
 import NotFound from './pages/NotFound';
