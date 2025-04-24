@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom';
 import Logo from './header/Logo';
 import MobileMenuToggle from './header/MobileMenuToggle';
 import MobileNavigation from './header/MobileNavigation';
-import UserButton from './header/UserButton';
-import DepositOptions from './header/DepositOptions';
+import { UserButton } from './header/UserButton';
+import { DepositOptions } from './header/DepositOptions';
 import LanguageSelector from './header/LanguageSelector';
 import { useAuth } from '@/context/AuthContext';
 
@@ -66,7 +66,7 @@ const Header = () => {
               </>
             )}
             
-            <MobileMenuToggle isOpen={mobileMenuOpen} onClick={toggleMobileMenu} />
+            <MobileMenuToggle isOpen={mobileMenuOpen} onToggle={toggleMobileMenu} />
           </div>
         </div>
       </div>

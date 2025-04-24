@@ -1,18 +1,30 @@
 
-import { Menu, X } from 'lucide-react';
+import React from 'react';
 
-interface MobileMenuToggleProps {
+export interface MobileMenuToggleProps {
   isOpen: boolean;
-  toggleMenu: () => void;
+  onToggle: () => void;
 }
 
-const MobileMenuToggle = ({ isOpen, toggleMenu }: MobileMenuToggleProps) => {
+const MobileMenuToggle: React.FC<MobileMenuToggleProps> = ({ isOpen, onToggle }) => {
   return (
     <button
-      className="md:hidden p-1 text-text-light hover:text-primary"
-      onClick={toggleMenu}
+      className="md:hidden p-1 focus:outline-none"
+      onClick={onToggle}
+      aria-label={isOpen ? 'Đóng menu' : 'Mở menu'}
+      aria-expanded={isOpen}
     >
-      {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+      <div className="w-6 h-5 relative flex flex-col justify-between">
+        <span 
+          className={`w-full h-0.5 bg-gray-800 rounded transition-all duration-300 ${isOpen ? 'rotate-45 translate-y-2' : ''}`}
+        />
+        <span 
+          className={`w-full h-0.5 bg-gray-800 rounded transition-all duration-300 ${isOpen ? 'opacity-0' : 'opacity-100'}`}
+        />
+        <span 
+          className={`w-full h-0.5 bg-gray-800 rounded transition-all duration-300 ${isOpen ? '-rotate-45 -translate-y-2' : ''}`}
+        />
+      </div>
     </button>
   );
 };
