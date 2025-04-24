@@ -32,7 +32,8 @@ export const supabase = createClient<Database>(
     },
     global: {
       fetch: (...args) => {
-        const [url, options] = args;
+        // Fix: Properly type and handle the fetch arguments
+        const url = args[0];
         console.log(`🔄 Supabase request to: ${url}`);
         return fetch(...args).then(response => {
           console.log(`✅ Supabase response from: ${url}`, { status: response.status });
