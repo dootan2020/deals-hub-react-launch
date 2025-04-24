@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from "sonner";
 import { supabase, getSupabaseUrl } from '@/integrations/supabase/client';
+import { AuthProvider } from '@/context/AuthContext';
 
 // Import pages
 import Home from './pages/Home';
@@ -53,39 +54,41 @@ const App = () => {
 
   return (
     <BrowserRouter>
-      <Toaster />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/products" element={<ProductsPage />} />
-        <Route path="/product/:slug" element={<ProductDetailPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/deposit" element={<DepositPage />} />
-        <Route path="/deposit/paypal" element={<PayPalDepositPage />} />
-        <Route path="/unauthorized" element={<UnauthorizedPage />} />
-        <Route path="/test-security" element={<TestSecurityPage />} />
-        
-        {/* Auth verification routes - cả hai không và có dấu gạch chéo leading để tương thích */}
-        <Route path="/auth/verify" element={<LoginPage />} />
-        <Route path="auth/verify" element={<LoginPage />} />
-        <Route path="/auth/verified" element={<VerifiedPage />} />
-        <Route path="auth/verified" element={<VerifiedPage />} />
-        
-        {/* Standard content pages */}
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/support" element={<SupportPage />} />
-        <Route path="/warranty" element={<WarrantyPage />} />
-        <Route path="/terms" element={<TermsPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/faq" element={<FaqsPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        
-        {/* Admin Routes */}
-        {adminRoutes}
-        
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <AuthProvider>
+        <Toaster />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/products" element={<ProductsPage />} />
+          <Route path="/product/:slug" element={<ProductDetailPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/deposit" element={<DepositPage />} />
+          <Route path="/deposit/paypal" element={<PayPalDepositPage />} />
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+          <Route path="/test-security" element={<TestSecurityPage />} />
+          
+          {/* Auth verification routes - both with and without leading slash for compatibility */}
+          <Route path="/auth/verify" element={<LoginPage />} />
+          <Route path="auth/verify" element={<LoginPage />} />
+          <Route path="/auth/verified" element={<VerifiedPage />} />
+          <Route path="auth/verified" element={<VerifiedPage />} />
+          
+          {/* Standard content pages */}
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/support" element={<SupportPage />} />
+          <Route path="/warranty" element={<WarrantyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/faq" element={<FaqsPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          
+          {/* Admin Routes */}
+          {adminRoutes}
+          
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 };

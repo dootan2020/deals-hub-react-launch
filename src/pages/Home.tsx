@@ -6,33 +6,47 @@ import HeroSection from '@/components/home/HeroSection';
 import CategorySection from '@/components/home/CategorySection';
 import FeaturesSection from '@/components/home/FeaturesSection';
 import TestimonialsSection from '@/components/home/TestimonialsSection';
+import SearchSection from '@/components/home/SearchSection';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
 
-const Home: React.FC = () => {  
+const Home = () => {
+  const { isAuthenticated } = useAuth();
+  
   return (
     <Layout>
       <HeroSection />
-      <CategorySection />
-      <FeaturesSection />
-      <TestimonialsSection />
       
-      <section className="py-16 bg-primary/10">
-        <div className="container-custom text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Sẵn sàng khám phá các sản phẩm số?
-          </h2>
-          <p className="text-lg text-text-light max-w-2xl mx-auto mb-8">
-            Hàng nghìn tài khoản Gmail, Facebook, công cụ AI và các sản phẩm số khác đang chờ bạn với giá tốt nhất thị trường.
-          </p>
+      {/* Quick action buttons */}
+      <div className="container mx-auto py-6 px-4">
+        <div className="flex flex-wrap justify-center gap-4">
           <Link to="/products">
-            <Button size="lg" className="gap-2 px-8">
+            <Button variant="outline" size="lg" className="shadow-sm">
               Xem tất cả sản phẩm
-              <ArrowRight className="h-5 w-5" />
             </Button>
           </Link>
+          
+          {!isAuthenticated && (
+            <>
+              <Link to="/login">
+                <Button variant="default" size="lg" className="shadow-sm">
+                  Đăng nhập
+                </Button>
+              </Link>
+              <Link to="/register">
+                <Button variant="secondary" size="lg" className="shadow-sm">
+                  Đăng ký
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
-      </section>
+      </div>
+      
+      <CategorySection />
+      <SearchSection />
+      <FeaturesSection />
+      <TestimonialsSection />
     </Layout>
   );
 };

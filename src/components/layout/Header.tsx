@@ -1,123 +1,78 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { User, ShoppingCart, Search, Menu, X, LayoutDashboard } from 'lucide-react';
+import Logo from './header/Logo';
+import MobileMenuToggle from './header/MobileMenuToggle';
+import MobileNavigation from './header/MobileNavigation';
+import UserButton from './header/UserButton';
+import DepositOptions from './header/DepositOptions';
+import LanguageSelector from './header/LanguageSelector';
 import { useAuth } from '@/context/AuthContext';
-import { UserButton } from './header/UserButton';
 
-const Header: React.FC = () => {
+const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { isAdmin } = useAuth();
-  
+  const { isAuthenticated, loading } = useAuth();
+
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50">
-      <div className="container-custom py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="text-2xl font-bold text-primary flex items-center">
-            AccZen.net
-          </Link>
+    <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex justify-between items-center">
+          {/* Left section - Logo */}
+          <div className="flex items-center">
+            <Logo />
+          </div>
           
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="text-text hover:text-primary font-medium">
+          {/* Center section - Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link to="/" className="text-gray-700 hover:text-primary transition-colors">
               Trang chủ
             </Link>
-            <Link to="/products" className="text-text hover:text-primary font-medium">
+            <Link to="/products" className="text-gray-700 hover:text-primary transition-colors">
               Sản phẩm
             </Link>
-            <Link to="#" className="text-text hover:text-primary font-medium">
+            <Link to="/about" className="text-gray-700 hover:text-primary transition-colors">
               Giới thiệu
             </Link>
-            <Link to="#" className="text-text hover:text-primary font-medium">
+            <Link to="/contact" className="text-gray-700 hover:text-primary transition-colors">
               Liên hệ
             </Link>
-            
-            {/* Admin Menu - Only shown for admin users */}
-            {isAdmin && (
-              <Link 
-                to="/admin" 
-                className="text-primary hover:text-primary-dark font-medium flex items-center gap-2"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Quản trị
-              </Link>
-            )}
           </nav>
           
-          {/* Actions */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" size="icon" asChild>
-              <Link to="/search">
-                <Search className="h-5 w-5" />
-              </Link>
-            </Button>
+          {/* Right section - User related */}
+          <div className="flex items-center space-x-4">
+            <LanguageSelector />
             
-            <UserButton />
-          </div>
-          
-          {/* Mobile menu button */}
-          <button
-            className="md:hidden flex items-center"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? (
-              <X className="h-6 w-6 text-text" />
-            ) : (
-              <Menu className="h-6 w-6 text-text" />
+            {!loading && (
+              <>
+                {isAuthenticated ? (
+                  <>
+                    <DepositOptions />
+                    <UserButton />
+                  </>
+                ) : (
+                  <div className="hidden md:flex items-center space-x-4">
+                    <Link to="/login" className="text-gray-700 hover:text-primary transition-colors font-medium">
+                      Đăng nhập
+                    </Link>
+                    <Link to="/register" className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md transition-colors">
+                      Đăng ký
+                    </Link>
+                  </div>
+                )}
+              </>
             )}
-          </button>
-        </div>
-        
-        {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t mt-4">
-            <nav className="flex flex-col space-y-4">
-              <Link 
-                to="/" 
-                className="text-text hover:text-primary font-medium px-2 py-1"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Trang chủ
-              </Link>
-              <Link 
-                to="/products" 
-                className="text-text hover:text-primary font-medium px-2 py-1"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Sản phẩm
-              </Link>
-              <Link 
-                to="#" 
-                className="text-text hover:text-primary font-medium px-2 py-1"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Giới thiệu
-              </Link>
-              <Link 
-                to="#" 
-                className="text-text hover:text-primary font-medium px-2 py-1"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Liên hệ
-              </Link>
-              
-              {/* Admin Menu in mobile - Only shown for admin users */}
-              {isAdmin && (
-                <Link 
-                  to="/admin" 
-                  className="text-primary hover:text-primary-dark font-medium px-2 py-1 flex items-center gap-2"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <LayoutDashboard className="h-4 w-4" />
-                  Quản trị
-                </Link>
-              )}
-            </nav>
+            
+            <MobileMenuToggle isOpen={mobileMenuOpen} onClick={toggleMobileMenu} />
           </div>
-        )}
+        </div>
       </div>
+      
+      {/* Mobile menu */}
+      <MobileNavigation isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
     </header>
   );
 };

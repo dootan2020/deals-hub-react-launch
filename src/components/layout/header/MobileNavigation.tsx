@@ -1,189 +1,98 @@
 
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight, Home, LayoutGrid, Contact, ShoppingCart, Menu, X } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
-import { useCategoriesContext } from '@/context/CategoriesContext';
+import { LogOut, User, CreditCard, Home, Package, Info, Phone } from 'lucide-react';
 
 interface MobileNavigationProps {
   isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
 }
 
-export function MobileNavigation({ isOpen, onOpenChange }: MobileNavigationProps) {
-  const { isAuthenticated, logout } = useAuth();
-  const { categories } = useCategoriesContext();
-  const navigate = useNavigate();
-  const [openCategory, setOpenCategory] = useState<string | null>(null);
-
-  const toggleCategory = (categoryId: string) => {
-    if (openCategory === categoryId) {
-      setOpenCategory(null);
-    } else {
-      setOpenCategory(categoryId);
+const MobileNavigation = ({ isOpen, onClose }: MobileNavigationProps) => {
+  const { isAuthenticated, logout, user } = useAuth();
+  
+  const handleLogout = async () => {
+    try {
+      await logout();
+      onClose();
+    } catch (error) {
+      console.error('Error logging out:', error);
     }
   };
 
-  const handleNavigate = (path: string) => {
-    navigate(path);
-    onOpenChange(false);
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    onOpenChange(false);
-    navigate('/login');
-  };
-
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="w-[85vw] sm:w-[350px] p-0">
-        <ScrollArea className="h-full py-6">
-          <div className="px-6 py-2 border-b">
-            <div className="font-semibold text-lg mb-1">Menu</div>
-            <div className="text-sm text-muted-foreground">
-              Browse our products and services
-            </div>
-          </div>
-          
-          <div className="px-2 py-4 space-y-1">
-            {/* Main Navigation */}
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start text-base font-normal h-12"
-              onClick={() => handleNavigate('/')}
-            >
-              <Home className="h-5 w-5 mr-2" />
-              Home
-            </Button>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.2 }}
+          className="md:hidden bg-white border-t border-gray-100 fixed left-0 right-0 top-16 z-50 shadow-lg"
+        >
+          <div className="py-2">
+            {/* Main navigation links */}
+            <Link to="/" onClick={onClose} className="flex items-center px-6 py-3 hover:bg-gray-50">
+              <Home size={18} className="mr-3 text-primary" />
+              <span>Trang chủ</span>
+            </Link>
             
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start text-base font-normal h-12"
-              onClick={() => handleNavigate('/products')}
-            >
-              <LayoutGrid className="h-5 w-5 mr-2" />
-              All Products
-            </Button>
+            <Link to="/products" onClick={onClose} className="flex items-center px-6 py-3 hover:bg-gray-50">
+              <Package size={18} className="mr-3 text-primary" />
+              <span>Sản phẩm</span>
+            </Link>
             
-            {/* Categories */}
-            <div className="py-1">
-              <div className="px-4 pb-1 pt-3 text-sm font-medium text-muted-foreground">
-                Categories
-              </div>
-              
-              {categories.map((category) => (
-                <Collapsible
-                  key={category.id}
-                  open={openCategory === category.id}
-                  onOpenChange={() => toggleCategory(category.id)}
-                  className="w-full"
-                >
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-between text-base font-normal h-12"
-                    >
-                      <span className="flex items-center">
-                        <span>{category.name}</span>
-                      </span>
-                      <ChevronDown
-                        className={`h-4 w-4 transition-transform ${
-                          openCategory === category.id ? 'transform rotate-180' : ''
-                        }`}
-                      />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="pl-4">
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start text-base font-normal h-12"
-                      onClick={() => handleNavigate(`/products?category=${category.slug}`)}
-                    >
-                      <ChevronRight className="h-4 w-4 mr-2" />
-                      All {category.name}
-                    </Button>
-                  </CollapsibleContent>
-                </Collapsible>
-              ))}
-            </div>
+            <Link to="/about" onClick={onClose} className="flex items-center px-6 py-3 hover:bg-gray-50">
+              <Info size={18} className="mr-3 text-primary" />
+              <span>Giới thiệu</span>
+            </Link>
             
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start text-base font-normal h-12"
-              onClick={() => handleNavigate('/support')}
-            >
-              <Contact className="h-5 w-5 mr-2" />
-              Support
-            </Button>
+            <Link to="/contact" onClick={onClose} className="flex items-center px-6 py-3 hover:bg-gray-50">
+              <Phone size={18} className="mr-3 text-primary" />
+              <span>Liên hệ</span>
+            </Link>
             
-            {/* Account links */}
-            <div className="py-1 mt-4 border-t pt-4">
-              <div className="px-4 pb-1 text-sm font-medium text-muted-foreground">
-                Account
-              </div>
-              
-              {isAuthenticated ? (
-                <>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start text-base font-normal h-12"
-                    onClick={() => handleNavigate('/dashboard')}
-                  >
-                    Dashboard
-                  </Button>
+            {/* Auth related links */}
+            {isAuthenticated ? (
+              <>
+                <div className="border-t border-gray-100 mt-2 pt-2">
+                  <Link to="/dashboard" onClick={onClose} className="flex items-center px-6 py-3 hover:bg-gray-50">
+                    <User size={18} className="mr-3 text-primary" />
+                    <span>Tài khoản</span>
+                  </Link>
                   
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start text-base font-normal h-12"
-                    onClick={() => handleNavigate('/account')}
-                  >
-                    My Account
-                  </Button>
+                  <Link to="/deposit" onClick={onClose} className="flex items-center px-6 py-3 hover:bg-gray-50">
+                    <CreditCard size={18} className="mr-3 text-primary" />
+                    <span>Nạp tiền</span>
+                  </Link>
                   
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start text-base font-normal h-12 text-red-500 hover:text-red-600 hover:bg-red-50"
+                  <button
                     onClick={handleLogout}
+                    className="w-full text-left flex items-center px-6 py-3 hover:bg-gray-50 text-red-600"
                   >
-                    Logout
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start text-base font-normal h-12"
-                    onClick={() => handleNavigate('/login')}
-                  >
-                    Login
-                  </Button>
-                  
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start text-base font-normal h-12"
-                    onClick={() => handleNavigate('/register')}
-                  >
-                    Register
-                  </Button>
-                </>
-              )}
-            </div>
+                    <LogOut size={18} className="mr-3" />
+                    <span>Đăng xuất</span>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="border-t border-gray-100 mt-2 pt-2">
+                <Link to="/login" onClick={onClose} className="flex items-center px-6 py-3 hover:bg-gray-50">
+                  <User size={18} className="mr-3 text-primary" />
+                  <span>Đăng nhập</span>
+                </Link>
+                <Link to="/register" onClick={onClose} className="flex items-center px-6 py-3 hover:bg-gray-50 font-medium text-primary">
+                  <span>Đăng ký</span>
+                </Link>
+              </div>
+            )}
           </div>
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
-}
+};
 
-export function MobileMenuToggle({ onToggle }: { onToggle: () => void }) {
-  return (
-    <Button variant="ghost" size="icon" className="md:hidden" onClick={onToggle}>
-      <Menu className="h-6 w-6" />
-    </Button>
-  );
-}
+export default MobileNavigation;
