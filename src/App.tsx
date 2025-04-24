@@ -65,7 +65,7 @@ const App = () => {
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/test-security" element={<TestSecurityPage />} />
         
-        {/* Auth verification routes - both with and without leading slash */}
+        {/* Auth verification routes - both with and without leading slash for compatibility */}
         <Route path="/auth/verify" element={<LoginPage />} />
         <Route path="auth/verify" element={<LoginPage />} />
         

@@ -21,7 +21,7 @@ export const useVerification = () => {
       console.log('Pathname:', window.location.pathname);
       console.log('Browser locale:', navigator.language);
       console.log('Using Supabase URL:', getSupabaseUrl());
-      console.log('================================================');
+      console.log('==========================================');
       
       console.log('Making supabase.auth.resend call with redirectTo:', redirectTo);
       const { error } = await supabase.auth.resend({

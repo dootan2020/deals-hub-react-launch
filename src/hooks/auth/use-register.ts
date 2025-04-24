@@ -46,7 +46,7 @@ export const useRegister = () => {
       console.log('Current hostname:', window.location.hostname);
       console.log('Using redirect URL:', redirectTo);
       console.log('User agent:', navigator.userAgent);
-      console.log('Window location:', window.location);
+      console.log('Window location href:', window.location.href);
       console.log('Protocol:', window.location.protocol);
       console.log('Host:', window.location.host);
       console.log('Pathname:', window.location.pathname);

@@ -31,9 +31,14 @@ export const supabase = createClient<Database>(
       storage: localStorage,
     },
     global: {
-      fetch: (input: RequestInfo | URL, init?: RequestInit) => {
+      fetch: (input, init) => {
         // Convert input to string for logging
-        const url = input instanceof Request ? input.url : input.toString();
+        const url = typeof input === 'string' 
+          ? input 
+          : input instanceof Request 
+            ? input.url 
+            : input.toString();
+            
         console.log(`🔄 Supabase request to: ${url}`);
         
         return fetch(input, init).then(response => {
@@ -108,9 +113,14 @@ export const getSiteUrl = () => {
   const hostname = window.location.hostname;
   const protocol = window.location.protocol;
   
-  // Format URL correctly without port for production
+  // Format URL correctly without port for production domains
   if (hostname === 'acczen.net' || hostname === 'www.acczen.net') {
     return `${protocol}//${hostname}`;
+  }
+  
+  // Handle Lovable preview URLs that have host-only formats
+  if (hostname.includes('lovable.app')) {
+    return window.location.origin;
   }
   
   // Include port for development environments
