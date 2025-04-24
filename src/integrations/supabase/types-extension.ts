@@ -1,8 +1,8 @@
-
 import { Database as OriginalDatabase } from './types';
 import { UserRole } from '@/types/auth.types';
 import { Deposit } from '@/types/deposits';
 import { Json } from './types';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // Define the Invoice interface
 export interface Invoice {
@@ -88,4 +88,16 @@ export interface Database extends OriginalDatabase {
     Enums: OriginalDatabase['public']['Enums'];
     CompositeTypes: OriginalDatabase['public']['CompositeTypes'];
   };
+}
+
+// Extend the SupabaseClient type to include get_all_users as a valid RPC function
+declare module '@supabase/supabase-js' {
+  interface SupabaseClient<D = any> {
+    rpc<T = any>(
+      fn: 'assign_role' | 'ban_user' | 'check_email_status' | 'check_registration_rate_limit' | 
+          'get_user_avg_purchase' | 'get_user_roles' | 'get_user_with_roles' | 
+          'insert_category' | 'update_user_balance' | 'get_all_users',
+      params?: any
+    ): Promise<{ data: T; error: null } | { data: null; error: Error }>;
+  }
 }
