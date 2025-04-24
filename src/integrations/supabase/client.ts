@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './types';
 
@@ -108,33 +107,29 @@ export const getPublicUrl = (bucketName: string, filePath: string) => {
   return data?.publicUrl;
 };
 
-// Trả về URL cho việc chuyển hướng xác thực email
+// Return site URL based on environment
 export const getSiteUrl = () => {
   const hostname = window.location.hostname;
   
-  // Luôn sử dụng URL production cho môi trường production
+  // Always use production URL for production environment
   if (hostname === 'acczen.net' || hostname === 'www.acczen.net') {
     return 'https://acczen.net';
   }
   
-  // Sử dụng Edge Function URL cho môi trường production để xử lý xác thực
-  if (hostname === 'acczen.net' || hostname === 'www.acczen.net') {
-    return 'https://xcpwyvrlutlslgaueokd.supabase.co/functions/v1/auth-redirect';
-  }
-  
-  // Sử dụng origin cho môi trường phát triển và các môi trường khác
+  // Use origin for development and other environments
   return window.location.origin;
 };
 
-// Trả về URL xác thực với token
+// Return the correct redirect URL for authentication
 export const getAuthRedirectUrl = () => {
   const hostname = window.location.hostname;
   
-  // Với môi trường production, sử dụng edge function proxy
+  // For production environment, always use the Edge Function proxy
   if (hostname === 'acczen.net' || hostname === 'www.acczen.net') {
+    // This URL pattern must match what's configured in the Supabase email template
     return 'https://xcpwyvrlutlslgaueokd.supabase.co/functions/v1/auth-redirect?redirect=https://acczen.net/auth/verified';
   }
   
-  // Đối với môi trường dev, sử dụng direct URL
-  return `${window.location.origin}/auth/verify`;
+  // For development environments, use the direct site URL
+  return `${window.location.origin}/auth/verified`;
 };

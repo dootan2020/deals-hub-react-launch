@@ -7,7 +7,7 @@ export const useVerification = () => {
     try {
       console.log('🔄 Resending verification email to:', email);
       
-      // Sử dụng helper function mới cho URL chuyển hướng
+      // Use the helper function for the redirect URL
       const redirectUrl = getAuthRedirectUrl();
       
       console.log('============ DETAILED VERIFICATION DEBUG INFO ============');

@@ -37,7 +37,7 @@ export const useRegister = () => {
         throw checkError;
       }
 
-      // Get the correct redirect URL based on current location using new helper
+      // Get the correct redirect URL based on current location using helper
       const redirectUrl = getAuthRedirectUrl();
       
       console.log('============ DETAILED REGISTRATION DEBUG INFO ============');

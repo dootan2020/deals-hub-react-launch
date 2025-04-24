@@ -30,4 +30,3 @@ verify_jwt = true
 
 [functions.auth-redirect]
 verify_jwt = false
-

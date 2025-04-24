@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 
-// Supabase client trong edge function, sử dụng service role cho quyền cao hơn
+// Supabase client with service role for higher privileges
 const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_URL") || "https://xcpwyvrlutlslgaueokd.supabase.co",
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
@@ -14,7 +14,7 @@ const supabaseAdmin = createClient(
   }
 );
 
-// CORS headers cần thiết
+// Required CORS headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -22,7 +22,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Xử lý CORS preflight requests
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: corsHeaders,
@@ -32,15 +32,19 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const token = url.searchParams.get("token");
+    
+    // Support both token and token_hash parameters (token_hash is the parameter name Supabase uses)
+    const token = url.searchParams.get("token") || url.searchParams.get("token_hash");
+    const type = url.searchParams.get("type") || "email";
     const redirectTo = url.searchParams.get("redirect") || "https://acczen.net/auth/verified";
     
-    console.log("Auth redirect handler running");
-    console.log("Token received:", token ? "***" + token.substring(token.length - 5) : "null");
-    console.log("Redirect URL:", redirectTo);
+    console.log("[auth-redirect] Function running");
+    console.log("[auth-redirect] Token received:", token ? "***" + token.substring(token.length - 5) : "null");
+    console.log("[auth-redirect] Token type:", type);
+    console.log("[auth-redirect] Redirect URL:", redirectTo);
     
     if (!token) {
-      console.error("No token provided");
+      console.error("[auth-redirect] No token provided");
       return new Response(
         JSON.stringify({ error: "Missing token parameter" }),
         {
@@ -50,21 +54,23 @@ serve(async (req) => {
       );
     }
     
-    // Xác thực token bằng Supabase Admin client
+    // Verify the token using Supabase Admin client
     const { data, error } = await supabaseAdmin.auth.verifyOtp({
       token_hash: token,
-      type: "email",
+      type: type,
     });
     
     if (error) {
-      console.error("Token verification failed:", error);
+      console.error("[auth-redirect] Token verification failed:", error);
+      console.error("[auth-redirect] Error code:", error.status);
+      console.error("[auth-redirect] Error message:", error.message);
       
-      // Tạo URL lỗi với thông tin để hiển thị cho người dùng
+      // Create error URL with information to display to the user
       const errorUrl = new URL(redirectTo);
       errorUrl.searchParams.append("error", error.message);
       errorUrl.searchParams.append("status", String(error.status || 400));
       
-      // Chuyển hướng đến trang lỗi
+      // Redirect to the error page
       return new Response(null, {
         status: 302,
         headers: {
@@ -74,15 +80,14 @@ serve(async (req) => {
       });
     }
     
-    console.log("Token verification successful, user:", data?.user?.id || "unknown");
+    console.log("[auth-redirect] Token verification successful");
+    console.log("[auth-redirect] User ID:", data?.user?.id || "unknown");
     
-    // Tạo URL thành công với thông tin session nếu có
+    // Create success URL with session information if available
     const successUrl = new URL(redirectTo);
-    if (data?.session) {
-      successUrl.searchParams.append("success", "true");
-    }
+    successUrl.searchParams.append("success", "true");
     
-    // Chuyển hướng đến trang thành công
+    // Redirect to the success page
     return new Response(null, {
       status: 302,
       headers: {
@@ -91,7 +96,7 @@ serve(async (req) => {
       },
     });
   } catch (err) {
-    console.error("Unexpected error in auth-redirect:", err);
+    console.error("[auth-redirect] Unexpected error:", err);
     
     return new Response(
       JSON.stringify({ error: "Server error processing authentication" }),
