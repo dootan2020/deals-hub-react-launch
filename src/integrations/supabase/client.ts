@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './types';
 
@@ -106,9 +107,14 @@ export const getPublicUrl = (bucketName: string, filePath: string) => {
 export const getSiteUrl = () => {
   const hostname = window.location.hostname;
   const protocol = window.location.protocol;
-  const port = window.location.port;
   
-  // Format URL correctly with or without port
+  // Format URL correctly without port for production
+  if (hostname === 'acczen.net' || hostname === 'www.acczen.net') {
+    return `${protocol}//${hostname}`;
+  }
+  
+  // Include port for development environments
+  const port = window.location.port;
   const siteUrl = port ? `${protocol}//${hostname}:${port}` : `${protocol}//${hostname}`;
   
   console.log('Generated site URL for auth:', siteUrl);

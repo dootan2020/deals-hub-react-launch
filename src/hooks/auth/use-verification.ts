@@ -9,15 +9,13 @@ export const useVerification = () => {
       
       // Get the correct redirect URL based on current location
       const siteUrl = getSiteUrl();
-      const hostname = window.location.hostname;
-      const redirectPath = '/auth/verify';
-      const redirectTo = `${siteUrl}${redirectPath}`;
+      const redirectTo = `${siteUrl}/auth/verify`;
       
       console.log('============ DETAILED VERIFICATION DEBUG INFO ============');
-      console.log('Current site URL:', siteUrl);
-      console.log('Current hostname:', hostname);
+      console.log('Current origin:', window.location.origin);
+      console.log('Current hostname:', window.location.hostname);
       console.log('Using verification redirect URL:', redirectTo);
-      console.log('Window location:', window.location);
+      console.log('Window location href:', window.location.href);
       console.log('Protocol:', window.location.protocol);
       console.log('Host:', window.location.host);
       console.log('Pathname:', window.location.pathname);

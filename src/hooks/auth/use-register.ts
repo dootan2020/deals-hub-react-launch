@@ -39,17 +39,11 @@ export const useRegister = () => {
 
       // Get the correct redirect URL based on current location
       const siteUrl = getSiteUrl();
-      const hostname = window.location.hostname;
-      
-      // Default redirect path
-      const redirectPath = '/auth/verify';
-      
-      // Construct the complete redirect URL
-      const redirectTo = `${siteUrl}${redirectPath}`;
+      const redirectTo = `${siteUrl}/auth/verify`;
       
       console.log('============ DETAILED REGISTRATION DEBUG INFO ============');
-      console.log('Current Site URL:', siteUrl);
-      console.log('Current hostname:', hostname);
+      console.log('Current origin:', window.location.origin);
+      console.log('Current hostname:', window.location.hostname);
       console.log('Using redirect URL:', redirectTo);
       console.log('User agent:', navigator.userAgent);
       console.log('Window location:', window.location);
@@ -74,7 +68,7 @@ export const useRegister = () => {
             registration_date: new Date().toISOString(),
             user_agent: navigator.userAgent,
             registration_origin: siteUrl,
-            registration_hostname: hostname,
+            registration_hostname: window.location.hostname,
           },
           emailRedirectTo: redirectTo,
         }
