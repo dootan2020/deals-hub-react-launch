@@ -39,8 +39,10 @@ const RegisterPage: React.FC = () => {
     setServerError(null);
 
     try {
-      // Get the user agent for security logging
-      const currentUserAgent = navigator.userAgent;
+      // Store the user agent for security logging
+      const userAgent = navigator.userAgent;
+      
+      console.log("Attempting to register with email:", values.email);
       
       // Register the user with Supabase
       const result = await register(values.email, values.password, {
@@ -52,7 +54,7 @@ const RegisterPage: React.FC = () => {
         type: 'login',
         email: values.email,
         ip_address: 'client-ip', // Will be resolved in the backend
-        user_agent: currentUserAgent,
+        user_agent: userAgent,
         success: true,
         metadata: {
           registration: true,
@@ -83,15 +85,15 @@ const RegisterPage: React.FC = () => {
       setServerError(errorMessage);
       toast.error("Đăng ký thất bại", errorMessage);
       
-      // Define currentUserAgent here to use for security logging
-      const currentUserAgent = navigator.userAgent;
+      // Store the user agent for security logging
+      const userAgent = navigator.userAgent;
       
       // Log the failed registration attempt
       await logSecurityEvent({
         type: 'login',
         email: values.email,
         ip_address: 'client-ip', // Will be resolved in the backend
-        user_agent: currentUserAgent,
+        user_agent: userAgent,
         success: false,
         metadata: {
           registration: true,
@@ -110,8 +112,8 @@ const RegisterPage: React.FC = () => {
     
     setIsLoading(true);
     try {
+      console.log("Attempting to resend verification email to:", registeredEmail);
       await resendVerificationEmail(registeredEmail);
-      console.log("Verification email resent to:", registeredEmail);
       
       // Start cooldown timer
       setResendCooldown(60);

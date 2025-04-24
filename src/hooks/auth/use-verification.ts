@@ -5,15 +5,24 @@ import { toast } from '@/hooks/use-toast';
 export const useVerification = () => {
   const resendVerificationEmail = async (email: string) => {
     try {
+      // Get the correct redirect URL based on current location
+      const origin = window.location.origin;
+      const redirectTo = `${origin}/auth/verify`;
+      
+      console.log('Using verification redirect URL:', redirectTo);
+      
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/verify`,
+          emailRedirectTo: redirectTo,
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Verification error details:", error);
+        throw error;
+      }
 
       toast.success(
         "Gửi lại email thành công",
@@ -24,9 +33,15 @@ export const useVerification = () => {
       return true;
     } catch (error: any) {
       console.error("Error sending verification email:", error);
+      let errorMessage = 'Không thể gửi lại email xác nhận';
+      
+      if (error.message) {
+        errorMessage = `Lỗi: ${error.message}`;
+      }
+      
       toast.error(
         "Gửi lại email thất bại",
-        error.message || 'Không thể gửi lại email xác nhận'
+        errorMessage
       );
       
       throw error;

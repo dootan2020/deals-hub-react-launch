@@ -25,6 +25,12 @@ export const useRegister = () => {
         throw new Error('Email already registered');
       }
 
+      // Get the correct redirect URL based on current location
+      const origin = window.location.origin;
+      const redirectTo = `${origin}/auth/verify`;
+      
+      console.log('Using redirect URL:', redirectTo);
+
       // Proceed with registration if email doesn't exist
       const { data, error } = await supabase.auth.signUp({ 
         email, 
@@ -37,7 +43,7 @@ export const useRegister = () => {
             registration_date: new Date().toISOString(),
             user_agent: navigator.userAgent,
           },
-          emailRedirectTo: `${window.location.origin}/auth/verify`,
+          emailRedirectTo: redirectTo,
         }
       });
       
@@ -63,7 +69,6 @@ export const useRegister = () => {
       
       console.error('Registration error:', error);
       toast.error("Đăng ký thất bại", message);
-      // Security event logging is now handled in RegisterPage.tsx
       throw error;
     }
   };
