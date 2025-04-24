@@ -5,14 +5,18 @@ import { Database } from './types';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://xcpwyvrlutlslgaueokd.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjcHd5dnJsdXRsc2xnYXVlb2tkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTMwMDAsImV4cCI6MjA2MDMyOTAwMH0.6uScHil1Q02Mz-x6p_GQui7vchxIYLRcOCd8UsNiOp0';
 
-// Log environment for debugging
+// Enhanced debug logging for auth issues
 console.log('============ SUPABASE CLIENT INIT ============');
 console.log('SUPABASE URL:', supabaseUrl);
 console.log('Environment:', import.meta.env.MODE || 'unknown');
 console.log('Current origin:', window.location.origin);
 console.log('Current hostname:', window.location.hostname);
+console.log('Current protocol:', window.location.protocol);
+console.log('Current pathname:', window.location.pathname);
+console.log('Current full URL:', window.location.href);
 console.log('==========================================');
 
+// Create Supabase client with expanded auth options
 export const supabase = createClient<Database>(
   supabaseUrl,
   supabaseAnonKey,
@@ -21,7 +25,22 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      flowType: 'pkce'
+      flowType: 'pkce',
+      debug: true, // Enable debug mode for auth
+      storage: localStorage,
+    },
+    global: {
+      fetch: (...args) => {
+        const [url, options] = args;
+        console.log(`🔄 Supabase request to: ${url}`);
+        return fetch(...args).then(response => {
+          console.log(`✅ Supabase response from: ${url}`, { status: response.status });
+          return response;
+        }).catch(error => {
+          console.error(`❌ Supabase request error for: ${url}`, error);
+          throw error;
+        });
+      }
     },
     realtime: {
       params: {
@@ -76,4 +95,17 @@ export const getPublicUrl = (bucketName: string, filePath: string) => {
     .getPublicUrl(filePath);
   
   return data?.publicUrl;
+};
+
+// Get current environment domain for redirects
+export const getSiteUrl = () => {
+  const hostname = window.location.hostname;
+  const protocol = window.location.protocol;
+  const port = window.location.port;
+  
+  // Format URL correctly with or without port
+  const siteUrl = port ? `${protocol}//${hostname}:${port}` : `${protocol}//${hostname}`;
+  
+  console.log('Generated site URL for auth:', siteUrl);
+  return siteUrl;
 };

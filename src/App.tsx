@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
 
 // Import pages
 import Home from './pages/Home';
@@ -34,7 +35,20 @@ const App = () => {
   console.log('Current hostname:', window.location.hostname);
   console.log('Current origin:', window.location.origin);
   console.log('Full URL:', window.location.href);
+  console.log('Supabase client URL:', supabase.supabaseUrl);
+  console.log('Supabase auth session storage type:', localStorage ? 'localStorage' : 'undefined');
   console.log('=======================================');
+
+  // Log auth state changes for debugging
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, !!session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   return (
     <BrowserRouter>
@@ -50,7 +64,8 @@ const App = () => {
         <Route path="/deposit/paypal" element={<PayPalDepositPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/test-security" element={<TestSecurityPage />} />
-        {/* Important: Both auth/verify and /auth/verify should work */}
+        
+        {/* Auth verification routes - both with and without leading slash */}
         <Route path="/auth/verify" element={<LoginPage />} />
         <Route path="auth/verify" element={<LoginPage />} />
         

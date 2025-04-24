@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,6 +11,7 @@ import { useRegister } from '@/hooks/auth/use-register';
 import { useVerification } from '@/hooks/auth/use-verification';
 import { toast } from '@/hooks/use-toast';
 import { logSecurityEvent } from '@/utils/security';
+import { supabase } from '@/integrations/supabase/client';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -21,6 +22,18 @@ const RegisterPage: React.FC = () => {
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Log environment info on page load
+  useEffect(() => {
+    console.log('============ REGISTER PAGE ENVIRONMENT INFO ============');
+    console.log('Current URL:', window.location.href);
+    console.log('Origin:', window.location.origin);
+    console.log('Pathname:', window.location.pathname);
+    console.log('User agent:', navigator.userAgent);
+    console.log('Locale:', navigator.language);
+    console.log('Using Supabase URL:', supabase.supabaseUrl);
+    console.log('=============================================');
+  }, []);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -37,6 +50,12 @@ const RegisterPage: React.FC = () => {
   const handleSubmit = async (values: RegisterFormValues) => {
     setIsLoading(true);
     setServerError(null);
+    
+    console.log('🚀 Registration form submitted:', { 
+      email: values.email,
+      displayName: values.displayName,
+      passwordLength: values.password?.length || 0
+    });
 
     try {
       // Store the user agent for security logging
@@ -49,18 +68,25 @@ const RegisterPage: React.FC = () => {
         display_name: values.displayName,
       });
       
+      console.log("Registration API call completed successfully:", result);
+      
       // Log the successful registration attempt
-      await logSecurityEvent({
-        type: 'login',
-        email: values.email,
-        ip_address: 'client-ip', // Will be resolved in the backend
-        user_agent: userAgent,
-        success: true,
-        metadata: {
-          registration: true,
-          display_name: values.displayName,
-        }
-      });
+      try {
+        await logSecurityEvent({
+          type: 'login',
+          email: values.email,
+          ip_address: 'client-ip', // Will be resolved in the backend
+          user_agent: userAgent,
+          success: true,
+          metadata: {
+            registration: true,
+            display_name: values.displayName,
+          }
+        });
+      } catch (logError) {
+        console.error("Error logging security event:", logError);
+        // Non-blocking - continue with registration flow
+      }
       
       // Set success state to show verification message
       setRegistrationSuccess(true);
@@ -72,12 +98,23 @@ const RegisterPage: React.FC = () => {
 
       console.log("Registration successful, verification email sent to:", values.email);
     } catch (error: any) {
+      console.error("❌ REGISTRATION ERROR:", error);
+      
+      // Detailed error logging
+      if (error.code) console.error("Error code:", error.code);
+      if (error.status) console.error("Error status:", error.status);
+      if (error.message) console.error("Error message:", error.message);
+      
       let errorMessage = 'Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại.';
       
       if (error.message?.includes('already registered')) {
         errorMessage = 'Email này đã được sử dụng. Vui lòng đăng nhập hoặc sử dụng email khác.';
       } else if (error.message?.includes('password')) {
         errorMessage = 'Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số.';
+      } else if (error.status === 429) {
+        errorMessage = 'Quá nhiều yêu cầu. Vui lòng thử lại sau.';
+      } else if (error.status >= 500) {
+        errorMessage = 'Lỗi máy chủ. Vui lòng thử lại sau.';
       } else if (typeof error.message === 'string') {
         errorMessage = `Lỗi đăng ký: ${error.message}`;
       }
@@ -89,17 +126,21 @@ const RegisterPage: React.FC = () => {
       const userAgent = navigator.userAgent;
       
       // Log the failed registration attempt
-      await logSecurityEvent({
-        type: 'login',
-        email: values.email,
-        ip_address: 'client-ip', // Will be resolved in the backend
-        user_agent: userAgent,
-        success: false,
-        metadata: {
-          registration: true,
-          error: error.message
-        }
-      });
+      try {
+        await logSecurityEvent({
+          type: 'login',
+          email: values.email,
+          ip_address: 'client-ip', // Will be resolved in the backend
+          user_agent: userAgent,
+          success: false,
+          metadata: {
+            registration: true,
+            error: error.message
+          }
+        });
+      } catch (logError) {
+        console.error("Error logging security event:", logError);
+      }
 
       console.error("Registration error:", error);
     } finally {
