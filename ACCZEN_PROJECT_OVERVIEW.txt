@@ -1,0 +1,62 @@
+
+# AccZen.net Project Overview
+
+## Project Details
+- Name: AccZen.net
+- Type: Digital Marketplace for MMO Products
+- Technologies:
+  * Frontend: React (TypeScript)
+  * Styling: Tailwind CSS
+  * State Management: Supabase, React Context
+  * UI Components: Shadcn/ui
+  * Routing: React Router
+
+## Key Features
+1. User Authentication
+2. Digital Product Sales
+3. Automated Delivery System
+4. PayPal Integration
+5. User Dashboard
+6. Admin Management Panel
+
+## Main Pages
+- Home Page
+- Products Listing
+- Product Details
+- Login/Register
+- User Dashboard
+- Deposit Page
+- Contact Page
+- About Page
+- Terms of Service
+- Privacy Policy
+- Warranty Information
+
+## System Architecture
+- Frontend: React + Vite
+- Backend: Supabase Functions
+- Authentication: Supabase Auth
+- Database: Supabase PostgreSQL
+- Payment: PayPal Integration
+
+## Performance Targets
+- TTFB: < 200ms
+- LCP: < 2.5s
+- Responsive Design: Mobile, Tablet, Desktop
+
+## Security Measures
+- Role-Based Access Control (RBAC)
+- Row Level Security (RLS)
+- JWT Authentication
+- Email Verification
+- Rate Limiting
+
+## Deployment
+- Hosting: Lovable Platform
+- CI/CD: Integrated with Lovable
+
+## Contact
+- Support Email: support@acczen.net
+- Website: https://acczen.net
+
+Generated on: #{new Date().toLocaleString()}
