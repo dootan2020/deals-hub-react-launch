@@ -7,12 +7,18 @@ export const useVerification = () => {
     try {
       // Get the correct redirect URL based on current location
       const origin = window.location.origin;
+      const hostname = window.location.hostname;
       const redirectPath = '/auth/verify';
       const redirectTo = `${origin}${redirectPath}`;
       
-      console.log('============ VERIFICATION DEBUG INFO ============');
+      console.log('============ DETAILED VERIFICATION DEBUG INFO ============');
       console.log('Current origin:', origin);
+      console.log('Current hostname:', hostname);
       console.log('Using verification redirect URL:', redirectTo);
+      console.log('Window location:', window.location);
+      console.log('Protocol:', window.location.protocol);
+      console.log('Host:', window.location.host);
+      console.log('Pathname:', window.location.pathname);
       console.log('================================================');
       
       const { error } = await supabase.auth.resend({
@@ -28,15 +34,18 @@ export const useVerification = () => {
         throw error;
       }
 
+      console.log("Verification email resend successful");
+      console.log("Email sent to:", email);
+      console.log("With redirect URL:", redirectTo);
+
       toast.success(
         "Gửi lại email thành công",
         "Vui lòng kiểm tra hộp thư của bạn để xác nhận tài khoản."
       );
 
-      console.log("Verification email sent to:", email);
       return true;
     } catch (error: any) {
-      console.error("Error sending verification email:", error);
+      console.error("Error sending verification email (full details):", error);
       let errorMessage = 'Không thể gửi lại email xác nhận';
       
       if (error.message) {

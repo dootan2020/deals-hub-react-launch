@@ -29,6 +29,13 @@ import ContactPage from './pages/ContactPage';
 import { adminRoutes } from './routes/adminRoutes';
 
 const App = () => {
+  console.log('============ APP INIT DEBUG INFO ============');
+  console.log('Current path:', window.location.pathname);
+  console.log('Current hostname:', window.location.hostname);
+  console.log('Current origin:', window.location.origin);
+  console.log('Full URL:', window.location.href);
+  console.log('=======================================');
+
   return (
     <BrowserRouter>
       <Toaster />
@@ -43,7 +50,9 @@ const App = () => {
         <Route path="/deposit/paypal" element={<PayPalDepositPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/test-security" element={<TestSecurityPage />} />
-        <Route path="/auth/verify" element={<LoginPage />} /> {/* Email verification route */}
+        {/* Important: Both auth/verify and /auth/verify should work */}
+        <Route path="/auth/verify" element={<LoginPage />} />
+        <Route path="auth/verify" element={<LoginPage />} />
         
         {/* Standard content pages */}
         <Route path="/about" element={<AboutPage />} />
