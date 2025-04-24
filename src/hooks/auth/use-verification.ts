@@ -7,9 +7,13 @@ export const useVerification = () => {
     try {
       // Get the correct redirect URL based on current location
       const origin = window.location.origin;
-      const redirectTo = `${origin}/auth/verify`;
+      const redirectPath = '/auth/verify';
+      const redirectTo = `${origin}${redirectPath}`;
       
+      console.log('============ VERIFICATION DEBUG INFO ============');
+      console.log('Current origin:', origin);
       console.log('Using verification redirect URL:', redirectTo);
+      console.log('================================================');
       
       const { error } = await supabase.auth.resend({
         type: 'signup',

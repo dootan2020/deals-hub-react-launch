@@ -43,7 +43,7 @@ const App = () => {
         <Route path="/deposit/paypal" element={<PayPalDepositPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/test-security" element={<TestSecurityPage />} />
-        <Route path="/auth/verify" element={<LoginPage />} /> {/* Add verify route */}
+        <Route path="/auth/verify" element={<LoginPage />} /> {/* Email verification route */}
         
         {/* Standard content pages */}
         <Route path="/about" element={<AboutPage />} />

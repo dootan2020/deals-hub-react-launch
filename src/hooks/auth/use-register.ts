@@ -27,11 +27,22 @@ export const useRegister = () => {
 
       // Get the correct redirect URL based on current location
       const origin = window.location.origin;
-      const redirectTo = `${origin}/auth/verify`;
+      const hostname = window.location.hostname;
       
+      // Default redirect path
+      const redirectPath = '/auth/verify';
+      
+      // Construct the complete redirect URL
+      const redirectTo = `${origin}${redirectPath}`;
+      
+      console.log('============ REGISTRATION DEBUG INFO ============');
+      console.log('Current origin:', origin);
+      console.log('Current hostname:', hostname);
       console.log('Using redirect URL:', redirectTo);
+      console.log('User agent:', navigator.userAgent);
+      console.log('================================================');
 
-      // Proceed with registration if email doesn't exist
+      // Proceed with registration
       const { data, error } = await supabase.auth.signUp({ 
         email, 
         password,
@@ -42,6 +53,7 @@ export const useRegister = () => {
             registration_ip: await fetchClientIP(),
             registration_date: new Date().toISOString(),
             user_agent: navigator.userAgent,
+            registration_origin: origin,
           },
           emailRedirectTo: redirectTo,
         }
