@@ -51,6 +51,7 @@ export const useRegister = () => {
       }
       
       console.error('Registration error:', error);
+      toast.error("Đăng ký thất bại", message);
       // Security event logging is now handled in RegisterPage.tsx
       throw error;
     }

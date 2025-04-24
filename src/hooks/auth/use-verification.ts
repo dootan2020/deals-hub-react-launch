@@ -20,8 +20,10 @@ export const useVerification = () => {
         "Vui lòng kiểm tra hộp thư của bạn để xác nhận tài khoản."
       );
 
+      console.log("Verification email sent to:", email);
       return true;
     } catch (error: any) {
+      console.error("Error sending verification email:", error);
       toast.error(
         "Gửi lại email thất bại",
         error.message || 'Không thể gửi lại email xác nhận'

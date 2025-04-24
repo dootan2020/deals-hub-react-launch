@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -66,6 +67,8 @@ const RegisterPage: React.FC = () => {
         "Đăng ký thành công",
         "Vui lòng kiểm tra email của bạn để xác nhận tài khoản."
       );
+
+      console.log("Registration successful, verification email sent to:", values.email);
     } catch (error: any) {
       let errorMessage = 'Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại.';
       
@@ -95,6 +98,8 @@ const RegisterPage: React.FC = () => {
           error: error.message
         }
       });
+
+      console.error("Registration error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -106,6 +111,7 @@ const RegisterPage: React.FC = () => {
     setIsLoading(true);
     try {
       await resendVerificationEmail(registeredEmail);
+      console.log("Verification email resent to:", registeredEmail);
       
       // Start cooldown timer
       setResendCooldown(60);
