@@ -1,5 +1,5 @@
 
-import { supabase, getSiteUrl } from '@/integrations/supabase/client';
+import { supabase, getSiteUrl, getSupabaseUrl } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { isTemporaryEmail, fetchClientIP } from './auth-utils';
 import { logSecurityEvent } from '@/utils/security';
@@ -57,7 +57,7 @@ export const useRegister = () => {
       console.log('Host:', window.location.host);
       console.log('Pathname:', window.location.pathname);
       console.log('Browser locale:', navigator.language);
-      console.log('Using Supabase URL:', supabase.supabaseUrl);
+      console.log('Using Supabase URL:', getSupabaseUrl());
       console.log('============================================');
 
       // Proceed with registration

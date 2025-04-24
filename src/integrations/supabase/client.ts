@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './types';
 
@@ -49,6 +50,9 @@ export const supabase = createClient<Database>(
     }
   }
 );
+
+// Export the URL for use in other files
+export const getSupabaseUrl = () => supabaseUrl;
 
 // Configure Realtime client for order updates
 export const configureRealtimeForOrders = () => {

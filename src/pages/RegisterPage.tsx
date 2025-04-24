@@ -11,7 +11,7 @@ import { useRegister } from '@/hooks/auth/use-register';
 import { useVerification } from '@/hooks/auth/use-verification';
 import { toast } from '@/hooks/use-toast';
 import { logSecurityEvent } from '@/utils/security';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getSupabaseUrl } from '@/integrations/supabase/client';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ const RegisterPage: React.FC = () => {
     console.log('Pathname:', window.location.pathname);
     console.log('User agent:', navigator.userAgent);
     console.log('Locale:', navigator.language);
-    console.log('Using Supabase URL:', supabase.supabaseUrl);
+    console.log('Using Supabase URL:', getSupabaseUrl());
     console.log('=============================================');
   }, []);
 

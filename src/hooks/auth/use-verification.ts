@@ -1,5 +1,5 @@
 
-import { supabase, getSiteUrl } from '@/integrations/supabase/client';
+import { supabase, getSiteUrl, getSupabaseUrl } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 export const useVerification = () => {
@@ -22,7 +22,7 @@ export const useVerification = () => {
       console.log('Host:', window.location.host);
       console.log('Pathname:', window.location.pathname);
       console.log('Browser locale:', navigator.language);
-      console.log('Using Supabase URL:', supabase.supabaseUrl);
+      console.log('Using Supabase URL:', getSupabaseUrl());
       console.log('================================================');
       
       console.log('Making supabase.auth.resend call with redirectTo:', redirectTo);

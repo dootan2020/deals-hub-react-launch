@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from "sonner";
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getSupabaseUrl } from '@/integrations/supabase/client';
 
 // Import pages
 import Home from './pages/Home';
@@ -35,7 +35,7 @@ const App = () => {
   console.log('Current hostname:', window.location.hostname);
   console.log('Current origin:', window.location.origin);
   console.log('Full URL:', window.location.href);
-  console.log('Supabase client URL:', supabase.supabaseUrl);
+  console.log('Supabase client URL:', getSupabaseUrl());
   console.log('Supabase auth session storage type:', localStorage ? 'localStorage' : 'undefined');
   console.log('=======================================');
 
