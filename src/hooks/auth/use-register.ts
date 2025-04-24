@@ -11,6 +11,16 @@ export const useRegister = () => {
         throw new Error('Temporary email domains are not allowed');
       }
 
+      // First, check if the email already exists
+      const { data: emailCheck } = await supabase.rpc('check_email_status', { 
+        email_param: email 
+      });
+      
+      if (emailCheck && emailCheck.length > 0 && emailCheck[0].email_exists) {
+        throw new Error('Email already registered');
+      }
+
+      // Proceed with registration if email doesn't exist
       const { data, error } = await supabase.auth.signUp({ 
         email, 
         password,
@@ -32,7 +42,7 @@ export const useRegister = () => {
     } catch (error: any) {
       let message = 'Lỗi khi đăng ký';
       
-      if (error.message.includes('already registered')) {
+      if (error.message.includes('already registered') || error.code === '42P10') {
         message = 'Email này đã được đăng ký';
       } else if (error.message.includes('password')) {
         message = 'Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số';
@@ -40,6 +50,7 @@ export const useRegister = () => {
         message = 'Không chấp nhận email tạm thời. Vui lòng sử dụng địa chỉ email chính thức';
       }
       
+      console.error('Registration error:', error);
       // Security event logging is now handled in RegisterPage.tsx
       throw error;
     }
