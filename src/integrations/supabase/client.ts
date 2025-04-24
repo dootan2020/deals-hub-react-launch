@@ -108,25 +108,33 @@ export const getPublicUrl = (bucketName: string, filePath: string) => {
   return data?.publicUrl;
 };
 
-// Get current environment domain for redirects
+// Trả về URL cho việc chuyển hướng xác thực email
 export const getSiteUrl = () => {
   const hostname = window.location.hostname;
-  const protocol = window.location.protocol;
   
-  // Format URL correctly without port for production domains
+  // Luôn sử dụng URL production cho môi trường production
   if (hostname === 'acczen.net' || hostname === 'www.acczen.net') {
-    return `${protocol}//${hostname}`;
+    return 'https://acczen.net';
   }
   
-  // Handle Lovable preview URLs that have host-only formats
-  if (hostname.includes('lovable.app')) {
-    return window.location.origin;
+  // Sử dụng Edge Function URL cho môi trường production để xử lý xác thực
+  if (hostname === 'acczen.net' || hostname === 'www.acczen.net') {
+    return 'https://xcpwyvrlutlslgaueokd.supabase.co/functions/v1/auth-redirect';
   }
   
-  // Include port for development environments
-  const port = window.location.port;
-  const siteUrl = port ? `${protocol}//${hostname}:${port}` : `${protocol}//${hostname}`;
+  // Sử dụng origin cho môi trường phát triển và các môi trường khác
+  return window.location.origin;
+};
+
+// Trả về URL xác thực với token
+export const getAuthRedirectUrl = () => {
+  const hostname = window.location.hostname;
   
-  console.log('Generated site URL for auth:', siteUrl);
-  return siteUrl;
+  // Với môi trường production, sử dụng edge function proxy
+  if (hostname === 'acczen.net' || hostname === 'www.acczen.net') {
+    return 'https://xcpwyvrlutlslgaueokd.supabase.co/functions/v1/auth-redirect?redirect=https://acczen.net/auth/verified';
+  }
+  
+  // Đối với môi trường dev, sử dụng direct URL
+  return `${window.location.origin}/auth/verify`;
 };

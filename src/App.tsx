@@ -16,6 +16,7 @@ import NotFound from './pages/NotFound';
 import PayPalDepositPage from './pages/PayPalDepositPage';
 import UnauthorizedPage from './pages/auth/UnauthorizedPage';
 import TestSecurityPage from './pages/TestSecurityPage';
+import VerifiedPage from './pages/auth/VerifiedPage'; // Import trang xác thực thành công
 
 // Import standard content pages
 import AboutPage from './pages/AboutPage';
@@ -65,9 +66,11 @@ const App = () => {
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/test-security" element={<TestSecurityPage />} />
         
-        {/* Auth verification routes - both with and without leading slash for compatibility */}
+        {/* Auth verification routes - cả hai không và có dấu gạch chéo leading để tương thích */}
         <Route path="/auth/verify" element={<LoginPage />} />
         <Route path="auth/verify" element={<LoginPage />} />
+        <Route path="/auth/verified" element={<VerifiedPage />} />
+        <Route path="auth/verified" element={<VerifiedPage />} />
         
         {/* Standard content pages */}
         <Route path="/about" element={<AboutPage />} />

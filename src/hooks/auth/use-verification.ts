@@ -1,5 +1,5 @@
 
-import { supabase, getSiteUrl, getSupabaseUrl } from '@/integrations/supabase/client';
+import { supabase, getAuthRedirectUrl, getSupabaseUrl } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 export const useVerification = () => {
@@ -7,14 +7,13 @@ export const useVerification = () => {
     try {
       console.log('🔄 Resending verification email to:', email);
       
-      // Get the correct redirect URL based on current location
-      const siteUrl = getSiteUrl();
-      const redirectTo = `${siteUrl}/auth/verify`;
+      // Sử dụng helper function mới cho URL chuyển hướng
+      const redirectUrl = getAuthRedirectUrl();
       
       console.log('============ DETAILED VERIFICATION DEBUG INFO ============');
       console.log('Current origin:', window.location.origin);
       console.log('Current hostname:', window.location.hostname);
-      console.log('Using verification redirect URL:', redirectTo);
+      console.log('Using verification redirect URL:', redirectUrl);
       console.log('Window location href:', window.location.href);
       console.log('Protocol:', window.location.protocol);
       console.log('Host:', window.location.host);
@@ -23,12 +22,12 @@ export const useVerification = () => {
       console.log('Using Supabase URL:', getSupabaseUrl());
       console.log('==========================================');
       
-      console.log('Making supabase.auth.resend call with redirectTo:', redirectTo);
+      console.log('Making supabase.auth.resend call with redirectTo:', redirectUrl);
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email,
         options: {
-          emailRedirectTo: redirectTo,
+          emailRedirectTo: redirectUrl,
         }
       });
 
@@ -42,7 +41,7 @@ export const useVerification = () => {
 
       console.log("✅ Verification email resend successful");
       console.log("Email sent to:", email);
-      console.log("With redirect URL:", redirectTo);
+      console.log("With redirect URL:", redirectUrl);
 
       toast.success(
         "Gửi lại email thành công",

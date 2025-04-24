@@ -1,5 +1,5 @@
 
-import { supabase, getSiteUrl, getSupabaseUrl } from '@/integrations/supabase/client';
+import { supabase, getAuthRedirectUrl, getSupabaseUrl } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { isTemporaryEmail, fetchClientIP } from './auth-utils';
 import { logSecurityEvent } from '@/utils/security';
@@ -37,14 +37,13 @@ export const useRegister = () => {
         throw checkError;
       }
 
-      // Get the correct redirect URL based on current location
-      const siteUrl = getSiteUrl();
-      const redirectTo = `${siteUrl}/auth/verify`;
+      // Get the correct redirect URL based on current location using new helper
+      const redirectUrl = getAuthRedirectUrl();
       
       console.log('============ DETAILED REGISTRATION DEBUG INFO ============');
       console.log('Current origin:', window.location.origin);
       console.log('Current hostname:', window.location.hostname);
-      console.log('Using redirect URL:', redirectTo);
+      console.log('Using redirect URL:', redirectUrl);
       console.log('User agent:', navigator.userAgent);
       console.log('Window location href:', window.location.href);
       console.log('Protocol:', window.location.protocol);
@@ -55,7 +54,7 @@ export const useRegister = () => {
       console.log('============================================');
 
       // Proceed with registration
-      console.log('Making supabase.auth.signUp call with redirectTo:', redirectTo);
+      console.log('Making supabase.auth.signUp call with redirectTo:', redirectUrl);
       
       const { data, error } = await supabase.auth.signUp({ 
         email, 
@@ -67,10 +66,10 @@ export const useRegister = () => {
             registration_ip: await fetchClientIP(),
             registration_date: new Date().toISOString(),
             user_agent: navigator.userAgent,
-            registration_origin: siteUrl,
+            registration_origin: window.location.origin,
             registration_hostname: window.location.hostname,
           },
-          emailRedirectTo: redirectTo,
+          emailRedirectTo: redirectUrl,
         }
       });
       
@@ -84,7 +83,7 @@ export const useRegister = () => {
       
       console.log('✅ Registration successful:', data);
       console.log('Confirmation email should be sent to:', email);
-      console.log('With redirect URL:', redirectTo);
+      console.log('With redirect URL:', redirectUrl);
       
       return { ...data, registrationSuccess: true };
     } catch (error: any) {

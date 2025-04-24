@@ -27,3 +27,7 @@ enabled = true
 [functions]
 [functions.syncProductFromTaphoammo]
 verify_jwt = true
+
+[functions.auth-redirect]
+verify_jwt = false
+
