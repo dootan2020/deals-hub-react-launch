@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { UserWithRolesRow, SimplifiedUser } from '@/integrations/supabase/types-extension';
 
@@ -26,7 +27,7 @@ export async function logSecurityEvent(event: SecurityEvent) {
 
 export async function getUserWithRoles(userId?: string): Promise<UserWithRolesRow | null> {
   try {
-    const { data, error } = await supabase.rpc<'get_user_with_roles'>('get_user_with_roles', {
+    const { data, error } = await supabase.rpc('get_user_with_roles', {
       user_id_param: userId,
     });
 
@@ -40,7 +41,7 @@ export async function getUserWithRoles(userId?: string): Promise<UserWithRolesRo
 
 export async function getAllUsers(): Promise<SimplifiedUser[] | null> {
   try {
-    const { data, error } = await supabase.rpc<'get_all_users'>('get_all_users');
+    const { data, error } = await supabase.rpc('get_all_users');
 
     if (error) throw error;
     return Array.isArray(data) ? data as SimplifiedUser[] : null;
