@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './types';
 
@@ -31,11 +30,12 @@ export const supabase = createClient<Database>(
       storage: localStorage,
     },
     global: {
-      fetch: (...args) => {
-        // Fix: Properly type and handle the fetch arguments
-        const url = args[0];
+      fetch: (input: RequestInfo | URL, init?: RequestInit) => {
+        // Convert input to string for logging
+        const url = input instanceof Request ? input.url : input.toString();
         console.log(`🔄 Supabase request to: ${url}`);
-        return fetch(...args).then(response => {
+        
+        return fetch(input, init).then(response => {
           console.log(`✅ Supabase response from: ${url}`, { status: response.status });
           return response;
         }).catch(error => {
