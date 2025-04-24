@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { isTemporaryEmail, fetchClientIP } from './auth-utils';
+import { logSecurityEvent } from '@/utils/security';
 
 export const useRegister = () => {
   const register = async (email: string, password: string, metadata?: Record<string, any>) => {
@@ -27,11 +28,6 @@ export const useRegister = () => {
       
       if (error) throw error;
       
-      toast.success(
-        "Đăng ký thành công",
-        "Vui lòng kiểm tra email của bạn để xác nhận tài khoản."
-      );
-      
       return { ...data, registrationSuccess: true };
     } catch (error: any) {
       let message = 'Lỗi khi đăng ký';
@@ -44,8 +40,7 @@ export const useRegister = () => {
         message = 'Không chấp nhận email tạm thời. Vui lòng sử dụng địa chỉ email chính thức';
       }
       
-      toast.error("Đăng ký thất bại", message);
-      
+      // Security event logging is now handled in RegisterPage.tsx
       throw error;
     }
   };

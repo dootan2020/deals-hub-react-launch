@@ -1,3 +1,4 @@
+
 import { Database as OriginalDatabase } from './types';
 import { UserRole } from '@/types/auth.types';
 import { Deposit } from '@/types/deposits';
