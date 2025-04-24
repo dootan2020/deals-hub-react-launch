@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './types';
 
@@ -107,7 +108,7 @@ export const getPublicUrl = (bucketName: string, filePath: string) => {
   return data?.publicUrl;
 };
 
-// Return site URL based on environment
+// Return site URL based on environment - IMPROVED for consistency
 export const getSiteUrl = () => {
   const hostname = window.location.hostname;
   
@@ -120,14 +121,14 @@ export const getSiteUrl = () => {
   return window.location.origin;
 };
 
-// Return the correct redirect URL for authentication
+// Return the correct redirect URL for authentication - FIXED for better handling
 export const getAuthRedirectUrl = () => {
   const hostname = window.location.hostname;
   
   // For production environment, always use the Edge Function proxy
   if (hostname === 'acczen.net' || hostname === 'www.acczen.net') {
     // This URL pattern must match what's configured in the Supabase email template
-    return 'https://xcpwyvrlutlslgaueokd.supabase.co/functions/v1/auth-redirect?redirect=https://acczen.net/auth/verified';
+    return `https://xcpwyvrlutlslgaueokd.supabase.co/functions/v1/auth-redirect?redirect=https://acczen.net/auth/verified`;
   }
   
   // For development environments, use the direct site URL

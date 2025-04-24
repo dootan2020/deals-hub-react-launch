@@ -16,7 +16,7 @@ const supabaseAdmin = createClient(
 
 // Required CORS headers
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "*", // In production, you should restrict this to your domain
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
@@ -34,11 +34,12 @@ serve(async (req) => {
     const url = new URL(req.url);
     
     // Support both token and token_hash parameters (token_hash is the parameter name Supabase uses)
-    const token = url.searchParams.get("token") || url.searchParams.get("token_hash");
+    const token = url.searchParams.get("token") || url.searchParams.get("token_hash") || url.searchParams.get("type");
     const type = url.searchParams.get("type") || "email";
     const redirectTo = url.searchParams.get("redirect") || "https://acczen.net/auth/verified";
     
     console.log("[auth-redirect] Function running");
+    console.log("[auth-redirect] Parameters received:", Object.fromEntries(url.searchParams));
     console.log("[auth-redirect] Token received:", token ? "***" + token.substring(token.length - 5) : "null");
     console.log("[auth-redirect] Token type:", type);
     console.log("[auth-redirect] Redirect URL:", redirectTo);
