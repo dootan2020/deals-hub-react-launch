@@ -40,7 +40,7 @@ const RegisterPage: React.FC = () => {
 
     try {
       // Getting the client IP and user agent for security logging
-      const userAgent = navigator.userAgent;
+      const currentUserAgent = navigator.userAgent;
       
       // Register the user with Supabase
       const result = await register(values.email, values.password, {
@@ -52,7 +52,7 @@ const RegisterPage: React.FC = () => {
         type: 'login',
         email: values.email,
         ip_address: 'client-ip', // Will be resolved in the backend
-        user_agent: userAgent,
+        user_agent: currentUserAgent,
         success: true,
         metadata: {
           registration: true,
@@ -86,7 +86,7 @@ const RegisterPage: React.FC = () => {
         type: 'login',
         email: values.email,
         ip_address: 'client-ip', // Will be resolved in the backend
-        user_agent: userAgent,
+        user_agent: currentUserAgent,
         success: false,
         metadata: {
           registration: true,

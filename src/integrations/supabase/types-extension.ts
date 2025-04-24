@@ -93,7 +93,7 @@ export interface Database extends OriginalDatabase {
 
 // Extend the SupabaseClient type to include get_all_users as a valid RPC function
 declare module '@supabase/supabase-js' {
-  interface SupabaseClient<D = any> {
+  interface SupabaseClient {
     rpc<T = any>(
       fn: 'assign_role' | 'ban_user' | 'check_email_status' | 'check_registration_rate_limit' | 
           'get_user_avg_purchase' | 'get_user_roles' | 'get_user_with_roles' | 

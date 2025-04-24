@@ -39,11 +39,20 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Order } from '@/types';
 
+interface OrderWithDetails extends Order {
+  user?: {
+    email: string;
+  };
+  product?: {
+    title: string;
+  };
+}
+
 const AdminOrders = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+  const [currentOrder, setCurrentOrder] = useState<OrderWithDetails | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -64,8 +73,8 @@ const AdminOrders = () => {
       
       if (error) throw error;
       
-      // Type assertion to help TypeScript understand the structure
-      setOrders(data as Order[] || []);
+      // Type assertion to handle the extended Order type
+      setOrders(data as unknown as OrderWithDetails[]);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Không thể tải danh sách đơn hàng');
