@@ -39,7 +39,7 @@ const RegisterPage: React.FC = () => {
     setServerError(null);
 
     try {
-      // Getting the client IP and user agent for security logging
+      // Get the user agent for security logging
       const currentUserAgent = navigator.userAgent;
       
       // Register the user with Supabase
@@ -72,9 +72,9 @@ const RegisterPage: React.FC = () => {
     } catch (error: any) {
       let errorMessage = 'Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại.';
       
-      if (error.message.includes('already registered')) {
+      if (error.message?.includes('already registered')) {
         errorMessage = 'Email này đã được sử dụng. Vui lòng đăng nhập hoặc sử dụng email khác.';
-      } else if (error.message.includes('password')) {
+      } else if (error.message?.includes('password')) {
         errorMessage = 'Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số.';
       } else if (typeof error.message === 'string') {
         errorMessage = `Lỗi đăng ký: ${error.message}`;
@@ -83,7 +83,7 @@ const RegisterPage: React.FC = () => {
       setServerError(errorMessage);
       toast.error("Đăng ký thất bại", errorMessage);
       
-      // Define currentUserAgent here to fix the undefined variable issue
+      // Define currentUserAgent here to use for security logging
       const currentUserAgent = navigator.userAgent;
       
       // Log the failed registration attempt
@@ -125,6 +125,10 @@ const RegisterPage: React.FC = () => {
         });
       }, 1000);
       
+      toast.success(
+        "Gửi lại email thành công",
+        "Vui lòng kiểm tra hộp thư của bạn để xác nhận tài khoản."
+      );
     } catch (error) {
       console.error('Error resending verification:', error);
       toast.error(

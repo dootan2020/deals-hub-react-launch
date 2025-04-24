@@ -8,7 +8,7 @@ import Home from './pages/Home';
 import ProductsPage from './pages/ProductsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import LoginPage from './pages/LoginPage';
-import Register from './pages/register'; // Import the default export from register.tsx
+import { RegisterPage } from './pages/RegisterPage'; // Use named import for RegisterPage
 import DashboardPage from './pages/DashboardPage';
 import DepositPage from './pages/DepositPage';
 import NotFound from './pages/NotFound';
@@ -37,7 +37,7 @@ const App = () => {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/product/:slug" element={<ProductDetailPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/deposit" element={<DepositPage />} />
         <Route path="/deposit/paypal" element={<PayPalDepositPage />} />

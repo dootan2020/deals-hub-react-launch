@@ -12,11 +12,16 @@ export const useRegister = () => {
       }
 
       // First, check if the email already exists
-      const { data: emailCheck } = await supabase.rpc('check_email_status', { 
+      const { data: emailCheck, error: checkError } = await supabase.rpc('check_email_status', { 
         email_param: email 
       });
       
-      if (emailCheck && emailCheck.length > 0 && emailCheck[0].email_exists) {
+      if (checkError) {
+        console.error('Error checking email status:', checkError);
+        throw new Error('Unable to verify email status. Please try again.');
+      }
+      
+      if (emailCheck && emailCheck.length > 0 && emailCheck[0]?.email_exists) {
         throw new Error('Email already registered');
       }
 
@@ -36,18 +41,24 @@ export const useRegister = () => {
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase signUp error:', error);
+        throw error;
+      }
       
+      console.log('Registration successful:', data);
       return { ...data, registrationSuccess: true };
     } catch (error: any) {
       let message = 'Lỗi khi đăng ký';
       
-      if (error.message.includes('already registered') || error.code === '42P10') {
+      if (error.message?.includes('already registered') || error.code === '42P10') {
         message = 'Email này đã được đăng ký';
-      } else if (error.message.includes('password')) {
+      } else if (error.message?.includes('password')) {
         message = 'Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số';
-      } else if (error.message.includes('Temporary email')) {
+      } else if (error.message?.includes('Temporary email')) {
         message = 'Không chấp nhận email tạm thời. Vui lòng sử dụng địa chỉ email chính thức';
+      } else if (error.message) {
+        message = `Lỗi đăng ký: ${error.message}`;
       }
       
       console.error('Registration error:', error);
